@@ -385,8 +385,8 @@ namespace DataStandardizer.File.vCard
         /// </para>
         /// <para>
         /// Setting another encoding relaxes that rule, for data known to break it.  The encoding is then used as it is: <see cref="Encoding.UTF8"/>
-        /// replaces invalid data instead of rejecting it, and an encoding with a preamble has it removed from the start of the data, whatever
-        /// <see cref="AcceptByteOrderMark"/> says.  A decoder that throws <see cref="System.Text.DecoderFallbackException"/> gives a
+        /// replaces invalid data instead of rejecting it.  A reader never removes the encoding's preamble, so a byte order mark is still accepted
+        /// only by <see cref="AcceptByteOrderMark"/>.  A decoder that throws <see cref="System.Text.DecoderFallbackException"/> gives a
         /// <see cref="VcardFileException"/>.  A writer writes the encoding's preamble, if it has one, at the start of the data.
         /// </para>
         /// <para>

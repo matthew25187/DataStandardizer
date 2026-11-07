@@ -1160,6 +1160,66 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void ReadLine_Utf8ByteOrderMarkWithUtf8EncodingWithPreamble_Throws()
+        {
+            // arrange
+            var options = new VcardOptions { Encoding = Encoding.UTF8 };
+            using (var reader = CreateStreamReader(Utf8ByteOrderMarkLine, options))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_Utf16ByteOrderMarkWithUtf16Encoding_Throws()
+        {
+            // arrange
+            var options = new VcardOptions { Encoding = Encoding.Unicode };
+            using (var reader = CreateStreamReader(Utf16ByteOrderMarkLine, options))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AcceptByteOrderMarkWithUtf8EncodingWithPreamble_SkipsIt()
+        {
+            // arrange
+            var options = new VcardOptions { Encoding = Encoding.UTF8, AcceptByteOrderMark = true };
+            using (var reader = CreateStreamReader(Utf8ByteOrderMarkLine, options))
+            {
+                // act
+                var testResult = reader.ReadLine();
+
+                // assert
+                testResult.Name.Should().Be(NameOfLineA);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AcceptByteOrderMarkWithUtf16Encoding_SkipsIt()
+        {
+            // arrange
+            var options = new VcardOptions { Encoding = Encoding.Unicode, AcceptByteOrderMark = true };
+            using (var reader = CreateStreamReader(Utf16ByteOrderMarkLine, options))
+            {
+                // act
+                var testResult = reader.ReadLine();
+
+                // assert
+                testResult.Name.Should().Be(NameOfLineA);
+            }
+        }
+
+        [Fact]
         public void ReadLine_ByteOrderMarkCharacterFromTextReader_Throws()
         {
             // arrange
