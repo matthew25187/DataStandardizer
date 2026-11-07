@@ -49,6 +49,7 @@ namespace DataStandardizer.File.CSV
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
+        private string[]? _duplicateHeaderFieldNames;
         private FieldPlan? _fieldPlan;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
@@ -56,6 +57,7 @@ namespace DataStandardizer.File.CSV
         private readonly TextReader _reader = null!;
 #else
         [MaybeNull] private CsvContext _context;
+        [MaybeNull] private string[] _duplicateHeaderFieldNames;
         [MaybeNull] private FieldPlan _fieldPlan;
         [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
         [MaybeNull] private CsvFileHeaderLine _headerLine;
@@ -211,7 +213,9 @@ namespace DataStandardizer.File.CSV
         /// -or-
         /// A field contained an invalid value.
         /// -or-
-        /// Duplicate field names were detected.
+        /// Duplicate field names were detected.  Once the header line, or the field names given by
+        /// <see cref="CsvFileOptions.HeaderHandler"/>, contain duplicates, every later call throws the same error and
+        /// reads no further lines.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The terminator line break option is empty.</exception>
@@ -223,6 +227,12 @@ namespace DataStandardizer.File.CSV
 #endif
         {
             ThrowIfDisposed();
+
+            // Records can't be read without valid field names, so a duplicate field names error is permanent.
+            if (_duplicateHeaderFieldNames != null)
+            {
+                throw BuildDuplicateFieldNamesException(_duplicateHeaderFieldNames);
+            }
 
             var rawFieldValues = _rawFieldValues;
             while (TryReadRecord(rawFieldValues))
@@ -242,21 +252,17 @@ namespace DataStandardizer.File.CSV
                 {
                     case CsvFileHeaderHandling.Use when _headerLine is null:
                     {
-                        var headerLine = new CsvFileHeaderLine();
-                        headerLine.EnsureFieldCapacity(rawFieldValues.Count);
-                        csvLine = _headerLine = headerLine;
-
                         // Make sure all field names are unique.
                         var duplicateFieldNames = GetDuplicateFieldNames(rawFieldValues);
                         if (duplicateFieldNames.Length > 0)
                         {
-                            var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
-                            var dataItems = new Dictionary<string, object>
-                            {
-                                { DataItemName.FieldNames, duplicateFieldNames }
-                            };
-                            throw BuildException(message, dataItems);
+                            _duplicateHeaderFieldNames = duplicateFieldNames;
+                            throw BuildDuplicateFieldNamesException(duplicateFieldNames);
                         }
+
+                        var headerLine = new CsvFileHeaderLine();
+                        headerLine.EnsureFieldCapacity(rawFieldValues.Count);
+                        csvLine = _headerLine = headerLine;
 
                         // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
                         foreach (var fieldValue in rawFieldValues)
@@ -279,20 +285,21 @@ namespace DataStandardizer.File.CSV
 
                         if (_headerFieldNames is null)
                         {
-                            _headerFieldNames = _headerLine?.FieldNames;
-                            if (_headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
+                            var headerFieldNames = _headerLine?.FieldNames;
+                            if (headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
                             {
-                                _headerFieldNames = headerHandler(_headerLine);
+                                headerFieldNames = headerHandler(_headerLine);
 
                                 // Check for duplicate names.
-                                var duplicateFieldNames = GetDuplicateFieldNames(_headerFieldNames);
+                                var duplicateFieldNames = GetDuplicateFieldNames(headerFieldNames);
                                 if (duplicateFieldNames.Length > 0)
                                 {
-                                    var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
-                                    var dataItems = new Dictionary<string, object> { { DataItemName.FieldNames, duplicateFieldNames } };
-                                    throw BuildException(message, dataItems);
+                                    _duplicateHeaderFieldNames = duplicateFieldNames;
+                                    throw BuildDuplicateFieldNamesException(duplicateFieldNames);
                                 }
                             }
+
+                            _headerFieldNames = headerFieldNames;
                         }
 
                         var fieldPlan = GetFieldPlan((TRecordLine)csvLine);
@@ -359,6 +366,17 @@ namespace DataStandardizer.File.CSV
                 return _context ?? (_context = new CsvContext(RegisteredMappers, _options));
 #pragma warning restore IDE0074
             }
+        }
+
+        /// <summary>
+        /// Builds the exception reporting duplicate field names, with its own copy of the names so a caller can't change
+        /// what a later call reports.
+        /// </summary>
+        private static CsvFileException BuildDuplicateFieldNamesException(string[] duplicateFieldNames)
+        {
+            var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
+            var dataItems = new Dictionary<string, object> { { DataItemName.FieldNames, (string[])duplicateFieldNames.Clone() } };
+            return BuildException(message, dataItems);
         }
 
         [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
