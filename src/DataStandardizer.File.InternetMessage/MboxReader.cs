@@ -48,7 +48,7 @@ namespace DataStandardizer.File.InternetMessage
     /// </remarks>
     public sealed class MboxReader : IDisposable
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
-        , IAsyncDisposable
+        , IAsyncDisposable, ICancellationRecorder
 #endif
     {
         private const int MessageBufferSize = 16 * 1024;
@@ -312,7 +312,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Reads the next message asynchronously, skipping what is left of the current one.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is canceled, and the reader then cannot
+        /// continue.</param>
         /// <returns>A task whose result is the message with its separator line, or <c>null</c> at the end of the file.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed while the read is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
@@ -320,7 +321,10 @@ namespace DataStandardizer.File.InternetMessage
         /// An earlier read found an error in the format of the file, or was canceled, so the reader cannot continue.</exception>
         /// <exception cref="ImfFileException">By the task: the message or the file breaks a rule of its format that the options don't accept, or passes a limit.  Its
         /// <see cref="ImfFileException.DataItemName.MessageIndex"/> item says which message.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the read failed with an
+        /// <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/> was canceled.  The task is canceled.  An
+        /// <see cref="OperationCanceledException"/> from the stream while <paramref name="cancellationToken"/> isn't canceled faults the task, as any other exception from
+        /// it does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task<MboxEntry?> ReadMessageAsync(CancellationToken cancellationToken = default)
 #else
@@ -330,20 +334,24 @@ namespace DataStandardizer.File.InternetMessage
             // Errors in how the reader is used are thrown now; errors in the data, and cancellation, go to the task.
             ThrowIfDisposed();
             BeginRead();
-            return ReadMessageCoreAsync(cancellationToken);
+            return AsyncOutcome.Decide(ReadMessageCoreAsync(cancellationToken), cancellationToken, this);
         }
 
         /// <summary>
         /// Moves to the next message asynchronously, skipping what is left of the current one, and gives a reader of its events, as <see cref="ReadEntityEvents"/> describes.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is canceled, and the reader then cannot
+        /// continue.</param>
         /// <returns>A task whose result is a reader of the events of the message, or <c>null</c> at the end of the file.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed while the read is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
         /// An earlier read found an error in the format of the file, or was canceled, so the reader cannot continue.</exception>
         /// <exception cref="ImfFileException">By the task: the file breaks a rule of its format that the options don't accept, or passes a limit.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the read failed with an
+        /// <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/> was canceled.  The task is canceled.  An
+        /// <see cref="OperationCanceledException"/> from the stream while <paramref name="cancellationToken"/> isn't canceled faults the task, as any other exception from
+        /// it does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task<ImfEntityReader?> ReadEntityEventsAsync(CancellationToken cancellationToken = default)
 #else
@@ -352,7 +360,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             ThrowIfDisposed();
             BeginRead();
-            return ReadEntityEventsCoreAsync(cancellationToken);
+            return AsyncOutcome.Decide(ReadEntityEventsCoreAsync(cancellationToken), cancellationToken, this);
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -377,7 +385,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 throw;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _isCanceled = true;
                 throw;
@@ -399,7 +407,7 @@ namespace DataStandardizer.File.InternetMessage
                 cancellationToken.ThrowIfCancellationRequested();
                 return await MoveToMessageAsync(cancellationToken).ConfigureAwait(false) ? CreateEntityReader() : null;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _isCanceled = true;
                 throw;
@@ -431,14 +439,19 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets the next bytes of the current message asynchronously, for its stream.
         /// </summary>
-        internal async Task<int> ReadContentAsync(Memory<byte> destination, bool isOwnOperation, CancellationToken cancellationToken)
+        internal Task<int> ReadContentAsync(Memory<byte> destination, bool isOwnOperation, CancellationToken cancellationToken)
+        {
+            return AsyncOutcome.Decide(ReadContentOperationAsync(destination, isOwnOperation, cancellationToken), cancellationToken, this);
+        }
+
+        private async Task<int> ReadContentOperationAsync(Memory<byte> destination, bool isOwnOperation, CancellationToken cancellationToken)
         {
             if (isOwnOperation) BeginRead();
             try
             {
                 return await ReadContentCoreAsync(destination, cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _isCanceled = true;
                 throw;
@@ -579,6 +592,13 @@ namespace DataStandardizer.File.InternetMessage
 
             return false;
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        void ICancellationRecorder.RecordCancellation()
+        {
+            _isCanceled = true;
+        }
+#endif
 
         /// <summary>
         /// Marks a read as in progress.

@@ -231,7 +231,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <returns>A task that completes once any operation in progress has finished, and the file has been closed.</returns>
         public ValueTask DisposeAsync()
         {
-            return _output.MarkDisposed() ? _output.ReleaseAsync() : _output.WaitForReleaseAsync();
+            return _output.MarkDisposed() ? AsyncOutcome.Decide(_output.ReleaseAsync(), CancellationToken.None, _output) : _output.WaitForReleaseAsync();
         }
 #endif
 
@@ -356,20 +356,23 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Flushes the stream asynchronously, whether the writer opened it or it was supplied by the caller.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the flush is canceled, the writer cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The flush is canceled only if this token is canceled, and the writer then cannot
+        /// continue.</param>
         /// <returns>A task that completes once the stream has been flushed.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the
         /// flush is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
         /// An earlier write failed or was canceled, so the writer cannot continue.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the operation failed with an
+        /// <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/> was canceled.  The task is canceled.  An
+        /// <see cref="OperationCanceledException"/> while <paramref name="cancellationToken"/> isn't canceled faults the task, as any other exception does.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the I/O, and cancellation, go to the task.
             _output.ThrowIfDisposed();
             _output.BeginOperation();
-            return FlushCoreAsync(cancellationToken);
+            return AsyncOutcome.Decide(FlushCoreAsync(cancellationToken), cancellationToken, _output);
         }
 
         /// <summary>
@@ -383,7 +386,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="progress">Receives the progress after each block of output has been handed to the stream, synchronously on the writing thread; or
         /// <c>null</c>.  An exception from <see cref="IProgress{T}.Report"/> ends the call, leaving the message incomplete.  <see cref="Progress{T}"/> runs its handler later, so writing
         /// doesn't wait for the handler, and an exception from the handler doesn't end the call.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is canceled, and the writer then cannot
+        /// continue.</param>
         /// <returns>A task that completes once the whole message has been handed to the stream.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the
         /// write is in progress.</exception>
@@ -393,7 +397,9 @@ namespace DataStandardizer.File.InternetMessage
         /// An earlier write failed or was canceled, so the writer cannot continue.</exception>
         /// <exception cref="ImfFileException">By the task: the message can't be written: its <see cref="ImfFileException.DataItemName.EntityPath"/> item says
         /// which entity is at fault.  Nothing has been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the operation failed with an
+        /// <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/> was canceled.  The task is canceled.  An
+        /// <see cref="OperationCanceledException"/> while <paramref name="cancellationToken"/> isn't canceled faults the task, as any other exception does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteMessageAsync(ImfEntitySource message, IProgress<ImfWriteProgress>? progress = null, CancellationToken cancellationToken = default)
 #else
@@ -405,7 +411,7 @@ namespace DataStandardizer.File.InternetMessage
                 throw new ArgumentNullException(nameof(message));
 
             _output.BeginOperation();
-            return WriteMessageCoreAsync(message, progress, cancellationToken);
+            return AsyncOutcome.Decide(WriteMessageCoreAsync(message, progress, cancellationToken), cancellationToken, _output);
         }
 
         private async Task FlushCoreAsync(CancellationToken cancellationToken)
@@ -416,7 +422,7 @@ namespace DataStandardizer.File.InternetMessage
                 await _output.FlushAsync(cancellationToken).ConfigureAwait(false);
                 _output.ThrowIfDisposed();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _output.MarkBroken();
                 throw;
@@ -492,7 +498,7 @@ namespace DataStandardizer.File.InternetMessage
                     }
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _output.MarkBroken();
                 throw;
