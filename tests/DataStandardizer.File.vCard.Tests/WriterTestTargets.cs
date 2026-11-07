@@ -285,6 +285,11 @@ namespace DataStandardizer.File.vCard.Tests
             _createException = createException;
         }
 
+        /// <summary>
+        /// Gets or sets a callback that each write runs before it throws.  A test uses it to dispose of the writer during a write.
+        /// </summary>
+        public Action OnWrite { get; set; }
+
         public override Encoding Encoding => new UTF8Encoding(false);
 
         public override void Write(char value)
@@ -294,12 +299,14 @@ namespace DataStandardizer.File.vCard.Tests
 
         public override Task WriteAsync(char[] buffer, int index, int count)
         {
+            OnWrite?.Invoke();
             throw _createException();
         }
 
 #if NETCOREAPP2_1_OR_GREATER
         public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
         {
+            OnWrite?.Invoke();
             throw _createException();
         }
 #endif
