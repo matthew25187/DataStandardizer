@@ -41,6 +41,20 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Returns the outcome of an operation with a result that threw <paramref name="exception"/>.
+        /// </summary>
+        /// <param name="exception">The exception the operation threw.</param>
+        /// <param name="cancellationToken">The token the caller passed to the operation.</param>
+        /// <returns>A canceled task if the operation is canceled; otherwise a task faulted with <paramref name="exception"/>.</returns>
+        internal static ValueTask<TResult> Fail<TResult>(Exception exception, CancellationToken cancellationToken)
+        {
+            if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
+                return new ValueTask<TResult>(Task.FromCanceled<TResult>(cancellationToken));
+
+            return new ValueTask<TResult>(Task.FromException<TResult>(exception));
+        }
+
+        /// <summary>
         /// Returns the task that an operation's outcome completes as.  An outcome that is already known costs nothing more; only one that has to
         /// wait is unwrapped.
         /// </summary>

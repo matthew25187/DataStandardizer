@@ -62,6 +62,12 @@ continue.
 Each card is checked once its jCard object has been read, as `VcardCard.Validate()` does, against the same rules and [VcardOptions](VcardOptions.md) as `VcardReader`. The first problem
 the options don't accept throws `VcardFileException` with the card index and property in its `Data`, and reading can continue with the next card.
 
+An asynchronous read is canceled only when the token passed to it is canceled, whatever token the `OperationCanceledException` carries, or if it carries
+none. The task is then canceled. An `OperationCanceledException` from the stream while that token isn't canceled faults the task, as any other failure of
+the source does. Either way, the reader can't continue: later reads throw `InvalidOperationException`. During `ReadCardsAsync`, awaiting `MoveNextAsync`
+throws either one, but its task is canceled for both on every target, as an async iterator's always is for an `OperationCanceledException`. Check the
+token to tell which it was.
+
 Only one read may be in progress at a time.
 
 ## Applies to
