@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace DataStandardizer.Communication.IntegrationTests
+namespace DataStandardizer.Communication.Tests
 {
     /// <summary>
     /// Sets <see cref="CultureInfo.CurrentCulture"/> for the lifetime of the scope, and restores the culture it replaced when disposed.

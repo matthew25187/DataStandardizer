@@ -1,4 +1,5 @@
-﻿using DataStandardizer.Geography;
+﻿using DataStandardizer.Communication.Tests;
+using DataStandardizer.Geography;
 using FluentAssertions;
 using Xunit;
 

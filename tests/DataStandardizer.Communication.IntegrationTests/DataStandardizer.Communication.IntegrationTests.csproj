@@ -14,11 +14,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The character set test data and the test doubles that feed an encoding in blocks are shared with the unit tests. -->
+    <!-- The character set test data, the test doubles that feed an encoding in blocks, and the scope that sets the current culture
+         are shared with the unit tests. -->
     <Compile Include="..\DataStandardizer.Communication.Tests\Mime\MimeCharsetResolverTestData.cs" Link="Mime\MimeCharsetResolverTestData.cs" />
     <Compile Include="..\DataStandardizer.Communication.Tests\Mime\BlockStream.cs" Link="Mime\BlockStream.cs" />
     <Compile Include="..\DataStandardizer.Communication.Tests\Mime\CharacterAtATimeWriter.cs" Link="Mime\CharacterAtATimeWriter.cs" />
     <Compile Include="..\DataStandardizer.Communication.Tests\Mime\EncodingBlocks.cs" Link="Mime\EncodingBlocks.cs" />
+    <Compile Include="..\DataStandardizer.Communication.Tests\CultureScope.cs" Link="CultureScope.cs" />
   </ItemGroup>
 
   <ItemGroup>
