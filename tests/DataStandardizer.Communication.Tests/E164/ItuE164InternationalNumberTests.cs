@@ -54,6 +54,10 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TooLongNumber = "9911012345678901";
         private const string NotANumber = "Not A Number";
 
+        // Sixteen digits, one more than ITU-T E.164 §6.1 allows, after a Country Code for a geographic area (211) and for a global service (800).
+        private const string TooLongGeographicAreaNumber = "2111234567890123";
+        private const string TooLongGlobalServiceNumber = "8001234567890123";
+
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
         {
             { "38831565550100", 38831565550100L },
@@ -1267,6 +1271,20 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // act
             var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.None),
+         InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.None),
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite)]
+        public void TryParse_SixteenDigitsWithoutInternationalPrefixSymbolStyle_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
 
             // assert
             testResult.Should().BeFalse();
