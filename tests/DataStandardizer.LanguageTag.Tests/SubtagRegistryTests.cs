@@ -321,7 +321,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             using (var cancellationTokenSource = new CancellationTokenSource())
-            using (var subtagRegistryStream = new CancelAtEndStream(Encoding.UTF8.GetBytes("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\n"), cancellationTokenSource))
+            using (var subtagRegistryStream = new CancelAtEndStream(Encoding.UTF8.GetBytes("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n"), cancellationTokenSource))
             {
                 // act
                 Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
@@ -765,7 +765,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TagRecordLists_WhenCastToMutableList_CannotBeChanged(string listName, Action<SubtagRegistrySubtagRecord> change)
         {
             // arrange
-            var record = SubtagRegistry.CreateFromContent("Type: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16").Languages[0];
+            var record = SubtagRegistry.CreateFromContent("File-Date: 2025-01-01\n%%\nType: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16").Languages[0];
 
             // act
             Action testAction = () => change(record);
@@ -933,7 +933,8 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var registry = SubtagRegistry.CreateFromContent(
-                "Type: language\nSubtag: ab\nDescription: Other\n%%\nType: language\nSubtag: AA\nDescription: First\n%%\nType: language\nSubtag: aa\nDescription: Second\n%%\nType: language\nSubtag: zz\nDescription: Other");
+                "File-Date: 2025-01-01\n%%\nType: language\nSubtag: ab\nDescription: Other\nAdded: 2005-10-16\n%%\nType: language\nSubtag: AA\nDescription: First\nAdded: 2005-10-16\n%%\n" +
+                "Type: language\nSubtag: aa\nDescription: Second\nAdded: 2005-10-16\n%%\nType: language\nSubtag: zz\nDescription: Other\nAdded: 2005-10-16");
 
             // act
             var testResult = registry.TryGetSubtag(SubtagRegistryRecordType.Language, subtag, out var record);
@@ -1000,7 +1001,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void IsGrandfathered_ForRecordOfTagThatTheAbnfDoesNotList_ReturnsTrue()
         {
             // arrange
-            var registry = SubtagRegistry.CreateFromContent("Type: grandfathered\nTag: a-bb\nDescription: T");
+            var registry = SubtagRegistry.CreateFromContent("File-Date: 2025-01-01\n%%\nType: grandfathered\nTag: a-bb\nDescription: T\nAdded: 2005-10-16");
 
             // act
             var testResult = registry.IsGrandfathered("a-bb");
@@ -1031,7 +1032,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldIsFolded_JoinsLinesWithOneSpace(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "Type: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first \n  second\n   third\nAdded: 2005-10-16";
+            const string content = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first \n  second\n   third\nAdded: 2005-10-16";
 
             // act
             var testResult = await load(content);
@@ -1063,7 +1064,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldNameIsUnknown_ReadsItAsSeparateField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "Type: language\nSubtag: qaa\nDescription: Private use\nFuture-Field: some value\nAdded: 2005-10-16";
+            const string content = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: qaa\nDescription: Private use\nFuture-Field: some value\nAdded: 2005-10-16";
 
             // act
             var testResult = await load(content);
@@ -1076,10 +1077,31 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFromContent_WhenFieldsThatRfcDoesNotDefineRepeatOrAreInFileDateRecord_ReadsThem(string loaderName, Func<string, Task<SubtagRegistry>> load)
+        {
+            // arrange
+            const string content = "File-Date: 2025-01-01\nFuture-Field: one\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\nFuture-Field: two\nFuture-Field: three";
+
+            // act
+            var testResult = await load(content);
+
+            // assert
+            testResult.Count.Should().Be(2, "{0} ignores fields that RFC 5646 §3.1.2 doesn't define when it checks the record rules", loaderName);
+            testResult.Languages.Should().ContainSingle().Which.Fields.Should().Equal(
+                new KeyValuePair<string, string>(TypeFieldName, LanguageType),
+                new KeyValuePair<string, string>("Subtag", "aa"),
+                new KeyValuePair<string, string>("Description", "Afar"),
+                new KeyValuePair<string, string>(AddedFieldName, "2005-10-16"),
+                new KeyValuePair<string, string>("Future-Field", "two"),
+                new KeyValuePair<string, string>("Future-Field", "three"));
+        }
+
+        [Theory]
+        [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
         public async Task CreateFromContent_WhenFieldSeparatorHasSpaces_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "Type  :  language\nSubtag : qaa\nDescription: Private use\nAdded: 2005-10-16";
+            const string content = "File-Date: 2025-01-01\n%%\nType  :  language\nSubtag : qaa\nDescription: Private use\nAdded: 2005-10-16";
 
             // act
             var testResult = await load(content);
@@ -1156,7 +1178,7 @@ namespace DataStandardizer.LanguageTag.Tests
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 0000-02-29",
                 "The Added field at line 6 has the value '0000-02-29', a full-date in the year 0000, which is before the year 0001 that a DateTime starts at."),
             ("File-Date: 2025-01-01\n%%\nType: grandfathered\nTag: i-ami\nDescription: Amis\nAdded: 1999-05-25\nDeprecated: 2009-07-29\nDeprecated: 2009-7-29",
-                "The Deprecated field at line 8 has the value '2009-7-29', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+                "The Deprecated field at line 8 is the second in its record, which may have only one (ref. RFC 5646 §3.1.2)."),
             // the kind of record is told by its File-Date, Subtag or Tag field, and its type by its Type field, which each need a value
             ("File-Date: 2025-01-01\n%%\nType:\nSubtag: aa",
                 "The Type field at line 3 has no value (ref. RFC 5646 §3.1.2)."),
@@ -1164,18 +1186,37 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The Subtag field at line 4 has no value (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtg: en\nDescription: English",
                 "The record at line 3 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\n%%\nType: language\nDescription: No subtag or tag",
-                "The record at line 6 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n%%\nType: language\nDescription: No subtag or tag",
+                "The record at line 8 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nTag: aa",
                 "The record at line 3 has more than one of the File-Date, Subtag and Tag fields (ref. RFC 5646 §3.1.2)."),
+            // the first record is the File-Date record, which occurs once and has a single field
+            ("Type: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+                "The first record, at line 1, is not the File-Date record (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nFile-Date: 2025-01-02",
+                "The record at line 3 is a second File-Date record, which occurs only once, as the first record (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\nComments: Test\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+                "The File-Date record at line 1 has a field other than File-Date (ref. RFC 5646 §3.1.2)."),
+            // every tag and subtag record has a Description and an Added field
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nAdded: 2005-10-16",
+                "The record at line 3 has no Description field (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription:\nAdded: 2005-10-16",
+                "The Description field at line 5 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar",
+                "The record at line 3 has no Added field (ref. RFC 5646 §3.1.2)."),
+            // a field other than Description, Comments and Prefix appears at most once in a record
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nSubtag: ab\nDescription: Afar\nAdded: 2005-10-16",
+                "The Subtag field at line 5 is the second in its record, which may have only one (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nType: script\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+                "The Type field at line 4 is the second in its record, which may have only one (ref. RFC 5646 §3.1.2)."),
             // every tag and subtag record has a Type, which is one of the values of §3.1.3 that goes with its Tag or Subtag field
-            ("File-Date: 2025-01-01\n%%\nSubtag: aa\nDescription: Afar",
+            ("File-Date: 2025-01-01\n%%\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
                 "The record at line 3 has no Type field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: future\nSubtag: qaa",
+            ("File-Date: 2025-01-01\n%%\nType: future\nSubtag: qaa\nDescription: Private use\nAdded: 2005-10-16",
                 "The record at line 3 has the Type 'future', which is not one that RFC 5646 §3.1.3 defines."),
-            ("File-Date: 2025-01-01\n%%\nType: grandfathered\nSubtag: i-klingon",
+            ("File-Date: 2025-01-01\n%%\nType: grandfathered\nSubtag: i-klingon\nDescription: Klingon\nAdded: 1999-05-26",
                 "The record at line 3 has a Subtag field, but its Type 'grandfathered' is one whose records have a Tag field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nTag: aa",
+            ("File-Date: 2025-01-01\n%%\nType: language\nTag: aa\nDescription: Afar\nAdded: 2005-10-16",
                 "The record at line 3 has a Tag field, but its Type 'language' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2)."),
         };
 

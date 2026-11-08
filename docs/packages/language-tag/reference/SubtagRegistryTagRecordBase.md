@@ -28,8 +28,8 @@ loaded, so reading one only returns the stored value.
 (RFC 5646 §3.1.2), so each returns every value, in registry order, as a list
 that can't be changed. Each list is created the first time it is read, and the
 same list is returned after that. A record without the field returns an empty
-list. Where a field that may appear only once appears more than once, the
-first is used.
+list. Every other field appears at most once in a record; a registry where
+one appears twice fails to load.
 
 `Added` and `Deprecated` are read from the `yyyy-MM-dd` full-date of RFC 3339
 (RFC 5646 §3.1.1). A registry with a date in any other form fails to load with a
