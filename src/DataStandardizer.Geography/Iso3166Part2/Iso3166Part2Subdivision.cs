@@ -110,9 +110,14 @@ namespace DataStandardizer.Geography
             }
             if ((this._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
-            return this._value.CompareTo(obj);
+            string? otherValue = ((DataStandardizer.Geography.Iso3166Part2Subdivision)(obj))._value;
+            if ((otherValue == null))
+            {
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
+            }
+            return string.CompareOrdinal(this._value, otherValue);
         }
         
         public override bool Equals(object? obj)
@@ -162,9 +167,14 @@ namespace DataStandardizer.Geography
             }
             if ((this._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
-            return ((System.IComparable)(this._value)).CompareTo(obj);
+            string otherValue = ((DataStandardizer.Geography.Iso3166Part2Subdivision)(obj))._value;
+            if ((otherValue == null))
+            {
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
+            }
+            return string.CompareOrdinal(this._value, otherValue);
         }
         
         public override bool Equals(object obj)
