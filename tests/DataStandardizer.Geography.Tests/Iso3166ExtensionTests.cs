@@ -564,4 +564,81 @@ public class Iso3166ExtensionTests
     }
 
     #endregion
+
+    #region Test: language code in any case
+
+    // The ISO 639-1 and ISO 639-2/T codes for Spanish in lower, upper and mixed case, which RFC 5646 §2.1.1 makes equivalent.
+    private static readonly string[] SpanishCodesInAnyCase = { "es", "ES", "eS", "spa", "SPA", "SpA" };
+
+    // The ISO 639-2/B code for German, whose ISO 639-2/T code is "deu".
+    private const string Iso639Part2BGerman = "ger";
+
+    [Theory]
+    [MemberData(nameof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator.TestCases), MemberType = typeof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator))]
+    public void NameLookup_LanguageCodeInAnyCase_ReturnsName(string name, Func<string, string?> lookup, string languageCode, string expectedResult)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class NameLookup_LanguageCodeInAnyCase_TestCaseGenerator
+    {
+        public static TheoryData<string, Func<string, string?>, string, string> TestCases
+        {
+            get
+            {
+                // Each name lookup, with a name it gives in English or Spanish, for each case of the codes for that language.
+                var lookups = new (string Name, Func<string, string?> Lookup, string[] LanguageCodes, string ExpectedResult)[]
+                {
+                    (nameof(Iso3166Extensions.GetNativeName), languageCode => Iso3166Part1Alpha2Country.DE.GetNativeName(languageCode, Iso3166CountryName.Short), Iso639TestCodes.EnglishCodesInAnyCase, GermanyShortNameEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionCategoryName), languageCode => Iso3166Part2Subdivision.CY._02.GetSubdivisionCategoryName(languageCode), Iso639TestCodes.EnglishCodesInAnyCase, CyprusDistrictCategoryNameEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionCategoryNamePlural), languageCode => Iso3166Part2Subdivision.FR._NOR.GetSubdivisionCategoryNamePlural(languageCode), Iso639TestCodes.EnglishCodesInAnyCase, FranceMetropolitanRegionCategoryNamePluralEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionNativeName), languageCode => Iso3166Part2Subdivision.CA._NT.GetSubdivisionNativeName(languageCode), Iso639TestCodes.EnglishCodesInAnyCase, NorthwestTerritoriesNameEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionNativeNameLocalVariant), languageCode => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(languageCode), SpanishCodesInAnyCase, LibertadorGeneralBernardoOHigginsLocalVariantSpanish),
+                };
+
+                var testCases = new TheoryData<string, Func<string, string?>, string, string>();
+                foreach (var (name, lookup, languageCodes, expectedResult) in lookups)
+                {
+                    foreach (var languageCode in languageCodes)
+                    {
+                        testCases.Add($"{name}({languageCode})", lookup, languageCode, expectedResult);
+                    }
+                }
+
+                return testCases;
+            }
+        }
+    }
+
+    // Name lookups given a language code that matches no ISO 639-1 or ISO 639-2/T code: an ISO 639-2/B code, a code with a non-ASCII letter,
+    // and null.
+    public static TheoryData<string, Func<string?>> UnmatchedLanguageCodeLookups => new TheoryData<string, Func<string?>>
+    {
+        { Iso639Part2BGerman, () => Iso3166Part1Alpha2Country.AT.GetNativeName(Iso639Part2BGerman, Iso3166CountryName.Short) },
+        { Iso639TestCodes.SpanishCodeWithLongS, () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(Iso639TestCodes.SpanishCodeWithLongS) },
+        { "null", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null!) },
+    };
+
+    [Theory]
+    [MemberData(nameof(UnmatchedLanguageCodeLookups))]
+    public void NameLookup_UnmatchedLanguageCode_ReturnsNull(string name, Func<string?> lookup)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
 }

@@ -1376,4 +1376,104 @@ public class UnM49ExtensionsTests
     }
 
     #endregion
+
+    #region Test: language code in any case
+
+    // UN M49 names of the levels above Zambia, and of Zambia in the other official UN languages.
+    private const string SubSaharanAfricaNameEnglish = "Sub-Saharan Africa";
+    private const string EasternAfricaNameEnglish = "Eastern Africa";
+    private const string ZambiaNameChinese = "赞比亚";
+    private const string ZambiaNameRussian = "Замбия";
+    private const string ZambiaNameFrench = "Zambie";
+    private const string ZambiaNameSpanish = "Zambia";
+    private const string ZambiaNameArabic = "زامبيا";
+
+    [Theory]
+    [MemberData(nameof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator.TestCases), MemberType = typeof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator))]
+    public void NameLookup_LanguageCodeInAnyCase_ReturnsName(string name, Func<string, string?> lookup, string languageCode, string expectedResult)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class NameLookup_LanguageCodeInAnyCase_TestCaseGenerator
+    {
+        public static TheoryData<string, Func<string, string?>, string, string> TestCases
+        {
+            get
+            {
+                // Each name lookup, with Zambia's name at its level, for each case of the English codes.
+                var lookups = new (string Name, Func<string, string?> Lookup, string ExpectedResult)[]
+                {
+                    (nameof(UnM49Extensions.GetGlobalName), languageCode => UnM49AreaByAlpha2CountryCode.ZM.GetGlobalName(languageCode), WorldNameEnglish),
+                    (nameof(UnM49Extensions.GetRegionName), languageCode => UnM49AreaByAlpha3CountryCode.ZMB.GetRegionName(languageCode), AfricaNameEnglish),
+                    (nameof(UnM49Extensions.GetSubRegionName), languageCode => UnM49Area._894.GetSubRegionName(languageCode), SubSaharanAfricaNameEnglish),
+                    (nameof(UnM49Extensions.GetIntermediateRegionName), languageCode => UnM49AreaByAlpha2CountryCode.ZM.GetIntermediateRegionName(languageCode), EasternAfricaNameEnglish),
+                    (nameof(UnM49Extensions.GetCountryOrAreaName), languageCode => UnM49AreaByAlpha3CountryCode.ZMB.GetCountryOrAreaName(languageCode), ZambiaNameEnglish),
+                    (nameof(UnM49Extensions.GetName), languageCode => UnM49Area._894.GetName(languageCode), ZambiaNameEnglish),
+                };
+
+                var testCases = new TheoryData<string, Func<string, string?>, string, string>();
+                foreach (var (name, lookup, expectedResult) in lookups)
+                {
+                    foreach (var languageCode in Iso639TestCodes.EnglishCodesInAnyCase)
+                    {
+                        testCases.Add($"{name}({languageCode})", lookup, languageCode, expectedResult);
+                    }
+                }
+
+                return testCases;
+            }
+        }
+    }
+
+    // The ISO 639-1 and ISO 639-2/T codes of the other official UN languages, in lower, upper and mixed case, with Zambia's name in each.
+    public static TheoryData<string, string> OtherUnLanguageCodesInAnyCase => new TheoryData<string, string>
+    {
+        { "zh", ZambiaNameChinese }, { "ZH", ZambiaNameChinese }, { "zho", ZambiaNameChinese }, { "ZhO", ZambiaNameChinese },
+        { "ru", ZambiaNameRussian }, { "RU", ZambiaNameRussian }, { "rus", ZambiaNameRussian }, { "rUS", ZambiaNameRussian },
+        { "fr", ZambiaNameFrench }, { "FR", ZambiaNameFrench }, { "fra", ZambiaNameFrench }, { "FrA", ZambiaNameFrench },
+        { "es", ZambiaNameSpanish }, { "ES", ZambiaNameSpanish }, { "spa", ZambiaNameSpanish }, { "SpA", ZambiaNameSpanish },
+        { "ar", ZambiaNameArabic }, { "AR", ZambiaNameArabic }, { "ara", ZambiaNameArabic }, { "aRA", ZambiaNameArabic },
+    };
+
+    [Theory]
+    [MemberData(nameof(OtherUnLanguageCodesInAnyCase))]
+    public void GetName_OtherUnLanguageCodeInAnyCase_ReturnsNameInThatLanguage(string languageCode, string expectedResult)
+    {
+        // act
+        var testResult = UnM49Area._894.GetName(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    // Language codes that match none of the six languages: the ISO 639-2/B codes of Chinese and French, the two whose ISO 639-2/B and
+    // ISO 639-2/T codes differ; a code with a non-ASCII letter; and null.
+    public static TheoryData<string?> UnmatchedLanguageCodes => new TheoryData<string?>
+    {
+        "chi",
+        "fre",
+        Iso639TestCodes.SpanishCodeWithLongS,
+        null,
+    };
+
+    [Theory]
+    [MemberData(nameof(UnmatchedLanguageCodes))]
+    public void GetName_UnmatchedLanguageCode_ReturnsNull(string? languageCode)
+    {
+        // act
+        var testResult = UnM49Area._894.GetName(languageCode!);
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
 }

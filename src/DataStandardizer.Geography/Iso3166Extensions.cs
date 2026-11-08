@@ -49,7 +49,7 @@ namespace DataStandardizer.Geography
         /// Get the native name of a country.
         /// </summary>
         /// <param name="countryCode">Country or place code.</param>
-        /// <param name="iso639LanguageCode">Language code for the language of the name to retrieve.</param>
+        /// <param name="iso639LanguageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name to retrieve, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <param name="nameType">Type of name to retrieve.</param>
         /// <returns>Native name of the country, if found; otherwise, <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
@@ -117,7 +117,7 @@ namespace DataStandardizer.Geography
         /// Get the native name of a country.
         /// </summary>
         /// <param name="countryCode">Country or place code.</param>
-        /// <param name="iso639LanguageCode">Language code for the language of the name to retrieve.</param>
+        /// <param name="iso639LanguageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name to retrieve, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <param name="nameType">Type of name to retrieve.</param>
         /// <returns>Native name of the country, if found; otherwise, <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
@@ -177,7 +177,7 @@ namespace DataStandardizer.Geography
         /// Get the name of a country subdivision category.
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
-        /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
+        /// <param name="iso639LanguageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name to retrieve, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Name of the category, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionCategoryName(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode)
@@ -203,7 +203,7 @@ namespace DataStandardizer.Geography
         /// Get the name of a country subdivision category in plural form.
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
-        /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
+        /// <param name="iso639LanguageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name to retrieve, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Plural-form name of the category, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionCategoryNamePlural(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode)
@@ -263,7 +263,7 @@ namespace DataStandardizer.Geography
         /// Get the native name of a country subdivision.
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
-        /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
+        /// <param name="iso639LanguageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name to retrieve, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <param name="romanizationSystem">
         /// System by which the written form of the name was converted from native script to Latin script, or <c>null</c> to accept a name in any romanization system.
         /// </param>
@@ -288,7 +288,7 @@ namespace DataStandardizer.Geography
         /// Get the local variant of a native name for a country subdivision.
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
-        /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
+        /// <param name="iso639LanguageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name to retrieve, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <param name="romanizationSystem">
         /// System by which the written form of the name was converted from native script to Latin script, or <c>null</c> to accept a name in any romanization system.
         /// </param>
@@ -390,8 +390,8 @@ namespace DataStandardizer.Geography
 
         private static bool MatchesLanguage(Iso3166LanguageAttributeBase attribute, string iso639LanguageCode)
         {
-            return string.Equals(attribute.Iso639Part1Code, iso639LanguageCode, StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(attribute.Iso639Part2TCode, iso639LanguageCode, StringComparison.OrdinalIgnoreCase);
+            return Iso639LanguageCode.Matches(iso639LanguageCode, attribute.Iso639Part1Code) ||
+                   Iso639LanguageCode.Matches(iso639LanguageCode, attribute.Iso639Part2TCode);
         }
 
         private static CountrySubdivisionCodeField? GetCountrySubdivisionCodeField(Iso3166Part2Subdivision countrySubdivisionCode)
