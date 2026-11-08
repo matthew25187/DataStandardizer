@@ -36,7 +36,7 @@ package. A record never changes once it is loaded.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `ToString()` | `string` | Override. Renders the record's fields as `field: value` lines. |
+| `ToString()` | `string` | Override. Renders the record's fields as `field: value` lines, each ending with CRLF (RFC 5646 §3.1.1) on every platform. |
 
 ## Applies to
 

@@ -43,15 +43,19 @@ namespace DataStandardizer.LanguageTag.Registry
             get { return _fieldsView ?? (_fieldsView = new ReadOnlyCollection<KeyValuePair<string, string>>(_fields)); }
         }
 
+        /// <summary>
+        /// Writes the record's fields, each as a <c>field: value</c> line that ends with CRLF, as every field of the registry does (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        /// <returns>The record's fields, in the record-jar format of RFC 5646 §3.1.1, whatever the platform's <see cref="Environment.NewLine"/>.</returns>
         public override string ToString()
         {
             var recordBuilder = new StringBuilder();
             foreach (var field in _fields)
             {
-                recordBuilder.Append(field.Key).Append(": ").Append(field.Value).AppendLine();
+                recordBuilder.Append(field.Key).Append(": ").Append(field.Value).Append(SubtagRegistryConstants.LineBreak);
             }
 
-            return recordBuilder.ToString().TrimEnd();
+            return recordBuilder.ToString();
         }
 
         /// <summary>

@@ -553,9 +553,15 @@ namespace DataStandardizer.LanguageTag
             return _classifier.Value.HasGrandfatheredRecord(languageTag);
         }
 
+        /// <summary>
+        /// Writes the registry in the record-jar format of RFC 5646 §3.1.1: its records in order, with a <c>%%</c> line between each two, and CRLF at the
+        /// end of every line, the last one included, whatever the platform's <see cref="Environment.NewLine"/>.
+        /// </summary>
+        /// <returns>The registry's text, which the <c>CreateFrom…</c> methods load with their default options.</returns>
         public override string ToString()
         {
-            return string.Join(string.Concat(Environment.NewLine, "%%", Environment.NewLine), (IEnumerable<ISubtagRegistryRecord>)_records);
+            // each record ends its last field with CRLF, so the "%%" line follows it directly
+            return string.Join(SubtagRegistryConstants.RecordSeparatorLine, (IEnumerable<ISubtagRegistryRecord>)_records);
         }
 
         #endregion
@@ -565,7 +571,10 @@ namespace DataStandardizer.LanguageTag
             if ((options & ~AllLoadOptions) != 0) throw new ArgumentOutOfRangeException(nameof(options), options, "The options are not valid.");
         }
 
-        private static SubtagRegistry Read(TextReader sourceReader, SubtagRegistryLoadOptions options)
+        /// <summary>
+        /// Loads the registry from a reader, which the tests also reach, to read it through a reader that returns the characters in pieces they choose.
+        /// </summary>
+        internal static SubtagRegistry Read(TextReader sourceReader, SubtagRegistryLoadOptions options)
         {
             var records = new List<ISubtagRegistryRecord>();
             var registryReader = new SubtagRegistryReader(sourceReader, options);
@@ -581,7 +590,8 @@ namespace DataStandardizer.LanguageTag
             return new SubtagRegistry(records.ToArray());
         }
 
-        private static async Task<SubtagRegistry> ReadAsync(TextReader sourceReader, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)
+        /// <inheritdoc cref="Read"/>
+        internal static async Task<SubtagRegistry> ReadAsync(TextReader sourceReader, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)
         {
             var records = new List<ISubtagRegistryRecord>();
             var registryReader = new SubtagRegistryReader(sourceReader, options);

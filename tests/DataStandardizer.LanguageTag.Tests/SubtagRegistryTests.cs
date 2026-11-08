@@ -435,40 +435,6 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         /// <summary>
-        /// A stream that returns at most one byte per read. A <see cref="StreamReader"/> over it returns from each read what that byte decodes to, so
-        /// the registry reader reads the content a character at a time, and the carriage return and the line feed of each CRLF come from different reads.
-        /// </summary>
-        private sealed class OneByteReadStream : MemoryStream
-        {
-            public OneByteReadStream(byte[] buffer)
-                : base(buffer)
-            {
-            }
-
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                return base.Read(buffer, offset, Math.Min(count, 1));
-            }
-
-            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-            {
-                return base.ReadAsync(buffer, offset, Math.Min(count, 1), cancellationToken);
-            }
-
-#if NET
-            public override int Read(Span<byte> buffer)
-            {
-                return base.Read(buffer.Slice(0, Math.Min(buffer.Length, 1)));
-            }
-
-            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-            {
-                return base.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, 1)), cancellationToken);
-            }
-#endif
-        }
-
-        /// <summary>
         /// A stream with a complete tag record ahead of the registry content, positioned after that record, so reading from the start of the stream would fail,
         /// as the first record is not the File-Date record.
         /// </summary>
@@ -1053,14 +1019,39 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToString_WhenRegistryIsLoadedAgainFromIt_WritesSameContent()
         {
             // arrange
-            // ToString writes Environment.NewLine between lines, and no line break after the last
             var content = IanaSubtagRegistryResource.Content;
 
             // act
-            var testResult = SubtagRegistry.CreateFromContent(content, SubtagRegistryLoadOptions.AcceptBareLineFeed | SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak).ToString();
+            var testResult = SubtagRegistry.CreateFromContent(content).ToString();
 
             // assert
             testResult.Should().Be(content, "every record and field is read and written back as it was");
+        }
+
+        [Fact]
+        public void ToString_ForRegistry_WritesCrLfAtEndOfEveryLine()
+        {
+            // arrange
+            var registry = SubtagRegistry.CreateFromContent(CrLfRegistry);
+
+            // act
+            var testResult = registry.ToString();
+
+            // assert
+            testResult.Should().Be(CrLfRegistry, "every line of the registry, the last one included, ends with CRLF on every platform (ref. RFC 5646 §3.1.1)");
+        }
+
+        [Fact]
+        public void RecordToString_ForRecord_WritesEachFieldAsLineEndingWithCrLf()
+        {
+            // arrange
+            var record = SubtagRegistry.CreateFromContent(CrLfRegistry).Languages[0];
+
+            // act
+            var testResult = record.ToString();
+
+            // assert
+            testResult.Should().Be("Type: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n", "each field ends with CRLF (ref. RFC 5646 §3.1.1)");
         }
 
         [Theory]
@@ -1298,6 +1289,11 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string MinimalRecordDescription = "Afar";
 
         /// <summary>
+        /// The number of records in each of the registries of line breaks: the File-Date record and the record of <see cref="MinimalRecordSubtag"/>.
+        /// </summary>
+        private const int MinimalRegistryRecordCount = 2;
+
+        /// <summary>
         /// The smallest registry, with CRLF at the end of every line, the last one included, as RFC 5646 §3.1.1 requires.
         /// </summary>
         private const string CrLfRegistry = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n";
@@ -1335,7 +1331,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         private const string LineFeedMessage = "Line 1 ends with a line feed alone, not the CRLF that ends every line (ref. RFC 5646 §3.1.1).";
         private const string SecondLineFeedMessage = "Line 2 ends with a line feed alone, not the CRLF that ends every line (ref. RFC 5646 §3.1.1).";
-        private const string BareCarriageReturnMessage = "Line 1, the last, has no CRLF after it, which ends every line, the last one included (ref. RFC 5646 §3.1.1).";
         private const string MissingFinalLineBreakMessage = "Line 6, the last, has no CRLF after it, which ends every line, the last one included (ref. RFC 5646 §3.1.1).";
         private const string CarriageReturnMessage =
             "Line 1 holds a carriage return that no line feed follows, which is not a line break but a control character, which a field may not hold (ref. RFC 5646 §3.1.1).";
@@ -1353,8 +1348,8 @@ namespace DataStandardizer.LanguageTag.Tests
         private const SubtagRegistryLoadOptions UndefinedLoadOptions = (SubtagRegistryLoadOptions)(1 << 2);
 
         /// <summary>
-        /// Each way to load a registry with the default options, from its content or from a stream of its UTF-8 bytes, which a stream that returns one byte
-        /// per read gives one character at a time, so that the carriage return and the line feed of each CRLF come from different reads.
+        /// Each way to load a registry with the default options, from its content or from a stream of its UTF-8 bytes, and through a reader that returns
+        /// one character per read, so that the carriage return and the line feed of each CRLF come from different reads.
         /// </summary>
         private static readonly Dictionary<string, Func<string, Task<SubtagRegistry>>> DefaultLoaders = new Dictionary<string, Func<string, Task<SubtagRegistry>>>
         {
@@ -1364,8 +1359,11 @@ namespace DataStandardizer.LanguageTag.Tests
             { nameof(SubtagRegistry.CreateFromStream), content => Task.FromResult(LoadFromStream(content, stream => SubtagRegistry.CreateFromStream(stream))) },
             { nameof(SubtagRegistry.CreateFromStreamAsync), content => LoadFromStreamAsync(content, SubtagRegistry.CreateFromStreamAsync) },
             { nameof(SubtagRegistry.CreateFromStreamAsync) + " with a token", content => LoadFromStreamAsync(content, stream => SubtagRegistry.CreateFromStreamAsync(stream, CancellationToken.None)) },
-            { nameof(SubtagRegistry.CreateFromStream) + " one byte at a time", content => Task.FromResult(LoadFromOneByteReadStream(content, stream => SubtagRegistry.CreateFromStream(stream))) },
-            { nameof(SubtagRegistry.CreateFromStreamAsync) + " one byte at a time", content => LoadFromOneByteReadStreamAsync(content, SubtagRegistry.CreateFromStreamAsync) }
+            { nameof(SubtagRegistry.Read) + " one character at a time", content => Task.FromResult(SubtagRegistry.Read(new OneCharacterTextReader(content), SubtagRegistryLoadOptions.None)) },
+            {
+                nameof(SubtagRegistry.ReadAsync) + " one character at a time",
+                content => SubtagRegistry.ReadAsync(new OneCharacterTextReader(content), SubtagRegistryLoadOptions.None, CancellationToken.None)
+            }
         };
 
         /// <summary>
@@ -1378,13 +1376,10 @@ namespace DataStandardizer.LanguageTag.Tests
                 { nameof(SubtagRegistry.CreateFromContentAsync), (content, options) => SubtagRegistry.CreateFromContentAsync(content, options, CancellationToken.None) },
                 { nameof(SubtagRegistry.CreateFromStream), (content, options) => Task.FromResult(LoadFromStream(content, stream => SubtagRegistry.CreateFromStream(stream, options))) },
                 { nameof(SubtagRegistry.CreateFromStreamAsync), (content, options) => LoadFromStreamAsync(content, stream => SubtagRegistry.CreateFromStreamAsync(stream, options, CancellationToken.None)) },
+                { nameof(SubtagRegistry.Read) + " one character at a time", (content, options) => Task.FromResult(SubtagRegistry.Read(new OneCharacterTextReader(content), options)) },
                 {
-                    nameof(SubtagRegistry.CreateFromStream) + " one byte at a time",
-                    (content, options) => Task.FromResult(LoadFromOneByteReadStream(content, stream => SubtagRegistry.CreateFromStream(stream, options)))
-                },
-                {
-                    nameof(SubtagRegistry.CreateFromStreamAsync) + " one byte at a time",
-                    (content, options) => LoadFromOneByteReadStreamAsync(content, stream => SubtagRegistry.CreateFromStreamAsync(stream, options, CancellationToken.None))
+                    nameof(SubtagRegistry.ReadAsync) + " one character at a time",
+                    (content, options) => SubtagRegistry.ReadAsync(new OneCharacterTextReader(content), options, CancellationToken.None)
                 }
             };
 
@@ -1413,7 +1408,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var testResult = await load(CrLfRegistry);
 
             // assert
-            testResult.Count.Should().Be(2, "{0} reads the File-Date record and the record after it", loaderName);
+            testResult.Count.Should().Be(MinimalRegistryRecordCount, "{0} reads the File-Date record and the record after it", loaderName);
             var record = testResult.Languages.Should().ContainSingle().Subject;
             record.Subtag.Should().Be(MinimalRecordSubtag);
             record.Description.Should().Equal(new[] { MinimalRecordDescription }, "the CRLF is not part of the line it ends");
@@ -1432,9 +1427,9 @@ namespace DataStandardizer.LanguageTag.Tests
                 {
                     (LineFeedRegistry, LineFeedMessage),
                     (CrLfRegistryWithoutFinalLineBreak, MissingFinalLineBreakMessage),
-                    (CarriageReturnRegistry, LineFeedMessage),
+                    (CarriageReturnRegistry, CarriageReturnMessage),
                     (MixedLineBreakRegistry, SecondLineFeedMessage),
-                    (BareCarriageReturnRegistry, BareCarriageReturnMessage)
+                    (BareCarriageReturnRegistry, CarriageReturnMessage)
                 };
                 var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>, string, string>();
                 foreach (var loader in DefaultLoaders)
@@ -1496,7 +1491,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var testResult = await load(content, options);
 
             // assert
-            testResult.Count.Should().Be(2, "{0} with {1} reads the File-Date record and the record after it", loaderName, options);
+            testResult.Count.Should().Be(MinimalRegistryRecordCount, "{0} with {1} reads the File-Date record and the record after it", loaderName, options);
             var record = testResult.Languages.Should().ContainSingle().Subject;
             record.Subtag.Should().Be(MinimalRecordSubtag);
             record.Description.Should().Equal(new[] { MinimalRecordDescription }, "the line break is not part of the line it ends");
@@ -1592,27 +1587,6 @@ namespace DataStandardizer.LanguageTag.Tests
                 return await load(stream);
             }
         }
-
-        /// <summary>
-        /// Loads a registry from a <see cref="OneByteReadStream"/> of the UTF-8 bytes of its content, and disposes the stream.
-        /// </summary>
-        private static SubtagRegistry LoadFromOneByteReadStream(string content, Func<Stream, SubtagRegistry> load)
-        {
-            using (var stream = new OneByteReadStream(Encoding.UTF8.GetBytes(content)))
-            {
-                return load(stream);
-            }
-        }
-
-        /// <inheritdoc cref="LoadFromOneByteReadStream"/>
-        private static async Task<SubtagRegistry> LoadFromOneByteReadStreamAsync(string content, Func<Stream, Task<SubtagRegistry>> load)
-        {
-            using (var stream = new OneByteReadStream(Encoding.UTF8.GetBytes(content)))
-            {
-                return await load(stream);
-            }
-        }
-
 
         private static SubtagRegistrySubtagRecord GetSubtagRecord(SubtagRegistryRecordType type, string subtag)
         {

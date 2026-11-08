@@ -140,7 +140,7 @@ stream's current position and leave the stream open; the caller disposes it.
 | `TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, out SubtagRegistrySubtagRecord? record)` | `bool` | Span form. |
 | `IsGrandfathered(string? languageTag)` | `bool` | Whether the registry has a `grandfathered` record for the tag. Returns `false` for `null`. |
 | `IsGrandfathered(ReadOnlySpan<char> languageTag)` | `bool` | Span form. |
-| `ToString()` | `string` | Override. Renders the registry back to its text representation. |
+| `ToString()` | `string` | Override. Writes the registry in the record-jar format of RFC 5646 §3.1.1, with a `%%` line between records and CRLF at the end of every line, the last one included, on every platform. The default `CreateFrom…` methods load the result. |
 
 ## Applies to
 

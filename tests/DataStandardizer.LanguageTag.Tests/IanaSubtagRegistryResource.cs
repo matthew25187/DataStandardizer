@@ -33,8 +33,8 @@ namespace DataStandardizer.LanguageTag.Tests
         internal static SubtagRegistry Shared => SharedSubtagRegistry.Value;
 
         /// <summary>
-        /// The text of the registry, as <see cref="SubtagRegistry.ToString"/> of the shared copy writes it: with <see cref="Environment.NewLine"/>
-        /// between lines, and no line break after the last.
+        /// The text of the registry, as <see cref="SubtagRegistry.ToString"/> of the shared copy writes it: with CRLF at the end of every line, the last
+        /// one included (RFC 5646 §3.1.1).
         /// </summary>
         internal static string Content => SharedContent.Value;
 

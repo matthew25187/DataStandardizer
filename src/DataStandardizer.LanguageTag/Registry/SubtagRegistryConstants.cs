@@ -2,6 +2,16 @@
 {
     internal static class SubtagRegistryConstants
     {
+        /// <summary>
+        /// The line break that ends every line of the registry, the last one included (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        internal const string LineBreak = "\r\n";
+
+        /// <summary>
+        /// The line that separates records, with its line break (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        internal const string RecordSeparatorLine = "%%" + LineBreak;
+
         internal static class FieldName
         {
             internal const string FileDate = "File-Date";
