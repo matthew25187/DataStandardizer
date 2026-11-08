@@ -8,6 +8,8 @@ namespace DataStandardizer.Money.Tests;
 public class MoneyInfoTests
 {
     private const string NewZealandCulture = "en-NZ";
+    private const string GermanCulture = "de-DE";
+    private const string GermanDecimalSeparator = ",";
 
     // ISO 639-1 language codes.
     private const string EnglishLanguageCode = "en";
@@ -42,13 +44,39 @@ public class MoneyInfoTests
     }
 
     [Fact]
-    public void GetFormat_ForAnUnsupportedType_ReturnsNull()
+    public void GetFormat_ForNumberFormatInformationOfACulture_ReturnsTheNumberFormatOfThatCulture()
+    {
+        // arrange
+        var testSubject = MoneyInfo.GetMoneyInfo(new CultureInfo(GermanCulture));
+
+        // act
+        var testResult = testSubject.GetFormat(typeof(NumberFormatInfo));
+
+        // assert
+        testResult.Should().BeOfType<NumberFormatInfo>().Which.NumberDecimalSeparator.Should().Be(GermanDecimalSeparator, "a custom numeric format of the amount uses the number formatting of the culture");
+    }
+
+    [Fact]
+    public void GetFormat_ForNumberFormatInformationOfTheInvariantInstance_ReturnsTheInvariantNumberFormat()
     {
         // arrange
         var testSubject = MoneyInfo.InvariantMoney;
 
         // act
         var testResult = testSubject.GetFormat(typeof(NumberFormatInfo));
+
+        // assert
+        testResult.Should().BeSameAs(NumberFormatInfo.InvariantInfo);
+    }
+
+    [Fact]
+    public void GetFormat_ForAnUnsupportedType_ReturnsNull()
+    {
+        // arrange
+        var testSubject = MoneyInfo.InvariantMoney;
+
+        // act
+        var testResult = testSubject.GetFormat(typeof(DateTimeFormatInfo));
 
         // assert
         testResult.Should().BeNull();
