@@ -34,6 +34,7 @@ namespace DataStandardizer.Core.Tests
         private const string PaddedZeroName = " Zero ";
         private const string OtherStringEnumValueMessage = "The value is of the string enumeration *, not of *.";
         private const string NeitherStringEnumNorStringIsDefinedMessage = "value is neither a string enumeration value nor a string.";
+        private const string NullStringValueMessage = "value is of a string enumeration and converts to a null string, which no string enumeration can be made from.*";
         private const string NeitherStringEnumNorStringMessage = "value is neither a string enumeration value nor a string.*";
         private const string NoConversionToStringValueMessage = "value is of a string enumeration that defines no conversion to string.*";
         private const string NoConversionToStringTypeMessage = "The string enumeration DataStandardizer.Core.Tests.StringEnumTests+NoStringConversionEnum defines no conversion to string.";
@@ -124,6 +125,13 @@ namespace DataStandardizer.Core.Tests
         private const string AlphaValue = "a";
         private const string UndefinedUnorderedEnumValue = "q";
 
+        // A value of a type that is neither a string enumeration nor a string, the underlying type of one.
+        private const int NeitherStringEnumNorStringValue = 1;
+
+        // Inputs that are neither a name nor a value of WhiteSpaceValueEnum, with and without white space around them.
+        private const string UnmatchedWhiteSpaceValueEnumInput = "nope";
+        private const string PaddedUnmatchedWhiteSpaceValueEnumInput = " nope ";
+
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
         {
@@ -158,7 +166,7 @@ namespace DataStandardizer.Core.Tests
         public void GetNameNonGeneric_WithValueNeitherStringEnumNorString_ThrowsArgumentException()
         {
             // act
-            Action testAction = () => StringEnum.GetName(typeof(ComplexEnum), 1);
+            Action testAction = () => StringEnum.GetName(typeof(ComplexEnum), NeitherStringEnumNorStringValue);
 
             // assert
             testAction.Should().Throw<ArgumentException>().WithMessage(NeitherStringEnumNorStringMessage).WithParameterName(ValueParameterName);
@@ -463,7 +471,7 @@ namespace DataStandardizer.Core.Tests
         public void IsDefinedObjectOverload_WithValueNeitherStringEnumNorString_ThrowsInvalidOperationException()
         {
             // act
-            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), 1);
+            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), NeitherStringEnumNorStringValue);
 
             // assert
             testAction.Should().Throw<InvalidOperationException>().WithMessage(NeitherStringEnumNorStringIsDefinedMessage);
@@ -1387,6 +1395,27 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Fact]
+        public void ToObjectObjectOverload_WithValueOfStringEnumConvertingToNullString_ThrowsArgumentException()
+        {
+            // act
+            // As object, as SimpleEnum converts implicitly to string, which would bind the call to ToObject(Type, string).
+            Action testAction = () => StringEnum.ToObject(typeof(ComplexEnum), (object)default(SimpleEnum));
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NullStringValueMessage).WithParameterName(ValueParameterName);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithNullEnumType_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => StringEnum.ToObject(null!, (object)UnorderedEnum.Alpha);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
+        }
+
+        [Fact]
         public void ToObjectObjectOverload_WithNullValue_ThrowsArgumentNullException()
         {
             // act
@@ -1410,7 +1439,7 @@ namespace DataStandardizer.Core.Tests
         public void ToObjectObjectOverload_WithValueNeitherStringEnumNorString_ThrowsArgumentException()
         {
             // act
-            Action testAction = () => StringEnum.ToObject(typeof(UnorderedEnum), 1);
+            Action testAction = () => StringEnum.ToObject(typeof(UnorderedEnum), NeitherStringEnumNorStringValue);
 
             // assert
             testAction.Should().Throw<ArgumentException>().WithMessage(NeitherStringEnumNorStringMessage).WithParameterName(ValueParameterName);
@@ -1472,7 +1501,7 @@ namespace DataStandardizer.Core.Tests
         public void Format_WithValueNeitherStringEnumNorString_ThrowsArgumentException()
         {
             // act
-            Action testAction = () => StringEnum.Format(typeof(UnorderedEnum), 1, GeneralFormat);
+            Action testAction = () => StringEnum.Format(typeof(UnorderedEnum), NeitherStringEnumNorStringValue, GeneralFormat);
 
             // assert
             testAction.Should().Throw<ArgumentException>().WithMessage(NeitherStringEnumNorStringIsDefinedMessage).Which.ParamName.Should().BeNull();
@@ -1522,6 +1551,18 @@ namespace DataStandardizer.Core.Tests
 
             // assert
             testResult.Success.Should().BeTrue();
+            testResult.Result.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseSpanOverloadsWithUnmatchedInput))]
+        public void TryParseSpanOverloads_WithUnmatchedInput_ReturnsFalseAndNoMember(Func<(bool Success, object? Result)> tryParse, object? expectedResult)
+        {
+            // act
+            var testResult = tryParse();
+
+            // assert
+            testResult.Success.Should().BeFalse();
             testResult.Result.Should().Be(expectedResult);
         }
 
@@ -1753,6 +1794,16 @@ namespace DataStandardizer.Core.Tests
                 value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value.AsSpan(), true, out var result), result),
                 value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value.AsSpan(), true, out var result), result),
             }, WhiteSpaceValueEnumIgnoreCaseCases);
+
+        // The non-generic overloads give null, and the generic ones the default value.
+        public static TheoryData<Func<(bool Success, object? Result)>, object?> TryParseSpanOverloadsWithUnmatchedInput =>
+            new TheoryData<Func<(bool Success, object? Result)>, object?>
+            {
+                { () => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), UnmatchedWhiteSpaceValueEnumInput.AsSpan(), out var result), result), null },
+                { () => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), PaddedUnmatchedWhiteSpaceValueEnumInput.AsSpan(), true, out var result), result), null },
+                { () => (StringEnum.TryParse<WhiteSpaceValueEnum>(UnmatchedWhiteSpaceValueEnumInput.AsSpan(), out var result), result), default(WhiteSpaceValueEnum) },
+                { () => (StringEnum.TryParse<WhiteSpaceValueEnum>(PaddedUnmatchedWhiteSpaceValueEnumInput.AsSpan(), true, out var result), result), default(WhiteSpaceValueEnum) },
+            };
 
         public static TheoryData<Action> ParseSpanOverloadsWithEmptyOrWhiteSpace => new TheoryData<Action>
         {
@@ -2015,6 +2066,7 @@ namespace DataStandardizer.Core.Tests
             { () => StringEnum.Parse(null!, null!), ValueParameterName },
             { () => StringEnum.Parse(null!, null!, true), ValueParameterName },
             { () => StringEnum.ToObject(null!, null!), ValueParameterName },
+            { () => StringEnum.ToObject(null!, (object)null!), ValueParameterName },
         };
 
         // Like Enum.TryParse, a null value fails before enumType is checked.
@@ -2053,9 +2105,8 @@ namespace DataStandardizer.Core.Tests
                 yield return new object[] { typeof(UnorderedEnum), UndefinedUnorderedEnumValue, (UnorderedEnum)UndefinedUnorderedEnumValue };
                 // A value of the enumeration itself is returned as it is.
                 yield return new object[] { typeof(UnorderedEnum), UnorderedEnum.Zulu, UnorderedEnum.Zulu };
-                // A value of another string enumeration, by its value; its default value gives the default value.
+                // A value of another string enumeration, by its value.
                 yield return new object[] { typeof(ComplexEnum), SimpleEnum.One, ComplexEnum.First };
-                yield return new object[] { typeof(ComplexEnum), default(SimpleEnum), default(ComplexEnum) };
             }
 
             IEnumerator IEnumerable.GetEnumerator()

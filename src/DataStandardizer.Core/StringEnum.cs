@@ -37,6 +37,7 @@ namespace DataStandardizer.Core
 #else
         private static readonly Dictionary<Type, Func<object, string>> StringConverters = new Dictionary<Type, Func<object, string>>();
 #endif
+        private static readonly Dictionary<Type, Func<string, object>> FromStringConverters = new Dictionary<Type, Func<string, object>>();
 
         #region Public Methods
 
@@ -94,11 +95,7 @@ namespace DataStandardizer.Core
                 if (valueString != null)
                     return cache.GetNameByStringValue(valueString);
 
-                var toString = GetStringConverter(valueType);
-                if (toString is null)
-                    throw new ArgumentException($"{nameof(value)} is of a string enumeration that defines no conversion to string.", nameof(value));
-
-                return cache.GetNameByStringValue(toString(value));
+                return cache.GetNameByStringValue(ToStringValueOfStringEnum(value, valueType));
             }
         }
 
@@ -323,13 +320,7 @@ namespace DataStandardizer.Core
                 }
             }
 
-            if (valueType != enumType)
-            {
-                if (IsStringEnumType(valueType))
-                    throw new ArgumentException($"The value is of the string enumeration {valueType.FullName}, not of {enumType.FullName}.");
-
-                throw new InvalidOperationException($"{nameof(value)} is neither a string enumeration value nor a string.");
-            }
+            ThrowIfValueOfOtherType(enumType, valueType, true);
 
             lock (SyncRoot)
             {
@@ -613,14 +604,16 @@ namespace DataStandardizer.Core
         /// <paramref name="value"/> is neither a string enumeration value nor a <see cref="string"/>.
         /// -or-
         /// <paramref name="value"/> is a value of another string enumeration that defines no conversion to <see cref="string"/>.
+        /// -or-
+        /// <paramref name="value"/> is a value of another string enumeration that converts to a <c>null</c> string, as a default value usually does.
         /// </exception>
         /// <exception cref="InvalidOperationException"><paramref name="enumType"/> defines no conversion from <see cref="string"/>.</exception>
         /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects the value.</exception>
         /// <remarks>
         /// <para>
         /// As <see cref="Enum.ToObject(Type, object)"/> does, this accepts a value of the underlying type or of any enumeration, and doesn't check that the value is defined. A value
-        /// of <paramref name="enumType"/> is returned as it is. A value of another string enumeration whose string value is <c>null</c>, which only its default value has, gives the
-        /// default value of <paramref name="enumType"/>.
+        /// of <paramref name="enumType"/> is returned as it is. A value of another string enumeration is converted to <paramref name="enumType"/> through its string value, as
+        /// <see cref="ToObject(Type, string)"/> converts a string, so one that converts to a <c>null</c> string is rejected, as <see cref="ToObject(Type, string)"/> rejects <c>null</c>.
         /// </para>
         /// <para>
         /// A string enumeration usually converts implicitly to <see cref="string"/>, so a call whose <paramref name="value"/> has a string enumeration type at compile time binds to
@@ -650,16 +643,11 @@ namespace DataStandardizer.Core
             if (!IsStringEnumType(valueType))
                 throw new ArgumentException($"{nameof(value)} is neither a string enumeration value nor a string.", nameof(value));
 
-            var stringValue = ToStringValueOfOtherStringEnum(value, valueType);
-            if (stringValue != null)
-                return Cast(enumType, stringValue);
+            var stringValue = ToStringValueOfStringEnum(value, valueType);
+            if (stringValue is null)
+                throw new ArgumentException($"{nameof(value)} is of a string enumeration and converts to a null string, which no string enumeration can be made from.", nameof(value));
 
-            // A string enumeration is a value type, so this is its default value, never null.
-#if NETCOREAPP3_0_OR_GREATER
-            return Activator.CreateInstance(enumType)!;
-#else
-            return Activator.CreateInstance(enumType);
-#endif
+            return Cast(enumType, stringValue);
         }
 
         /// <summary>
@@ -733,14 +721,8 @@ namespace DataStandardizer.Core
 
             var valueType = value.GetType();
             var valueString = value as string;
-            if (valueString is null && valueType != enumType)
-            {
-                // Like Enum.Format, which gives no parameter name for a value of the wrong type.
-                if (IsStringEnumType(valueType))
-                    throw new ArgumentException($"The value is of the string enumeration {valueType.FullName}, not of {enumType.FullName}.");
-
-                throw new ArgumentException($"{nameof(value)} is neither a string enumeration value nor a string.");
-            }
+            if (valueString is null)
+                ThrowIfValueOfOtherType(enumType, valueType, false);
 
             var formatCode = format.Length == 1 ? format[0] : '\0';
             if (formatCode == 'X' || formatCode == 'x')
@@ -1132,22 +1114,34 @@ namespace DataStandardizer.Core
             return converter;
         }
 
-        // Builds the conversion for the type itself rather than going through reflection, so whatever the conversion throws reaches the caller unwrapped.
+        // Builds the conversion for the type itself rather than going through reflection, so whatever the conversion throws reaches the caller unwrapped. Each type's conversion
+        // is compiled once; Expression.Convert throws InvalidOperationException for a type with no conversion from string, and that isn't cached. The conversion runs outside
+        // SyncRoot.
         private static object Cast(Type enumType, string value)
         {
-            var p = Expression.Parameter(typeof(string));
-            var c1 = Expression.Convert(p, enumType);
-            var c2 = Expression.Convert(c1, typeof(object));
-            var e = Expression.Lambda<Func<string, object>>(c2, p).Compile();
-            return e(value);
+            Func<string, object> converter;
+            lock (SyncRoot)
+            {
+                if (!FromStringConverters.TryGetValue(enumType, out var cached))
+                {
+                    var p = Expression.Parameter(typeof(string));
+                    var body = Expression.Convert(Expression.Convert(p, enumType), typeof(object));
+                    cached = Expression.Lambda<Func<string, object>>(body, p).Compile();
+                    FromStringConverters.Add(enumType, cached);
+                }
+
+                converter = cached;
+            }
+
+            return converter(value);
         }
 
-        // The string value of a value of a string enumeration other than the one being looked at. Takes SyncRoot.
+        // The string value of a value of any string enumeration, through its conversion to string. Takes SyncRoot, which a caller may already hold, as Monitor is re-entrant.
 #if NETCOREAPP3_0_OR_GREATER
-        private static string? ToStringValueOfOtherStringEnum(object value, Type valueType)
+        private static string? ToStringValueOfStringEnum(object value, Type valueType)
 #else
         [return: MaybeNull]
-        private static string ToStringValueOfOtherStringEnum(object value, Type valueType)
+        private static string ToStringValueOfStringEnum(object value, Type valueType)
 #endif
         {
             lock (SyncRoot)
@@ -1239,9 +1233,19 @@ namespace DataStandardizer.Core
         // The first member, in GetNames order, whose name matches value. Names are unique, so an ordinal match is a lookup.
 #if NET
         private static object? FindMemberByName(MemberCache cache, ReadOnlySpan<char> value, StringComparison comparison)
+#elif NETCOREAPP3_0_OR_GREATER
+        private static object? FindMemberByName(MemberCache cache, string value, StringComparison comparison)
+#else
+        [return: MaybeNull]
+        private static object FindMemberByName(MemberCache cache, string value, StringComparison comparison)
+#endif
         {
             if (comparison == StringComparison.Ordinal)
+#if NET
                 return cache.FieldsByName.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(value, out var member) ? member : null;
+#else
+                return cache.FieldsByName.TryGetValue(value, out var member) ? member : null;
+#endif
 
             foreach (var candidate in cache.Members)
             {
@@ -1251,42 +1255,11 @@ namespace DataStandardizer.Core
 
             return null;
         }
-#else
-#if NETCOREAPP3_0_OR_GREATER
-        private static object? FindMemberByName(MemberCache cache, string value, StringComparison comparison)
-#else
-        [return: MaybeNull]
-        private static object FindMemberByName(MemberCache cache, string value, StringComparison comparison)
-#endif
-        {
-            if (comparison == StringComparison.Ordinal)
-                return cache.FieldsByName.TryGetValue(value, out var member) ? member : null;
-
-            foreach (var candidate in cache.Members)
-            {
-                if (string.Equals(candidate.Name, value, comparison))
-                    return candidate.Value;
-            }
-
-            return null;
-        }
-#endif
 
         // The first member, in GetNames order, whose value matches value.
 #if NET
         private static object? FindMemberByValue(MemberCache cache, ReadOnlySpan<char> value, StringComparison comparison)
-        {
-            foreach (var candidate in cache.Members)
-            {
-                // A null value matches no span, as it matches no string.
-                if (candidate.StringValue != null && value.Equals(candidate.StringValue, comparison))
-                    return candidate.Value;
-            }
-
-            return null;
-        }
-#else
-#if NETCOREAPP3_0_OR_GREATER
+#elif NETCOREAPP3_0_OR_GREATER
         private static object? FindMemberByValue(MemberCache cache, string value, StringComparison comparison)
 #else
         [return: MaybeNull]
@@ -1295,13 +1268,13 @@ namespace DataStandardizer.Core
         {
             foreach (var candidate in cache.Members)
             {
-                if (string.Equals(candidate.StringValue, value, comparison))
+                // A null value matches nothing. A null string would otherwise convert to an empty span.
+                if (candidate.StringValue != null && value.Equals(candidate.StringValue, comparison))
                     return candidate.Value;
             }
 
             return null;
         }
-#endif
 
         // Callers hold SyncRoot.
         private static MemberCache GetCache(Type type)
@@ -1339,6 +1312,22 @@ namespace DataStandardizer.Core
         {
             var candidateTypeInfo = candidateType.GetTypeInfo();
             return candidateTypeInfo.IsValueType && !candidateTypeInfo.ContainsGenericParameters && typeof(IStringEnum).GetTypeInfo().IsAssignableFrom(candidateTypeInfo);
+        }
+
+        // Throws unless valueType is enumType. Like Enum.IsDefined and Enum.Format, which give no parameter name for a value of the wrong type: a value of another string
+        // enumeration throws ArgumentException, and a value of any other type throws InvalidOperationException, as Enum.IsDefined does, or ArgumentException, as Enum.Format does.
+        private static void ThrowIfValueOfOtherType(Type enumType, Type valueType, bool otherTypeIsInvalidOperation)
+        {
+            if (valueType == enumType)
+                return;
+            if (IsStringEnumType(valueType))
+                throw new ArgumentException($"The value is of the string enumeration {valueType.FullName}, not of {enumType.FullName}.");
+
+            const string message = "value is neither a string enumeration value nor a string.";
+            if (otherTypeIsInvalidOperation)
+                throw new InvalidOperationException(message);
+
+            throw new ArgumentException(message);
         }
 
         private static void ThrowIfNotStringEnumType(Type enumType)
