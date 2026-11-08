@@ -53,7 +53,7 @@ empty array, for the `*Names` methods) when it is unavailable.
 | `GetMacrolanguageCode()` | `Iso639Part3Language` | `string?` | Related macrolanguage code, or `null` when absent. |
 | `GetPart1Code()` | `Iso639Part2BLanguage` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. |
 | `GetPart1Code()` | `Iso639Part2TLanguage` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. |
-| `GetPart1Code()` | `Iso639Part3Language` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. |
+| `GetPart1Code()` | `Iso639Part3Language` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. The value comes from the ISO 639-3 code table, which can give a code that ISO 639-1 has withdrawn and that isn't a defined `Iso639Part1Language` member (`StringEnum.IsDefined` returns `false`, and `StringEnum.Parse` throws): `hbs` (Serbo-Croatian) returns `sh`, withdrawn from ISO 639-1 in 2000. |
 | `GetPart2BCode()` | `Iso639Part1Language` | `string?` | Related ISO 639 Part 2B code, or `null` when absent. |
 | `GetPart2BCode()` | `Iso639Part3Language` | `string?` | Related ISO 639 Part 2B code, or `null` when absent. |
 | `GetPart2TCode()` | `Iso639Part1Language` | `string?` | Related ISO 639 Part 2T code, or `null` when absent. |
