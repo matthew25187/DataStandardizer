@@ -47,7 +47,7 @@ A project gets null warnings from them only on C# 8 or later with nullable enabl
 | `GetSubdivisionParentCode()` | `Iso3166Part2Subdivision` | `string?` | The parent subdivision code, if any. |
 | `IsIndependent()` | `Iso3166Part1Alpha2Country` / `Iso3166Part1Alpha3Country` | `bool` | Whether the country or territory is independent. |
 
-The `iso639LanguageCode` parameter takes an ISO 639-1 or ISO 639-2 code, such as `en` or `eng`, and matches it without regard to the case of its letters (RFC 5646 §2.1.1), so `EN` and `Eng` give the same name as `en`.
+The `iso639LanguageCode` parameter takes an ISO 639-1 or ISO 639-2/T code, such as `en` or `eng`, and matches it without regard to the case of its letters (RFC 5646 §2.1.1), so `EN` and `Eng` give the same name as `en`. A bibliographic ISO 639-2/B code, such as `fre` or `chi`, isn't matched, and a `null` code gives `null`.
 
 ## Applies to
 

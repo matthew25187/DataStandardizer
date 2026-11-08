@@ -1313,16 +1313,14 @@ public class UnM49ExtensionsTests
 
     #region Test: language code in any case
 
-    // The ISO 639-1 and ISO 639-2 codes for English in lower, upper and mixed case, which RFC 5646 §2.1.1 makes equivalent.
-    private static readonly string[] EnglishCodesInAnyCase = { "en", "EN", "En", "eng", "ENG", "eNg" };
-
-    // "spa", the ISO 639-2 code for Spanish, with its "s" replaced by U+017F LATIN SMALL LETTER LONG S, whose upper case is "S": not an
-    // ISO 639 code, as those are made of the ASCII letters a-z (RFC 5646 §2.1).
-    private const string SpanishCodeWithLongS = "\x017Fpa";
-
-    // UN M49 names of the levels above Zambia.
+    // UN M49 names of the levels above Zambia, and of Zambia in the other official UN languages.
     private const string SubSaharanAfricaNameEnglish = "Sub-Saharan Africa";
     private const string EasternAfricaNameEnglish = "Eastern Africa";
+    private const string ZambiaNameChinese = "赞比亚";
+    private const string ZambiaNameRussian = "Замбия";
+    private const string ZambiaNameFrench = "Zambie";
+    private const string ZambiaNameSpanish = "Zambia";
+    private const string ZambiaNameArabic = "زامبيا";
 
     [Theory]
     [MemberData(nameof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator.TestCases), MemberType = typeof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator))]
@@ -1358,7 +1356,7 @@ public class UnM49ExtensionsTests
                 var testCases = new TheoryData<string, Func<string, string?>, string, string>();
                 foreach (var (name, lookup, expectedResult) in lookups)
                 {
-                    foreach (var languageCode in EnglishCodesInAnyCase)
+                    foreach (var languageCode in Iso639TestCodes.EnglishCodesInAnyCase)
                     {
                         testCases.Add($"{name}({languageCode})", lookup, languageCode, expectedResult);
                     }
@@ -1369,11 +1367,43 @@ public class UnM49ExtensionsTests
         }
     }
 
-    [Fact]
-    public void GetName_LanguageCodeWithNonAsciiLetter_ReturnsNull()
+    // The ISO 639-1 and ISO 639-2/T codes of the other official UN languages, in lower, upper and mixed case, with Zambia's name in each.
+    public static TheoryData<string, string> OtherUnLanguageCodesInAnyCase => new TheoryData<string, string>
+    {
+        { "zh", ZambiaNameChinese }, { "ZH", ZambiaNameChinese }, { "zho", ZambiaNameChinese }, { "ZhO", ZambiaNameChinese },
+        { "ru", ZambiaNameRussian }, { "RU", ZambiaNameRussian }, { "rus", ZambiaNameRussian }, { "rUS", ZambiaNameRussian },
+        { "fr", ZambiaNameFrench }, { "FR", ZambiaNameFrench }, { "fra", ZambiaNameFrench }, { "FrA", ZambiaNameFrench },
+        { "es", ZambiaNameSpanish }, { "ES", ZambiaNameSpanish }, { "spa", ZambiaNameSpanish }, { "SpA", ZambiaNameSpanish },
+        { "ar", ZambiaNameArabic }, { "AR", ZambiaNameArabic }, { "ara", ZambiaNameArabic }, { "aRA", ZambiaNameArabic },
+    };
+
+    [Theory]
+    [MemberData(nameof(OtherUnLanguageCodesInAnyCase))]
+    public void GetName_OtherUnLanguageCodeInAnyCase_ReturnsNameInThatLanguage(string languageCode, string expectedResult)
     {
         // act
-        var testResult = UnM49Area._894.GetName(SpanishCodeWithLongS);
+        var testResult = UnM49Area._894.GetName(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    // Language codes that match none of the six languages: the ISO 639-2/B codes of Chinese and French, the two whose ISO 639-2/B and
+    // ISO 639-2/T codes differ; a code with a non-ASCII letter; and null.
+    public static TheoryData<string?> UnmatchedLanguageCodes => new TheoryData<string?>
+    {
+        "chi",
+        "fre",
+        Iso639TestCodes.SpanishCodeWithLongS,
+        null,
+    };
+
+    [Theory]
+    [MemberData(nameof(UnmatchedLanguageCodes))]
+    public void GetName_UnmatchedLanguageCode_ReturnsNull(string? languageCode)
+    {
+        // act
+        var testResult = UnM49Area._894.GetName(languageCode!);
 
         // assert
         testResult.Should().BeNull();
