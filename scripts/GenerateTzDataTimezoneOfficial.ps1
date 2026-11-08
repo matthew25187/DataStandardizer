@@ -43,6 +43,9 @@
     - etcetera, which holds the Zone lines of Etc/UTC and of the other Etc timezones that some links refer to;
     - backward, which holds the Link lines of the deprecated names.
 
+    The links that have no fields, being the deprecated names of backward and the links of etcetera such as GMT, are
+    generated into the link data partial source file when they refer to a timezone that has a field.
+
     The file version, which identifies the release, is optional.
 
     Generation fails, rather than emitting bad data, where a timezone listed in zone1970.tab, Etc/UTC or Etc/GMT has no
@@ -69,7 +72,7 @@
     - Timezone, the main source file, <SourceCodeTypeName>.cs, which is the default;
     - ZoneLineData, the zone lines of each canonical timezone, <SourceCodeTypeName>.ZoneLineData.cs;
     - RuleSets, the rule sets referenced by the zone lines, <SourceCodeTypeName>.RuleSets.cs;
-    - LinkData, the deprecated links, <SourceCodeTypeName>.LinkData.cs.
+    - LinkData, the links that have no fields, <SourceCodeTypeName>.LinkData.cs.
 
     .PARAMETER SourceCodeTypeName
     Name of the type in the generated source code.
@@ -821,7 +824,10 @@ function Out-SourceCode {
         [System.Collections.Generic.IDictionary[string, string]]    $DeprecatedLinks,
 
         [Parameter(Mandatory)]
-        [string]    $DefaultIdentifier
+        [string]    $DefaultIdentifier,
+
+        [Parameter(Mandatory)]
+        [System.Collections.IDictionary]    $EtceteraTimezoneNames
     )
 
     begin {
@@ -836,7 +842,7 @@ function Out-SourceCode {
 
         $zoneLineDataDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'ZoneLineData' -HostTypeComment 'The zone lines of each canonical timezone, referenced by the timezone fields.'
         $ruleSetsDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'RuleSets' -HostTypeComment 'The daylight saving rule sets referenced by the zone lines.'
-        $linkDataDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'LinkData' -HostTypeComment 'The links that have no timezone field, which are the deprecated names of canonical timezones.'
+        $linkDataDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'LinkData' -HostTypeComment 'The links that have no timezone field: the deprecated names of backward, and links of etcetera such as GMT.'
 
         # The names of the rule sets referenced by the zone lines, mapped to the names of their fields.
         $referencedRuleSets = [System.Collections.Generic.SortedDictionary[string, string]]::new([System.StringComparer]::Ordinal)
@@ -1103,9 +1109,11 @@ function Out-SourceCode {
 
         [System.CodeDom.CodeComment[]]$remarksComments = @()
         $remarksComments += [System.CodeDom.CodeComment]::new('<remarks>', $true)
-        if ($_.TZ -eq $DefaultIdentifier) {
-            $remarksComments += [System.CodeDom.CodeComment]::new('Coordinated Universal Time, which is used in no country, and so has no location: its latitude and longitude are 0.', $true)
-            $remarksComments += [System.CodeDom.CodeComment]::new("<para>The default value of <see cref=""$TypeName""/> is equal to this timezone.</para>", $true)
+        if ($EtceteraTimezoneNames.Contains($_.TZ)) {
+            $remarksComments += [System.CodeDom.CodeComment]::new("$($EtceteraTimezoneNames[$_.TZ]), which is used in no country, and so has no location: its latitude and longitude are 0.", $true)
+            if ($_.TZ -eq $DefaultIdentifier) {
+                $remarksComments += [System.CodeDom.CodeComment]::new("<para>The default value of <see cref=""$TypeName""/> is equal to this timezone.</para>", $true)
+            }
         }
         else {
             $remarksComments += [System.CodeDom.CodeComment]::new('Used in the following countries:', $true)
@@ -1196,12 +1204,12 @@ function Out-SourceCode {
             [void]$ruleSetsDeclaration.HostType.Members.Add($ruleSetField)
         }
 
-        # Declare the deprecated links, which have no fields, each with the canonical timezone it refers to.
-        Write-Progress -Activity $activity -CurrentOperation 'Declaring deprecated links' -PercentComplete -1
+        # Declare the links that have no fields, such as the deprecated names of backward, each with the canonical timezone it refers to.
+        Write-Progress -Activity $activity -CurrentOperation 'Declaring links without fields' -PercentComplete -1
 
         [string[]]$deprecatedLinkExpressions = foreach ($deprecatedLink in $DeprecatedLinks.GetEnumerator()) {
             if ($fieldPaths.ContainsKey($deprecatedLink.Key)) {
-                throw "Link $($deprecatedLink.Key) has a timezone field, so it cannot also be a deprecated link."
+                throw "Link $($deprecatedLink.Key) has a timezone field, so it cannot also be a link without one."
             }
             if (-not $canonicalIdentifiers.Contains($deprecatedLink.Value)) {
                 throw "Link $($deprecatedLink.Key) refers to $($deprecatedLink.Value), which is not a timezone listed in zone1970.tab."
@@ -1209,7 +1217,7 @@ function Out-SourceCode {
             "new System.Collections.Generic.KeyValuePair<string, string>($(Format-StringExpression -Value $deprecatedLink.Key), $(Format-StringExpression -Value $deprecatedLink.Value))"
         }
         $deprecatedLinksField = New-DataArrayFieldDeclaration -ElementTypeName 'System.Collections.Generic.KeyValuePair<string, string>' -FieldName 'DeprecatedLinks' -ElementExpressions $deprecatedLinkExpressions
-        @('<summary>', 'The name of each deprecated link, with the identifier of the canonical timezone it refers to.', '</summary>') | ForEach-Object { [void]$deprecatedLinksField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
+        @('<summary>', 'The name of each link that has no timezone field, such as a deprecated name of backward or GMT of etcetera, with the identifier of the canonical timezone it refers to.', '</summary>') | ForEach-Object { [void]$deprecatedLinksField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
         [void]$linkDataDeclaration.HostType.Members.Add($deprecatedLinksField)
 
         Write-Progress -Completed
@@ -1233,9 +1241,14 @@ function Out-SourceCode {
 # The identifier of the timezone that the default value of the type stands for.
 $DefaultIdentifier = 'Etc/UTC'
 
-# The zones of etcetera that are generated, after the timezones of zone1970.tab: Etc/UTC, which the default value
-# stands for, and Etc/GMT, which GMT, Greenwich and the other names for universal time in etcetera and backward link to.
-$EtceteraIdentifiers = @($DefaultIdentifier, 'Etc/GMT')
+# The zones of etcetera that are generated, after the timezones of zone1970.tab, with the names of the times they keep:
+# Etc/UTC, which the default value stands for, and Etc/GMT, which GMT, Greenwich and the other names for universal time
+# in etcetera and backward link to.
+$EtceteraTimezoneNames = [ordered]@{
+    $DefaultIdentifier = 'Coordinated Universal Time'
+    'Etc/GMT'          = 'Greenwich Mean Time'
+}
+$EtceteraIdentifiers = @($EtceteraTimezoneNames.Keys)
 
 # Validate parameters.
 if (-not (Test-Path -Path $SourceFolderPath -PathType Container)) {
@@ -1328,7 +1341,8 @@ try {
 
     # Every link is resolved to the canonical timezone at the end of its chain.  The links listed in zone.tab, which
     # are timezones of their own countries, are given fields after the timezones of zone1970.tab, with the location
-    # metadata of zone.tab.  The other links, which are deprecated names, have no fields.
+    # metadata of zone.tab.  The other links, the deprecated names of backward and the links of etcetera such as GMT,
+    # have no fields.
     $linkTargets = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
     foreach ($linkName in $tzDataSource.Links.Keys) {
         $linkTargets[$linkName] = Resolve-TzDataLinkTarget -Name $linkName -Links $tzDataSource.Links -Zones $tzDataSource.Zones
@@ -1370,7 +1384,7 @@ try {
         $deprecatedLinks[$linkTarget.Key] = $linkTarget.Value
     }
 
-    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks -DefaultIdentifier $DefaultIdentifier
+    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks -DefaultIdentifier $DefaultIdentifier -EtceteraTimezoneNames $EtceteraTimezoneNames
 }
 finally {
     Remove-Module TzDataParser

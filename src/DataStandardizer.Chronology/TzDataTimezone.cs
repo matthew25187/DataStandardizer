@@ -8331,13 +8331,7 @@ namespace DataStandardizer.Chronology
             /// Etc/GMT
             /// </summary>
             /// <remarks>
-            /// Used in the following countries:
-            /// 	<list type="bullet">
-            /// 		<listheader>
-            /// 			<term>Code</term>
-            /// 			<description>Country Name</description>
-            /// 		</listheader>
-            /// 	</list>
+            /// Greenwich Mean Time, which is used in no country, and so has no location: its latitude and longitude are 0.
             /// </remarks>
             public static readonly DataStandardizer.Chronology.TzDataTimezone GMT = new DataStandardizer.Chronology.TzDataTimezone("Etc/GMT", TzDataTimezone.ZoneLineData.Etc_GMT, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
         }

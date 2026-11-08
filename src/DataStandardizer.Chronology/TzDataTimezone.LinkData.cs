@@ -19,13 +19,13 @@ namespace DataStandardizer.Chronology
     {
         
         /// <summary>
-        /// The links that have no timezone field, which are the deprecated names of canonical timezones.
+        /// The links that have no timezone field: the deprecated names of backward, and links of etcetera such as GMT.
         /// </summary>
         private static class LinkData
         {
             
             /// <summary>
-            /// The name of each deprecated link, with the identifier of the canonical timezone it refers to.
+            /// The name of each link that has no timezone field, such as a deprecated name of backward or GMT of etcetera, with the identifier of the canonical timezone it refers to.
             /// </summary>
             internal static readonly System.Collections.Generic.KeyValuePair<string, string>[] DeprecatedLinks = new System.Collections.Generic.KeyValuePair<string, string>[] {
                     new System.Collections.Generic.KeyValuePair<string, string>("Africa/Asmera", "Africa/Nairobi"),

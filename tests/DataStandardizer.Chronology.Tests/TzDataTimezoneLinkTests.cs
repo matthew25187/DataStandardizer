@@ -198,7 +198,6 @@ public class TzDataTimezoneLinkTests
         { BuenosAiresName, TzDataTimezone.America.Argentina.Buenos_Aires },
         { IcelandName, TzDataTimezone.Africa.Abidjan },
         { NewZealandName, TzDataTimezone.Pacific.Auckland },
-        { GmtName, TzDataTimezone.Etc.GMT },
         { GreenwichName, TzDataTimezone.Etc.GMT },
     };
 
@@ -210,7 +209,6 @@ public class TzDataTimezoneLinkTests
         BuenosAiresName,
         IcelandName,
         NewZealandName,
-        GmtName,
         GreenwichName,
     };
 
