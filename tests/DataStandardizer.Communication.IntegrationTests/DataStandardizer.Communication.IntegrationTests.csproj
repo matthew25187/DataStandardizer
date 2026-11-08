@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The scope that sets the current culture is shared with the unit tests. -->
+    <Compile Include="..\DataStandardizer.Communication.Tests\CultureScope.cs" Link="CultureScope.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Turns off xUnit's AppDomain isolation on .NET Framework, as the unit tests do. -->
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

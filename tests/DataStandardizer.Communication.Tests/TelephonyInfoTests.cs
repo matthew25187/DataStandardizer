@@ -163,6 +163,43 @@ namespace DataStandardizer.Communication.Tests
         }
 
         [Fact]
+        public void GetCultureCountryCode_CultureWithAlpha2Region_ReturnsCountry()
+        {
+            // arrange
+            const string cultureName = AustralianEnglish;
+
+            // act
+            var testResult = TelephonyInfo.GetCultureCountryCode(cultureName);
+
+            // assert
+            testResult.Should().Be(Iso3166Part1Alpha2Country.AU);
+        }
+
+        // Region subtags that are UN M.49 codes (RFC 5646, section 2.2.4): 419 is Latin America and the Caribbean, an area, and
+        // 036 is Australia, a country whose region subtag is AU.
+        [Theory]
+        [InlineData("es-419"), InlineData("en-036")]
+        public void GetCultureCountryCode_CultureWithUnM49Region_ReturnsNull(string cultureName)
+        {
+            // act
+            var testResult = TelephonyInfo.GetCultureCountryCode(cultureName);
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData(""), InlineData("en")]
+        public void GetCultureCountryCode_CultureWithoutRegion_ReturnsNull(string cultureName)
+        {
+            // act
+            var testResult = TelephonyInfo.GetCultureCountryCode(cultureName);
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
         public void GetFormat_RequestICustomFormatter_ReturnsCustomFormatter()
         {
             // arrange
