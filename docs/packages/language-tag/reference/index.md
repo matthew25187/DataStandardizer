@@ -35,6 +35,7 @@ records are in the nested `DataStandardizer.LanguageTag.Registry` namespace.
 | Type | Description |
 | --- | --- |
 | [LanguageTagConformance](LanguageTagConformance.md) | What was checked when a language tag was created: well-formed, valid or the ISO code lists. |
+| [SubtagRegistryLoadOptions](SubtagRegistryLoadOptions.md) | Line breaks to accept, besides CRLF, when a registry is loaded. |
 | [SubtagRegistryRecordType](SubtagRegistryRecordType.md) | The `Type` of a registry record. |
 
 ## Interfaces

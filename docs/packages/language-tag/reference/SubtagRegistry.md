@@ -28,8 +28,8 @@ instances ([SubtagRegistryTagRecord](SubtagRegistryTagRecord.md),
 [SubtagRegistryFileDateRecord](SubtagRegistryFileDateRecord.md)). The factory
 methods throw `ArgumentNullException` for a `null` argument, and
 `FormatException`, naming the line, for content that is not in the record-jar
-format of RFC 5646 §3.1.1: a blank line, a tab or other control character, a
-line that is neither a field nor a folded line starting with a space, a field
+format of RFC 5646 §3.1.1: a line that doesn't end with CRLF, a blank line, a
+tab, carriage return or other control character, a line that is neither a field nor a folded line starting with a space, a field
 that ends with a space, a `File-Date`, `Subtag`, `Tag`, `Type`,
 `Description`, `Added` or `Deprecated` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
 RFC 3339 full-date (or is one in the year 0000, before the first year a
@@ -46,6 +46,16 @@ ignore them, as §3.1.2 asks. The `File-Date` record has the `File-Date` field
 alone. Pass a loaded registry
 to the [Bcp47LanguageTag](Bcp47LanguageTag.md) `Create` / `TryCreate` overloads, or
 to the builder's `WithLanguageSubtagRegistry` step, to validate against it.
+
+RFC 5646 §3.1.1 ends every line, the last one included, with CRLF, and by
+default the factory methods follow it. IANA publishes the registry with a line
+feed alone at the end of each line, so load that file with the overload that
+takes [SubtagRegistryLoadOptions](SubtagRegistryLoadOptions.md), passing
+`AcceptBareLineFeed`. `AcceptMissingFinalLineBreak` accepts a last line with no
+line break. Each option accepts only what it names, and a carriage return that
+no line feed follows is never a line break. The overloads that take options
+throw `ArgumentOutOfRangeException` for a value that `SubtagRegistryLoadOptions`
+doesn't define.
 
 A registry and its records are immutable once loaded, so one instance may be
 shared by every thread. Each record's fields are parsed into its typed
@@ -76,7 +86,7 @@ record, with the range as its `Subtag`.
 using DataStandardizer.LanguageTag;
 using DataStandardizer.LanguageTag.Registry; // for SubtagRegistryRecordType
 
-var registry = SubtagRegistry.CreateFromFile("language-subtag-registry.txt");
+var registry = SubtagRegistry.CreateFromFile("language-subtag-registry.txt", SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
 if (registry.TryGetSubtag(SubtagRegistryRecordType.Region, "BU", out var region))
 {
@@ -111,26 +121,32 @@ stream's current position and leave the stream open; the caller disposes it.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CreateFromContent(string subtagRegistryContent)` | `SubtagRegistry` | Static. Loads the registry from an in-memory string. |
+| `CreateFromContent(string subtagRegistryContent)` | `SubtagRegistry` | Static. Loads the registry from an in-memory string, with CRLF at the end of every line. |
+| `CreateFromContent(string subtagRegistryContent, SubtagRegistryLoadOptions options)` | `SubtagRegistry` | Static. Loads the registry from an in-memory string, accepting the line breaks that `options` names as well as CRLF. |
 | `CreateFromContentAsync(string subtagRegistryContent)` | `Task<SubtagRegistry>` | Static. Asynchronous form. |
 | `CreateFromContentAsync(string subtagRegistryContent, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. |
-| `CreateFromFile(string subtagRegistryFilePath)` | `SubtagRegistry` | Static. Loads the registry from a file path. `netstandard2.0` and `net10.0` only. |
+| `CreateFromContentAsync(string subtagRegistryContent, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form with options, that can be cancelled. |
+| `CreateFromFile(string subtagRegistryFilePath)` | `SubtagRegistry` | Static. Loads the registry from a file path, with CRLF at the end of every line. `netstandard2.0` and `net10.0` only. |
+| `CreateFromFile(string subtagRegistryFilePath, SubtagRegistryLoadOptions options)` | `SubtagRegistry` | Static. Loads the registry from a file path, accepting the line breaks that `options` names as well as CRLF. `netstandard2.0` and `net10.0` only. |
 | `CreateFromFileAsync(string subtagRegistryFilePath)` | `Task<SubtagRegistry>` | Static. Asynchronous form. `netstandard2.0` and `net10.0` only. |
 | `CreateFromFileAsync(string subtagRegistryFilePath, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. `netstandard2.0` and `net10.0` only. |
-| `CreateFromStream(Stream stream)` | `SubtagRegistry` | Static. Loads the registry from a stream. |
+| `CreateFromFileAsync(string subtagRegistryFilePath, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form with options, that can be cancelled. `netstandard2.0` and `net10.0` only. |
+| `CreateFromStream(Stream stream)` | `SubtagRegistry` | Static. Loads the registry from a stream, with CRLF at the end of every line. |
+| `CreateFromStream(Stream stream, SubtagRegistryLoadOptions options)` | `SubtagRegistry` | Static. Loads the registry from a stream, accepting the line breaks that `options` names as well as CRLF. |
 | `CreateFromStreamAsync(Stream stream)` | `Task<SubtagRegistry>` | Static. Asynchronous form. |
 | `CreateFromStreamAsync(Stream stream, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. |
+| `CreateFromStreamAsync(Stream stream, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form with options, that can be cancelled. |
 | `TryGetSubtag(SubtagRegistryRecordType type, string? subtag, out SubtagRegistrySubtagRecord? record)` | `bool` | Gets the record of a subtag of type `Language`, `ExtendedLanguage`, `Script`, `Region` or `Variant`. Returns `false` for an unregistered subtag, a `null` subtag or any other type. |
 | `TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, out SubtagRegistrySubtagRecord? record)` | `bool` | Span form. |
 | `IsGrandfathered(string? languageTag)` | `bool` | Whether the registry has a `grandfathered` record for the tag. Returns `false` for `null`. |
 | `IsGrandfathered(ReadOnlySpan<char> languageTag)` | `bool` | Span form. |
-| `ToString()` | `string` | Override. Renders the registry back to its text representation. |
+| `ToString()` | `string` | Override. Writes the registry in the record-jar format of RFC 5646 §3.1.1, with a `%%` line between records and CRLF at the end of every line, the last one included, on every platform. The default `CreateFrom…` methods load the result. |
 
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. The
 `CreateFromFile` and `CreateFromFileAsync` methods, including the
-`CancellationToken` overload, exist on `netstandard2.0` and `net10.0`
+`SubtagRegistryLoadOptions` and `CancellationToken` overloads, exist on `netstandard2.0` and `net10.0`
 only; on `netstandard1.1`, load the registry from a `Stream` or a string.
 The public surface is otherwise the same.
 
@@ -141,5 +157,6 @@ The public surface is otherwise the same.
 - [ISubtagRegistryRecord](ISubtagRegistryRecord.md)
 - [SubtagRegistryTagRecord](SubtagRegistryTagRecord.md)
 - [SubtagRegistrySubtagRecord](SubtagRegistrySubtagRecord.md)
+- [SubtagRegistryLoadOptions](SubtagRegistryLoadOptions.md)
 - [SubtagRegistryRecordType](SubtagRegistryRecordType.md)
 - [LanguageTag API reference](index.md)

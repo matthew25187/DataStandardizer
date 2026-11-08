@@ -66,10 +66,13 @@ a tag.
 ## Validate against a registry
 
 Validity depends on the *IANA Language Subtag Registry*. You can load a copy from an
-external source and use it to create a tag, or to check one:
+external source and use it to create a tag, or to check one.
+IANA publishes the registry with a line feed alone at the end of each line, not the
+CRLF that RFC 5646 §3.1.1 requires, so load its file with
+[SubtagRegistryLoadOptions](../reference/SubtagRegistryLoadOptions.md)`.AcceptBareLineFeed`.
 
 ```csharp
-var subtagRegistry = SubtagRegistry.CreateFromFile("subtag_registry.txt");
+var subtagRegistry = SubtagRegistry.CreateFromFile("subtag_registry.txt", SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
 var languageTag = Bcp47LanguageTag.Create("en", subtagRegistry);       // throws if it isn't valid
 var isValid = Bcp47LanguageTag.IsValid("de-1901-1901", subtagRegistry); // false: the variant is repeated

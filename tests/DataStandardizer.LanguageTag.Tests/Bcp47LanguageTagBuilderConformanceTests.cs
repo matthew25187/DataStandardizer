@@ -51,7 +51,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// A registry that has only the subtags that no ISO list has.
         /// </summary>
         private const string RegistryOfUnlistedSubtags =
-            "File-Date: 2026-11-02\n%%\nType: language\nSubtag: zz\nDescription: Test language\nAdded: 2026-11-02\n%%\nType: script\nSubtag: Abcd\nDescription: Test script\nAdded: 2026-11-02\n";
+            "File-Date: 2026-11-02\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Test language\r\nAdded: 2026-11-02\r\n%%\r\nType: script\r\nSubtag: Abcd\r\nDescription: Test script\r\nAdded: 2026-11-02\r\n";
 
         /// <summary>
         /// A value that <see cref="LanguageTagConformance"/> doesn't define.

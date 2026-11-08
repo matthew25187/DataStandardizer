@@ -52,10 +52,13 @@ RFC 5646 §2.2.9 says a tag is valid if it satisfies these conditions:
 > - There are no duplicate variant subtags.
 > - There are no duplicate singleton (extension) subtags.
 
-Validity needs a registry, so you pass one in:
+Validity needs a registry, so you pass one in.
+IANA publishes the registry with a line feed alone at the end of each line, not the
+CRLF that RFC 5646 §3.1.1 requires, so load its file with
+[SubtagRegistryLoadOptions](../reference/SubtagRegistryLoadOptions.md)`.AcceptBareLineFeed`.
 
 ```csharp
-var subtagRegistry = SubtagRegistry.CreateFromFile("language-subtag-registry.txt");
+var subtagRegistry = SubtagRegistry.CreateFromFile("language-subtag-registry.txt", SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
 var languageTag = Bcp47LanguageTag.Create("en-US", subtagRegistry);
 var conformance = languageTag.Conformance;           // LanguageTagConformance.Valid

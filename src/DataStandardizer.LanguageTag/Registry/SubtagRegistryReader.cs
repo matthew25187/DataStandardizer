@@ -5,9 +5,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-#if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
-#endif
 using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
 
 namespace DataStandardizer.LanguageTag.Registry
@@ -25,6 +23,12 @@ namespace DataStandardizer.LanguageTag.Registry
     /// appears twice in a record. Fields that RFC 5646 doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks;
     /// the File-Date record has the File-Date field alone.
     /// <para>
+    /// Every line, the last one included, ends with CRLF (ref. RFC 5646 §3.1.1). A line that ends with a line feed alone, and a last line with no line
+    /// break, also throw, unless <see cref="SubtagRegistryLoadOptions.AcceptBareLineFeed"/> or
+    /// <see cref="SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak"/> accepts it. A carriage return that no line feed follows is never a line break,
+    /// so it is a control character in its line.
+    /// </para>
+    /// <para>
     /// A full-date in the year 0000, which RFC 3339 allows, also throws, as <see cref="DateTime"/> starts at the year 0001.
     /// </para>
     /// </remarks>
@@ -32,7 +36,22 @@ namespace DataStandardizer.LanguageTag.Registry
     {
         private const string RecordSeparator = "%%";
 
+        /// <summary>
+        /// The number of characters read from the source at a time, which is the size of the buffer of the <see cref="StreamReader"/> that
+        /// <see cref="SubtagRegistry"/> reads a stream or a file with, so that one read takes all it has decoded.
+        /// </summary>
+        private const int BufferSize = 16384;
+
         private readonly TextReader _sourceReader;
+        private readonly bool _acceptBareLineFeed;
+        private readonly bool _acceptMissingFinalLineBreak;
+
+        // the characters read from the source and not yet split into lines, which this reader splits itself, as TextReader.ReadLine hides which line
+        // break ends a line
+        private readonly char[] _buffer = new char[BufferSize];
+        private int _bufferPosition;
+        private int _bufferLength;
+        private bool _isAtEndOfInput;
 
         private readonly List<KeyValuePair<string, string>> _fields = new List<KeyValuePair<string, string>>();
 
@@ -61,15 +80,34 @@ namespace DataStandardizer.LanguageTag.Registry
         private string? _fieldName;
         private string? _fieldBody;
         private StringBuilder? _foldedFieldBody;
+        // the start of a line that the buffer ended in the middle of
+        private StringBuilder? _partialLine;
 #else
         private string _fieldName;
         private string _fieldBody;
         private StringBuilder _foldedFieldBody;
+        private StringBuilder _partialLine;
 #endif
 
-        internal SubtagRegistryReader(TextReader sourceReader)
+        internal SubtagRegistryReader(TextReader sourceReader, SubtagRegistryLoadOptions options)
         {
             _sourceReader = sourceReader;
+            _acceptBareLineFeed = (options & SubtagRegistryLoadOptions.AcceptBareLineFeed) != 0;
+            _acceptMissingFinalLineBreak = (options & SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak) != 0;
+        }
+
+        /// <summary>
+        /// The line break that ends a line.
+        /// </summary>
+        private enum LineBreak
+        {
+            /// <summary>
+            /// The line is the last, and the input ends after it.
+            /// </summary>
+            None = 0,
+
+            CarriageReturnLineFeed,
+            LineFeed
         }
 
         /// <summary>
@@ -88,8 +126,26 @@ namespace DataStandardizer.LanguageTag.Registry
 
             while (true)
             {
-                var line = _sourceReader.ReadLine();
-                if (AddLine(line)) return CreateRecord();
+#if NETCOREAPP3_0_OR_GREATER
+                string? line;
+#else
+                string line;
+#endif
+                LineBreak lineBreak;
+                while (!TryTakeLine(out line, out lineBreak))
+                {
+                    if (_isAtEndOfInput)
+                    {
+                        line = TakeLastLine(out lineBreak);
+                        break;
+                    }
+
+                    _bufferLength = _sourceReader.Read(_buffer, 0, _buffer.Length);
+                    _bufferPosition = 0;
+                    _isAtEndOfInput = _bufferLength == 0;
+                }
+
+                if (AddLine(line, lineBreak)) return CreateRecord();
             }
         }
 
@@ -108,12 +164,30 @@ namespace DataStandardizer.LanguageTag.Registry
                 // the end of the input is reported, so a cancelled token never yields a registry
                 cancellationToken.ThrowIfCancellationRequested();
                 if (_isAtEnd) return null;
-#if NET7_0_OR_GREATER
-                var line = await _sourceReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+#if NETCOREAPP3_0_OR_GREATER
+                string? line;
 #else
-                var line = await _sourceReader.ReadLineAsync().ConfigureAwait(false);
+                string line;
 #endif
-                if (AddLine(line)) return CreateRecord();
+                LineBreak lineBreak;
+                while (!TryTakeLine(out line, out lineBreak))
+                {
+                    if (_isAtEndOfInput)
+                    {
+                        line = TakeLastLine(out lineBreak);
+                        break;
+                    }
+
+#if NET
+                    _bufferLength = await _sourceReader.ReadAsync(_buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+#else
+                    _bufferLength = await _sourceReader.ReadAsync(_buffer, 0, _buffer.Length).ConfigureAwait(false);
+#endif
+                    _bufferPosition = 0;
+                    _isAtEndOfInput = _bufferLength == 0;
+                }
+
+                if (AddLine(line, lineBreak)) return CreateRecord();
             }
         }
 
@@ -121,13 +195,28 @@ namespace DataStandardizer.LanguageTag.Registry
         /// Adds a line to the record being read.
         /// </summary>
         /// <param name="line">The line, or <see langword="null"/> at the end of the input.</param>
+        /// <param name="lineBreak">The line break that ends the line.</param>
         /// <returns><see langword="true"/> when the line ends the record.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        private bool AddLine(string? line)
+        private bool AddLine(string? line, LineBreak lineBreak)
 #else
-        private bool AddLine([AllowNull] string line)
+        private bool AddLine([AllowNull] string line, LineBreak lineBreak)
 #endif
         {
+            if (line != null)
+            {
+                // a carriage return that no line feed follows is a control character, not a line break, whatever line breaks the options accept, so it is
+                // reported before how the line ends (ref. RFC 5646 §3.1.1)
+                if (line.IndexOf('\r') >= 0)
+                {
+                    throw CreateException(
+                        "Line {0} holds a carriage return that no line feed follows, which is not a line break but a control character, which a field may not hold (ref. RFC 5646 §3.1.1).",
+                        _lineNumber + 1);
+                }
+
+                CheckLineBreak(lineBreak, _lineNumber + 1);
+            }
+
             if (line is null || line == RecordSeparator)
             {
                 // registry = record *("%%" CRLF record) and record = 1*field, so the input, and each record after a "%%" line, has at least one field
@@ -175,6 +264,95 @@ namespace DataStandardizer.LanguageTag.Registry
             _fieldEndsWithSpace = _fieldBody.Length > 0 && line[line.Length - 1] == ' ';
 
             return false;
+        }
+
+        /// <summary>
+        /// Checks the line break that ends a line: CRLF, as every line ends, the last one included, or one that an option accepts (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        private void CheckLineBreak(LineBreak lineBreak, int lineNumber)
+        {
+            if (lineBreak == LineBreak.LineFeed && !_acceptBareLineFeed)
+            {
+                throw CreateException("Line {0} ends with a line feed alone, not the CRLF that ends every line (ref. RFC 5646 §3.1.1).", lineNumber);
+            }
+
+            if (lineBreak == LineBreak.None && !_acceptMissingFinalLineBreak)
+            {
+                throw CreateException("Line {0}, the last, has no CRLF after it, which ends every line, the last one included (ref. RFC 5646 §3.1.1).", lineNumber);
+            }
+        }
+
+        /// <summary>
+        /// Takes the next line from the characters read, without its line break.
+        /// </summary>
+        /// <param name="line">The line, when this method returns <see langword="true"/>.</param>
+        /// <param name="lineBreak">The line break that ends the line, or <see cref="LineBreak.None"/> when this method returns <see langword="false"/>.</param>
+        /// <returns><see langword="false"/> when the characters read hold no line feed, so more must be read to end the line.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private bool TryTakeLine([NotNullWhen(true)] out string? line, out LineBreak lineBreak)
+#else
+        private bool TryTakeLine([MaybeNullWhen(false)] out string line, out LineBreak lineBreak)
+#endif
+        {
+            lineBreak = LineBreak.None;
+            var start = _bufferPosition;
+#if NET
+            var lineFeedIndex = _buffer.AsSpan(start, _bufferLength - start).IndexOf('\n');
+            if (lineFeedIndex >= 0) lineFeedIndex += start;
+#else
+            var lineFeedIndex = Array.IndexOf(_buffer, '\n', start, _bufferLength - start);
+#endif
+            if (lineFeedIndex < 0)
+            {
+                // the line goes on past the characters read, so it is kept for the next read to end
+                if (start < _bufferLength)
+                {
+                    if (_partialLine is null) _partialLine = new StringBuilder();
+                    _partialLine.Append(_buffer, start, _bufferLength - start);
+                }
+
+                _bufferPosition = _bufferLength;
+                line = null;
+                return false;
+            }
+
+            _bufferPosition = lineFeedIndex + 1;
+            if (_partialLine is null || _partialLine.Length == 0)
+            {
+                var isCrLf = lineFeedIndex > start && _buffer[lineFeedIndex - 1] == '\r';
+                lineBreak = isCrLf ? LineBreak.CarriageReturnLineFeed : LineBreak.LineFeed;
+                line = new string(_buffer, start, lineFeedIndex - start - (isCrLf ? 1 : 0));
+                return true;
+            }
+
+            // a line that started in an earlier read, whose carriage return may have ended that read
+            _partialLine.Append(_buffer, start, lineFeedIndex - start);
+            var length = _partialLine.Length;
+            var endsWithCr = _partialLine[length - 1] == '\r';
+            lineBreak = endsWithCr ? LineBreak.CarriageReturnLineFeed : LineBreak.LineFeed;
+            line = _partialLine.ToString(0, length - (endsWithCr ? 1 : 0));
+            _partialLine.Clear();
+            return true;
+        }
+
+        /// <summary>
+        /// Takes the last line, which no line break ends, at the end of the input.
+        /// </summary>
+        /// <param name="lineBreak"><see cref="LineBreak.None"/>, as no line break ends the last line.</param>
+        /// <returns>The line, or <see langword="null"/> when the input ends with a line break, so it has no more lines.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private string? TakeLastLine(out LineBreak lineBreak)
+#else
+        [return: MaybeNull]
+        private string TakeLastLine(out LineBreak lineBreak)
+#endif
+        {
+            lineBreak = LineBreak.None;
+            if (_partialLine is null || _partialLine.Length == 0) return null;
+
+            var line = _partialLine.ToString();
+            _partialLine.Clear();
+            return line;
         }
 
         private void AppendToFieldBody(string line)

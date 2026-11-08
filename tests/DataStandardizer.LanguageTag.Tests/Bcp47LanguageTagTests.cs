@@ -3231,11 +3231,11 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <see cref="ChannelIslandsLanguageTags"/>.
         /// </summary>
         private const string ChannelIslandsSubtagRegistryContent =
-            "File-Date: 2026-10-19\n" +
-            "%%\nType: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16\n" +
-            "%%\nType: language\nSubtag: fr\nDescription: French\nAdded: 2005-10-16\n" +
-            "%%\nType: script\nSubtag: Latn\nDescription: Latin\nAdded: 2005-10-16\n" +
-            "%%\nType: region\nSubtag: 830\nDescription: Channel Islands\nAdded: 2026-10-19";
+            "File-Date: 2026-10-19\r\n" +
+            "%%\r\nType: language\r\nSubtag: en\r\nDescription: English\r\nAdded: 2005-10-16\r\n" +
+            "%%\r\nType: language\r\nSubtag: fr\r\nDescription: French\r\nAdded: 2005-10-16\r\n" +
+            "%%\r\nType: script\r\nSubtag: Latn\r\nDescription: Latin\r\nAdded: 2005-10-16\r\n" +
+            "%%\r\nType: region\r\nSubtag: 830\r\nDescription: Channel Islands\r\nAdded: 2026-10-19\r\n";
 
         [Theory]
         [MemberData(nameof(ChannelIslandsLanguageTags))]
@@ -3820,9 +3820,9 @@ namespace DataStandardizer.LanguageTag.Tests
         /// A Subtag Registry with one language and one region record, and no grandfathered, script or variant records.
         /// </summary>
         private const string SparseSubtagRegistryContent =
-            "File-Date: 2026-10-21\n" +
-            "%%\nType: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16\n" +
-            "%%\nType: region\nSubtag: US\nDescription: United States\nAdded: 2005-10-16";
+            "File-Date: 2026-10-21\r\n" +
+            "%%\r\nType: language\r\nSubtag: en\r\nDescription: English\r\nAdded: 2005-10-16\r\n" +
+            "%%\r\nType: region\r\nSubtag: US\r\nDescription: United States\r\nAdded: 2005-10-16\r\n";
 
         [Theory]
         [InlineData(EmptyString), InlineData(EnglishWithTrailingHyphen), InlineData(EnglishWithEmptySubtag), InlineData(EnglishUnitedStatesWithTrailingHyphen)]

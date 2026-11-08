@@ -42,10 +42,14 @@ var languageTag = new Bcp47LanguageTagBuilder()
 ## Create language tags with subtag registry
 
 A copy of the *IANA Language Subtag Registry* can be used to validate the subtags
-for a language tag. For example,
+for a language tag.
+IANA publishes the registry with a line feed alone at the end of each line, not the
+CRLF that RFC 5646 §3.1.1 requires, so load its file with
+[SubtagRegistryLoadOptions](../reference/SubtagRegistryLoadOptions.md)`.AcceptBareLineFeed`.
+For example,
 
 ```csharp
-var subtagRegistry = SubtagRegistry.CreateFromFile("registry.txt");
+var subtagRegistry = SubtagRegistry.CreateFromFile("registry.txt", SubtagRegistryLoadOptions.AcceptBareLineFeed);
 var languageTag = new Bcp47LanguageTagBuilder()
     .WithLanguageSubtagRegistry(subtagRegistry)
     .UsingPrimaryLanguageSubtag("gsw")

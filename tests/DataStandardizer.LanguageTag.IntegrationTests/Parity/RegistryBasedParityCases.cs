@@ -24,20 +24,20 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// Records of every type with a subtag or tag from <see cref="ParityCorpus"/> that isn't in the shape RFC 5646 §2.1 gives that type.
         /// </summary>
         private const string RecordsOutsideTheAbnf =
-            "File-Date: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: en\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: abcde\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: abcdefgh\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: a\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: 12345\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: extlang\nSubtag: yue\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
-            "%%\nType: extlang\nSubtag: 123\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
-            "%%\nType: script\nSubtag: a1\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: region\nSubtag: 1\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: variant\nSubtag: ab1\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: variant\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: grandfathered\nTag: a-bb\nDescription: T\nAdded: 2026-11-02\n";
+            "File-Date: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: en\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: abcde\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: abcdefgh\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: a\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: 12345\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: 123\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
+            "%%\r\nType: script\r\nSubtag: a1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: region\r\nSubtag: 1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: variant\r\nSubtag: ab1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: variant\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2026-11-02\r\n";
 
         private static readonly string[] SubtagGroupNames =
         {
@@ -121,7 +121,8 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
                 return index % 3 == 0 || (subtag != null && (subtag.Contains("..") || TrimmedRegistryKeptSubtags.Contains(subtag)));
             });
 
-            return SubtagRegistry.CreateFromContent(string.Join("\n%%\n", keptRecords));
+            // the fixture has the line feeds that IANA publishes it with, and the last record kept may not be the last of the file, which ends with one
+            return SubtagRegistry.CreateFromContent(string.Join("\n%%\n", keptRecords), SubtagRegistryLoadOptions.AcceptBareLineFeed | SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak);
         }
 
         /// <summary>

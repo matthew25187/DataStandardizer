@@ -7,8 +7,14 @@ namespace DataStandardizer.LanguageTag.Tests
     /// The copy of the IANA Language Subtag Registry embedded in the test assembly.
     /// </summary>
     /// <remarks>
-    /// A missing resource fails the test that reads it: <see cref="SubtagRegistry.CreateFromStream"/> and
+    /// <para>
+    /// The fixture has the line feeds that IANA publishes the registry with, on every checkout, as <c>.gitattributes</c> keeps them, so it is
+    /// loaded with <see cref="SubtagRegistryLoadOptions.AcceptBareLineFeed"/> (RFC 5646 §3.1.1 asks for CRLF).
+    /// </para>
+    /// <para>
+    /// A missing resource fails the test that reads it: <see cref="SubtagRegistry.CreateFromStream(Stream, SubtagRegistryLoadOptions)"/> and
     /// <see cref="StreamReader"/> both throw <see cref="ArgumentNullException"/> for the <c>null</c> stream it is opened as.
+    /// </para>
     /// </remarks>
     internal static class IanaSubtagRegistryResource
     {
@@ -18,6 +24,8 @@ namespace DataStandardizer.LanguageTag.Tests
 
         private static readonly Lazy<string> SharedContent = new Lazy<string>(ReadContent);
 
+        private static readonly Lazy<string> SharedText = new Lazy<string>(ReadResourceText);
+
         /// <summary>
         /// One copy of the registry that every test may read. A <see cref="SubtagRegistry"/> can't be changed once it is
         /// loaded, so no test can change this one.
@@ -25,9 +33,15 @@ namespace DataStandardizer.LanguageTag.Tests
         internal static SubtagRegistry Shared => SharedSubtagRegistry.Value;
 
         /// <summary>
-        /// The text of the registry, as <see cref="SubtagRegistry.ToString"/> of the shared copy writes it.
+        /// The text of the registry, as <see cref="SubtagRegistry.ToString"/> of the shared copy writes it: with CRLF at the end of every line, the last
+        /// one included (RFC 5646 §3.1.1).
         /// </summary>
         internal static string Content => SharedContent.Value;
+
+        /// <summary>
+        /// The text of the resource as it is, with a line feed alone at the end of each line, the last one included, as IANA publishes the registry.
+        /// </summary>
+        internal static string Text => SharedText.Value;
 
         /// <summary>
         /// Load a new copy of the registry, for a test that must not share one with other tests.
@@ -36,7 +50,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             using (var resourceStream = typeof(IanaSubtagRegistryResource).Assembly.GetManifestResourceStream(ResourceName))
             {
-                return SubtagRegistry.CreateFromStream(resourceStream);
+                return SubtagRegistry.CreateFromStream(resourceStream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
             }
         }
 

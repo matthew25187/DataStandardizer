@@ -7,8 +7,14 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
     /// The copy of the IANA Language Subtag Registry embedded in the test assembly.
     /// </summary>
     /// <remarks>
-    /// A missing resource fails the test that reads it: <see cref="SubtagRegistry.CreateFromStream"/> and
+    /// <para>
+    /// The fixture has the line feeds that IANA publishes the registry with, on every checkout, as <c>.gitattributes</c> keeps them, so it is
+    /// loaded with <see cref="SubtagRegistryLoadOptions.AcceptBareLineFeed"/> (RFC 5646 §3.1.1 asks for CRLF).
+    /// </para>
+    /// <para>
+    /// A missing resource fails the test that reads it: <see cref="SubtagRegistry.CreateFromStream(Stream, SubtagRegistryLoadOptions)"/> and
     /// <see cref="StreamReader"/> both throw <see cref="ArgumentNullException"/> for the <c>null</c> stream it is opened as.
+    /// </para>
     /// </remarks>
     internal static class IanaSubtagRegistryResource
     {
@@ -29,7 +35,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
         {
             using (var resourceStream = typeof(IanaSubtagRegistryResource).Assembly.GetManifestResourceStream(ResourceName))
             {
-                return SubtagRegistry.CreateFromStream(resourceStream);
+                return SubtagRegistry.CreateFromStream(resourceStream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
             }
         }
 
