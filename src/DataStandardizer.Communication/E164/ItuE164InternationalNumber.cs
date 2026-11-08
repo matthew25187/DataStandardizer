@@ -441,8 +441,8 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the provided <paramref name="countryCode"/> is not a valid or defined country code.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the digit count of <paramref name="nationalSignificantNumber"/> exceeds the allowable range
-        /// based on the maximum digit count for the international number.
+        /// Thrown when <paramref name="nationalSignificantNumber"/> has no digits, or more digits than the maximum digit count
+        /// for the international number leaves after the Country Code.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGeographicArea(ItuE164AssignedCountryCodesForGeographicAreas countryCode, ItuE164NationalSignificantNumber nationalSignificantNumber)
         {
@@ -454,7 +454,7 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(countryCode));
             }
 
-            if (nationalSignificantNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount)
+            if (nationalSignificantNumber.DigitCount < 1 || nationalSignificantNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount)
             {
                 var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "National Significant Number", 1, MaximumDigitCount - countryCodeDigitCount);
                 throw new ArgumentOutOfRangeException(nameof(nationalSignificantNumber), nationalSignificantNumber, message);
@@ -517,7 +517,7 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> is not a valid value from <see cref="ItuE164AssignedCountryCodesForGlobalServices"/>.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="globalSubscriberNumber"/> exceeds the maximum allowed digit count of 12.
+        /// Thrown when the <paramref name="globalSubscriberNumber"/> doesn't have 1 to 12 digits.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGlobalService(ItuE164AssignedCountryCodesForGlobalServices countryCode, ItuE164GlobalSubscriberNumber globalSubscriberNumber)
         {
@@ -527,7 +527,7 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(countryCode));
             }
 
-            if (globalSubscriberNumber.DigitCount > 12)
+            if (globalSubscriberNumber.DigitCount < 1 || globalSubscriberNumber.DigitCount > 12)
             {
                 var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Global Subscriber Number", 1, 12);
                 throw new ArgumentOutOfRangeException(nameof(globalSubscriberNumber), globalSubscriberNumber, message);
@@ -594,8 +594,8 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> or <paramref name="identificationCode"/> is invalid.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="subscriberNumber"/> exceeds the maximum allowable digit count 
-        /// for the combination of country code and identification code.
+        /// Thrown when the <paramref name="subscriberNumber"/> has no digits, or more digits than the maximum digit count
+        /// for the international number leaves after the Country Code and Identification Code.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForNetwork(ItuE164AssignedCountryCodesForNetworks countryCode, ItuE164AssignedIdentificationCodesForNetworks identificationCode, ItuE164SubscriberNumber subscriberNumber)
         {
@@ -613,7 +613,7 @@ namespace DataStandardizer.Communication.E164
 
             var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
             var identificationCodeDigitCount = $"{(ushort)identificationCode}".Length;
-            if (subscriberNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount)
+            if (subscriberNumber.DigitCount < 1 || subscriberNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount)
             {
                 var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount);
                 throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
@@ -679,7 +679,7 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> or <paramref name="groupIdentificationCode"/> is invalid.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="subscriberNumber"/> exceeds the maximum allowed digit count.
+        /// Thrown when the <paramref name="subscriberNumber"/> doesn't have 1 to 11 digits.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGroupOfCountries(ItuE164AssignedCountryCodesForGroupsOfCountries countryCode, ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries groupIdentificationCode,
             ItuE164SubscriberNumber subscriberNumber)
@@ -696,9 +696,9 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(groupIdentificationCode));
             }
 
-            if (subscriberNumber.DigitCount > 11)
+            if (subscriberNumber.DigitCount < 1 || subscriberNumber.DigitCount > 11)
             {
-                var message = string.Format(ErrorMessage.FieldValueInvalidTemplate, subscriberNumber, "Subscriber Number");
+                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, 11);
                 throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
             }
 
@@ -763,7 +763,7 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> or <paramref name="trialIdentificationCode"/> is invalid.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="subscriberNumber"/> exceeds the maximum allowed digit count of 11.
+        /// Thrown when the <paramref name="subscriberNumber"/> is given and doesn't have 1 to 11 digits.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForTrial(ItuE164AssignedCountryCodesForTrials countryCode, ItuE164AssignedTrialIdentificationCodesForTrials trialIdentificationCode, ItuE164SubscriberNumber? subscriberNumber)
         {
@@ -779,7 +779,7 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(trialIdentificationCode));
             }
 
-            if (subscriberNumber.HasValue && subscriberNumber.Value.DigitCount > 11)
+            if (subscriberNumber.HasValue && (subscriberNumber.Value.DigitCount < 1 || subscriberNumber.Value.DigitCount > 11))
             {
                 var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, 11);
                 throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);

@@ -1179,6 +1179,63 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("'800123' is not a valid number for a geographic area.*");
         }
 
+        // Calls to the typed factories with a default field, which has no digits, and the message each gives.
+        public static TheoryData<Action, string> TypedFactoryCallsWithDefaultField => new TheoryData<Action, string>
+        {
+            // Country Code 1 leaves 14 digits for the National Significant Number.
+            { () => ItuE164InternationalNumber.CreateNumberForGeographicArea(ItuE164AssignedCountryCodesForGeographicAreas.US, default), "National Significant Number must be 1 to 14 digits.*" },
+            { () => ItuE164InternationalNumber.CreateNumberForGlobalService(ItuE164AssignedCountryCodesForGlobalServices.IFS, default), "Global Subscriber Number must be 1 to 12 digits.*" },
+            // Country Code 881 and Identification Code 6 leave 11 digits for the Subscriber Number.
+            { () => ItuE164InternationalNumber.CreateNumberForNetwork(ItuE164AssignedCountryCodesForNetworks.GMSS, ItuE164AssignedIdentificationCodesForNetworks.IC6, default), "Subscriber Number must be 1 to 11 digits.*" }
+        };
+
+        [Theory]
+        [MemberData(nameof(TypedFactoryCallsWithDefaultField))]
+        public void CreateNumber_DefaultField_ThrowsArgumentOutOfRangeException(Action factoryCall, string expectedMessage)
+        {
+            // act
+            var testAction = factoryCall;
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentOutOfRangeException>()
+                .WithMessage(expectedMessage);
+        }
+
+        [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        public void CreateNumberForGroupOfCountries_DefaultSubscriberNumber_ThrowsArgumentOutOfRangeException()
+        {
+            // arrange
+            const ItuE164AssignedCountryCodesForGroupsOfCountries countryCode = ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode;
+            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)GroupIdentificationCode;
+            var subscriberNumber = default(ItuE164SubscriberNumber);
+
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(countryCode, groupIdentificationCode, subscriberNumber);
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentOutOfRangeException>()
+                .WithMessage(SubscriberNumberOf1To11DigitsMessage);
+        }
+
+        [Fact(Skip = NumberForTrialsSkipMessage)]
+        public void CreateNumberForTrial_DefaultSubscriberNumber_ThrowsArgumentOutOfRangeException()
+        {
+            // arrange
+            const ItuE164AssignedCountryCodesForTrials countryCode = ItuE164AssignedCountryCodesForTrials.SharedCode;
+            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)TrialIdentificationCode;
+            var subscriberNumber = default(ItuE164SubscriberNumber);
+
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForTrial(countryCode, trialIdentificationCode, subscriberNumber);
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentOutOfRangeException>()
+                .WithMessage(SubscriberNumberOf1To11DigitsMessage);
+        }
+
         [Fact]
         public void CreateNumberForGeographicArea_InternationalNumberTooLong_ThrowsArgumentOutOfRangeException()
         {
