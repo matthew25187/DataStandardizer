@@ -19,6 +19,12 @@ namespace DataStandardizer.Communication.IntegrationTests.E164
         // and, after a space, the national significant number (ITU-T E.123 international notation).
         private const string GreatBritainNumberInInvariantLongInternationalPattern = "+44 3071234567";
 
+        // GreatBritainNumber in the invariant telephony's short international pattern: the same, with no space.
+        private const string GreatBritainNumberInInvariantShortInternationalPattern = "+443071234567";
+
+        // The short international format.
+        private const string ShortInternationalFormat = "i";
+
         // The long international format.
         private const string LongInternationalFormat = "I";
 
@@ -37,6 +43,24 @@ namespace DataStandardizer.Communication.IntegrationTests.E164
 
                 // assert
                 testResult.Should().Be(GreatBritainNumberInInvariantLongInternationalPattern);
+            }
+        }
+
+        [Theory]
+        [InlineData(ShortInternationalFormat, GreatBritainNumberInInvariantShortInternationalPattern),
+         InlineData(LongInternationalFormat, GreatBritainNumberInInvariantLongInternationalPattern)]
+        public void Format_InternationalFormatWithoutProviderUnderGreatBritainCulture_ReturnsInvariantPattern(string testFormat, string expectedResult)
+        {
+            // arrange
+            var testNumber = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject = new ItuE164InternationalNumberFormatter();
+            using (new CultureScope(GreatBritainCultureName))
+            {
+                // act
+                var testResult = testSubject.Format(testFormat, testNumber, null);
+
+                // assert
+                testResult.Should().Be(expectedResult);
             }
         }
     }
