@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using static DataStandardizer.Communication.E164.ItuE164Constants;
@@ -116,6 +118,30 @@ namespace DataStandardizer.Communication.E164
         {
             // \z, not $, which would also match before a final line feed.
             return numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? $@"[{PatternWhiteSpaceCharacterClass}]*\z" : @"\z";
+        }
+
+        /// <summary>
+        /// Pairs each Country Code of <paramref name="countryCodeEnumType"/> with the identification codes of
+        /// <paramref name="identificationCodeEnumType"/> whose <see cref="ItuE164SharedCodeAttribute"/> names it.
+        /// </summary>
+        /// <remarks>
+        /// Reads only the members of the identification code enumeration, which are its static fields. Its
+        /// instance field, which holds the value of an instance, is not a member and has no shared code.
+        /// </remarks>
+        internal static ILookup<ushort, ushort> ComposeIdentificationCodeLookup(Type countryCodeEnumType, Type identificationCodeEnumType)
+        {
+            var countryCodes = new HashSet<ushort>(Enum.GetValues(countryCodeEnumType).Cast<object>().Select(countryCode => Convert.ToUInt16(countryCode, CultureInfo.InvariantCulture)));
+
+            return (
+                    from field in identificationCodeEnumType.GetTypeInfo().DeclaredFields
+                    where field.IsStatic
+                    let sharedCodeAttribute = field.GetCustomAttribute<ItuE164SharedCodeAttribute>()
+                    where sharedCodeAttribute != null && countryCodes.Contains(sharedCodeAttribute.CountryCode)
+                    let identificationCode = Convert.ToUInt16(field.GetValue(null), CultureInfo.InvariantCulture)
+                    orderby sharedCodeAttribute.CountryCode, identificationCode
+                    select new { sharedCodeAttribute.CountryCode, IdentificationCode = identificationCode })
+                .Distinct()
+                .ToLookup(pair => pair.CountryCode, pair => pair.IdentificationCode);
         }
 
         protected static Regex GetParseExpression(Type discriminatorType, ItuE164InternationalNumberStyles numberStyles, Func<ItuE164InternationalNumberStyles, string> getParsePattern)

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
@@ -24,16 +23,7 @@ namespace DataStandardizer.Communication.E164
 
         static ItuE164InternationalNumberStructureForNetworks()
         {
-            // Compose patterns for numbers with and without spacing.
-            IdentificationCodeLookup = (
-                    from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
-                    from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
-                    let sharedCodeAttribute = typeof(ItuE164AssignedIdentificationCodesForNetworks).GetTypeInfo().DeclaredFields
-                        .Single(field => field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
-                        .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                    where sharedCodeAttribute.CountryCode == countryCode
-                    select new { CountryCode = countryCode, IdentificationCode = identificationCode })
-                .ToLookup(kvp => kvp.CountryCode, kvp => (ushort)kvp.IdentificationCode);
+            IdentificationCodeLookup = ComposeIdentificationCodeLookup(typeof(ItuE164AssignedCountryCodesForNetworks), typeof(ItuE164AssignedIdentificationCodesForNetworks));
         }
 
         internal ItuE164InternationalNumberStructureForNetworks(ulong number) : base(number)
