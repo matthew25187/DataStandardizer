@@ -1128,7 +1128,7 @@ namespace DataStandardizer.Money
             {
                 NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator,
                 NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator,
-                NumberGroupSizes = currencyFormat.CurrencyGroupSizes,
+                NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied,
                 NegativeSign = currencyFormat.NegativeSign ?? string.Empty
             };
         }
@@ -1401,7 +1401,7 @@ namespace DataStandardizer.Money
 
             result.NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator;
             result.NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator;
-            result.NumberGroupSizes = currencyFormat.CurrencyGroupSizes;
+            result.NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied;
             result.NegativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
 
             return result;
