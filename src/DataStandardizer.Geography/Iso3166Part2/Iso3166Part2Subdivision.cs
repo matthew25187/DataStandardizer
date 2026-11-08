@@ -100,6 +100,10 @@ namespace DataStandardizer.Geography
         
         public int CompareTo(object? obj)
         {
+            if ((this._value == null))
+            {
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
+            }
             if ((obj == null))
             {
                 return 1;
@@ -107,10 +111,6 @@ namespace DataStandardizer.Geography
             if (!(obj is DataStandardizer.Geography.Iso3166Part2Subdivision other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
-            }
-            if ((this._value == null))
-            {
-                throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
             if ((other._value == null))
             {
@@ -156,6 +156,10 @@ namespace DataStandardizer.Geography
         
         public int CompareTo(object obj)
         {
+            if ((this._value == null))
+            {
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
+            }
             if ((obj == null))
             {
                 return 1;
@@ -163,10 +167,6 @@ namespace DataStandardizer.Geography
             if (!(obj is DataStandardizer.Geography.Iso3166Part2Subdivision other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
-            }
-            if ((this._value == null))
-            {
-                throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
             if ((other._value == null))
             {

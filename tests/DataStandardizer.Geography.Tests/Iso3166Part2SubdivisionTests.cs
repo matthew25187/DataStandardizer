@@ -76,6 +76,19 @@ public class Iso3166Part2SubdivisionTests
     }
 
     [Fact]
+    public void CompareTo_DefaultInstanceNullObject_ThrowsInvalidOperationException()
+    {
+        // arrange
+        var testValue = default(Iso3166Part2Subdivision);
+
+        // act
+        Action testAction = () => testValue.CompareTo(null);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
     public void CompareTo_ListSort_OrdersSubdivisionsByCode()
     {
         // arrange
