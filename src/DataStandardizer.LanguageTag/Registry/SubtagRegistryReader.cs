@@ -18,8 +18,11 @@ namespace DataStandardizer.LanguageTag.Registry
     /// <remarks>
     /// Input that the format doesn't allow throws a <see cref="FormatException"/> that names its line: a line that is blank, holds a control character
     /// (a tab among them), or is neither a field nor a folded line that starts with a space; a field body that ends with a space; a File-Date, Subtag,
-    /// Tag or Type field with no value; and a record that is empty, has none or more than one of the File-Date, Subtag and Tag fields, or has no Type
-    /// that RFC 5646 §3.1.3 defines for its kind of record.
+    /// Tag or Type field with no value; a File-Date, Added or Deprecated field that is not an RFC 3339 full-date; and a record that is empty, has none
+    /// or more than one of the File-Date, Subtag and Tag fields, or has no Type that RFC 5646 §3.1.3 defines for its kind of record.
+    /// <para>
+    /// A full-date in the year 0000, which RFC 3339 allows, also throws, as <see cref="DateTime"/> starts at the year 0001.
+    /// </para>
     /// </remarks>
     internal class SubtagRegistryReader
     {
@@ -31,9 +34,17 @@ namespace DataStandardizer.LanguageTag.Registry
 
         private int _lineNumber;
         private int _recordLineNumber;
+        // the first line of the field being read, which errors about its whole value name, and its last line so far, which an error about how
+        // that line ends names
+        private int _fieldStartLineNumber;
         private int _fieldLineNumber;
         private bool _fieldEndsWithSpace;
         private bool _isAtEnd;
+
+        // the first File-Date, Added and Deprecated of the record being read, parsed once, for the record to take
+        private DateTime? _fileDate;
+        private DateTime? _added;
+        private DateTime? _deprecated;
 
 #if NETCOREAPP3_0_OR_GREATER
         private string? _fieldName;
@@ -149,6 +160,7 @@ namespace DataStandardizer.LanguageTag.Registry
             _fieldName = GetFieldName(line, nameLength);
             _fieldBody = Trim(line, colonIndex + 1);
             _fieldLineNumber = _lineNumber;
+            _fieldStartLineNumber = _lineNumber;
             _fieldEndsWithSpace = _fieldBody.Length > 0 && line[line.Length - 1] == ' ';
 
             return false;
@@ -172,6 +184,29 @@ namespace DataStandardizer.LanguageTag.Registry
             _foldedFieldBody.Append(line, start, end - start);
         }
 
+        /// <summary>
+        /// Parses the body of a File-Date, Added or Deprecated field, each an RFC 3339 full-date (ref. RFC 5646 §3.1.1), which every occurrence of the
+        /// field must be, though the record takes the first.
+        /// </summary>
+        /// <returns>The first date of the field in the record: <paramref name="firstDate"/>, or the date parsed when there is none.</returns>
+        private DateTime ParseDateField(string fieldBody, DateTime? firstDate)
+        {
+            if (!TryParseFullDate(fieldBody, out var year, out var month, out var day))
+            {
+                throw CreateException("The {1} field at line {0} has the value '{2}', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1).",
+                    _fieldStartLineNumber, _fieldName, fieldBody);
+            }
+
+            if (year == 0)
+            {
+                throw CreateException(
+                    "The {1} field at line {0} has the value '{2}', a full-date in the year 0000, which is before the year 0001 that a DateTime starts at.",
+                    _fieldStartLineNumber, _fieldName, fieldBody);
+            }
+
+            return firstDate ?? new DateTime(year, month, day);
+        }
+
         private void AddField()
         {
             if (_fieldName is null) return;
@@ -183,10 +218,14 @@ namespace DataStandardizer.LanguageTag.Registry
             if (string.IsNullOrEmpty(fieldBody))
             {
                 // the grammar allows an empty field body, but the fields that tell a record's kind and type each need a value (ref. RFC 5646 §3.1.2)
-                if (IsClassifyingField(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldLineNumber, _fieldName);
+                if (IsClassifyingField(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
             }
             else
             {
+                if (ReferenceEquals(_fieldName, FieldName.FileDate)) _fileDate = ParseDateField(fieldBody, _fileDate);
+                else if (ReferenceEquals(_fieldName, FieldName.Added)) _added = ParseDateField(fieldBody, _added);
+                else if (ReferenceEquals(_fieldName, FieldName.Deprecated)) _deprecated = ParseDateField(fieldBody, _deprecated);
+
                 _fields.Add(new KeyValuePair<string, string>(_fieldName, fieldBody));
             }
 
@@ -212,17 +251,26 @@ namespace DataStandardizer.LanguageTag.Registry
 
             var recordLineNumber = _recordLineNumber;
             var fields = _fields.ToArray();
+            var fileDate = _fileDate;
+            var added = _added;
+            var deprecated = _deprecated;
             _recordLineNumber = 0;
             _fields.Clear();
+            _fileDate = null;
+            _added = null;
+            _deprecated = null;
 
             // the three kinds of record are told apart by these fields (ref. RFC 5646 §3.1.2)
             var kindCount = (isFileDate ? 1 : 0) + (hasSubtag ? 1 : 0) + (hasTag ? 1 : 0);
             if (kindCount == 0) throw CreateException("The record at line {0} has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2).", recordLineNumber);
             if (kindCount > 1) throw CreateException("The record at line {0} has more than one of the File-Date, Subtag and Tag fields (ref. RFC 5646 §3.1.2).", recordLineNumber);
 
-            if (isFileDate) return new SubtagRegistryFileDateRecord(fields);
+            // a File-Date field has a value, which is a full-date, so the record has its date
+            if (fileDate.HasValue) return new SubtagRegistryFileDateRecord(fields, fileDate.Value);
 
-            var record = hasSubtag ? new SubtagRegistrySubtagRecord(fields) : (SubtagRegistryTagRecordBase)new SubtagRegistryTagRecord(fields);
+            var record = hasSubtag
+                ? new SubtagRegistrySubtagRecord(fields, added, deprecated)
+                : (SubtagRegistryTagRecordBase)new SubtagRegistryTagRecord(fields, added, deprecated);
             if (record.Type == SubtagRegistryRecordType.Unknown)
             {
                 // the record reads the first Type field, as the error does
@@ -376,6 +424,54 @@ namespace DataStandardizer.LanguageTag.Registry
 
             // a field this version doesn't know, which is kept as a field rather than run into the field before it
             return line.Substring(0, length);
+        }
+
+        /// <summary>
+        /// Checks a value against the full-date rule of RFC 3339 §5.6: <c>date-fullyear "-" date-month "-" date-mday</c>, with a day that the month has
+        /// in that year of the Gregorian calendar (RFC 3339 §5.7).
+        /// </summary>
+        private static bool TryParseFullDate(string value, out int year, out int month, out int day)
+        {
+            year = 0;
+            month = 0;
+            day = 0;
+            if (value.Length != 10 || value[4] != '-' || value[7] != '-' || !TryParseDigits(value, 0, 4, out year)) return false;
+            if (!TryParseDigits(value, 5, 2, out month) || !TryParseDigits(value, 8, 2, out day)) return false;
+
+            return month >= 1 && month <= 12 && day >= 1 && day <= GetDaysInMonth(year, month);
+        }
+
+        /// <summary>
+        /// Gets the number of days in a month of the Gregorian calendar, for any year from 0000 to 9999 (ref. RFC 3339 §5.7).
+        /// </summary>
+        private static int GetDaysInMonth(int year, int month)
+        {
+            switch (month)
+            {
+                case 2:
+                    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) ? 29 : 28;
+                case 4:
+                case 6:
+                case 9:
+                case 11:
+                    return 30;
+                default:
+                    return 31;
+            }
+        }
+
+        private static bool TryParseDigits(string value, int start, int length, out int number)
+        {
+            number = 0;
+            for (var index = start; index < start + length; index++)
+            {
+                var digit = value[index] - '0';
+                if (digit < 0 || digit > 9) return false;
+
+                number = number * 10 + digit;
+            }
+
+            return true;
         }
 
         private static bool StartsWith(string line, string fieldName)

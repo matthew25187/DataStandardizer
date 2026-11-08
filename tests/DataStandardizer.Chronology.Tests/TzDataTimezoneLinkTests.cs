@@ -49,6 +49,17 @@ public class TzDataTimezoneLinkTests
     private const string ZuluName = "Zulu";
     private const string EtcUniversalName = "Etc/Universal";
 
+    // Names that the etcetera and backward files of TZ Database 2026e link to Etc/GMT.
+    private const string GmtName = "GMT";                // etcetera
+    private const string GreenwichName = "Greenwich";    // backward
+    private const string GmtZeroName = "GMT0";           // backward
+    private const string GmtPlusZeroName = "GMT+0";      // backward
+    private const string GmtMinusZeroName = "GMT-0";     // backward
+    private const string EtcGreenwichName = "Etc/Greenwich"; // backward
+    private const string EtcGmtZeroName = "Etc/GMT0";    // backward
+    private const string EtcGmtPlusZeroName = "Etc/GMT+0";   // backward
+    private const string EtcGmtMinusZeroName = "Etc/GMT-0";  // backward
+
     // The identifier of Europe/Oslo, and the name that ToString gives it.
     private const string OsloIdentifier = "Europe/Oslo";
     private const string OsloName = "Oslo";
@@ -187,6 +198,7 @@ public class TzDataTimezoneLinkTests
         { BuenosAiresName, TzDataTimezone.America.Argentina.Buenos_Aires },
         { IcelandName, TzDataTimezone.Africa.Abidjan },
         { NewZealandName, TzDataTimezone.Pacific.Auckland },
+        { GreenwichName, TzDataTimezone.Etc.GMT },
     };
 
     public static TheoryData<string> DeprecatedNameOnly_TestCases => new()
@@ -197,6 +209,7 @@ public class TzDataTimezoneLinkTests
         BuenosAiresName,
         IcelandName,
         NewZealandName,
+        GreenwichName,
     };
 
     private static TzDataZoneLine[] GetZoneLineArray(TzDataTimezone timezone)
@@ -514,5 +527,25 @@ public class TzDataTimezoneLinkTests
 
         // assert
         testResult.Should().Be(TzDataTimezone.Etc.UTC, "the backward file links {0} to Etc/UTC", testName);
+    }
+
+    [Theory]
+    [InlineData(GmtName)]
+    [InlineData(GreenwichName)]
+    [InlineData(GmtZeroName)]
+    [InlineData(GmtPlusZeroName)]
+    [InlineData(GmtMinusZeroName)]
+    [InlineData(EtcGreenwichName)]
+    [InlineData(EtcGmtZeroName)]
+    [InlineData(EtcGmtPlusZeroName)]
+    [InlineData(EtcGmtMinusZeroName)]
+    public void TryParse_NameLinkedToEtcGmt_ReturnsTrueAndEtcGmt(string testName)
+    {
+        // act
+        var testSuccess = TzDataTimezone.TryParse(testName, out var testResult);
+
+        // assert
+        testSuccess.Should().BeTrue("the etcetera or backward file links {0} to Etc/GMT", testName);
+        testResult.Should().Be(TzDataTimezone.Etc.GMT);
     }
 }

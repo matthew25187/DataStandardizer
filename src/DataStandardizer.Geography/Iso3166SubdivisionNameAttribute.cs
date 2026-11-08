@@ -24,6 +24,16 @@ namespace DataStandardizer.Geography
             SubdivisionName = subdivisionName;
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        internal Iso3166SubdivisionNameAttribute(string? iso639Part1Code, string iso639Part2TCode, ushort subdivisionCategoryIdentifier, string subdivisionName, int sequence)
+#else
+        internal Iso3166SubdivisionNameAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, ushort subdivisionCategoryIdentifier, [DisallowNull] string subdivisionName, int sequence)
+#endif
+            : this(iso639Part1Code, iso639Part2TCode, subdivisionCategoryIdentifier, subdivisionName)
+        {
+            Sequence = sequence;
+        }
+
         #endregion
 
         #region Public Properties
@@ -60,6 +70,18 @@ namespace DataStandardizer.Geography
         [MaybeNull, AllowNull]
         public string SubdivisionNameLocalVariant { get; set; }
 #endif
+
+        #endregion
+
+        #region Internal Properties
+
+        /// <summary>
+        /// Gets the position of this name among the subdivision's names in the same language, in the order ISO 3166-2 lists them.
+        /// </summary>
+        /// <remarks>
+        /// Zero when the subdivision has only one name in the language.
+        /// </remarks>
+        internal int Sequence { get; }
 
         #endregion
     }

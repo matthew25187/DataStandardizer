@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
@@ -24,16 +23,7 @@ namespace DataStandardizer.Communication.E164
 
         static ItuE164InternationalNumberStructureForNetworks()
         {
-            // Compose patterns for numbers with and without spacing.
-            IdentificationCodeLookup = (
-                    from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
-                    from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
-                    let sharedCodeAttribute = typeof(ItuE164AssignedIdentificationCodesForNetworks).GetTypeInfo().DeclaredFields
-                        .Single(field => field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
-                        .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                    where sharedCodeAttribute.CountryCode == countryCode
-                    select new { CountryCode = countryCode, IdentificationCode = identificationCode })
-                .ToLookup(kvp => kvp.CountryCode, kvp => (ushort)kvp.IdentificationCode);
+            IdentificationCodeLookup = ComposeIdentificationCodeLookup(typeof(ItuE164AssignedCountryCodesForNetworks), typeof(ItuE164AssignedIdentificationCodesForNetworks));
         }
 
         internal ItuE164InternationalNumberStructureForNetworks(ulong number) : base(number)
@@ -109,10 +99,15 @@ namespace DataStandardizer.Communication.E164
             }
 
             // Second, extract Identification Code from whole number.
-            var number = Number.ToString();
+            // Skip a code with more digits than follow the Country Code, and try longer codes first, so that a
+            // code which is the start of another can't hide it.
+            const int countryCodeDigitCount = 3;
+            var number = Number.ToString(CultureInfo.InvariantCulture);
             var identificationCodeItem = IdentificationCodeLookup[CountryCode]
-                .Select(code => new { Code = code, Part = $"{code}" })
-                .FirstOrDefault(item => number.Substring(3, item.Part.Length) == item.Part);
+                .Select(code => new { Code = code, Part = code.ToString(CultureInfo.InvariantCulture) })
+                .Where(item => number.Length >= countryCodeDigitCount + item.Part.Length)
+                .OrderByDescending(item => item.Part.Length)
+                .FirstOrDefault(item => string.CompareOrdinal(number, countryCodeDigitCount, item.Part, 0, item.Part.Length) == 0);
             return (ItuE164AssignedIdentificationCodesForNetworks?)identificationCodeItem?.Code;
         }
 
