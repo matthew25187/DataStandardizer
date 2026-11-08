@@ -34,11 +34,6 @@ public class Iso15924ExtensionsTests
     private const string BlissymbolsFrenchName = "symboles Bliss";
     private const string NastaliqFrenchName = "arabe (variante nastalique)";
 
-    // Cultures whose default calendar isn't Gregorian: th-TH uses the Thai Buddhist calendar, and ar-SA the Um Al
-    // Qura calendar.
-    private const string ThaiCultureName = "th-TH";
-    private const string SaudiArabicCultureName = "ar-SA";
-
     #region Test: GetAge_OnScriptCode
 
     [Theory]
@@ -119,25 +114,6 @@ public class Iso15924ExtensionsTests
                 yield return new object[] { Iso15924Script.Bopo, BopomofoDate };
             }
         }
-    }
-
-    #endregion
-
-    #region Test: GetDate_UnderCultureWithNonGregorianCalendar
-
-    [Theory]
-    [InlineData(ThaiCultureName)]
-    [InlineData(SaudiArabicCultureName)]
-    public void GetDate_UnderCultureWithNonGregorianCalendar_ReturnsGregorianScriptDate(string cultureName)
-    {
-        // arrange
-        using var cultureScope = new CultureScope(cultureName);
-
-        // act
-        var testResult = Iso15924Script.Bopo.GetDate();
-
-        // assert
-        testResult.Should().Be(BopomofoDate);
     }
 
     #endregion

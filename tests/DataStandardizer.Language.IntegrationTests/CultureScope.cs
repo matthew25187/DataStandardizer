@@ -1,18 +1,18 @@
 using System.Globalization;
 
-namespace DataStandardizer.Language.Tests;
+namespace DataStandardizer.Language.IntegrationTests;
 
 /// <summary>
-/// Sets the current culture of the thread for as long as the scope is open, and restores the culture it replaced when it is disposed.
+/// Sets <see cref="CultureInfo.CurrentCulture"/> for the lifetime of the scope, and restores the culture it replaced when disposed.
 /// </summary>
 internal sealed class CultureScope : IDisposable
 {
     private readonly CultureInfo _originalCulture;
 
-    internal CultureScope(string cultureName)
+    public CultureScope(string cultureName)
     {
         _originalCulture = CultureInfo.CurrentCulture;
-        CultureInfo.CurrentCulture = new CultureInfo(cultureName);
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
     }
 
     public void Dispose()
