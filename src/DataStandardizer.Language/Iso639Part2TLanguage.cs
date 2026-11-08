@@ -3271,19 +3271,18 @@ namespace DataStandardizer.Language
         
         public int CompareTo(object? obj)
         {
-            if ((obj == null))
-            {
-                throw new System.ArgumentNullException(nameof(obj));
-            }
-            if ((obj.GetType() != this.GetType()))
-            {
-                throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
-            }
             if ((this._value == null))
             {
                 throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
-            var other = ((DataStandardizer.Language.Iso639Part2TLanguage)(obj));
+            if ((obj == null))
+            {
+                return 1;
+            }
+            if (!(obj is DataStandardizer.Language.Iso639Part2TLanguage other))
+            {
+                throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
+            }
             if ((other._value == null))
             {
                 throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
@@ -3327,19 +3326,18 @@ namespace DataStandardizer.Language
         
         public int CompareTo(object obj)
         {
-            if ((obj == null))
-            {
-                throw new System.ArgumentNullException(nameof(obj));
-            }
-            if ((obj.GetType() != this.GetType()))
-            {
-                throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
-            }
             if ((this._value == null))
             {
                 throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
-            var other = ((DataStandardizer.Language.Iso639Part2TLanguage)(obj));
+            if ((obj == null))
+            {
+                return 1;
+            }
+            if (!(obj is DataStandardizer.Language.Iso639Part2TLanguage other))
+            {
+                throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
+            }
             if ((other._value == null))
             {
                 throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));

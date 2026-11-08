@@ -10,6 +10,9 @@ namespace DataStandardizer.Language.Tests;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public class Iso639CompareToTests
 {
+    // IComparable.CompareTo(object): every instance compares greater than null. The codes return 1, as Money does.
+    private const int GreaterThanNullResult = 1;
+
     #region Test: CompareTo_SmallerCode
 
     [Theory]
@@ -118,6 +121,33 @@ public class Iso639CompareToTests
 
     #endregion
 
+    #region Test: CompareTo_OnDefaultInstanceWithNullArgument
+
+    [Theory]
+    [MemberData(nameof(CompareTo_OnDefaultInstanceWithNullArgument_TestCaseGenerator.TestCases), MemberType = typeof(CompareTo_OnDefaultInstanceWithNullArgument_TestCaseGenerator))]
+    public void CompareTo_OnDefaultInstanceWithNullArgument_ThrowsInvalidOperationException(IComparable testSubject)
+    {
+        // act
+        Action testAction = () => testSubject.CompareTo(null);
+
+        // assert
+        testAction.Should().ThrowExactly<InvalidOperationException>();
+    }
+
+    private class CompareTo_OnDefaultInstanceWithNullArgument_TestCaseGenerator
+    {
+        public static TheoryData<IComparable> TestCases => new()
+        {
+            default(Iso639Part1Language),
+            default(Iso639Part2BLanguage),
+            default(Iso639Part2TLanguage),
+            default(Iso639Part3Language),
+            default(Iso639Part5LanguageFamily),
+        };
+    }
+
+    #endregion
+
     #region Test: CompareTo_DefaultInstanceArgument
 
     [Theory]
@@ -149,13 +179,13 @@ public class Iso639CompareToTests
 
     [Theory]
     [MemberData(nameof(CompareTo_NullArgument_TestCaseGenerator.TestCases), MemberType = typeof(CompareTo_NullArgument_TestCaseGenerator))]
-    public void CompareTo_NullArgument_ThrowsArgumentNullException(IComparable testSubject)
+    public void CompareTo_NullArgument_ReturnsOne(IComparable testSubject)
     {
         // act
-        Action testAction = () => testSubject.CompareTo(null);
+        var testResult = testSubject.CompareTo(null);
 
         // assert
-        testAction.Should().ThrowExactly<ArgumentNullException>();
+        testResult.Should().Be(GreaterThanNullResult);
     }
 
     private class CompareTo_NullArgument_TestCaseGenerator

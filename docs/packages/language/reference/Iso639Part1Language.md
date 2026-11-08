@@ -225,7 +225,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CompareTo(object obj)` | `int` | Throws `ArgumentNullException`/`ArgumentException` for a null or mismatched argument. |
+| `CompareTo(object obj)` | `int` | Compares the codes in ordinal order, which for these lower-case codes is alphabetical order. Returns `1` if `obj` is `null`. Throws `ArgumentException` if `obj` is not an `Iso639Part1Language` or is `default`, and `InvalidOperationException` if this instance is `default`, whatever `obj` is. |
 | `Equals(Iso639Part1Language other)` | `bool` | |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
