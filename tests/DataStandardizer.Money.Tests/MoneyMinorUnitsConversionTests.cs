@@ -609,6 +609,51 @@ namespace DataStandardizer.Money.Tests
         };
 
         [Fact]
+        public void ConvertibleToBoolean_AmountThatRoundsToZero_ReturnsFalse()
+        {
+            // arrange
+            // 0.004 rounded to two places is 0, which converts to false. Before rounding it would convert to true.
+            IConvertible testValue = Money.Create(0.004m, Iso4217CurrencyCurrent.USD, 2);
+
+            // act
+            var testResult = testValue.ToBoolean(CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().BeFalse("the rounded amount is zero");
+        }
+
+        [Theory]
+        [InlineData(typeof(object))]
+        [InlineData(typeof(Money))]
+        public void ConvertibleToType_ObjectOrMoney_ReturnsTheValueItself(Type testType)
+        {
+            // arrange
+            var testSubject = Money.Create(MidpointUsDollarAmount, Iso4217CurrencyCurrent.USD, 2);
+
+            // act
+            var testResult = ((IConvertible)testSubject).ToType(testType, CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(testSubject, "converting a value to its own type, or to object, gives the value itself");
+        }
+
+        [Fact]
+        public void ConvertibleToType_String_ReturnsTheStringThatToStringGives()
+        {
+            // arrange
+            // Given a CurrencyFormatInfo, Money formats with its separators, while decimal would use those of the current culture.
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+            IConvertible testValue = Money.Create(MidpointUsDollarAmount, Iso4217CurrencyCurrent.USD, 2);
+            var testProvider = new CurrencyFormatInfo { CurrencyDecimalSeparator = "," };
+
+            // act
+            var testResult = testValue.ToType(typeof(string), testProvider);
+
+            // assert
+            testResult.Should().Be("12,34", "the string is the one Money.ToString(null, provider) gives, of the rounded amount");
+        }
+
+        [Fact]
         public void ImplicitDecimalOperator_MoneyValue_ReturnsAmount()
         {
             // arrange

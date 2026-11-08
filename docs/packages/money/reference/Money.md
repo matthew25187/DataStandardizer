@@ -62,8 +62,8 @@ never equal and have no order: `Equals`, `==` and `!=` treat them as not equal,
 | `CompareTo(object obj)` | `int` | As `CompareTo(Money)`; `null` compares less. Throws `ArgumentException` if `obj` is not a `Money` or its currency differs. |
 | `Create(decimal amount)` | `Money` | Uses the default currency `XXX` ("no currency"). |
 | `Create(decimal amount, Iso4217CurrencyCurrent currency)` | `Money` | Throws `ArgumentException` if `currency` is undefined or is not a national/supranational/`XTS` code. |
-| `Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)` | `Money` | Adds rounding precision (IEEE 754 default method). |
-| `Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)` | `Money` | Adds rounding precision and an explicit rounding method. |
+| `Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)` | `Money` | Adds rounding precision (IEEE 754 default method). Throws `ArgumentOutOfRangeException` unless the precision is from 0 to 28. |
+| `Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)` | `Money` | Adds rounding precision and an explicit rounding method. Throws `ArgumentOutOfRangeException` unless the precision is from 0 to 28. |
 | `Equals(Money other)` | `bool` | |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
@@ -107,12 +107,14 @@ See [Format money values](../how-to/format-money-values.md) and
 
 ### Explicit implementation
 
-`Money` implements `IConvertible` explicitly; each member delegates to the
-underlying `decimal` and is callable only through an `IConvertible` reference.
-The members convert the amount with the rounding the value carries, as
-`(decimal)money` gives it, and the integer members round a fraction to the
-nearest integer, with ties to even.
-They don't give the amount in minor units that the integer casts give.
+`Money` implements `IConvertible` explicitly, so its members are callable only
+through an `IConvertible` reference. `ToString` is `ToString(null, provider)`.
+`ToType` returns the value itself for `object` and `Money`, and the string from
+`ToString` for `string`. Every other member, and `ToType` for any other type,
+converts the rounded amount that `(decimal)money` gives, rounded first by the
+value's own `RoundingMethod`. The integer members then round any remaining
+fraction to the nearest integer, with ties to even. They don't give the amount
+in minor units that the integer casts give.
 *(netstandard2.0+/.NET)*
 
 | Method | Returns | Notes |

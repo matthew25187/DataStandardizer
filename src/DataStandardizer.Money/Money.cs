@@ -18,6 +18,7 @@ namespace DataStandardizer.Money
             internal const string DifferentCurrenciesComparisonTemplate = "Unable to compare {0} values having different currencies.";
             internal const string ExpectedCurrencyCodeTemplate = "Expected a member of {0}.";
             internal const string ExpectedNationalCurrencyCode = "Expected a national currency code.";
+            internal const string RoundingPrecisionOutOfRange = "The rounding precision must be from 0 to 28, the greatest number of decimal places a decimal can hold.";
             internal const string NoMinorUnitsTemplate = "The currency {0} has no minor units, so the value cannot be converted to {1}.";
             internal const string FractionalMinorUnitsTemplate = "The amount is not a whole number of minor units of {0}, so it cannot be converted to {1}.";
             internal const string MinorUnitsOverflowTemplate = "The amount in minor units of {0} is too large or too small for {1}.";
@@ -98,6 +99,9 @@ namespace DataStandardizer.Money
         /// </summary>
         internal const Iso4217CurrencyCurrent NoCurrency = DefaultCurrency;
 
+        // The greatest number of decimal places that Math.Round accepts for a decimal.
+        private const int MaximumRoundingPrecision = 28;
+
         private readonly decimal _amount;
         private readonly Iso4217CurrencyCurrent? _currency;
 
@@ -145,15 +149,25 @@ namespace DataStandardizer.Money
 
         public static implicit operator decimal(Money value)
         {
-            var result = value._amount;
-            if (value.RoundingPrecision.HasValue)
-            {
-                result = !value.RoundingMethod.HasValue
-                    ? Math.Round(value._amount, value.RoundingPrecision.Value)
-                    : Math.Round(value._amount, value.RoundingPrecision.Value, value.RoundingMethod.Value);
-            }
+            return value.RoundedAmount;
+        }
 
-            return result;
+        /// <summary>
+        /// Gets the amount with the rounding this value carries applied, as <c>(decimal)value</c> gives it.
+        /// </summary>
+        private decimal RoundedAmount
+        {
+            get
+            {
+                if (!RoundingPrecision.HasValue)
+                {
+                    return _amount;
+                }
+
+                return !RoundingMethod.HasValue
+                    ? Math.Round(_amount, RoundingPrecision.Value)
+                    : Math.Round(_amount, RoundingPrecision.Value, RoundingMethod.Value);
+            }
         }
 
         public static implicit operator Money(decimal value)
@@ -846,6 +860,9 @@ namespace DataStandardizer.Money
         /// -or-
         /// <paramref name="currency"/> is not a national or supranational currency code, or the <see cref="Iso4217CurrencyCurrent.XTS"/> testing code. A funds code, such as <see cref="Iso4217CurrencyCurrent.CLF"/>, is not a currency code.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="roundingPrecision"/> is less than 0 or greater than 28.
+        /// </exception>
         public static Money Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)
         {
             if (!Enum.IsDefined(currency.GetType(), currency))
@@ -853,6 +870,9 @@ namespace DataStandardizer.Money
 
             if (!IsValidCurrencyCodeForMoneyValue(currency))
                 throw new ArgumentException(ErrorMessage.ExpectedNationalCurrencyCode, nameof(currency));
+
+            if (roundingPrecision < 0 || roundingPrecision > MaximumRoundingPrecision)
+                throw new ArgumentOutOfRangeException(nameof(roundingPrecision), roundingPrecision, ErrorMessage.RoundingPrecisionOutOfRange);
 
             return new Money(amount, currency, roundingPrecision);
         }
@@ -870,6 +890,9 @@ namespace DataStandardizer.Money
         /// -or-
         /// <paramref name="currency"/> is not a national or supranational currency code, or the <see cref="Iso4217CurrencyCurrent.XTS"/> testing code. A funds code, such as <see cref="Iso4217CurrencyCurrent.CLF"/>, is not a currency code.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="roundingPrecision"/> is less than 0 or greater than 28.
+        /// </exception>
         public static Money Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)
         {
             if (!Enum.IsDefined(currency.GetType(), currency))
@@ -877,6 +900,9 @@ namespace DataStandardizer.Money
 
             if (!IsValidCurrencyCodeForMoneyValue(currency))
                 throw new ArgumentException(ErrorMessage.ExpectedNationalCurrencyCode, nameof(currency));
+
+            if (roundingPrecision < 0 || roundingPrecision > MaximumRoundingPrecision)
+                throw new ArgumentOutOfRangeException(nameof(roundingPrecision), roundingPrecision, ErrorMessage.RoundingPrecisionOutOfRange);
 
             return new Money(amount, currency, roundingPrecision, roundingMethod);
         }
@@ -1454,57 +1480,57 @@ namespace DataStandardizer.Money
 
         bool IConvertible.ToBoolean(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToBoolean(provider);
+            return ((IConvertible)RoundedAmount).ToBoolean(provider);
         }
 
         byte IConvertible.ToByte(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToByte(provider);
+            return ((IConvertible)RoundedAmount).ToByte(provider);
         }
 
         char IConvertible.ToChar(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToChar(provider);
+            return ((IConvertible)RoundedAmount).ToChar(provider);
         }
 
         DateTime IConvertible.ToDateTime(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToDateTime(provider);
+            return ((IConvertible)RoundedAmount).ToDateTime(provider);
         }
 
         decimal IConvertible.ToDecimal(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToDecimal(provider);
+            return ((IConvertible)RoundedAmount).ToDecimal(provider);
         }
 
         double IConvertible.ToDouble(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToDouble(provider);
+            return ((IConvertible)RoundedAmount).ToDouble(provider);
         }
 
         short IConvertible.ToInt16(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToInt16(provider);
+            return ((IConvertible)RoundedAmount).ToInt16(provider);
         }
 
         int IConvertible.ToInt32(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToInt32(provider);
+            return ((IConvertible)RoundedAmount).ToInt32(provider);
         }
 
         long IConvertible.ToInt64(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToInt64(provider);
+            return ((IConvertible)RoundedAmount).ToInt64(provider);
         }
 
         sbyte IConvertible.ToSByte(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToSByte(provider);
+            return ((IConvertible)RoundedAmount).ToSByte(provider);
         }
 
         float IConvertible.ToSingle(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToSingle(provider);
+            return ((IConvertible)RoundedAmount).ToSingle(provider);
         }
 
         string IConvertible.ToString(IFormatProvider? provider)
@@ -1514,22 +1540,34 @@ namespace DataStandardizer.Money
 
         object IConvertible.ToType(Type conversionType, IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToType(conversionType, provider);
+            // The value itself, and its string form, are given as Money gives them. Every other type is
+            // converted from the rounded amount, as the other members convert it.
+            if (conversionType == typeof(Money) || conversionType == typeof(object))
+            {
+                return this;
+            }
+
+            if (conversionType == typeof(string))
+            {
+                return ToString(null, provider);
+            }
+
+            return ((IConvertible)RoundedAmount).ToType(conversionType, provider);
         }
 
         ushort IConvertible.ToUInt16(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToUInt16(provider);
+            return ((IConvertible)RoundedAmount).ToUInt16(provider);
         }
 
         uint IConvertible.ToUInt32(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToUInt32(provider);
+            return ((IConvertible)RoundedAmount).ToUInt32(provider);
         }
 
         ulong IConvertible.ToUInt64(IFormatProvider? provider)
         {
-            return ((IConvertible)(decimal)this).ToUInt64(provider);
+            return ((IConvertible)RoundedAmount).ToUInt64(provider);
         }
 #elif NETSTANDARD1_3_OR_GREATER || NET
         TypeCode IConvertible.GetTypeCode()
@@ -1539,57 +1577,57 @@ namespace DataStandardizer.Money
 
         bool IConvertible.ToBoolean(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToBoolean(provider);
+            return ((IConvertible)RoundedAmount).ToBoolean(provider);
         }
 
         byte IConvertible.ToByte(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToByte(provider);
+            return ((IConvertible)RoundedAmount).ToByte(provider);
         }
 
         char IConvertible.ToChar(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToChar(provider);
+            return ((IConvertible)RoundedAmount).ToChar(provider);
         }
 
         DateTime IConvertible.ToDateTime(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToDateTime(provider);
+            return ((IConvertible)RoundedAmount).ToDateTime(provider);
         }
 
         decimal IConvertible.ToDecimal(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToDecimal(provider);
+            return ((IConvertible)RoundedAmount).ToDecimal(provider);
         }
 
         double IConvertible.ToDouble(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToDouble(provider);
+            return ((IConvertible)RoundedAmount).ToDouble(provider);
         }
 
         short IConvertible.ToInt16(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToInt16(provider);
+            return ((IConvertible)RoundedAmount).ToInt16(provider);
         }
 
         int IConvertible.ToInt32(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToInt32(provider);
+            return ((IConvertible)RoundedAmount).ToInt32(provider);
         }
 
         long IConvertible.ToInt64(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToInt64(provider);
+            return ((IConvertible)RoundedAmount).ToInt64(provider);
         }
 
         sbyte IConvertible.ToSByte(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToSByte(provider);
+            return ((IConvertible)RoundedAmount).ToSByte(provider);
         }
 
         float IConvertible.ToSingle(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToSingle(provider);
+            return ((IConvertible)RoundedAmount).ToSingle(provider);
         }
 
         string IConvertible.ToString(IFormatProvider provider)
@@ -1599,22 +1637,34 @@ namespace DataStandardizer.Money
 
         object IConvertible.ToType(Type conversionType, IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToType(conversionType, provider);
+            // The value itself, and its string form, are given as Money gives them. Every other type is
+            // converted from the rounded amount, as the other members convert it.
+            if (conversionType == typeof(Money) || conversionType == typeof(object))
+            {
+                return this;
+            }
+
+            if (conversionType == typeof(string))
+            {
+                return ToString(null, provider);
+            }
+
+            return ((IConvertible)RoundedAmount).ToType(conversionType, provider);
         }
 
         ushort IConvertible.ToUInt16(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToUInt16(provider);
+            return ((IConvertible)RoundedAmount).ToUInt16(provider);
         }
 
         uint IConvertible.ToUInt32(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToUInt32(provider);
+            return ((IConvertible)RoundedAmount).ToUInt32(provider);
         }
 
         ulong IConvertible.ToUInt64(IFormatProvider provider)
         {
-            return ((IConvertible)(decimal)this).ToUInt64(provider);
+            return ((IConvertible)RoundedAmount).ToUInt64(provider);
         }
 #endif
 

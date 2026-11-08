@@ -213,3 +213,10 @@ siblings call, don't scale the amount either, but they now convert it with the
 rounding the value carries, as `(decimal)money` does. Before, they converted
 the amount before rounding. `Convert.ToString(money)` and
 `IConvertible.ToString` also apply the rounding now, as `money.ToString()` does.
+No member returns the amount before rounding. If you need it, create the value
+without a rounding precision, with `Money.Create(amount, currency)`, and round
+where you need to.
+
+`Money.Create` now throws `ArgumentOutOfRangeException` for a rounding precision
+outside 0 to 28. Before, it accepted one, and converting the value to `decimal`
+failed later.
