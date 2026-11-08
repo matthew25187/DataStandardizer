@@ -535,8 +535,21 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(TypeFullName);
         }
 
+        [Fact]
+        public void ToString_LongInternationalFormatAndInvariantCulture_ReturnsInvariantPattern()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInInvariantLongInternationalPattern);
+        }
+
         [Theory]
-        [MemberData(nameof(InvariantLongInternationalPattern_TestCases))]
+        [MemberData(nameof(InvariantLongInternationalPattern_TestCases), DisableDiscoveryEnumeration = true)]
         public void ToString_LongInternationalFormatAndInvariantTelephony_ReturnsPrefixAndWholeCountryCode(ItuE164InternationalNumber testSubject, string expectedResult)
         {
             // act
@@ -547,7 +560,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [MemberData(nameof(InvariantShortInternationalPattern_TestCases))]
+        [MemberData(nameof(InvariantShortInternationalPattern_TestCases), DisableDiscoveryEnumeration = true)]
         public void ToString_ShortInternationalFormatAndInvariantTelephony_ReturnsPrefixAndWholeCountryCode(ItuE164InternationalNumber testSubject, string expectedResult)
         {
             // act
