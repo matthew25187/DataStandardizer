@@ -43,7 +43,7 @@ and `AsDosDateTime` return `null` for `default(SystemTimeWithGregorianCalendar)`
 | `AsDosDateTime()` | `SystemTimeWithGregorianCalendar` | `DosDateTime?` | Non-null only if the wrapped value was a `DosDateTime`. |
 | `AsUnixTime()` | `SystemTimeWithGregorianCalendar` | `UnixTime?` | Non-null only if the wrapped value was a `UnixTime`. |
 | `ToDateOnly<T>()` | `T` (`struct, ISystemTime`) | `DateOnly` | *(`net10.0` only)* |
-| `ToDateTime<T>()` | `T` (`struct, ISystemTime`) | `DateTime` | Derived from the Julian Day Number. |
+| `ToDateTime<T>()` | `T` (`struct, ISystemTime`) | `DateTime` | Derived from the Julian Day Number. Of kind `Utc` for a `UnixTime`, or a `SystemTimeWithGregorianCalendar` that wraps one, and `Unspecified` otherwise. A `Utc` result is an instant, so `ToDateTimeOffset(TzDataTimezone, TzDataLocalTimeResolution)` rejects it; use `TzDataTimezone.GetUtcOffset` and the other instant-based extensions instead. |
 | `ToTimeOnly<T>()` | `T` (`struct, ISystemTime`) | `TimeOnly` | *(`net10.0` only)* |
 
 ## Applies to

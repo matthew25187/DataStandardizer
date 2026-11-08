@@ -50,7 +50,7 @@ from the BCL date/time types.
 
 The following extensions apply to `UnixTime`:
 
-- [`ToDateTime<T>()`](SystemTimeExtensions.md) &mdash; returns `DateTime`.
+- [`ToDateTime<T>()`](SystemTimeExtensions.md) &mdash; returns a `DateTime` of kind `Utc`, since Unix time is defined in UTC.
 - [`ToDateOnly<T>()`](SystemTimeExtensions.md) &mdash; returns `DateOnly` *(`net10.0` only)*.
 - [`ToTimeOnly<T>()`](SystemTimeExtensions.md) &mdash; returns `TimeOnly` *(`net10.0` only)*.
 

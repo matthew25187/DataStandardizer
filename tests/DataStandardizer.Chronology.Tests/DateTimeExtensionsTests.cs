@@ -4,6 +4,8 @@ namespace DataStandardizer.Chronology.Tests;
 
 public class DateTimeExtensionsTests
 {
+    private const long UnixTime20000101T000002Z = 946684802L;
+
     [Theory]
     [InlineData(1980, 1, 1, 0, 0, 0, 0x210000),
      InlineData(1980, 1, 1, 23, 59, 58, 0x21BF7D),
@@ -26,7 +28,7 @@ public class DateTimeExtensionsTests
 
     [Theory]
     [InlineData(2000, 1, 1, 15, 0, 0, 946738800L),
-     InlineData(2000, 1, 1, 0, 0, 2, 946684802L),
+     InlineData(2000, 1, 1, 0, 0, 2, UnixTime20000101T000002Z),
      InlineData(1980, 1, 1, 0, 0, 2, 315532802L),
      InlineData(2023, 11, 14, 22, 13, 20, 1700000000L),
      InlineData(1970, 1, 1, 0, 0, 0, 0L),
@@ -42,5 +44,33 @@ public class DateTimeExtensionsTests
 
         // assert
         ((long)testResult).Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [InlineData(DateTimeKind.Utc, UnixTime20000101T000002Z),
+     InlineData(DateTimeKind.Unspecified, UnixTime20000101T000002Z)]
+    public void ToUnixTime_OnUtcOrUnspecifiedDateTime_ReadsFieldsAsUtc(DateTimeKind testKind, long expectedResult)
+    {
+        // arrange
+        var testDateTime = new DateTime(2000, 1, 1, 0, 0, 2, testKind);
+
+        // act
+        var testResult = testDateTime.ToUnixTime();
+
+        // assert
+        ((long)testResult).Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void ToUnixTime_OnLocalDateTime_ThrowsArgumentException()
+    {
+        // arrange
+        var testDateTime = new DateTime(2000, 1, 1, 0, 0, 2, DateTimeKind.Local);
+
+        // act
+        Action testAction = () => testDateTime.ToUnixTime();
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("dateTime");
     }
 }

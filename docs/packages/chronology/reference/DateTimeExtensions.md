@@ -21,7 +21,8 @@ public static class DateTimeExtensions
 
 ## Remarks
 
-`ToUnixTime` treats the `DateTime` as UTC; `ToDosDateTime` treats it as local
+`ToUnixTime` treats a `DateTime` of kind `Utc` or `Unspecified` as UTC, and
+rejects one of kind `Local`; `ToDosDateTime` treats it as local
 time and packs the year, month, day, hour, minute, and second into the DOS
 format.
 
@@ -67,7 +68,7 @@ To list every offset in effect at a local time instead, use
 | --- | --- | --- | --- |
 | `ToDateTimeOffset(TzDataTimezone timezone, TzDataLocalTimeResolution resolution)` | `DateTime` | `DateTimeOffset` | `DateTime` must be of kind `Unspecified`, and is a time on the local clock of `timezone`. Throws `ArgumentException` for any other kind, and when `resolution` is `Strict` and the time falls in a gap or an overlap. Throws `ArgumentOutOfRangeException` when `resolution` is not defined, when the offset in effect can't be held by a `DateTimeOffset`, and when the instant the time is placed at, or the result, falls outside the range of `DateTime`. |
 | `ToDosDateTime()` | `DateTime` | `DosDateTime` | `DateTime` assumed to be local time. |
-| `ToUnixTime()` | `DateTime` | `UnixTime` | `DateTime` assumed to be UTC. |
+| `ToUnixTime()` | `DateTime` | `UnixTime` | A `DateTime` of kind `Utc` or `Unspecified` is read as UTC. Throws `ArgumentException` for kind `Local`; call `ToUniversalTime()` on it first. |
 
 ## Applies to
 
