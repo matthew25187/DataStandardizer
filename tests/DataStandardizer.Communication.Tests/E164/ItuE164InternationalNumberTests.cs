@@ -112,6 +112,172 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Fact]
+        public void EqualsObject_BoxedNumberEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualsObject_BoxedNumberNotEqualInValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_ObjectOfAnotherType_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = GreatBritainNumber;
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_Null_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(null);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetHashCode_NumbersEqualInValue_ReturnsSameHashCode()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = new[] { testSubject1.GetHashCode(), testSubject2.GetHashCode() };
+
+            // assert
+            testResult[1].Should().Be(testResult[0]);
+        }
+
+        [Fact]
+        public void GetHashCode_InstanceIsNotInitialized_ReturnsZero()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject.GetHashCode();
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
+        [Fact]
+        public void HashSetContains_NumberEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber) };
+            var other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Contains(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualityOperator_NumbersEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualityOperator_NumbersNotEqualInValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualityOperator_BothInstancesNotInitialized_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = new ItuE164InternationalNumber();
+            var testSubject2 = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void InequalityOperator_NumbersEqualInValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 != testSubject2;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void InequalityOperator_NumbersNotEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 != testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
         public void CastToInteger_InstanceIsNotInitialized_ThrowsInvalidCastException()
         {
             // arrange
