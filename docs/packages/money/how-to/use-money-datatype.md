@@ -202,9 +202,14 @@ fail the same way. Write `(uint)(decimal)money` to keep the old result.
 `(nint)money` now gives the amount in minor units, through the `int` cast.
 
 These conversions are unchanged: `decimal d = money`, `(decimal)money`,
-`(double)money`, `(float)money`, the arithmetic and comparison operators,
-`Convert.ToInt64(money)` and its siblings, and the `IConvertible` members. None
-of them scale the amount. `Convert.ToInt64(money)` and the `IConvertible`
-integer members round a fraction to the nearest integer, with ties to even,
-rather than truncating it as `(long)(decimal)money` does. The `IConvertible`
-members also convert the amount before any rounding the value carries.
+`(double)money`, `(float)money`, the arithmetic and comparison operators, and
+`Convert.ToInt64(money)` and its siblings. None of them scale the amount.
+`Convert.ToInt64(money)` and the `IConvertible` integer members round a fraction
+to the nearest integer, with ties to even, rather than truncating it as
+`(long)(decimal)money` does.
+
+The `IConvertible` members, which `Convert.ToDecimal((object)money)` and its
+siblings call, don't scale the amount either, but they now convert it with the
+rounding the value carries, as `(decimal)money` does. Before, they converted
+the amount before rounding. `Convert.ToString(money)` and
+`IConvertible.ToString` also apply the rounding now, as `money.ToString()` does.

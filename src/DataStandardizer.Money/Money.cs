@@ -179,8 +179,8 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt64(value)</c> binds to
-        /// <see cref="Convert.ToInt64(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
-        /// members, which <see cref="Convert.ToInt64(object)"/> calls, convert the amount before rounding. Both round
+        /// <see cref="Convert.ToInt64(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToInt64(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(long)(decimal)value</c>.
         /// </para>
@@ -215,8 +215,8 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt32(value)</c> binds to
-        /// <see cref="Convert.ToInt32(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
-        /// members, which <see cref="Convert.ToInt32(object)"/> calls, convert the amount before rounding. Both round
+        /// <see cref="Convert.ToInt32(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToInt32(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(int)(decimal)value</c>.
         /// </para>
@@ -251,8 +251,8 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt16(value)</c> binds to
-        /// <see cref="Convert.ToInt16(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
-        /// members, which <see cref="Convert.ToInt16(object)"/> calls, convert the amount before rounding. Both round
+        /// <see cref="Convert.ToInt16(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToInt16(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(short)(decimal)value</c>.
         /// </para>
@@ -286,8 +286,8 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToSByte(value)</c> binds to
-        /// <see cref="Convert.ToSByte(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
-        /// members, which <see cref="Convert.ToSByte(object)"/> calls, convert the amount before rounding. Both round
+        /// <see cref="Convert.ToSByte(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToSByte(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(sbyte)(decimal)value</c>.
         /// </para>
@@ -1454,57 +1454,57 @@ namespace DataStandardizer.Money
 
         bool IConvertible.ToBoolean(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToBoolean(provider);
+            return ((IConvertible)(decimal)this).ToBoolean(provider);
         }
 
         byte IConvertible.ToByte(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToByte(provider);
+            return ((IConvertible)(decimal)this).ToByte(provider);
         }
 
         char IConvertible.ToChar(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToChar(provider);
+            return ((IConvertible)(decimal)this).ToChar(provider);
         }
 
         DateTime IConvertible.ToDateTime(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToDateTime(provider);
+            return ((IConvertible)(decimal)this).ToDateTime(provider);
         }
 
         decimal IConvertible.ToDecimal(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToDecimal(provider);
+            return ((IConvertible)(decimal)this).ToDecimal(provider);
         }
 
         double IConvertible.ToDouble(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToDouble(provider);
+            return ((IConvertible)(decimal)this).ToDouble(provider);
         }
 
         short IConvertible.ToInt16(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToInt16(provider);
+            return ((IConvertible)(decimal)this).ToInt16(provider);
         }
 
         int IConvertible.ToInt32(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToInt32(provider);
+            return ((IConvertible)(decimal)this).ToInt32(provider);
         }
 
         long IConvertible.ToInt64(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToInt64(provider);
+            return ((IConvertible)(decimal)this).ToInt64(provider);
         }
 
         sbyte IConvertible.ToSByte(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToSByte(provider);
+            return ((IConvertible)(decimal)this).ToSByte(provider);
         }
 
         float IConvertible.ToSingle(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToSingle(provider);
+            return ((IConvertible)(decimal)this).ToSingle(provider);
         }
 
         string IConvertible.ToString(IFormatProvider? provider)
@@ -1514,22 +1514,22 @@ namespace DataStandardizer.Money
 
         object IConvertible.ToType(Type conversionType, IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToType(conversionType, provider);
+            return ((IConvertible)(decimal)this).ToType(conversionType, provider);
         }
 
         ushort IConvertible.ToUInt16(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToUInt16(provider);
+            return ((IConvertible)(decimal)this).ToUInt16(provider);
         }
 
         uint IConvertible.ToUInt32(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToUInt32(provider);
+            return ((IConvertible)(decimal)this).ToUInt32(provider);
         }
 
         ulong IConvertible.ToUInt64(IFormatProvider? provider)
         {
-            return ((IConvertible)_amount).ToUInt64(provider);
+            return ((IConvertible)(decimal)this).ToUInt64(provider);
         }
 #elif NETSTANDARD1_3_OR_GREATER || NET
         TypeCode IConvertible.GetTypeCode()
@@ -1539,57 +1539,57 @@ namespace DataStandardizer.Money
 
         bool IConvertible.ToBoolean(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToBoolean(provider);
+            return ((IConvertible)(decimal)this).ToBoolean(provider);
         }
 
         byte IConvertible.ToByte(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToByte(provider);
+            return ((IConvertible)(decimal)this).ToByte(provider);
         }
 
         char IConvertible.ToChar(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToChar(provider);
+            return ((IConvertible)(decimal)this).ToChar(provider);
         }
 
         DateTime IConvertible.ToDateTime(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToDateTime(provider);
+            return ((IConvertible)(decimal)this).ToDateTime(provider);
         }
 
         decimal IConvertible.ToDecimal(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToDecimal(provider);
+            return ((IConvertible)(decimal)this).ToDecimal(provider);
         }
 
         double IConvertible.ToDouble(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToDouble(provider);
+            return ((IConvertible)(decimal)this).ToDouble(provider);
         }
 
         short IConvertible.ToInt16(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToInt16(provider);
+            return ((IConvertible)(decimal)this).ToInt16(provider);
         }
 
         int IConvertible.ToInt32(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToInt32(provider);
+            return ((IConvertible)(decimal)this).ToInt32(provider);
         }
 
         long IConvertible.ToInt64(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToInt64(provider);
+            return ((IConvertible)(decimal)this).ToInt64(provider);
         }
 
         sbyte IConvertible.ToSByte(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToSByte(provider);
+            return ((IConvertible)(decimal)this).ToSByte(provider);
         }
 
         float IConvertible.ToSingle(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToSingle(provider);
+            return ((IConvertible)(decimal)this).ToSingle(provider);
         }
 
         string IConvertible.ToString(IFormatProvider provider)
@@ -1599,22 +1599,22 @@ namespace DataStandardizer.Money
 
         object IConvertible.ToType(Type conversionType, IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToType(conversionType, provider);
+            return ((IConvertible)(decimal)this).ToType(conversionType, provider);
         }
 
         ushort IConvertible.ToUInt16(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToUInt16(provider);
+            return ((IConvertible)(decimal)this).ToUInt16(provider);
         }
 
         uint IConvertible.ToUInt32(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToUInt32(provider);
+            return ((IConvertible)(decimal)this).ToUInt32(provider);
         }
 
         ulong IConvertible.ToUInt64(IFormatProvider provider)
         {
-            return ((IConvertible)_amount).ToUInt64(provider);
+            return ((IConvertible)(decimal)this).ToUInt64(provider);
         }
 #endif
 

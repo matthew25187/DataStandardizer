@@ -109,8 +109,9 @@ See [Format money values](../how-to/format-money-values.md) and
 
 `Money` implements `IConvertible` explicitly; each member delegates to the
 underlying `decimal` and is callable only through an `IConvertible` reference.
-The numeric members convert the amount before any rounding the value carries, and the
-integer members round a fraction to the nearest integer, with ties to even.
+The members convert the amount with the rounding the value carries, as
+`(decimal)money` gives it, and the integer members round a fraction to the
+nearest integer, with ties to even.
 They don't give the amount in minor units that the integer casts give.
 *(netstandard2.0+/.NET)*
 
@@ -168,9 +169,9 @@ The other conversions don't scale the amount:
 - `decimal d = money`, `(decimal)money`, `(double)money` and `(float)money` give
   the rounded amount.
 - `Convert.ToInt64(money)` and its siblings bind to the `decimal` overloads, so
-  they convert the rounded amount. The `IConvertible` members, which
-  `Convert.ToInt64((object)money)` calls, convert the amount before rounding.
-  Both round a fraction to the nearest integer, with ties to even.
+  they convert the rounded amount. So do the `IConvertible` members, which
+  `Convert.ToInt64((object)money)` calls. Both round a fraction to the nearest
+  integer, with ties to even.
 
 To truncate the rounded amount to an integer, convert through `decimal`, as in
 `(long)(decimal)money` or `(uint)(decimal)money`.

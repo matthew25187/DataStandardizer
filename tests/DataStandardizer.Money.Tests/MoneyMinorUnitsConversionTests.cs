@@ -27,6 +27,12 @@ namespace DataStandardizer.Money.Tests
         // An amount in US Dollars midway between two cents, which rounding to two places resolves.
         private const decimal MidpointUsDollarAmount = 12.345m;
 
+        // An amount in US Dollars midway between two whole dollars, which the rounding method resolves.
+        private const decimal MidpointWholeUsDollarAmount = 2.5m;
+
+        // MidpointWholeUsDollarAmount rounded to no places, away from zero.
+        private const int RoundedWholeUsDollarAmount = 3;
+
         // ISO 4217 List One gives the Yen no minor units, so an amount in Yen is its own amount in minor units.
         private const decimal YenAmount = 500m;
         private const int YenAmountInMinorUnits = 500;
@@ -555,10 +561,11 @@ namespace DataStandardizer.Money.Tests
         }
 
         [Fact]
-        public void ConvertibleToDecimal_MoneyValueWithRoundingPrecision_ReturnsAmountBeforeRounding()
+        public void ConvertibleToDecimal_MoneyValueWithRoundingPrecision_ReturnsRoundedAmount()
         {
             // arrange
-            const decimal expectedResult = MidpointUsDollarAmount;
+            // 12.345 rounded to two places, with ties to even, is 12.34.
+            const decimal expectedResult = UsDollarAmount;
             IConvertible testValue = Money.Create(MidpointUsDollarAmount, Iso4217CurrencyCurrent.USD, 2);
 
             // act
@@ -567,6 +574,39 @@ namespace DataStandardizer.Money.Tests
             // assert
             testResult.Should().Be(expectedResult, AmountResultReason, expectedResult);
         }
+
+        [Theory]
+        [MemberData(nameof(ConvertibleRoundedAmountTestCases), DisableDiscoveryEnumeration = true)]
+        public void ConvertibleMember_MoneyValueWithRoundingMethod_ConvertsRoundedAmount(Func<IConvertible, object> testConversion, object expectedResult)
+        {
+            // arrange
+            // 2.5 rounded to no places, away from zero, is 3. Before rounding, an integer conversion gives 2,
+            // since it rounds ties to even.
+            IConvertible testValue = Money.Create(MidpointWholeUsDollarAmount, Iso4217CurrencyCurrent.USD, 0, MidpointRounding.AwayFromZero);
+
+            // act
+            var testResult = testConversion(testValue);
+
+            // assert
+            testResult.Should().Be(expectedResult, AmountResultReason, expectedResult);
+        }
+
+        public static TheoryData<Func<IConvertible, object>, object> ConvertibleRoundedAmountTestCases => new()
+        {
+            { value => value.ToByte(CultureInfo.InvariantCulture), (byte)RoundedWholeUsDollarAmount },
+            { value => value.ToDecimal(CultureInfo.InvariantCulture), (decimal)RoundedWholeUsDollarAmount },
+            { value => value.ToDouble(CultureInfo.InvariantCulture), (double)RoundedWholeUsDollarAmount },
+            { value => value.ToInt16(CultureInfo.InvariantCulture), (short)RoundedWholeUsDollarAmount },
+            { value => value.ToInt32(CultureInfo.InvariantCulture), RoundedWholeUsDollarAmount },
+            { value => value.ToInt64(CultureInfo.InvariantCulture), (long)RoundedWholeUsDollarAmount },
+            { value => value.ToSByte(CultureInfo.InvariantCulture), (sbyte)RoundedWholeUsDollarAmount },
+            { value => value.ToSingle(CultureInfo.InvariantCulture), (float)RoundedWholeUsDollarAmount },
+            { value => value.ToUInt16(CultureInfo.InvariantCulture), (ushort)RoundedWholeUsDollarAmount },
+            { value => value.ToUInt32(CultureInfo.InvariantCulture), (uint)RoundedWholeUsDollarAmount },
+            { value => value.ToUInt64(CultureInfo.InvariantCulture), (ulong)RoundedWholeUsDollarAmount },
+            { value => value.ToType(typeof(int), CultureInfo.InvariantCulture), RoundedWholeUsDollarAmount },
+            { value => Convert.ToInt32((object)value, CultureInfo.InvariantCulture), RoundedWholeUsDollarAmount }
+        };
 
         [Fact]
         public void ImplicitDecimalOperator_MoneyValue_ReturnsAmount()
