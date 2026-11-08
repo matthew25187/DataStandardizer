@@ -259,6 +259,15 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
+        /// Gets the array that holds the group sizes, without copying it.
+        /// </summary>
+        /// <remarks>
+        /// For handing the sizes to <see cref="NumberFormatInfo.NumberGroupSizes"/>, which copies them itself.
+        /// The array is never to be changed.
+        /// </remarks>
+        internal int[] CurrencyGroupSizesUncopied => _currencyGroupSizes;
+
+        /// <summary>
         /// Gets or sets the format pattern for negative currency values.
         /// </summary>
         /// <remarks>

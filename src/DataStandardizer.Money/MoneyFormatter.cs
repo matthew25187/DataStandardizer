@@ -343,7 +343,7 @@ namespace DataStandardizer.Money
                 NumberDecimalDigits = currencyDecimalDigits,
                 NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator,
                 NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator,
-                NumberGroupSizes = currencyFormat.CurrencyGroupSizes
+                NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied
             };
 
             return amount.ToString("N", numberFormat);
