@@ -22,6 +22,22 @@ public class DosDateTimeTests
     private const uint Packed20000229 = 0x285D0000;
     private const uint Packed19840430 = 0x089E0000;
     private const uint Packed21071231At235958 = 0xFF9FBF7D;
+    private const uint Packed19800101At120000 = 0x00216000;
+    private const uint Packed19800101At123654 = 0x0021649B;
+    private const uint Packed21071231At120000 = 0xFF9F6000;
+
+    // Julian Day Numbers of the packed values above, worked out by hand from JDN 2451545 at noon on 1 January 2000.
+    private const decimal Jdn19800101At000000 = 2444239.5m;
+    private const decimal Jdn19800101At120000 = 2444240m;
+    private const decimal Jdn19800101At123654 = 2444240.025625m;
+    private const decimal Jdn19840229At000000 = 2445759.5m;
+    private const decimal Jdn21071231At120000 = 2490990m;
+
+    // The parameter names of the DosDateTime constructors.
+    private const string ValueParameterName = "value";
+    private const string YearParameterName = "year";
+    private const string MonthParameterName = "month";
+    private const string DayParameterName = "day";
 
     public static TheoryData<uint> InvalidPackedValue_TestCases => new()
     {
@@ -46,6 +62,30 @@ public class DosDateTimeTests
         Packed21071231At235958,
     };
 
+    public static TheoryData<uint, decimal> JulianDayNumber_TestCases => new()
+    {
+        { Packed19800101, Jdn19800101At000000 },
+        { Packed19800101At120000, Jdn19800101At120000 },
+        { Packed19800101At123654, Jdn19800101At123654 },
+        { Packed19840229, Jdn19840229At000000 },
+        { Packed21071231At120000, Jdn21071231At120000 },
+    };
+
+    public static TheoryData<string, Func<object>> DefaultInstanceMember_TestCases => new()
+    {
+        { nameof(DosDateTime.JulianDayNumber), () => default(DosDateTime).JulianDayNumber },
+        { nameof(SystemTimeExtensions.ToDateTime), () => default(DosDateTime).ToDateTime() },
+        { nameof(SystemTimeExtensions.ToDateOnly), () => default(DosDateTime).ToDateOnly() },
+        { nameof(SystemTimeExtensions.ToTimeOnly), () => default(DosDateTime).ToTimeOnly() },
+        { nameof(SystemTimeWithGregorianCalendar.JulianDayNumber), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).JulianDayNumber },
+        { nameof(SystemTimeWithGregorianCalendar.Year), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).Year },
+        { nameof(SystemTimeWithGregorianCalendar.Month), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).Month },
+        { nameof(SystemTimeWithGregorianCalendar.Day), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).Day },
+        { nameof(SystemTimeWithGregorianCalendar.Hour), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).Hour },
+        { nameof(SystemTimeWithGregorianCalendar.Minute), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).Minute },
+        { nameof(SystemTimeWithGregorianCalendar.Second), () => new SystemTimeWithGregorianCalendar(default(DosDateTime)).Second },
+    };
+
     public static TheoryData<ushort, ushort, ushort, uint> ValidDate_TestCases => new()
     {
         { 1984, 2, 29, Packed19840229 },
@@ -63,7 +103,7 @@ public class DosDateTimeTests
         Action testAction = () => new DosDateTime(testValue);
 
         // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("value");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName(ValueParameterName);
     }
 
     [Theory]
@@ -80,16 +120,16 @@ public class DosDateTimeTests
     }
 
     [Theory]
-    [InlineData(1984, 2, 30, "day"),
-     InlineData(1985, 2, 29, "day"),
-     InlineData(2100, 2, 29, "day"),
-     InlineData(1984, 4, 31, "day"),
-     InlineData(1984, 1, 0, "day"),
-     InlineData(1984, 1, 32, "day"),
-     InlineData(1984, 0, 1, "month"),
-     InlineData(1984, 13, 1, "month"),
-     InlineData(1979, 12, 31, "year"),
-     InlineData(2108, 1, 1, "year")]
+    [InlineData(1984, 2, 30, DayParameterName),
+     InlineData(1985, 2, 29, DayParameterName),
+     InlineData(2100, 2, 29, DayParameterName),
+     InlineData(1984, 4, 31, DayParameterName),
+     InlineData(1984, 1, 0, DayParameterName),
+     InlineData(1984, 1, 32, DayParameterName),
+     InlineData(1984, 0, 1, MonthParameterName),
+     InlineData(1984, 13, 1, MonthParameterName),
+     InlineData(1979, 12, 31, YearParameterName),
+     InlineData(2108, 1, 1, YearParameterName)]
     public void Constructor_InvalidDate_ThrowsArgumentOutOfRangeException(ushort testYear, ushort testMonth, ushort testDay, string expectedParameterName)
     {
         // arrange
@@ -110,7 +150,7 @@ public class DosDateTimeTests
         Action testAction = () => new DosDateTime(1984, 2, 31, 0, 0, 0);
 
         // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("day");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName(DayParameterName);
     }
 
     [Theory]
@@ -152,17 +192,45 @@ public class DosDateTimeTests
         ((uint)testResult).Should().Be(testValue);
     }
 
-    [Fact]
-    public void JulianDayNumber_DefaultInstance_ThrowsInvalidOperationException()
+    [Theory]
+    [MemberData(nameof(JulianDayNumber_TestCases))]
+    public void JulianDayNumber_ValidPackedValue_ReturnsJulianDayNumber(uint testValue, decimal expectedResult)
     {
         // arrange
-        var testValue = default(DosDateTime);
+        var testDosDateTime = new DosDateTime(testValue);
 
         // act
-        Action testAction = () => _ = testValue.JulianDayNumber;
+        var testResult = testDosDateTime.JulianDayNumber;
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>();
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void ToDateTime_ValidPackedValue_ReturnsDateTime()
+    {
+        // arrange
+        var testDosDateTime = new DosDateTime(Packed19800101At123654);
+        var expectedResult = new DateTime(1980, 1, 1, 12, 36, 54);
+
+        // act
+        var testResult = testDosDateTime.ToDateTime();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [MemberData(nameof(DefaultInstanceMember_TestCases))]
+    public void Member_DefaultInstance_ThrowsInvalidOperationException(string testMemberName, Func<object> testMember)
+    {
+        // arrange
+
+        // act
+        Action testAction = () => testMember();
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>(testMemberName);
     }
 
     [Fact]

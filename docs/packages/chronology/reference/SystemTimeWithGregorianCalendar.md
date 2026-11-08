@@ -28,6 +28,11 @@ Construct it from any `ISystemTime` implementation, such as a
 `AsDosDateTime()` methods recover the original wrapped value when it was one of
 those types.
 
+Every member that reads the wrapped value's Julian Day Number (`JulianDayNumber`,
+`Year`, `Month`, `Day`, `Hour`, `Minute` and `Second`) throws
+`InvalidOperationException` when the wrapped value is a default instance that
+holds no date, such as `default(DosDateTime)`.
+
 ## Constructors
 
 | Constructor | Notes |

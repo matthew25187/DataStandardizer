@@ -50,13 +50,12 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="value"/> is not a valid DOS date and time: its month is not 1 to 12, its day is
         /// not within the length of that month, its hour is greater than 23, its minute is greater than 59,
-        /// or its seconds field (seconds divided by 2) is greater than 29.
+        /// or its second (twice its seconds field) is greater than 59.
         /// </exception>
         public DosDateTime(uint value)
         {
-            var errorMessage = GetInvalidValueMessage(value);
-            if (errorMessage != null)
-                throw new ArgumentOutOfRangeException(nameof(value), value, errorMessage);
+            if (!IsValidPackedValue(value, out var message))
+                throw new ArgumentOutOfRangeException(nameof(value), value, message);
 
             _value = value;
         }
@@ -69,19 +68,8 @@ namespace DataStandardizer.Chronology
         /// <param name="day">The day, from 1 to the number of days in <paramref name="month"/> of <paramref name="year"/>.</param>
         /// <exception cref="ArgumentOutOfRangeException">A component is out of range.</exception>
         public DosDateTime(ushort year, ushort month, ushort day)
+            : this(year, month, day, HourMinimum, MinuteMinimum, SecondMinimum)
         {
-            if (year < YearMinimum || year > YearMaximum)
-                throw new ArgumentOutOfRangeException(nameof(year), year, $"Year must be in the range {YearMinimum} - {YearMaximum}.");
-
-            if (month < MonthMinimum || month > MonthMaximum)
-                throw new ArgumentOutOfRangeException(nameof(month), month, $"Month must be in the range {MonthMinimum} - {MonthMaximum}.");
-
-            var monthLength = JulianDayNumberHelper.GetGregorianCalendarMonthLength(year, month);
-            if (day < DayMinimum || day > monthLength)
-                throw new ArgumentOutOfRangeException(nameof(day), day, $"Day must be in the range {DayMinimum} - {monthLength}.");
-
-            var date = ((year - YearMinimum) << 9) | (month << 5) | day;
-            _value = (uint)(date << 16);
         }
 
         /// <summary>
@@ -95,19 +83,19 @@ namespace DataStandardizer.Chronology
         /// <param name="second">The second, from 0 to 59. It is stored at two-second resolution, so an odd value is rounded down.</param>
         /// <exception cref="ArgumentOutOfRangeException">A component is out of range.</exception>
         public DosDateTime(ushort year, ushort month, ushort day, ushort hour, ushort minute, ushort second)
-            : this(year, month, day)
         {
-            if (hour < HourMinimum || hour > HourMaximum)
-                throw new ArgumentOutOfRangeException(nameof(hour), hour, $"Hour must be in the range {HourMinimum} - {HourMaximum}.");
+            if (!AreValidComponents(year, month, day, hour, minute, second, out var parameterName, out var actualValue, out var message))
+                throw new ArgumentOutOfRangeException(parameterName, actualValue, message);
 
-            if (minute < MinuteMinimum || minute > MinuteMaximum)
-                throw new ArgumentOutOfRangeException(nameof(minute), minute, $"Minute must be in the range {MinuteMinimum} - {MinuteMaximum}.");
-
-            if (second < SecondMinimum || second > SecondMaximum)
-                throw new ArgumentOutOfRangeException(nameof(second), second, $"Second must be in the range {SecondMinimum} - {SecondMaximum}.");
-
+            var date = ((year - YearMinimum) << 9) | (month << 5) | day;
             var time = (hour << 11) | (minute << 5) | (second / 2);
-            _value |= (uint)time;
+            _value = ((uint)date << 16) | (uint)time;
+        }
+
+        // Wraps a packed value that the caller has already validated.
+        private DosDateTime(uint validatedValue, bool _)
+        {
+            _value = validatedValue;
         }
 
         /// <summary>
@@ -118,11 +106,10 @@ namespace DataStandardizer.Chronology
         /// <exception cref="InvalidCastException"><paramref name="value"/> is not a valid DOS date and time.</exception>
         public static explicit operator DosDateTime(uint value)
         {
-            var errorMessage = GetInvalidValueMessage(value);
-            if (errorMessage != null)
-                throw new InvalidCastException(errorMessage);
+            if (!IsValidPackedValue(value, out var message))
+                throw new InvalidCastException(message);
 
-            return new DosDateTime(value);
+            return new DosDateTime(value, true);
         }
 
         /// <summary>
@@ -167,32 +154,55 @@ namespace DataStandardizer.Chronology
             return (year, month, day, hour, minute, second);
         }
 
-#if NETCOREAPP3_0_OR_GREATER
-        private static string? GetInvalidValueMessage(uint value)
-#else
-        private static string GetInvalidValueMessage(uint value)
-#endif
+        private static bool IsValidPackedValue(uint value, out string message)
         {
             // The year field is 7 bits, so every value of it is a year from 1980 to 2107.
             var (year, month, day, hour, minute, second) = Unpack(value);
 
+            if (AreValidComponents(year, month, day, hour, minute, second, out var parameterName, out var actualValue, out var componentMessage))
+            {
+                message = string.Empty;
+                return true;
+            }
+
+            message = $"The packed value has {parameterName} {actualValue}. {componentMessage}";
+            return false;
+        }
+
+        // The single source of the DOS date and time range rules. The parameter names are those of the component constructor.
+        private static bool AreValidComponents(int year, int month, int day, int hour, int minute, int second, out string parameterName, out int actualValue, out string message)
+        {
+            if (year < YearMinimum || year > YearMaximum)
+                return Invalid(nameof(year), year, $"Year must be in the range {YearMinimum} - {YearMaximum}.", out parameterName, out actualValue, out message);
+
             if (month < MonthMinimum || month > MonthMaximum)
-                return $"The month must be in the range {MonthMinimum} - {MonthMaximum}. Actual value was {month}.";
+                return Invalid(nameof(month), month, $"Month must be in the range {MonthMinimum} - {MonthMaximum}.", out parameterName, out actualValue, out message);
 
             var monthLength = JulianDayNumberHelper.GetGregorianCalendarMonthLength(year, month);
             if (day < DayMinimum || day > monthLength)
-                return $"The day must be in the range {DayMinimum} - {monthLength}. Actual value was {day}.";
+                return Invalid(nameof(day), day, $"Day must be in the range {DayMinimum} - {monthLength}.", out parameterName, out actualValue, out message);
 
-            if (hour > HourMaximum)
-                return $"The hour must be in the range {HourMinimum} - {HourMaximum}. Actual value was {hour}.";
+            if (hour < HourMinimum || hour > HourMaximum)
+                return Invalid(nameof(hour), hour, $"Hour must be in the range {HourMinimum} - {HourMaximum}.", out parameterName, out actualValue, out message);
 
-            if (minute > MinuteMaximum)
-                return $"The minute must be in the range {MinuteMinimum} - {MinuteMaximum}. Actual value was {minute}.";
+            if (minute < MinuteMinimum || minute > MinuteMaximum)
+                return Invalid(nameof(minute), minute, $"Minute must be in the range {MinuteMinimum} - {MinuteMaximum}.", out parameterName, out actualValue, out message);
 
-            if (second > SecondMaximum)
-                return $"The second must be in the range {SecondMinimum} - {SecondMaximum}. Actual value was {second}.";
+            if (second < SecondMinimum || second > SecondMaximum)
+                return Invalid(nameof(second), second, $"Second must be in the range {SecondMinimum} - {SecondMaximum}.", out parameterName, out actualValue, out message);
 
-            return null;
+            parameterName = string.Empty;
+            actualValue = 0;
+            message = string.Empty;
+            return true;
+        }
+
+        private static bool Invalid(string name, int value, string text, out string parameterName, out int actualValue, out string message)
+        {
+            parameterName = name;
+            actualValue = value;
+            message = text;
+            return false;
         }
     }
 }

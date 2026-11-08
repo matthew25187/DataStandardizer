@@ -24,8 +24,10 @@ var packedDateTime = (uint)dosDateTime;
 
 ## Create a DosDateTime
 
-You can construct a `DosDateTime` in either of two ways. If you already have a
-packed 32-bit integer, pass it to the constructor:
+You can create a `DosDateTime` in three ways: from a packed 32-bit integer
+with the constructor, from date and time components, or by casting a packed
+integer. If you already have a packed 32-bit integer, pass it to the
+constructor:
 
 ```csharp
 // Create DosDateTime from a packed integer.

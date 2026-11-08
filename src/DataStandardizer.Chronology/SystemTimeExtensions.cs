@@ -52,6 +52,9 @@ namespace DataStandardizer.Chronology
         /// This method calculates the date and time components based on the Julian Day Number provided by the 
         /// <paramref name="systemTime"/> and constructs a corresponding <see cref="DateTime"/> object.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>.
+        /// </exception>
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
             var (year, month, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(systemTime.JulianDayNumber);
@@ -76,6 +79,9 @@ namespace DataStandardizer.Chronology
         /// This method calculates the date components based on the Julian Day Number provided by the 
         /// <paramref name="systemTime"/> and constructs a corresponding <see cref="DateOnly"/> object.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>.
+        /// </exception>
         public static DateOnly ToDateOnly<T>(this T systemTime) where T : struct, ISystemTime
         {
             var (year, month, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(systemTime.JulianDayNumber);
@@ -98,6 +104,9 @@ namespace DataStandardizer.Chronology
         /// This method extracts the time components (hour, minute, and second) based on the Julian Day Number 
         /// provided by the <paramref name="systemTime"/> and constructs a corresponding <see cref="TimeOnly"/> object.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>.
+        /// </exception>
         public static TimeOnly ToTimeOnly<T>(this T systemTime) where T : struct, ISystemTime
         {
             var (hour, minute, second) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(systemTime.JulianDayNumber);
