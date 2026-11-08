@@ -28,7 +28,7 @@ for the field, such as `extlang`, is still in the record's `Fields`.
 
 | Field | Registry value | Description |
 | --- | --- | --- |
-| `Unknown` | | The record has no `Type` field, or its value is not one that RFC 5646 defines. |
+| `Unknown` | | The default value. No record of a loaded registry has it: a record with no `Type` field, or with a value that RFC 5646 §3.1.3 doesn't define, fails the load. |
 | `Language` | `language` | A Primary Language subtag. |
 | `ExtendedLanguage` | `extlang` | An Extended Language subtag. |
 | `Script` | `script` | A Script subtag. |
