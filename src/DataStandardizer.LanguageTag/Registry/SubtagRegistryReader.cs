@@ -17,8 +17,9 @@ namespace DataStandardizer.LanguageTag.Registry
     /// </summary>
     /// <remarks>
     /// Input that the format doesn't allow throws a <see cref="FormatException"/> that names its line: a line that is blank, holds a control character
-    /// (a tab among them), or is neither a field nor a folded line that starts with a space; a field body that ends with a space; and a record that is
-    /// empty, has none or more than one of the File-Date, Subtag and Tag fields, or has no Type that RFC 5646 §3.1.3 defines for its kind of record.
+    /// (a tab among them), or is neither a field nor a folded line that starts with a space; a field body that ends with a space; a File-Date, Subtag,
+    /// Tag or Type field with no value; and a record that is empty, has none or more than one of the File-Date, Subtag and Tag fields, or has no Type
+    /// that RFC 5646 §3.1.3 defines for its kind of record.
     /// </remarks>
     internal class SubtagRegistryReader
     {
@@ -79,12 +80,12 @@ namespace DataStandardizer.LanguageTag.Registry
         internal async Task<ISubtagRegistryRecord> ReadRecordAsync(CancellationToken cancellationToken)
 #endif
         {
-            if (_isAtEnd) return null;
-
             while (true)
             {
-                // checked between lines on every target, as a line already in the reader's buffer is returned without observing the token
+                // checked between lines on every target, as a line already in the reader's buffer is returned without observing the token, and before
+                // the end of the input is reported, so a cancelled token never yields a registry
                 cancellationToken.ThrowIfCancellationRequested();
+                if (_isAtEnd) return null;
 #if NET7_0_OR_GREATER
                 var line = await _sourceReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
 #else
@@ -121,13 +122,11 @@ namespace DataStandardizer.LanguageTag.Registry
             _lineNumber++;
             if (line.Length == 0) throw CreateException("Line {0} is blank, which a record may not hold (ref. RFC 5646 §3.1.1).", _lineNumber);
 
-            for (var index = 0; index < line.Length; index++)
+            // CHARS is %x21-10FFFF, so the space is the only character below it that a field may hold (ref. RFC 5646 §3.1.1)
+            var controlIndex = IndexOfControlCharacter(line);
+            if (controlIndex >= 0)
             {
-                // CHARS is %x21-10FFFF, so the space is the only character below it that a field may hold (ref. RFC 5646 §3.1.1)
-                if (line[index] < '!' && line[index] != ' ')
-                {
-                    throw CreateException("Line {0} holds the control character U+{1:X4}, which a field may not hold (ref. RFC 5646 §3.1.1).", _lineNumber, (int)line[index]);
-                }
+                throw CreateException("Line {0} holds the control character U+{1:X4}, which a field may not hold (ref. RFC 5646 §3.1.1).", _lineNumber, (int)line[controlIndex]);
             }
 
             if (line[0] == ' ')
@@ -143,10 +142,7 @@ namespace DataStandardizer.LanguageTag.Registry
             var nameLength = colonIndex;
             while (nameLength > 0 && line[nameLength - 1] == ' ') nameLength--;
 
-            if (nameLength <= 0 || !IsFieldName(line, nameLength))
-            {
-                throw CreateException("Line {0} is neither a field, which starts with a field name and a colon, nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1).", _lineNumber);
-            }
+            if (nameLength <= 0 || !IsFieldName(line, nameLength)) throw CreateFieldNameException(line, colonIndex, nameLength);
 
             AddField();
             if (_recordLineNumber == 0) _recordLineNumber = _lineNumber;
@@ -184,7 +180,15 @@ namespace DataStandardizer.LanguageTag.Registry
             if (_fieldEndsWithSpace) throw CreateException("The {1} field ends with a space at line {0} (ref. RFC 5646 §3.1.1).", _fieldLineNumber, _fieldName);
 
             var fieldBody = _foldedFieldBody?.Length > 0 ? _foldedFieldBody.ToString() : _fieldBody;
-            if (!string.IsNullOrEmpty(fieldBody)) _fields.Add(new KeyValuePair<string, string>(_fieldName, fieldBody));
+            if (string.IsNullOrEmpty(fieldBody))
+            {
+                // the grammar allows an empty field body, but the fields that tell a record's kind and type each need a value (ref. RFC 5646 §3.1.2)
+                if (IsClassifyingField(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldLineNumber, _fieldName);
+            }
+            else
+            {
+                _fields.Add(new KeyValuePair<string, string>(_fieldName, fieldBody));
+            }
 
             _fieldName = null;
             _fieldBody = null;
@@ -199,17 +203,11 @@ namespace DataStandardizer.LanguageTag.Registry
             var isFileDate = false;
             var hasSubtag = false;
             var hasTag = false;
-#if NETCOREAPP3_0_OR_GREATER
-            string? type = null;
-#else
-            string type = null;
-#endif
             foreach (var field in _fields)
             {
                 isFileDate |= field.Key == FieldName.FileDate;
                 hasSubtag |= field.Key == FieldName.Subtag;
                 hasTag |= field.Key == FieldName.Tag;
-                if (type is null && field.Key == FieldName.Type) type = field.Value;
             }
 
             var recordLineNumber = _recordLineNumber;
@@ -224,11 +222,13 @@ namespace DataStandardizer.LanguageTag.Registry
 
             if (isFileDate) return new SubtagRegistryFileDateRecord(fields);
 
-            if (type is null) throw CreateException("The record at line {0} has no Type field (ref. RFC 5646 §3.1.2).", recordLineNumber);
-
             var record = hasSubtag ? new SubtagRegistrySubtagRecord(fields) : (SubtagRegistryTagRecordBase)new SubtagRegistryTagRecord(fields);
             if (record.Type == SubtagRegistryRecordType.Unknown)
             {
+                // the record reads the first Type field, as the error does
+                var type = SubtagRegistryRecordBase.GetFirstValue(fields, FieldName.Type);
+                if (type is null) throw CreateException("The record at line {0} has no Type field (ref. RFC 5646 §3.1.2).", recordLineNumber);
+
                 throw CreateException("The record at line {0} has the Type '{1}', which is not one that RFC 5646 §3.1.3 defines.", recordLineNumber, type);
             }
 
@@ -236,18 +236,78 @@ namespace DataStandardizer.LanguageTag.Registry
             var isTagType = record.Type == SubtagRegistryRecordType.Grandfathered || record.Type == SubtagRegistryRecordType.Redundant;
             if (hasSubtag && isTagType)
             {
-                throw CreateException("The record at line {0} has a Subtag field, but its Type '{1}' is one whose records have a Tag field (ref. RFC 5646 §3.1.2).", recordLineNumber, type);
+                throw CreateException("The record at line {0} has a Subtag field, but its Type '{1}' is one whose records have a Tag field (ref. RFC 5646 §3.1.2).", recordLineNumber, SubtagRegistryRecordBase.GetFirstValue(fields, FieldName.Type));
             }
 
             if (hasTag && !isTagType)
             {
-                throw CreateException("The record at line {0} has a Tag field, but its Type '{1}' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2).", recordLineNumber, type);
+                throw CreateException("The record at line {0} has a Tag field, but its Type '{1}' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2).", recordLineNumber, SubtagRegistryRecordBase.GetFirstValue(fields, FieldName.Type));
             }
 
             return record;
         }
 
+        /// <summary>
+        /// Creates the exception for a line that doesn't start with a space and whose start is not a field name and a colon, naming what is wrong with it.
+        /// </summary>
+        private FormatException CreateFieldNameException(string line, int colonIndex, int nameLength)
+        {
+            // "%%" with spaces after it is not the record separator, which is a line of "%%" alone (ref. RFC 5646 §3.1.1)
+            if (line.Length > RecordSeparator.Length && line.StartsWith(RecordSeparator, StringComparison.Ordinal) && line.TrimEnd(' ').Length == RecordSeparator.Length)
+            {
+                return CreateException("Line {0} has spaces after the \"%%\" that separates records, which is a line of \"%%\" alone (ref. RFC 5646 §3.1.1).", _lineNumber);
+            }
+
+            if (colonIndex < 0)
+            {
+                return CreateException("Line {0} has no colon, so it is neither a field nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1).", _lineNumber);
+            }
+
+            if (nameLength <= 0) return CreateException("Line {0} has no field name before its colon (ref. RFC 5646 §3.1.1).", _lineNumber);
+
+            for (var index = 0; index < nameLength; index++)
+            {
+                if (!IsFieldNameCharacter(line[index]))
+                {
+                    return CreateException(
+                        "Line {0} has the character U+{1:X4} in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1).", _lineNumber, (int)line[index]);
+                }
+            }
+
+            return CreateException("Line {0} has a field name that starts or ends with a hyphen (ref. RFC 5646 §3.1.1).", _lineNumber);
+        }
+
+        /// <summary>
+        /// Finds the first character below the space, which no line may hold (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        private static int IndexOfControlCharacter(string line)
+        {
+#if NET
+            return line.AsSpan().IndexOfAnyInRange('\0', '\x1F');
+#else
+            for (var index = 0; index < line.Length; index++)
+            {
+                if (line[index] < ' ') return index;
+            }
+
+            return -1;
+#endif
+        }
+
+        /// <summary>
+        /// Gets whether a field tells a record's kind or type, so that it needs a value.
+        /// </summary>
+        private static bool IsClassifyingField(string fieldName)
+        {
+            return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Subtag) || ReferenceEquals(fieldName, FieldName.Tag) ||
+                ReferenceEquals(fieldName, FieldName.Type);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static FormatException CreateException(string format, params object?[] args)
+#else
         private static FormatException CreateException(string format, params object[] args)
+#endif
         {
             return new FormatException(string.Format(CultureInfo.InvariantCulture, format, args));
         }
@@ -261,11 +321,15 @@ namespace DataStandardizer.LanguageTag.Registry
 
             for (var index = 0; index < length; index++)
             {
-                var character = line[index];
-                if (!(character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z' || character >= '0' && character <= '9' || character == '-')) return false;
+                if (!IsFieldNameCharacter(line[index])) return false;
             }
 
             return true;
+        }
+
+        private static bool IsFieldNameCharacter(char character)
+        {
+            return character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z' || character >= '0' && character <= '9' || character == '-';
         }
 
         /// <summary>

@@ -317,6 +317,21 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
+        public async Task CreateFromStreamAsync_WhenTokenIsCancelledAfterLastRecordIsRead_ThrowsOperationCanceledException()
+        {
+            // arrange
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            using (var subtagRegistryStream = new CancelAtEndStream(Encoding.UTF8.GetBytes("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\n"), cancellationTokenSource))
+            {
+                // act
+                Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled when the end of the stream was read, after the last record");
+            }
+        }
+
+        [Fact]
         public async Task CreateFromStreamAsync_WhenTokenIsNotCancelled_ReturnsDeserializedRegistry()
         {
             // arrange
@@ -375,6 +390,48 @@ namespace DataStandardizer.LanguageTag.Tests
                 return base.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, MaximumReadLength)), CancellationToken.None);
             }
 #endif
+        }
+
+        /// <summary>
+        /// A stream that cancels a token when a read finds the end of the stream, to cancel a load after its last line has been read.
+        /// </summary>
+        private sealed class CancelAtEndStream : MemoryStream
+        {
+            private readonly CancellationTokenSource _cancellationTokenSource;
+
+            public CancelAtEndStream(byte[] buffer, CancellationTokenSource cancellationTokenSource)
+                : base(buffer)
+            {
+                _cancellationTokenSource = cancellationTokenSource;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                return CancelAtEnd(base.Read(buffer, offset, count));
+            }
+
+            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                return CancelAtEnd(await base.ReadAsync(buffer, offset, count, CancellationToken.None));
+            }
+
+#if NET
+            public override int Read(Span<byte> buffer)
+            {
+                return CancelAtEnd(base.Read(buffer));
+            }
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                return CancelAtEnd(await base.ReadAsync(buffer, CancellationToken.None));
+            }
+#endif
+
+            private int CancelAtEnd(int bytesRead)
+            {
+                if (bytesRead == 0) _cancellationTokenSource.Cancel();
+                return bytesRead;
+            }
         }
 
         /// <summary>
@@ -1057,9 +1114,21 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // a line that doesn't start with a space is not a folded line (field-body)
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: fr\nDescription: French\nUnited Kingdom",
-                "Line 6 is neither a field, which starts with a field name and a colon, nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1)."),
+                "Line 6 has no colon, so it is neither a field nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1)."),
+            // field-name = (ALPHA / DIGIT) [*(ALPHA / DIGIT / "-") (ALPHA / DIGIT)]
             ("File-Date: 2025-01-01\n%%\n-Type: language\nSubtag: aa",
-                "Line 3 is neither a field, which starts with a field name and a colon, nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1)."),
+                "Line 3 has a field name that starts or ends with a hyphen (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\n: language\nSubtag: aa",
+                "Line 3 has no field name before its colon (ref. RFC 5646 §3.1.1)."),
+            // a byte order mark left in the content, U+FEFF
+            ("\xFEFFFile-Date: 2025-01-01\n%%\nType: language\nSubtag: aa",
+                "Line 1 has the character U+FEFF in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1)."),
+            // a no-break space, U+00A0, is not SP
+            ("File-Date: 2025-01-01\n%%\nType\xA0: language\nSubtag: aa",
+                "Line 3 has the character U+00A0 in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1)."),
+            // records are separated by lines of "%%" alone
+            ("File-Date: 2025-01-01\n%% \nType: language\nSubtag: aa",
+                "Line 2 has spaces after the \"%%\" that separates records, which is a line of \"%%\" alone (ref. RFC 5646 §3.1.1)."),
             // a tab is not white space in field-sep or field-body, nor one of CHARS
             ("File-Date: 2025-01-01\n%%\nType\t: language\nSubtag: aa",
                 "Line 3 holds the control character U+0009, which a field may not hold (ref. RFC 5646 §3.1.1)."),
@@ -1084,7 +1153,11 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The Subtag field ends with a space at line 4 (ref. RFC 5646 §3.1.1)."),
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua\n  Association ",
                 "The Description field ends with a space at line 6 (ref. RFC 5646 §3.1.1)."),
-            // the kind of record is told by its File-Date, Subtag or Tag field
+            // the kind of record is told by its File-Date, Subtag or Tag field, and its type by its Type field, which each need a value
+            ("File-Date: 2025-01-01\n%%\nType:\nSubtag: aa",
+                "The Type field at line 3 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag:",
+                "The Subtag field at line 4 has no value (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtg: en\nDescription: English",
                 "The record at line 3 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\n%%\nType: language\nDescription: No subtag or tag",
