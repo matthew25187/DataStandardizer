@@ -371,8 +371,15 @@ namespace DataStandardizer.Chronology
         /// falls in an overlap, as when clocks go back.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// This is the reverse of <see cref="GetOffsetInfo(TzDataTimezone, DateTime)"/>. The instant at which each offset gives
         /// the time is <paramref name="local"/> less its <see cref="TzDataOffsetInfo.UtcOffset"/>.
+        /// </para>
+        /// <para>
+        /// An offset whose instant would fall outside the range of <see cref="DateTime"/> is left out. Near either end of that
+        /// range, an empty result can therefore mean that the instant is out of range rather than that the time falls in a gap.
+        /// <see cref="DateTimeExtensions.ToDateTimeOffset(DateTime, TzDataTimezone, TzDataLocalTimeResolution)"/> tells the two apart.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException"><paramref name="local"/> is of kind <see cref="DateTimeKind.Utc"/> or <see cref="DateTimeKind.Local"/>.</exception>
 #if NETSTANDARD
@@ -381,7 +388,7 @@ namespace DataStandardizer.Chronology
         public static IReadOnlyList<TzDataOffsetInfo> GetOffsetInfosForLocal(this TzDataTimezone timezone, DateTime local)
         {
             var calculator = timezone.GetCalculator();
-            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _);
+            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _, out _, out _);
         }
 
         private static DateTime ToUniversalInstant(DateTime utc, string parameterName)
