@@ -24,11 +24,6 @@ namespace DataStandardizer.Communication
     {
         // The country code of an instance for no country; no ISO 3166-1 country has the numeric code 0.
         private const ushort NoCountryCode = 0;
-
-        // The length of a region subtag that is an ISO 3166-1 alpha-2 code; the other form is a three-digit UN M.49 code
-        // (RFC 5646, section 2.1: region = 2ALPHA / 3DIGIT).
-        private const int Iso3166Part1Alpha2RegionSubtagLength = 2;
-
         private readonly ushort _countryCode;
 #if NETCOREAPP3_0_OR_GREATER
         private ItuE164InternationalNumberFormatter? _formatter; 
@@ -221,12 +216,10 @@ namespace DataStandardizer.Communication
         {
             // The invariant culture's name is empty, which isn't a language tag; like any culture without a country, it has no
             // country code. Nor does a culture whose region subtag is a UN M.49 code, such as 419 in es-419 or 036 in en-036: only an
-            // ISO 3166-1 alpha-2 code names a country. Enum.TryParse would take its digits as a raw value, defined or not.
+            // ISO 3166-1 alpha-2 code names a country, and ToIso3166Part1Alpha2 takes only that form, in any case (RFC 5646,
+            // section 2.1.1).
             return Bcp47LanguageTag.TryCreate(cultureName, out var cultureTag)
-                && cultureTag.RegionSubtag?.Length == Iso3166Part1Alpha2RegionSubtagLength
-                && Enum.TryParse(cultureTag.RegionSubtag, out Iso3166Part1Alpha2Country countryCode)
-                && Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), countryCode)
-                ? countryCode
+                ? cultureTag.ToIso3166Part1Alpha2()
                 : default(Iso3166Part1Alpha2Country?);
         }
 

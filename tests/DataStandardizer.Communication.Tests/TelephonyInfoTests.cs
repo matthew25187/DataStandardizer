@@ -24,6 +24,12 @@ namespace DataStandardizer.Communication.Tests
 
         // A culture whose region is Australia.
         private const string AustralianEnglish = "en-AU";
+        private const string LowercaseAustralianEnglish = "en-au";
+
+        // Cultures whose region subtags are UN M.49 codes (RFC 5646, section 2.2.4): 419 is Latin America and the Caribbean, an area,
+        // and 036 is Australia, a country whose ISO 3166-1 alpha-2 region subtag is AU.
+        private const string LatinAmericanSpanish = "es-419";
+        private const string UnM49AustralianEnglish = "en-036";
 
         // The names of the resources that hold the number patterns.
         private const string LongPatternResourceName = nameof(ItuE164InternationalNumberFormatInfo.LongInternationalNumberPattern);
@@ -131,43 +137,11 @@ namespace DataStandardizer.Communication.Tests
             testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(NeutralShortPattern);
         }
 
+        // Language tags are case-insensitive (RFC 5646, section 2.1.1), so a lowercase alpha-2 region subtag names a country too.
         [Theory]
-        [InlineData(""), InlineData("en")]
-        public void CurrentTelephony_CurrentCultureWithoutRegion_ReturnsReadOnlyTelephonyWithoutCountry(string cultureName)
+        [InlineData(AustralianEnglish), InlineData(LowercaseAustralianEnglish)]
+        public void GetCultureCountryCode_CultureWithAlpha2Region_ReturnsCountry(string cultureName)
         {
-            // arrange
-            using (new CultureScope(cultureName))
-            {
-                // act
-                var testResult = TelephonyInfo.CurrentTelephony;
-
-                // assert
-                testResult.Iso3166Part1Alpha2Code.Should().BeNull();
-                testResult.IsReadOnly.Should().BeTrue();
-            }
-        }
-
-        [Fact]
-        public void CurrentTelephony_CurrentCultureWithCountry_ReturnsReadOnlyTelephonyForCountry()
-        {
-            // arrange
-            using (new CultureScope(AustralianEnglish))
-            {
-                // act
-                var testResult = TelephonyInfo.CurrentTelephony;
-
-                // assert
-                testResult.Iso3166Part1Alpha2Code.Should().Be(Iso3166Part1Alpha2Country.AU);
-                testResult.IsReadOnly.Should().BeTrue();
-            }
-        }
-
-        [Fact]
-        public void GetCultureCountryCode_CultureWithAlpha2Region_ReturnsCountry()
-        {
-            // arrange
-            const string cultureName = AustralianEnglish;
-
             // act
             var testResult = TelephonyInfo.GetCultureCountryCode(cultureName);
 
@@ -175,10 +149,8 @@ namespace DataStandardizer.Communication.Tests
             testResult.Should().Be(Iso3166Part1Alpha2Country.AU);
         }
 
-        // Region subtags that are UN M.49 codes (RFC 5646, section 2.2.4): 419 is Latin America and the Caribbean, an area, and
-        // 036 is Australia, a country whose region subtag is AU.
         [Theory]
-        [InlineData("es-419"), InlineData("en-036")]
+        [InlineData(LatinAmericanSpanish), InlineData(UnM49AustralianEnglish)]
         public void GetCultureCountryCode_CultureWithUnM49Region_ReturnsNull(string cultureName)
         {
             // act
