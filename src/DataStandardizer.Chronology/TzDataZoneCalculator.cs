@@ -238,23 +238,32 @@ namespace DataStandardizer.Chronology
         /// Where the time falls in a gap, so that no offset is in effect at it, the offset in effect immediately before the gap;
         /// otherwise, <see langword="null"/>.
         /// </param>
-        /// <param name="isOutOfRange">
-        /// <see langword="true"/> where an offset in effect near the time gives it at an instant outside the range of
+        /// <param name="isBeforeRange">
+        /// <see langword="true"/> where an offset in effect at the time gives it at an instant before the range of
         /// <see cref="DateTime"/>, so that the offset is left out of the result; otherwise, <see langword="false"/>.
+        /// Such an instant precedes every instant in the result.
+        /// </param>
+        /// <param name="isAfterRange">
+        /// <see langword="true"/> where an offset in effect at the time gives it at an instant after the range of
+        /// <see cref="DateTime"/>, so that the offset is left out of the result; otherwise, <see langword="false"/>.
+        /// Such an instant follows every instant in the result.
         /// </param>
         /// <returns>
-        /// The offsets, in chronological order of the instants at which they give the time: none in a gap, one normally, and
-        /// two in an overlap.
+        /// The offsets whose instants fall within the range of <see cref="DateTime"/>, in chronological order of the instants
+        /// at which they give the time: one normally, and two in an overlap. There are none where the time falls in a gap,
+        /// or where each offset in effect at it gives an instant outside the range of <see cref="DateTime"/>, which
+        /// <paramref name="isBeforeRange"/> and <paramref name="isAfterRange"/> tell apart from a gap.
         /// </returns>
         /// <remarks>
         /// Each offset in effect near the time gives a candidate instant, being the time less the offset. A candidate is kept
         /// where the offset is in effect at it, so that the offset gives the same time on the local clock back.
         /// </remarks>
-        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap, out bool isOutOfRange)
+        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap, out bool isBeforeRange, out bool isAfterRange)
         {
             var result = new List<TzDataOffsetInfo>(2);
             offsetBeforeGap = null;
-            isOutOfRange = false;
+            isBeforeRange = false;
+            isAfterRange = false;
 
             // An offset is less than a day, so only the changes in effect within a day either side of the time can give it.
             var fromTicks = localTicks - TimeSpan.TicksPerDay;
@@ -269,7 +278,7 @@ namespace DataStandardizer.Chronology
             {
                 if (current != null)
                 {
-                    isOutOfRange |= !AddOffsetInfoForLocal(result, localTicks, current, next);
+                    AddOffsetInfoForLocal(result, localTicks, current, next, ref isBeforeRange, ref isAfterRange);
 
                     // The time falls in a gap where it comes after the change on the clock before it, and before it on the clock after it.
                     if (!offsetBeforeGap.HasValue &&
@@ -285,31 +294,33 @@ namespace DataStandardizer.Chronology
             }
 
             if (current != null)
-                isOutOfRange |= !AddOffsetInfoForLocal(result, localTicks, current, null);
+                AddOffsetInfoForLocal(result, localTicks, current, null, ref isBeforeRange, ref isAfterRange);
 
             return result;
         }
 
-        // Returns false where the offset is in effect at the candidate instant, but the instant falls outside the range of DateTime.
-        private static bool AddOffsetInfoForLocal(
+        private static void AddOffsetInfoForLocal(
             List<TzDataOffsetInfo> offsetInfos,
             long localTicks,
             Change current,
 #if NETCOREAPP3_0_OR_GREATER
-            Change? next)
+            Change? next,
 #else
-            [AllowNull] Change next)
+            [AllowNull] Change next,
 #endif
+            ref bool isBeforeRange,
+            ref bool isAfterRange)
         {
             var candidateTicks = localTicks - current.State.UtcOffsetTicks;
             if (candidateTicks < current.Instant || (next != null && candidateTicks >= next.Instant))
-                return true;
+                return;
 
-            if (candidateTicks < TicksMinimum || candidateTicks > TicksMaximum)
-                return false;
-
-            offsetInfos.Add(CreateOffsetInfo(current, next));
-            return true;
+            if (candidateTicks < TicksMinimum)
+                isBeforeRange = true;
+            else if (candidateTicks > TicksMaximum)
+                isAfterRange = true;
+            else
+                offsetInfos.Add(CreateOffsetInfo(current, next));
         }
 
         /// <summary>

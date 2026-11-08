@@ -65,7 +65,7 @@ To list every offset in effect at a local time instead, use
 
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
-| `ToDateTimeOffset(TzDataTimezone timezone, TzDataLocalTimeResolution resolution)` | `DateTime` | `DateTimeOffset` | `DateTime` must be of kind `Unspecified`, and is a time on the local clock of `timezone`. Throws `ArgumentException` for any other kind, and when `resolution` is `Strict` and the time falls in a gap or an overlap. |
+| `ToDateTimeOffset(TzDataTimezone timezone, TzDataLocalTimeResolution resolution)` | `DateTime` | `DateTimeOffset` | `DateTime` must be of kind `Unspecified`, and is a time on the local clock of `timezone`. Throws `ArgumentException` for any other kind, and when `resolution` is `Strict` and the time falls in a gap or an overlap. Throws `ArgumentOutOfRangeException` when `resolution` is not defined, when the offset in effect can't be held by a `DateTimeOffset`, and when the instant the time is placed at, or the result, falls outside the range of `DateTime`. |
 | `ToDosDateTime()` | `DateTime` | `DosDateTime` | `DateTime` assumed to be local time. |
 | `ToUnixTime()` | `DateTime` | `UnixTime` | `DateTime` assumed to be UTC. |
 

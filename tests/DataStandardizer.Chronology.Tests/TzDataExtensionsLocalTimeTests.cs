@@ -37,6 +37,17 @@ public class TzDataExtensionsLocalTimeTests
     // America/New_York: beyond the last year of explicit data, from the rules that apply indefinitely.
     private static readonly DateTime NewYorkFarFutureSummer = new(2149, 7, 15, 12, 0, 0);
 
+    // Europe/Warsaw kept local mean time, +01:24, until 1880, a whole number of minutes that a DateTimeOffset can hold.
+    private static readonly TimeSpan WarsawLocalMeanTime = new(1, 24, 0);
+
+    // Abbreviations of the made-up zones whose overlaps straddle an end of the range of DateTime.
+    private const string BeforeOverlapAbbreviation = "AAA";
+    private const string AfterOverlapAbbreviation = "BBB";
+
+    // When the made-up zones put their clocks back, in universal time.
+    private static readonly TimeSpan StartOfRangeChangeTime = new(0, 30, 0);
+    private static readonly TimeSpan EndOfRangeChangeTime = new(23, 30, 0);
+
     private static readonly (TzDataTimezone Timezone, DateTime Local, TimeSpan Offset, string Abbreviation)[] SingleOffsetCases =
     [
         (TzDataTimezone.America.New_York, MidJanuary2026, UtcMinus0500, Est),
@@ -477,9 +488,6 @@ public class TzDataExtensionsLocalTimeTests
         testResult.Should().BeEmpty();
     }
 
-    // Europe/Warsaw kept local mean time, +01:24, until 1880, a whole number of minutes that a DateTimeOffset can hold.
-    private static readonly TimeSpan WarsawLocalMeanTime = new(1, 24, 0);
-
     public static TheoryData<TzDataTimezone, DateTime, TzDataLocalTimeResolution> InstantOutOfRange_TestCases => new()
     {
         // Asia/Tokyo is ahead of universal time, so the instant falls before the first day of year 1.
@@ -523,6 +531,70 @@ public class TzDataExtensionsLocalTimeTests
         // assert
         testResult.UtcDateTime.Should().Be(expectedUtc);
         testResult.Offset.Should().Be(expectedOffset);
+    }
+
+    // A made-up zone an hour ahead of universal time until 00:30 on the first day of year 1, then on universal time, so
+    // that its clock shows 00:30 to 01:30 twice. Before 01:00, the earlier instant falls before the start of year 1.
+    private static TzDataZoneCalculator CreateOverlapAtStartOfRangeCalculator() => new(
+    [
+        new TzDataZoneLine(UtcPlus0100, TzDataZoneRuleKind.None, null, null, BeforeOverlapAbbreviation,
+            new TzDataUntil(1, 1, TzDataDayKind.DayOfMonth, 1, null, StartOfRangeChangeTime, TzDataTimeReference.Universal)),
+        new TzDataZoneLine(UtcZero, TzDataZoneRuleKind.None, null, null, AfterOverlapAbbreviation, null),
+    ]);
+
+    // A made-up zone on universal time until 23:30 on the last day of year 9999, then an hour behind it, so that its
+    // clock shows 22:30 to 23:30 twice. From 23:00, the later instant falls after the end of year 9999.
+    private static TzDataZoneCalculator CreateOverlapAtEndOfRangeCalculator() => new(
+    [
+        new TzDataZoneLine(UtcZero, TzDataZoneRuleKind.None, null, null, BeforeOverlapAbbreviation,
+            new TzDataUntil(9999, 12, TzDataDayKind.DayOfMonth, 31, null, EndOfRangeChangeTime, TzDataTimeReference.Universal)),
+        new TzDataZoneLine(UtcMinus0100, TzDataZoneRuleKind.None, null, null, AfterOverlapAbbreviation, null),
+    ]);
+
+    [Theory]
+    [InlineData(TzDataLocalTimeResolution.Strict)]
+    [InlineData(TzDataLocalTimeResolution.Rfc5545)]
+    public void ToDateTimeOffset_OverlapWithEarlierInstantBeforeRange_ThrowsArgumentOutOfRangeException(TzDataLocalTimeResolution testResolution)
+    {
+        // arrange
+        var testCalculator = CreateOverlapAtStartOfRangeCalculator();
+        var testLocal = new DateTime(1, 1, 1, 0, 45, 0);
+
+        // act
+        Action testAction = () => DateTimeExtensions.ToDateTimeOffset(testLocal, testCalculator, testResolution);
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
+    }
+
+    [Fact]
+    public void ToDateTimeOffset_OverlapWithLaterInstantAfterRangeWithStrict_ThrowsArgumentOutOfRangeException()
+    {
+        // arrange
+        var testCalculator = CreateOverlapAtEndOfRangeCalculator();
+        var testLocal = new DateTime(9999, 12, 31, 23, 15, 0);
+
+        // act
+        Action testAction = () => DateTimeExtensions.ToDateTimeOffset(testLocal, testCalculator, TzDataLocalTimeResolution.Strict);
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
+    }
+
+    [Fact]
+    public void ToDateTimeOffset_OverlapWithLaterInstantAfterRangeWithRfc5545_TakesEarlierInstant()
+    {
+        // arrange
+        var testCalculator = CreateOverlapAtEndOfRangeCalculator();
+        var testLocal = new DateTime(9999, 12, 31, 23, 15, 0);
+        var expectedResult = new DateTimeOffset(9999, 12, 31, 23, 15, 0, UtcZero);
+
+        // act
+        var testResult = DateTimeExtensions.ToDateTimeOffset(testLocal, testCalculator, TzDataLocalTimeResolution.Rfc5545);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+        testResult.Offset.Should().Be(UtcZero);
     }
 
     [Fact]

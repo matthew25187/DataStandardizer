@@ -80,23 +80,29 @@ namespace DataStandardizer.Chronology
         /// </exception>
         public static DateTimeOffset ToDateTimeOffset(this DateTime local, TzDataTimezone timezone, TzDataLocalTimeResolution resolution)
         {
-            var calculator = timezone.GetCalculator();
+            return ToDateTimeOffset(local, timezone.GetCalculator(), resolution);
+        }
+
+        internal static DateTimeOffset ToDateTimeOffset(DateTime local, TzDataZoneCalculator calculator, TzDataLocalTimeResolution resolution)
+        {
             var localTicks = TzDataExtensions.ToLocalTicks(local, nameof(local));
 
             if (resolution != TzDataLocalTimeResolution.Strict && resolution != TzDataLocalTimeResolution.Rfc5545)
                 throw new ArgumentOutOfRangeException(nameof(resolution), resolution, "The resolution is not a defined value.");
 
-            var offsetInfos = calculator.GetOffsetInfosForLocal(localTicks, out var offsetBeforeGap, out var isOutOfRange);
+            var offsetInfos = calculator.GetOffsetInfosForLocal(localTicks, out var offsetBeforeGap, out var isBeforeRange, out var isAfterRange);
+
+            // An offset in effect at the time whose instant falls outside the range of DateTime is not a gap. Where it is one
+            // of two in an overlap, Strict needs both instants to reject the time, and Rfc5545 needs the earlier, which an
+            // instant before the range is.
+            if (isBeforeRange || (isAfterRange && (offsetInfos.Count == 0 || resolution == TzDataLocalTimeResolution.Strict)))
+                throw CreateInstantOutOfRangeException(nameof(local));
 
             if (offsetInfos.Count == 1 || (offsetInfos.Count > 1 && resolution == TzDataLocalTimeResolution.Rfc5545))
             {
                 var utcOffset = offsetInfos[0].UtcOffset;
                 return TzDataExtensions.ToDateTimeOffset(new DateTime(localTicks - utcOffset.Ticks, DateTimeKind.Utc), utcOffset, nameof(local));
             }
-
-            // An offset in effect at the time that gives an instant outside the range of DateTime is not a gap.
-            if (offsetInfos.Count == 0 && isOutOfRange)
-                throw new ArgumentOutOfRangeException(nameof(local), "The instant falls outside the range of DateTime.");
 
             if (offsetInfos.Count > 1)
                 throw new ArgumentException("The time falls in an overlap, where the local clock of the timezone shows it more than once.", nameof(local));
@@ -106,10 +112,15 @@ namespace DataStandardizer.Chronology
 
             var gapTicks = localTicks - offsetBeforeGap.Value.UtcOffset.Ticks;
             if (gapTicks < DateTime.MinValue.Ticks || gapTicks > DateTime.MaxValue.Ticks)
-                throw new ArgumentOutOfRangeException(nameof(local), "The instant falls outside the range of DateTime.");
+                throw CreateInstantOutOfRangeException(nameof(local));
 
             var utc = new DateTime(gapTicks, DateTimeKind.Utc);
             return TzDataExtensions.ToDateTimeOffset(utc, calculator.GetOffsetInfo(utc).UtcOffset, nameof(local));
+        }
+
+        private static ArgumentOutOfRangeException CreateInstantOutOfRangeException(string parameterName)
+        {
+            return new ArgumentOutOfRangeException(parameterName, "The instant falls outside the range of DateTime.");
         }
     }
 }
