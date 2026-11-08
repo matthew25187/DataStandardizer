@@ -906,19 +906,23 @@ namespace DataStandardizer.Language
         
         public int CompareTo(object? obj)
         {
+            if ((this._value == null))
+            {
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
+            }
             if ((obj == null))
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
-            if ((obj.GetType() != this.GetType()))
+            if (!(obj is DataStandardizer.Language.Iso639Part5LanguageFamily other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
             }
-            if ((this._value == null))
+            if ((other._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
             }
-            return this._value.CompareTo(obj);
+            return string.CompareOrdinal(this._value, other._value);
         }
         
         public override bool Equals(object? obj)
@@ -957,19 +961,23 @@ namespace DataStandardizer.Language
         
         public int CompareTo(object obj)
         {
+            if ((this._value == null))
+            {
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
+            }
             if ((obj == null))
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
-            if ((obj.GetType() != this.GetType()))
+            if (!(obj is DataStandardizer.Language.Iso639Part5LanguageFamily other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
             }
-            if ((this._value == null))
+            if ((other._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
             }
-            return ((System.IComparable)(this._value)).CompareTo(obj);
+            return string.CompareOrdinal(this._value, other._value);
         }
         
         public override bool Equals(object obj)

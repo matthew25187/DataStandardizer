@@ -198,11 +198,18 @@ function Get-CompareToMethodDefinition {
     [OutputType([System.CodeDom.CodeMemberMethod])]
     param (
         [Parameter()]
+        [string]    $TypeNamespace,
+
+        [Parameter(Mandatory)]
+        [string]    $TypeName,
+
+        [Parameter()]
         [switch]    $UseNullableReferenceTypes
     )
-    
+
     # Declare method.
     $methodName = 'CompareTo'
+    $typeReference = Get-TypeFullName $TypeNamespace $TypeName
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
@@ -211,21 +218,20 @@ function Get-CompareToMethodDefinition {
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([int])
 
     $methodParameterName = 'obj'
+    $otherVariableName = 'other'
     $methodParameterType = $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? [System.CodeDom.CodeTypeReference]::new('object?'):[System.CodeDom.CodeTypeReference]::new([System.Object])
     [void]$method.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new($methodParameterType, $methodParameterName))
 
     # Define method statements.
+    # Every instance compares greater than null, as the IComparable.CompareTo contract requires.
     $argumentCheckStatement = [System.CodeDom.CodeConditionStatement]::new(
         [System.CodeDom.CodeBinaryOperatorExpression]::new(
             [System.CodeDom.CodeArgumentReferenceExpression]::new($methodParameterName),
             [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
             [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.ArgumentNullException]), @([System.CodeDom.CodeSnippetExpression]::new("nameof($methodParameterName)"))))))
+        @([System.CodeDom.CodeMethodReturnStatement]::new([System.CodeDom.CodePrimitiveExpression]::new(1))))
     $typeCheckStatement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeArgumentReferenceExpression]::new($methodParameterName), 'GetType', @()),
-            [System.CodeDom.CodeBinaryOperatorType]::IdentityInequality,
-            [System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'GetType', @())),
+        [System.CodeDom.CodeSnippetExpression]::new("!($methodParameterName is $typeReference $otherVariableName)"),
         @([System.CodeDom.CodeThrowExceptionStatement]::new(
                 [System.CodeDom.CodeObjectCreateExpression]::new(
                     [System.CodeDom.CodeTypeReference]::new([System.ArgumentException]),
@@ -235,14 +241,22 @@ function Get-CompareToMethodDefinition {
             [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'),
             [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
             [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.NullReferenceException]), @()))))
-    if ($UseNullableReferenceTypes) {
-        $returnStatement = [System.CodeDom.CodeMethodReturnStatement]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'), $methodName, @([System.CodeDom.CodeArgumentReferenceExpression]::new($methodParameterName))))
-    }
-    else {
-        $returnStatement = [System.CodeDom.CodeMethodReturnStatement]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeCastExpression]::new([System.IComparable], [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value')), 'CompareTo', @([System.CodeDom.CodeArgumentReferenceExpression]::new($methodParameterName))))
-    }
-    [System.CodeDom.CodeStatement[]]$methodStatements = @($argumentCheckStatement, $typeCheckStatement, $nullCheckStatement, $returnStatement)
+        @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.InvalidOperationException]), @([System.CodeDom.CodePrimitiveExpression]::new('The enumeration type is unknown.'))))))
+    $otherNullCheckStatement = [System.CodeDom.CodeConditionStatement]::new(
+        [System.CodeDom.CodeBinaryOperatorExpression]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeVariableReferenceExpression]::new($otherVariableName), '_value'),
+            [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
+            [System.CodeDom.CodePrimitiveExpression]::new($null)),
+        @([System.CodeDom.CodeThrowExceptionStatement]::new(
+                [System.CodeDom.CodeObjectCreateExpression]::new(
+                    [System.CodeDom.CodeTypeReference]::new([System.ArgumentException]),
+                    @([System.CodeDom.CodeSnippetExpression]::new("$""{nameof($methodParameterName)} is an uninitialized instance."""), [System.CodeDom.CodeSnippetExpression]::new("nameof($methodParameterName)"))))))
+    $returnStatement = [System.CodeDom.CodeMethodReturnStatement]::new(
+        [System.CodeDom.CodeMethodInvokeExpression]::new(
+            [System.CodeDom.CodeTypeReferenceExpression]::new([string]),
+            'CompareOrdinal',
+            @([System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'), [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeVariableReferenceExpression]::new($otherVariableName), '_value'))))
+    [System.CodeDom.CodeStatement[]]$methodStatements = @($nullCheckStatement, $argumentCheckStatement, $typeCheckStatement, $otherNullCheckStatement, $returnStatement)
     $method.Statements.AddRange($methodStatements)
 
     return $method

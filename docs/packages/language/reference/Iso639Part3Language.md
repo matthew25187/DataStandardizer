@@ -45,7 +45,7 @@ There are roughly 7,900 codes, listed by initial letter:
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CompareTo(object obj)` | `int` | Throws `ArgumentNullException`/`ArgumentException` for a null or mismatched argument. |
+| `CompareTo(object obj)` | `int` | Compares the codes in ordinal order, which for these lower-case codes is alphabetical order. Returns `1` if `obj` is `null`. Throws `ArgumentException` if `obj` is not an `Iso639Part3Language` or is `default`, and `InvalidOperationException` if this instance is `default`, whatever `obj` is. |
 | `Equals(Iso639Part3Language other)` | `bool` | |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
