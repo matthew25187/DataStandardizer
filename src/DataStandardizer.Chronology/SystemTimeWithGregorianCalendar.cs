@@ -10,7 +10,7 @@ namespace DataStandardizer.Chronology
     /// utilizing the Gregorian calendar for date calculations. It encapsulates both date and time details, including year, month, day,
     /// hour, minute, and second, while also supporting the Julian Day Number representation.
     /// </remarks>
-    public readonly struct SystemTimeWithGregorianCalendar : ISystemTimeWithDateTime, IEquatable<SystemTimeWithGregorianCalendar>
+    public readonly struct SystemTimeWithGregorianCalendar : ISystemTimeWithDateTime, IEquatable<SystemTimeWithGregorianCalendar>, ISystemTimeKind
     {
         // Null only in a default instance, which no constructor can produce.
 #if NETCOREAPP3_0_OR_GREATER
@@ -34,6 +34,9 @@ namespace DataStandardizer.Chronology
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public decimal JulianDayNumber => GetSystemTime().JulianDayNumber;
+
+        // A default instance wraps no system time, and has no kind of its own.
+        DateTimeKind ISystemTimeKind.DateTimeKind => (_systemTime as ISystemTimeKind)?.DateTimeKind ?? DateTimeKind.Unspecified;
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>

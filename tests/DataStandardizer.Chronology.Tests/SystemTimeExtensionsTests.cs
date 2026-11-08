@@ -4,6 +4,17 @@ namespace DataStandardizer.Chronology.Tests;
 
 public class SystemTimeExtensionsTests
 {
+    // Unix time 0 is the Unix epoch, 1970-01-01T00:00:00Z.
+    private const long UnixEpoch = 0L;
+    private const long OneSecondBeforeEpoch = -1L;
+    private const long UnixTime20231114T221320Z = 1700000000L;
+
+    // About 3.2 million years from the epoch, too far for the day number arithmetic.
+    private const long FarFromEpoch = 100000000000000L;
+
+    // DOS date 0x0021 is 1980-01-01; DOS time 0x0001 is two seconds past midnight, as a DOS time counts seconds in units of two.
+    private const uint DosDateTime19800101T000002 = 0x00210001U;
+
     [Theory]
     [InlineData(2451545.125, 2000, 1, 1, 15, 0, 0),
      InlineData(2451544.625, 2000,1,1,3, 0, 0)]
@@ -79,13 +90,13 @@ public class SystemTimeExtensionsTests
     // Each Julian Day Number of these values is inexact, and falls a tiny fraction below the whole second it stands for.
     [Theory]
     [InlineData(-199998L, 1969, 12, 29, 16, 26, 42),
-     InlineData(-1L, 1969, 12, 31, 23, 59, 59),
-     InlineData(0L, 1970, 1, 1, 0, 0, 0),
+     InlineData(OneSecondBeforeEpoch, 1969, 12, 31, 23, 59, 59),
+     InlineData(UnixEpoch, 1970, 1, 1, 0, 0, 0),
      InlineData(2L, 1970, 1, 1, 0, 0, 2),
      InlineData(86399L, 1970, 1, 1, 23, 59, 59),
      InlineData(123456789L, 1973, 11, 29, 21, 33, 9),
      InlineData(946684802L, 2000, 1, 1, 0, 0, 2),
-     InlineData(1700000000L, 2023, 11, 14, 22, 13, 20),
+     InlineData(UnixTime20231114T221320Z, 2023, 11, 14, 22, 13, 20),
      InlineData(4102444799L, 2099, 12, 31, 23, 59, 59)]
     public void ToDateTime_OnUnixTimeValue_ReturnsDateTimeEquivalent(long testUnixTime, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
@@ -102,13 +113,13 @@ public class SystemTimeExtensionsTests
 
     [Theory]
     [InlineData(-199998L),
-     InlineData(-1L),
-     InlineData(0L),
+     InlineData(OneSecondBeforeEpoch),
+     InlineData(UnixEpoch),
      InlineData(2L),
      InlineData(86399L),
      InlineData(123456789L),
      InlineData(946684802L),
-     InlineData(1700000000L),
+     InlineData(UnixTime20231114T221320Z),
      InlineData(4102444799L)]
     public void ToDateTime_OnUnixTimeValue_RoundTripsThroughToUnixTime(long testUnixTime)
     {
@@ -123,9 +134,9 @@ public class SystemTimeExtensionsTests
     }
 
     [Theory]
-    [InlineData(-1L),
-     InlineData(0L),
-     InlineData(1700000000L)]
+    [InlineData(OneSecondBeforeEpoch),
+     InlineData(UnixEpoch),
+     InlineData(UnixTime20231114T221320Z)]
     public void ToDateTime_OnUnixTimeValue_ReturnsUtcKind(long testUnixTime)
     {
         // arrange
@@ -139,25 +150,7 @@ public class SystemTimeExtensionsTests
     }
 
     [Theory]
-    [InlineData(-1L, 1969, 12, 31, 23, 59, 59),
-     InlineData(0L, 1970, 1, 1, 0, 0, 0),
-     InlineData(1700000000L, 2023, 11, 14, 22, 13, 20)]
-    public void ToDateTime_OnUnixTimeValue_ToUniversalTimeKeepsInstant(long testUnixTime, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
-    {
-        // arrange
-        var expectedResult = new DateTime(expectedYear, expectedMonth, expectedDay, expectedHour, expectedMinute, expectedSecond, DateTimeKind.Utc);
-        var testValue = new UnixTime(testUnixTime);
-
-        // act
-        var testResult = testValue.ToDateTime().ToUniversalTime();
-
-        // assert
-        testResult.Should().Be(expectedResult);
-        testResult.Kind.Should().Be(DateTimeKind.Utc);
-    }
-
-    [Theory]
-    [InlineData(0x00210001U)]
+    [InlineData(DosDateTime19800101T000002)]
     public void ToDateTime_OnDosDateTimeValue_ReturnsUnspecifiedKind(uint testDosDateTime)
     {
         // arrange
@@ -171,8 +164,8 @@ public class SystemTimeExtensionsTests
     }
 
     [Theory]
-    [InlineData(0L)]
-    public void ToDateTime_OnSystemTimeWithGregorianCalendarValue_ReturnsUnspecifiedKind(long testUnixTime)
+    [InlineData(UnixEpoch)]
+    public void ToDateTime_OnSystemTimeWithGregorianCalendarWrappingUnixTime_ReturnsUtcKind(long testUnixTime)
     {
         // arrange
         var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
@@ -181,13 +174,26 @@ public class SystemTimeExtensionsTests
         var testResult = testValue.ToDateTime();
 
         // assert
+        testResult.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Theory]
+    [InlineData(DosDateTime19800101T000002)]
+    public void ToDateTime_OnSystemTimeWithGregorianCalendarWrappingDosDateTime_ReturnsUnspecifiedKind(uint testDosDateTime)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new DosDateTime(testDosDateTime));
+
+        // act
+        var testResult = testValue.ToDateTime();
+
+        // assert
         testResult.Kind.Should().Be(DateTimeKind.Unspecified);
     }
 
-    // About 3.2 million years from the epoch, too far for the day number arithmetic.
     [Theory]
-    [InlineData(100000000000000L),
-     InlineData(-100000000000000L)]
+    [InlineData(FarFromEpoch),
+     InlineData(-FarFromEpoch)]
     public void ToDateTime_OnUnixTimeFarFromEpoch_ThrowsOverflowException(long testUnixTime)
     {
         // arrange
@@ -200,9 +206,8 @@ public class SystemTimeExtensionsTests
         testAction.Should().Throw<OverflowException>();
     }
 
-    // DOS time 0x0001 is two seconds past midnight; a DOS time counts seconds in units of two.
     [Theory]
-    [InlineData(0x00210001U, 1980, 1, 1, 0, 0, 2)]
+    [InlineData(DosDateTime19800101T000002, 1980, 1, 1, 0, 0, 2)]
     public void ToDateTime_OnDosDateTimeValue_ReturnsDateTimeEquivalent(uint testDosDateTime, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
         // arrange
@@ -219,7 +224,7 @@ public class SystemTimeExtensionsTests
     [Theory]
     [InlineData(-199998L, 16, 26, 42),
      InlineData(2L, 0, 0, 2),
-     InlineData(1700000000L, 22, 13, 20)]
+     InlineData(UnixTime20231114T221320Z, 22, 13, 20)]
     public void ToTimeOnly_OnUnixTimeValue_ReturnsTimeEquivalent(long testUnixTime, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
         // arrange

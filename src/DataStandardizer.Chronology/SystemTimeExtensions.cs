@@ -47,13 +47,22 @@ namespace DataStandardizer.Chronology
         /// </param>
         /// <returns>
         /// A <see cref="DateTime"/> instance representing the date and time derived from the Julian Day Number.
-        /// For a <see cref="UnixTime"/>, which counts seconds since the Unix epoch in UTC, its <see cref="DateTime.Kind"/>
-        /// is <see cref="DateTimeKind.Utc"/>. For any other system time, including a <see cref="SystemTimeWithGregorianCalendar"/>,
-        /// whose time zone isn't known, it is <see cref="DateTimeKind.Unspecified"/>.
+        /// For a <see cref="UnixTime"/>, which counts seconds since the Unix epoch in UTC, or a
+        /// <see cref="SystemTimeWithGregorianCalendar"/> that wraps one, its <see cref="DateTime.Kind"/> is
+        /// <see cref="DateTimeKind.Utc"/>. For any other system time, whose time zone isn't known, it is
+        /// <see cref="DateTimeKind.Unspecified"/>.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// This method calculates the date and time components based on the Julian Day Number provided by the
         /// <paramref name="systemTime"/> and constructs a corresponding <see cref="DateTime"/> object.
+        /// </para>
+        /// <para>
+        /// A result of kind <see cref="DateTimeKind.Utc"/> is an instant, not a time on a local clock, so
+        /// <see cref="DateTimeExtensions.ToDateTimeOffset(DateTime, TzDataTimezone, TzDataLocalTimeResolution)"/> rejects it.
+        /// To find the offset of a timezone at that instant, pass it to a method such as
+        /// <see cref="TzDataExtensions.GetUtcOffset(TzDataTimezone, DateTime)"/>.
+        /// </para>
         /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
@@ -62,7 +71,7 @@ namespace DataStandardizer.Chronology
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
             var (year, month, day, hour, minute, second) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDateTime(systemTime.JulianDayNumber);
-            var kind = typeof(T) == typeof(UnixTime) ? DateTimeKind.Utc : DateTimeKind.Unspecified;
+            var kind = systemTime is ISystemTimeKind systemTimeKind ? systemTimeKind.DateTimeKind : DateTimeKind.Unspecified;
             return new DateTime(year, month, day, hour, minute, second, kind);
         }
 
