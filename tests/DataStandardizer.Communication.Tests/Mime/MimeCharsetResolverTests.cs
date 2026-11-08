@@ -288,6 +288,100 @@ namespace DataStandardizer.Communication.Tests.Mime
             chars.Should().Equal('B');
         }
 
+        private const char LetterA = 'A';
+        private const char LetterB = 'B';
+
+        // ref. RFC 2781 §3.2 and §4.3, and The Unicode Standard §3.10, D99 and D101: "A" after a little-endian byte order mark, "B"
+        // little-endian, and "A" after a big-endian byte order mark, in UTF-16 and UTF-32.
+        private static readonly byte[] Utf16LittleEndianB = { 0x42, 0x00 };
+        private static readonly byte[] Utf16BigEndianMarkedA = { 0xFE, 0xFF, 0x00, 0x41 };
+        private static readonly byte[] Utf32LittleEndianMarkedA = { 0xFF, 0xFE, 0x00, 0x00, 0x41, 0x00, 0x00, 0x00 };
+        private static readonly byte[] Utf32LittleEndianB = { 0x42, 0x00, 0x00, 0x00 };
+        private static readonly byte[] Utf32BigEndianMarkedA = { 0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x41 };
+
+        // Each unmarked scheme, with "A" after a little-endian byte order mark, "B" little-endian, and "A" after a big-endian byte order
+        // mark.
+        public static TheoryData<string, byte[], byte[], byte[]> ByteOrderMessages => new TheoryData<string, byte[], byte[], byte[]>
+        {
+            { Utf16Name, Utf16LittleEndianMarkedA, Utf16LittleEndianB, Utf16BigEndianMarkedA },
+            { Utf32Name, Utf32LittleEndianMarkedA, Utf32LittleEndianB, Utf32BigEndianMarkedA },
+        };
+
+        [Theory]
+        [MemberData(nameof(ByteOrderMessages))]
+        public void GetDecoder_UnmarkedSchemeMessageAfterFlush_DetectsByteOrderMarkAgain(string name, byte[] littleEndianMarkedA,
+            byte[] littleEndianB, byte[] bigEndianMarkedA)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+            var firstChars = new char[UnmarkedCharacterCount];
+            var secondChars = new char[UnmarkedCharacterCount];
+            var thirdChars = new char[UnmarkedCharacterCount];
+
+            // act
+            var firstCount = decoder.GetChars(littleEndianMarkedA, 0, littleEndianMarkedA.Length, firstChars, 0, false);
+            var secondCount = decoder.GetChars(littleEndianB, 0, littleEndianB.Length, secondChars, 0, true);
+            var thirdCount = decoder.GetChars(bigEndianMarkedA, 0, bigEndianMarkedA.Length, thirdChars, 0, true);
+
+            // assert
+            firstCount.Should().Be(UnmarkedCharacterCount);
+            firstChars.Should().Equal(LetterA);
+            secondCount.Should().Be(UnmarkedCharacterCount);
+            secondChars.Should().Equal(LetterB);
+            thirdCount.Should().Be(UnmarkedCharacterCount);
+            thirdChars.Should().Equal(LetterA);
+        }
+
+        [Theory]
+        [MemberData(nameof(ByteOrderMessages))]
+        public void GetDecoder_UnmarkedSchemeCountOfMessageAfterFlush_DetectsByteOrderMarkAgain(string name, byte[] littleEndianMarkedA,
+            byte[] littleEndianB, byte[] bigEndianMarkedA)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+            var firstChars = new char[UnmarkedCharacterCount];
+            var secondChars = new char[UnmarkedCharacterCount];
+
+            // act
+            var firstCount = decoder.GetChars(littleEndianMarkedA, 0, littleEndianMarkedA.Length, firstChars, 0, false);
+            var secondCount = decoder.GetChars(littleEndianB, 0, littleEndianB.Length, secondChars, 0, true);
+            var thirdCount = decoder.GetCharCount(bigEndianMarkedA, 0, bigEndianMarkedA.Length, true);
+
+            // assert
+            firstCount.Should().Be(UnmarkedCharacterCount);
+            secondCount.Should().Be(UnmarkedCharacterCount);
+            thirdCount.Should().Be(UnmarkedCharacterCount);
+        }
+
+        // Each unmarked scheme, with "A" after a little-endian byte order mark, and "B" little-endian.
+        public static TheoryData<string, byte[], byte[]> LittleEndianMessages => new TheoryData<string, byte[], byte[]>
+        {
+            { Utf16Name, Utf16LittleEndianMarkedA, Utf16LittleEndianB },
+            { Utf32Name, Utf32LittleEndianMarkedA, Utf32LittleEndianB },
+        };
+
+        [Theory]
+        [MemberData(nameof(LittleEndianMessages))]
+        public void GetDecoder_UnmarkedSchemeFlushedCountAfterByteOrderChosen_CountsInThatOrderAndKeepsIt(string name,
+            byte[] littleEndianMarkedA, byte[] littleEndianB)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+            var firstChars = new char[UnmarkedCharacterCount];
+            var thirdChars = new char[UnmarkedCharacterCount];
+
+            // act
+            var firstCount = decoder.GetChars(littleEndianMarkedA, 0, littleEndianMarkedA.Length, firstChars, 0, false);
+            var secondCount = decoder.GetCharCount(littleEndianB, 0, littleEndianB.Length, true);
+            var thirdCount = decoder.GetChars(littleEndianB, 0, littleEndianB.Length, thirdChars, 0, true);
+
+            // assert
+            firstCount.Should().Be(UnmarkedCharacterCount);
+            secondCount.Should().Be(UnmarkedCharacterCount);
+            thirdCount.Should().Be(UnmarkedCharacterCount);
+            thirdChars.Should().Equal(LetterB);
+        }
+
         [Theory]
         [MemberData(nameof(Latin1Octets))]
         public void GetString_Latin1Octet_ReturnsCharacterWithSameCodePoint(byte octet, char character)
