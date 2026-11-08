@@ -218,7 +218,7 @@ public class TzDataExtensionsLocalTimeTests
         Action testAction = () => testLocal.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
 
         // assert
-        testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be(LocalParameterName);
+        testAction.Should().ThrowExactly<ArgumentException>().Which.ParamName.Should().Be(LocalParameterName);
     }
 
     [Theory]
@@ -475,6 +475,54 @@ public class TzDataExtensionsLocalTimeTests
 
         // assert
         testResult.Should().BeEmpty();
+    }
+
+    // Europe/Warsaw kept local mean time, +01:24, until 1880, a whole number of minutes that a DateTimeOffset can hold.
+    private static readonly TimeSpan WarsawLocalMeanTime = new(1, 24, 0);
+
+    public static TheoryData<TzDataTimezone, DateTime, TzDataLocalTimeResolution> InstantOutOfRange_TestCases => new()
+    {
+        // Asia/Tokyo is ahead of universal time, so the instant falls before the first day of year 1.
+        { TzDataTimezone.Asia.Tokyo, new DateTime(1, 1, 1, 0, 30, 0), TzDataLocalTimeResolution.Strict },
+        { TzDataTimezone.Asia.Tokyo, new DateTime(1, 1, 1, 0, 30, 0), TzDataLocalTimeResolution.Rfc5545 },
+        // One minute before the instant at the start of year 1, in universal time.
+        { TzDataTimezone.Europe.Warsaw, new DateTime(1, 1, 1, 1, 23, 0), TzDataLocalTimeResolution.Strict },
+        // America/New_York is behind universal time, so the instant falls after the last day of year 9999.
+        { TzDataTimezone.America.New_York, new DateTime(9999, 12, 31, 23, 30, 0), TzDataLocalTimeResolution.Strict },
+        { TzDataTimezone.America.New_York, new DateTime(9999, 12, 31, 23, 30, 0), TzDataLocalTimeResolution.Rfc5545 },
+        // The instant at the start of year 10000, in universal time.
+        { TzDataTimezone.America.New_York, new DateTime(9999, 12, 31, 19, 0, 0), TzDataLocalTimeResolution.Strict },
+    };
+
+    public static TheoryData<TzDataTimezone, DateTime, DateTime, TimeSpan> InstantAtRangeLimit_TestCases => new()
+    {
+        // The instant at the start of year 1, in universal time.
+        { TzDataTimezone.Europe.Warsaw, new DateTime(1, 1, 1, 1, 24, 0), new DateTime(1, 1, 1, 0, 0, 0, DateTimeKind.Utc), WarsawLocalMeanTime },
+        // The instant one minute before the start of year 10000, in universal time.
+        { TzDataTimezone.America.New_York, new DateTime(9999, 12, 31, 18, 59, 0), new DateTime(9999, 12, 31, 23, 59, 0, DateTimeKind.Utc), UtcMinus0500 },
+    };
+
+    [Theory]
+    [MemberData(nameof(InstantOutOfRange_TestCases))]
+    public void ToDateTimeOffset_InstantOutsideRangeOfDateTime_ThrowsArgumentOutOfRangeException(TzDataTimezone testTimezone, DateTime testLocal, TzDataLocalTimeResolution testResolution)
+    {
+        // act
+        Action testAction = () => testLocal.ToDateTimeOffset(testTimezone, testResolution);
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
+    }
+
+    [Theory]
+    [MemberData(nameof(InstantAtRangeLimit_TestCases))]
+    public void ToDateTimeOffset_InstantInsideRangeOfDateTime_ReturnsOffsetInEffect(TzDataTimezone testTimezone, DateTime testLocal, DateTime expectedUtc, TimeSpan expectedOffset)
+    {
+        // act
+        var testResult = testLocal.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
+
+        // assert
+        testResult.UtcDateTime.Should().Be(expectedUtc);
+        testResult.Offset.Should().Be(expectedOffset);
     }
 
     [Fact]

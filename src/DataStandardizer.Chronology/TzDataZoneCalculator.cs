@@ -238,6 +238,10 @@ namespace DataStandardizer.Chronology
         /// Where the time falls in a gap, so that no offset is in effect at it, the offset in effect immediately before the gap;
         /// otherwise, <see langword="null"/>.
         /// </param>
+        /// <param name="isOutOfRange">
+        /// <see langword="true"/> where an offset in effect near the time gives it at an instant outside the range of
+        /// <see cref="DateTime"/>, so that the offset is left out of the result; otherwise, <see langword="false"/>.
+        /// </param>
         /// <returns>
         /// The offsets, in chronological order of the instants at which they give the time: none in a gap, one normally, and
         /// two in an overlap.
@@ -246,10 +250,11 @@ namespace DataStandardizer.Chronology
         /// Each offset in effect near the time gives a candidate instant, being the time less the offset. A candidate is kept
         /// where the offset is in effect at it, so that the offset gives the same time on the local clock back.
         /// </remarks>
-        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap)
+        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap, out bool isOutOfRange)
         {
             var result = new List<TzDataOffsetInfo>(2);
             offsetBeforeGap = null;
+            isOutOfRange = false;
 
             // An offset is less than a day, so only the changes in effect within a day either side of the time can give it.
             var fromTicks = localTicks - TimeSpan.TicksPerDay;
@@ -264,7 +269,7 @@ namespace DataStandardizer.Chronology
             {
                 if (current != null)
                 {
-                    AddOffsetInfoForLocal(result, localTicks, current, next);
+                    isOutOfRange |= !AddOffsetInfoForLocal(result, localTicks, current, next);
 
                     // The time falls in a gap where it comes after the change on the clock before it, and before it on the clock after it.
                     if (!offsetBeforeGap.HasValue &&
@@ -280,12 +285,13 @@ namespace DataStandardizer.Chronology
             }
 
             if (current != null)
-                AddOffsetInfoForLocal(result, localTicks, current, null);
+                isOutOfRange |= !AddOffsetInfoForLocal(result, localTicks, current, null);
 
             return result;
         }
 
-        private static void AddOffsetInfoForLocal(
+        // Returns false where the offset is in effect at the candidate instant, but the instant falls outside the range of DateTime.
+        private static bool AddOffsetInfoForLocal(
             List<TzDataOffsetInfo> offsetInfos,
             long localTicks,
             Change current,
@@ -296,11 +302,14 @@ namespace DataStandardizer.Chronology
 #endif
         {
             var candidateTicks = localTicks - current.State.UtcOffsetTicks;
-            if (candidateTicks < TicksMinimum || candidateTicks > TicksMaximum)
-                return;
+            if (candidateTicks < current.Instant || (next != null && candidateTicks >= next.Instant))
+                return true;
 
-            if (candidateTicks >= current.Instant && (next is null || candidateTicks < next.Instant))
-                offsetInfos.Add(CreateOffsetInfo(current, next));
+            if (candidateTicks < TicksMinimum || candidateTicks > TicksMaximum)
+                return false;
+
+            offsetInfos.Add(CreateOffsetInfo(current, next));
+            return true;
         }
 
         /// <summary>

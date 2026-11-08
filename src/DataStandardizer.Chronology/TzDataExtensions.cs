@@ -381,7 +381,7 @@ namespace DataStandardizer.Chronology
         public static IReadOnlyList<TzDataOffsetInfo> GetOffsetInfosForLocal(this TzDataTimezone timezone, DateTime local)
         {
             var calculator = timezone.GetCalculator();
-            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _);
+            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _, out _);
         }
 
         private static DateTime ToUniversalInstant(DateTime utc, string parameterName)

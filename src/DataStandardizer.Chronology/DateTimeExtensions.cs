@@ -75,8 +75,8 @@ namespace DataStandardizer.Chronology
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="resolution"/> is not a defined value; or the offset in effect is not a whole number of minutes of at most
-        /// 14 hours, as for some offsets of local mean time, and so cannot be held by a <see cref="DateTimeOffset"/>; or the result
-        /// falls outside the range of <see cref="DateTime"/>.
+        /// 14 hours, as for some offsets of local mean time, and so cannot be held by a <see cref="DateTimeOffset"/>; or the instant
+        /// at which the local clock shows <paramref name="local"/>, or the result, falls outside the range of <see cref="DateTime"/>.
         /// </exception>
         public static DateTimeOffset ToDateTimeOffset(this DateTime local, TzDataTimezone timezone, TzDataLocalTimeResolution resolution)
         {
@@ -86,13 +86,17 @@ namespace DataStandardizer.Chronology
             if (resolution != TzDataLocalTimeResolution.Strict && resolution != TzDataLocalTimeResolution.Rfc5545)
                 throw new ArgumentOutOfRangeException(nameof(resolution), resolution, "The resolution is not a defined value.");
 
-            var offsetInfos = calculator.GetOffsetInfosForLocal(localTicks, out var offsetBeforeGap);
+            var offsetInfos = calculator.GetOffsetInfosForLocal(localTicks, out var offsetBeforeGap, out var isOutOfRange);
 
             if (offsetInfos.Count == 1 || (offsetInfos.Count > 1 && resolution == TzDataLocalTimeResolution.Rfc5545))
             {
                 var utcOffset = offsetInfos[0].UtcOffset;
                 return TzDataExtensions.ToDateTimeOffset(new DateTime(localTicks - utcOffset.Ticks, DateTimeKind.Utc), utcOffset, nameof(local));
             }
+
+            // An offset in effect at the time that gives an instant outside the range of DateTime is not a gap.
+            if (offsetInfos.Count == 0 && isOutOfRange)
+                throw new ArgumentOutOfRangeException(nameof(local), "The instant falls outside the range of DateTime.");
 
             if (offsetInfos.Count > 1)
                 throw new ArgumentException("The time falls in an overlap, where the local clock of the timezone shows it more than once.", nameof(local));
