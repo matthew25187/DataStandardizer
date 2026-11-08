@@ -454,11 +454,7 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(countryCode));
             }
 
-            if (nationalSignificantNumber.DigitCount < 1 || nationalSignificantNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "National Significant Number", 1, MaximumDigitCount - countryCodeDigitCount);
-                throw new ArgumentOutOfRangeException(nameof(nationalSignificantNumber), nationalSignificantNumber, message);
-            }
+            ThrowIfDigitCountOutOfRange(nationalSignificantNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount, "National Significant Number", nationalSignificantNumber, nameof(nationalSignificantNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{nationalSignificantNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForGeographicAreas(number);
@@ -527,11 +523,8 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(countryCode));
             }
 
-            if (globalSubscriberNumber.DigitCount < 1 || globalSubscriberNumber.DigitCount > 12)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Global Subscriber Number", 1, 12);
-                throw new ArgumentOutOfRangeException(nameof(globalSubscriberNumber), globalSubscriberNumber, message);
-            }
+            var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
+            ThrowIfDigitCountOutOfRange(globalSubscriberNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount, "Global Subscriber Number", globalSubscriberNumber, nameof(globalSubscriberNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{globalSubscriberNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForGlobalServices(number);
@@ -613,11 +606,7 @@ namespace DataStandardizer.Communication.E164
 
             var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
             var identificationCodeDigitCount = $"{(ushort)identificationCode}".Length;
-            if (subscriberNumber.DigitCount < 1 || subscriberNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount);
-                throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
-            }
+            ThrowIfDigitCountOutOfRange(subscriberNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount, "Subscriber Number", subscriberNumber, nameof(subscriberNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{(ushort)identificationCode}{subscriberNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForNetworks(number);
@@ -696,11 +685,9 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(groupIdentificationCode));
             }
 
-            if (subscriberNumber.DigitCount < 1 || subscriberNumber.DigitCount > 11)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, 11);
-                throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
-            }
+            var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
+            var groupIdentificationCodeDigitCount = $"{(byte)groupIdentificationCode}".Length;
+            ThrowIfDigitCountOutOfRange(subscriberNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount - groupIdentificationCodeDigitCount, "Subscriber Number", subscriberNumber, nameof(subscriberNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{(byte)groupIdentificationCode}{subscriberNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForGroupsOfCountries(number);
@@ -754,7 +741,8 @@ namespace DataStandardizer.Communication.E164
         /// </param>
         /// <param name="subscriberNumber">
         /// An optional subscriber number, represented by <see cref="ItuE164SubscriberNumber"/>. 
-        /// The digit count must not exceed 11 if provided.
+        /// If provided, it must have from 1 digit to as many as the 15-digit limit leaves after the Country Code and
+        /// Trial Identification Code (11 for a three-digit Country Code and a one-digit Trial Identification Code).
         /// </param>
         /// <returns>
         /// A new instance of <see cref="ItuE164InternationalNumber"/> configured for trials.
@@ -779,15 +767,26 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(trialIdentificationCode));
             }
 
-            if (subscriberNumber.HasValue && (subscriberNumber.Value.DigitCount < 1 || subscriberNumber.Value.DigitCount > 11))
+            if (subscriberNumber.HasValue)
             {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, 11);
-                throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
+                var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
+                var trialIdentificationCodeDigitCount = $"{(byte)trialIdentificationCode}".Length;
+                ThrowIfDigitCountOutOfRange(subscriberNumber.Value.DigitCount, MaximumDigitCount - countryCodeDigitCount - trialIdentificationCodeDigitCount, "Subscriber Number", subscriberNumber, nameof(subscriberNumber));
             }
 
             var number = ulong.Parse($"{(ushort)countryCode}{(byte)trialIdentificationCode}{subscriberNumber?.ToString() ?? string.Empty}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForTrials(number);
             return new ItuE164InternationalNumber(numberStructure);
+        }
+
+        // Throws when a field of a number has no digits, or more than the digits the number leaves for it.
+        private static void ThrowIfDigitCountOutOfRange(int digitCount, int maximumDigitCount, string fieldName, object fieldValue, string parameterName)
+        {
+            if (digitCount < 1 || digitCount > maximumDigitCount)
+            {
+                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, fieldName, 1, maximumDigitCount);
+                throw new ArgumentOutOfRangeException(parameterName, fieldValue, message);
+            }
         }
 
         /// <summary>
