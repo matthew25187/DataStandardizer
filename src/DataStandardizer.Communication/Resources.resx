@@ -118,9 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="LongInternationalNumberPattern" xml:space="preserve">
-    <value>pc ssssssssssss</value>
+    <value>+ccc iiiissssssssssssss</value>
+    <comment>ITU-T E.123 international notation: the international prefix symbol +, the Country Code (up to 3 digits, ITU-T E.164), a space, then the identification code (up to 4 digits) and the subscriber number. A placeholder with no digit left writes nothing, so the pattern fits every Country Code length.</comment>
   </data>
   <data name="ShortInternationalNumberPattern" xml:space="preserve">
-    <value>pcssssssssssss</value>
+    <value>+ccciiiissssssssssssss</value>
+    <comment>As LongInternationalNumberPattern, with no space.</comment>
   </data>
 </root>

@@ -77,12 +77,15 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string GroupedLongInternationalPattern = "+cc sss sss ssss";
         private const string GreatBritainNumberInGroupedLongInternationalPattern = "+44 307 123 4567";
 
-        // GreatBritainNumber in the invariant telephony's long international pattern, "pc ssssssssssss", which writes 'p' as it stands
-        // and only the first digit of the country code (#768).
-        private const string GreatBritainNumberInInvariantLongInternationalPattern = "p4 3071234567";
+        // GreatBritainNumber in the invariant telephony's long international pattern: the international prefix symbol, the Country Code
+        // and, after a space, the national significant number (ITU-T E.123 international notation).
+        private const string GreatBritainNumberInInvariantLongInternationalPattern = "+44 3071234567";
 
-        // A culture whose region has a country code, used to show that the culture of the current thread doesn't change the result.
-        private const string GreatBritainCultureName = "en-GB";
+        // The short international format, "i".
+        private const string ShortInternationalFormat = "i";
+
+        // A number for a geographic area in the United States, whose Country Code, 1, has one digit (ITU-T E.164).
+        private const ulong UnitedStatesNumber = 12135550123L;
 
         // What a format provider's own formatter returns in the tests that show it takes precedence.
         private const string CustomFormatterResult = "custom";
@@ -108,6 +111,25 @@ namespace DataStandardizer.Communication.Tests.E164
             number => number.ToString(FullGeneralFormat, null),
             number => number.ToString(FullGeneralFormat, CultureInfo.InvariantCulture),
             number => number.ToString(FullGeneralFormat, TelephonyInfo.InvariantTelephony)
+        };
+
+        // Numbers whose Country Codes have one, two and three digits, and a network number with an identification code, each in the
+        // invariant telephony's long international pattern (ITU-T E.123 international notation).
+        public static TheoryData<ItuE164InternationalNumber, string> InvariantLongInternationalPattern_TestCases => new TheoryData<ItuE164InternationalNumber, string>
+        {
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(UnitedStatesNumber), "+1 2135550123" },
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber), GreatBritainNumberInInvariantLongInternationalPattern },
+            { ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber), "+800 4121234567" },
+            { ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber), "+883 1101234567" },
+        };
+
+        // The same numbers in the invariant telephony's short international pattern, which has no space.
+        public static TheoryData<ItuE164InternationalNumber, string> InvariantShortInternationalPattern_TestCases => new TheoryData<ItuE164InternationalNumber, string>
+        {
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(UnitedStatesNumber), "+12135550123" },
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber), "+443071234567" },
+            { ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber), "+8004121234567" },
+            { ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber), "+8831101234567" },
         };
 
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
@@ -514,33 +536,38 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Fact]
-        public void ToString_LongInternationalFormatAndInvariantCultureUnderGreatBritainCulture_ReturnsInvariantPattern()
+        public void ToString_LongInternationalFormatAndInvariantCulture_ReturnsInvariantPattern()
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
-            using (new CultureScope(GreatBritainCultureName))
-            {
-                // act
-                var testResult = testSubject.ToString(LongInternationalFormat, CultureInfo.InvariantCulture);
 
-                // assert
-                testResult.Should().Be(GreatBritainNumberInInvariantLongInternationalPattern);
-            }
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInInvariantLongInternationalPattern);
         }
 
-        [Fact]
-        public void ToString_LongInternationalFormatUnderGreatBritainCulture_ReturnsInvariantPattern()
+        [Theory]
+        [MemberData(nameof(InvariantLongInternationalPattern_TestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_LongInternationalFormatAndInvariantTelephony_ReturnsPrefixAndWholeCountryCode(ItuE164InternationalNumber testSubject, string expectedResult)
         {
-            // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
-            using (new CultureScope(GreatBritainCultureName))
-            {
-                // act
-                var testResult = testSubject.ToString(LongInternationalFormat);
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, TelephonyInfo.InvariantTelephony);
 
-                // assert
-                testResult.Should().Be(GreatBritainNumberInInvariantLongInternationalPattern);
-            }
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvariantShortInternationalPattern_TestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_ShortInternationalFormatAndInvariantTelephony_ReturnsPrefixAndWholeCountryCode(ItuE164InternationalNumber testSubject, string expectedResult)
+        {
+            // act
+            var testResult = testSubject.ToString(ShortInternationalFormat, TelephonyInfo.InvariantTelephony);
+
+            // assert
+            testResult.Should().Be(expectedResult);
         }
 
         [Fact]

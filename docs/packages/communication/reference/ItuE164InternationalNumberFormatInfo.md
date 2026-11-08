@@ -24,6 +24,22 @@ Both pattern setters throw `InvalidOperationException` when the instance is
 read-only. `GetFormat` returns the instance itself when asked for an
 `ItuE164InternationalNumberFormatInfo`, and `null` otherwise.
 
+In a pattern, `+` writes the international prefix symbol, each `c` writes the
+next digit of the Country Code, each `i` the next digit of the identification
+code, and each `s` the next digit of the subscriber number (the national
+significant number, or the global subscriber number, for numbers without an
+identification code). Any other character is copied as it stands. A placeholder
+with no digit left writes nothing, and the digits of a field that has fewer
+placeholders than digits are dropped, so a pattern needs enough placeholders for
+the longest field it formats.
+
+The patterns of `TelephonyInfo.InvariantTelephony` follow the international
+notation of ITU-T E.123. The long pattern, `+ccc iiiissssssssssssss`, gives the
+international prefix symbol `+`, the Country Code, a space, then the rest of the
+number, as in `+44 3071234567`. The short pattern, `+ccciiiissssssssssssss`,
+leaves out the space, as in `+443071234567`. A placeholder with no digit left
+writes nothing, so the patterns fit Country Codes of one, two and three digits.
+
 ## Properties
 
 | Property | Signature | Notes |
