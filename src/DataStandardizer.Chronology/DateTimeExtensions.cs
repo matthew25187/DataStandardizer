@@ -26,19 +26,26 @@ namespace DataStandardizer.Chronology
         /// Converts the specified <see cref="DateTime"/> to a <see cref="UnixTime"/> representation.
         /// </summary>
         /// <param name="dateTime">
-        /// The <see cref="DateTime"/> instance to convert. Its fields are read as a time in UTC, whatever its
-        /// <see cref="DateTime.Kind"/>; to convert a local time, call <see cref="DateTime.ToUniversalTime"/> on it first.
+        /// The <see cref="DateTime"/> instance to convert. It must be of kind <see cref="DateTimeKind.Utc"/>, or of kind
+        /// <see cref="DateTimeKind.Unspecified"/>, which is read as a time in UTC. A time of kind <see cref="DateTimeKind.Local"/>
+        /// is rejected; call <see cref="DateTime.ToUniversalTime"/> on it first.
         /// </param>
         /// <returns>
-        /// A <see cref="UnixTime"/> instance representing the number of seconds elapsed since 
+        /// A <see cref="UnixTime"/> instance representing the number of seconds elapsed since
         /// the Unix epoch (January 1, 1970, 00:00:00 UTC).
         /// </returns>
         /// <remarks>
         /// This method counts the whole days from the Unix epoch to the date of the given <see cref="DateTime"/>,
         /// using its Julian Day Number, and adds the whole seconds of its time of day. Any fraction of a second is dropped.
         /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="dateTime"/> is of kind <see cref="DateTimeKind.Local"/>.
+        /// </exception>
         public static UnixTime ToUnixTime(this DateTime dateTime)
         {
+            if (dateTime.Kind == DateTimeKind.Local)
+                throw new ArgumentException("A local time can't be converted to Unix time without the machine's time zone; convert it to UTC first.", nameof(dateTime));
+
             var unixTime = JulianDayNumberHelper.ConvertGregorianCalendarDateTimeToUnixTime(
                 dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second);
             return new UnixTime(unixTime);

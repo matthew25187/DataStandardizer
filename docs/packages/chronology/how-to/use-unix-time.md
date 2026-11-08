@@ -36,7 +36,7 @@ With a `UnixTime` value you can convert to the standard .NET types:
 ```csharp
 var unixTime = new UnixTime(946738800L);
 
-// Convert to a DateTime.
+// Convert to a DateTime. Its Kind is DateTimeKind.Utc.
 var unixTimeAsDateTime = unixTime.ToDateTime();
 
 // Convert to a DateOnly.
@@ -51,9 +51,13 @@ type, convert to Unix time:
 
 ```csharp
 // Convert DateTime to UnixTime.
-var dateTime = new DateTime(2000, 1, 1, 15, 0, 0);
+var dateTime = new DateTime(2000, 1, 1, 15, 0, 0, DateTimeKind.Utc);
 var unixTime = dateTime.ToUnixTime();
 ```
+
+`ToUnixTime` reads a `DateTime` of kind `Utc` or `Unspecified` as UTC. It throws
+`ArgumentException` for one of kind `Local`, because its instant depends on the
+machine's time zone; call `ToUniversalTime()` on it first.
 
 ## Add date & time semantics
 
