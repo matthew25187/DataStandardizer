@@ -19,9 +19,6 @@ namespace DataStandardizer.Communication.E164
     /// </remarks>
     internal sealed class ItuE164InternationalNumberFormatter : ICustomFormatter
     {
-        // The format used when none is given: the full general format.
-        private const string DefaultFormat = "G";
-
         private static class NumberPart
         {
             internal const string CountryCode = "CountryCode";
@@ -111,12 +108,9 @@ namespace DataStandardizer.Communication.E164
 
             // Format argument according to format string.
             string formattedString;
+            // A provider without E.164 format information gets the invariant patterns, never those of the current thread's culture.
             var internationalNumberFormat = formatProvider?.GetFormat(typeof(ItuE164InternationalNumberFormatInfo)) as ItuE164InternationalNumberFormatInfo
-#if NETSTANDARD2_0_OR_GREATER || NET
-                                            ?? TelephonyInfo.CurrentTelephony.ItuE164InternationalNumberFormat;
-#else
                                             ?? TelephonyInfo.InvariantTelephony.ItuE164InternationalNumberFormat;
-#endif
             // A null, empty or white-space format is the default, full general format. A standard format is exactly one of the
             // letters g, G, i and I; any other format, including a longer one that starts with one of them, is a custom pattern.
             string useFormat = string.IsNullOrWhiteSpace(format) ? DefaultFormat : format;

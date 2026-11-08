@@ -44,7 +44,8 @@ A standard format string is exactly one of these letters:
 | `i` | The short international pattern of the format provider. |
 | `I` | The long international pattern of the format provider. |
 
-A `null`, empty or white-space format is `G`. Any other format, including a longer
+With the built-in formatter, a `null`, empty or white-space format is `G`, so a
+format that is only white space is never a custom pattern. Any other format, including a longer
 one that begins with one of those letters, is a custom pattern. In a custom
 pattern, `+` is the international prefix symbol, each `c` is a digit of the
 country code, each `i` is a digit of the identification code, each `s` is a digit

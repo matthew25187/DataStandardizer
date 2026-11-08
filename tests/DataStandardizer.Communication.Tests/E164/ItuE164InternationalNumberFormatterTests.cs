@@ -329,7 +329,8 @@ namespace DataStandardizer.Communication.Tests.E164
         [Theory]
         [InlineData(null),
          InlineData(""),
-         InlineData(" ")]
+         InlineData(" "),
+         InlineData("	 ")]
         public void Format_NullEmptyOrWhiteSpaceFormat_ReturnsFullGeneralFormat(string testFormat)
         {
             // arrange

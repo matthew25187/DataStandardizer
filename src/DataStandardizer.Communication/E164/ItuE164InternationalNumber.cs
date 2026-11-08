@@ -207,7 +207,7 @@ namespace DataStandardizer.Communication.E164
         /// </returns>
         public override string ToString()
         {
-            return FormatCore("G", null);
+            return FormatCore(DefaultFormat, null);
         }
 
         /// <summary>
@@ -254,7 +254,7 @@ namespace DataStandardizer.Communication.E164
         public string ToString(IFormatProvider formatProvider)
 #endif
         {
-            return FormatCore("G", formatProvider);
+            return FormatCore(DefaultFormat, formatProvider);
         }
 
         /// <summary>
@@ -262,7 +262,8 @@ namespace DataStandardizer.Communication.E164
         /// using the specified format string and format provider.
         /// </summary>
         /// <param name="format">
-        /// A format string that specifies the format to use. If <c>null</c>, empty or white space, the default format, <c>G</c>, is used.
+        /// A format string that specifies the format to use. The built-in formatter uses the default format, <c>G</c>, when it is
+        /// <c>null</c>, empty or white space; a formatter that <paramref name="formatProvider"/> supplies receives it unchanged.
         /// </param>
         /// <param name="formatProvider">
         /// An object that provides formatting information, such as a <see cref="TelephonyInfo"/>, or <c>null</c>.
@@ -288,7 +289,7 @@ namespace DataStandardizer.Communication.E164
         /// international pattern. Any other format, including a longer one that begins with one of those letters, is a custom
         /// pattern, in which <c>+</c> is the international prefix symbol, each <c>c</c> a digit of the country code, each
         /// <c>i</c> a digit of the identification code, each <c>s</c> a digit of the subscriber number, and any other character
-        /// is copied as it stands.
+        /// is copied as it stands. A format that is only white space is the default format, not a custom pattern.
         /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
