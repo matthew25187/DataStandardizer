@@ -369,8 +369,9 @@ namespace DataStandardizer.Language
         /// <remarks>
         /// The value comes from the ISO 639-3 code table, which can give a Part 1 code that ISO 639-1 has withdrawn and
         /// that <see cref="Iso639Part1Language"/> therefore doesn't define. For example, <see cref="Iso639Part3Language.hbs"/>
-        /// (Serbo-Croatian) returns <c>sh</c>, which ISO 639-1 withdrew in 2000, so it can't be converted to an
-        /// <see cref="Iso639Part1Language"/> member.
+        /// (Serbo-Croatian) returns <c>sh</c>, which ISO 639-1 withdrew in 2000. It isn't a defined
+        /// <see cref="Iso639Part1Language"/> member: <c>StringEnum.IsDefined</c> returns <c>false</c> for it, and
+        /// <c>StringEnum.Parse</c> throws.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetPart1Code(this Iso639Part3Language languageCode)
