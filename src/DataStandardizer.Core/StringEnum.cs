@@ -37,6 +37,7 @@ namespace DataStandardizer.Core
 #else
         private static readonly Dictionary<Type, Func<object, string>> StringConverters = new Dictionary<Type, Func<object, string>>();
 #endif
+        private static readonly Dictionary<Type, Func<string, object>> FromStringConverters = new Dictionary<Type, Func<string, object>>();
 
         #region Public Methods
 
@@ -94,11 +95,7 @@ namespace DataStandardizer.Core
                 if (valueString != null)
                     return cache.GetNameByStringValue(valueString);
 
-                var toString = GetStringConverter(valueType);
-                if (toString is null)
-                    throw new ArgumentException($"{nameof(value)} is of a string enumeration that defines no conversion to string.", nameof(value));
-
-                return cache.GetNameByStringValue(toString(value));
+                return cache.GetNameByStringValue(ToStringValueOfStringEnum(value, valueType));
             }
         }
 
@@ -323,13 +320,7 @@ namespace DataStandardizer.Core
                 }
             }
 
-            if (valueType != enumType)
-            {
-                if (IsStringEnumType(valueType))
-                    throw new ArgumentException($"The value is of the string enumeration {valueType.FullName}, not of {enumType.FullName}.");
-
-                throw new InvalidOperationException($"{nameof(value)} is neither a string enumeration value nor a string.");
-            }
+            ThrowIfValueOfOtherType(enumType, valueType, true);
 
             lock (SyncRoot)
             {
@@ -600,6 +591,68 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Returns an instance of the specified enumeration set to the specified value.
         /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">
+        /// The value: a <see cref="string"/> (the enumeration's underlying type), a value of <paramref name="enumType"/>, or a value of another string enumeration, whose string value is
+        /// used.
+        /// </param>
+        /// <returns>An enumeration object whose value is <paramref name="value"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="enumType"/> is not a string enumeration.
+        /// -or-
+        /// <paramref name="value"/> is neither a string enumeration value nor a <see cref="string"/>.
+        /// -or-
+        /// <paramref name="value"/> is a value of another string enumeration that defines no conversion to <see cref="string"/>.
+        /// -or-
+        /// <paramref name="value"/> is a value of another string enumeration that converts to a <c>null</c> string, as a default value usually does.
+        /// </exception>
+        /// <exception cref="InvalidOperationException"><paramref name="enumType"/> defines no conversion from <see cref="string"/>.</exception>
+        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects the value.</exception>
+        /// <remarks>
+        /// <para>
+        /// As <see cref="Enum.ToObject(Type, object)"/> does, this accepts a value of the underlying type or of any enumeration, and doesn't check that the value is defined. A value
+        /// of <paramref name="enumType"/> is returned as it is. A value of another string enumeration is converted to <paramref name="enumType"/> through its string value, as
+        /// <see cref="ToObject(Type, string)"/> converts a string, so one that converts to a <c>null</c> string is rejected, as <see cref="ToObject(Type, string)"/> rejects <c>null</c>.
+        /// </para>
+        /// <para>
+        /// A string enumeration usually converts implicitly to <see cref="string"/>, so a call whose <paramref name="value"/> has a string enumeration type at compile time binds to
+        /// <see cref="ToObject(Type, string)"/> instead, which converts its string value in the same way.
+        /// </para>
+        /// <para>Any other exception that a string enumeration's conversion from or to <see cref="string"/> throws is passed on to the caller unchanged.</para>
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static object ToObject(Type enumType, object value)
+#else
+        [return: NotNull]
+        public static object ToObject([DisallowNull] Type enumType, [DisallowNull] object value)
+#endif
+        {
+            if (value is null)
+                throw new ArgumentNullException(nameof(value));
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
+
+            if (value is string valueString)
+                return Cast(enumType, valueString);
+
+            var valueType = value.GetType();
+            if (valueType == enumType)
+                return value;
+            if (!IsStringEnumType(valueType))
+                throw new ArgumentException($"{nameof(value)} is neither a string enumeration value nor a string.", nameof(value));
+
+            var stringValue = ToStringValueOfStringEnum(value, valueType);
+            if (stringValue is null)
+                throw new ArgumentException($"{nameof(value)} is of a string enumeration and converts to a null string, which no string enumeration can be made from.", nameof(value));
+
+            return Cast(enumType, stringValue);
+        }
+
+        /// <summary>
+        /// Returns an instance of the specified enumeration set to the specified value.
+        /// </summary>
         /// <typeparam name="TEnum">An enumeration.</typeparam>
         /// <param name="value">The value.</param>
         /// <returns>An enumeration object whose value is <paramref name="value"/>.</returns>
@@ -617,6 +670,75 @@ namespace DataStandardizer.Core
                 throw new ArgumentNullException(nameof(value));
 
             return (TEnum)Cast(typeof(TEnum), value);
+        }
+
+        /// <summary>
+        /// Converts the specified value of a specified string enumeration to its equivalent string representation according to the specified format.
+        /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">A value of <paramref name="enumType"/>, or a <see cref="string"/> (its underlying type).</param>
+        /// <param name="format">The output format to use.</param>
+        /// <returns>A string representation of <paramref name="value"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/>, <paramref name="value"/> or <paramref name="format"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="enumType"/> is not a string enumeration.
+        /// -or-
+        /// <paramref name="value"/> is a value of a string enumeration other than <paramref name="enumType"/>.
+        /// -or-
+        /// <paramref name="value"/> is neither a string enumeration value nor a <see cref="string"/>.
+        /// </exception>
+        /// <exception cref="FormatException"><paramref name="format"/> is not one of the format strings that are listed in the remarks.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="format"/> is "X" or "x", which a string enumeration doesn't support.
+        /// -or-
+        /// The string enumeration has more than one member with the same name.
+        /// -or-
+        /// <paramref name="enumType"/> defines no conversion to <see cref="string"/>.
+        /// </exception>
+        /// <remarks>
+        /// <para>The format strings are those of <see cref="Enum.Format(Type, object, string)"/>, for an underlying type of <see cref="string"/>:</para>
+        /// <list type="bullet">
+        /// <item><description>"G" or "g", and "F" or "f": the name of the member with the value, the first in the order in which <see cref="GetNames(Type)"/> returns the names; or, if no member has it, the value itself. A string enumeration's values can't be combined, so "F" is the same as "G".</description></item>
+        /// <item><description>"D" or "d": the value itself.</description></item>
+        /// <item><description>"X" or "x": hexadecimal, which has no meaning for a <see cref="string"/>, so it throws <see cref="InvalidOperationException"/>, as <see cref="Enum.Format(Type, object, string)"/> does for an underlying type it can't write in hexadecimal.</description></item>
+        /// </list>
+        /// <para>The default value of a string enumeration has a <c>null</c> value, which is written as an empty string, unless a member has that value.</para>
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string Format(Type enumType, object value, string format)
+#else
+        [return: NotNull]
+        public static string Format([DisallowNull] Type enumType, [DisallowNull] object value, [DisallowNull] string format)
+#endif
+        {
+            if (value is null)
+                throw new ArgumentNullException(nameof(value));
+            if (format is null)
+                throw new ArgumentNullException(nameof(format));
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
+
+            var valueType = value.GetType();
+            var valueString = value as string;
+            if (valueString is null)
+                ThrowIfValueOfOtherType(enumType, valueType, false);
+
+            var formatCode = format.Length == 1 ? format[0] : '\0';
+            if (formatCode == 'X' || formatCode == 'x')
+                throw new InvalidOperationException("A string enumeration can't be written in hexadecimal (\"X\"), as its underlying type is string.");
+            if (formatCode != 'G' && formatCode != 'g' && formatCode != 'F' && formatCode != 'f' && formatCode != 'D' && formatCode != 'd')
+                throw new FormatException("The format string of a string enumeration can only be \"G\", \"g\", \"F\", \"f\", \"D\" or \"d\".");
+
+            lock (SyncRoot)
+            {
+                var cache = GetCache(enumType);
+                var stringValue = valueString ?? cache.ToStringValue(value);
+                if (formatCode == 'D' || formatCode == 'd')
+                    return stringValue ?? string.Empty;
+
+                return cache.GetNameByStringValue(stringValue) ?? stringValue ?? string.Empty;
+            }
         }
 
         /// <summary>
@@ -788,6 +910,172 @@ namespace DataStandardizer.Core
             return false;
         }
 
+#if NET
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object.
+        /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">A span containing the name or value to convert.</param>
+        /// <returns>An object of type <paramref name="enumType"/> whose value is represented by <paramref name="value"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="enumType"/> is not a string enumeration.
+        /// -or-
+        /// <paramref name="value"/> is either empty or only contains white space.
+        /// -or-
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="Parse(Type, string)"/> reads a string.</remarks>
+        public static object Parse(Type enumType, ReadOnlySpan<char> value)
+        {
+            return Parse(enumType, value, false);
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the
+        /// operation is case-insensitive.
+        /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">A span containing the name or value to convert.</param>
+        /// <param name="ignoreCase">If <c>true</c>, ignore case; otherwise, regard case.</param>
+        /// <returns>An object of type <paramref name="enumType"/> whose value is represented by <paramref name="value"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="enumType"/> is not a string enumeration.
+        /// -or-
+        /// <paramref name="value"/> is either empty or only contains white space.
+        /// -or-
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="Parse(Type, string, bool)"/> reads a string.</remarks>
+        public static object Parse(Type enumType, ReadOnlySpan<char> value, bool ignoreCase)
+        {
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
+
+            return ParseCore(enumType, value, ignoreCase);
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object.
+        /// </summary>
+        /// <typeparam name="TEnum">A string enumeration type.</typeparam>
+        /// <param name="value">A span containing the name or value to convert.</param>
+        /// <returns>An object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>.</returns>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="value"/> is either empty or only contains white space.
+        /// -or-
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="Parse{TEnum}(string)"/> reads a string.</remarks>
+        public static TEnum Parse<TEnum>(ReadOnlySpan<char> value) where TEnum : struct, IStringEnum
+        {
+            return (TEnum)ParseCore(typeof(TEnum), value, false);
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the
+        /// operation is case-insensitive.
+        /// </summary>
+        /// <typeparam name="TEnum">A string enumeration type.</typeparam>
+        /// <param name="value">A span containing the name or value to convert.</param>
+        /// <param name="ignoreCase">If <c>true</c>, ignore case; otherwise, regard case.</param>
+        /// <returns>An object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>.</returns>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="value"/> is either empty or only contains white space.
+        /// -or-
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="Parse{TEnum}(string, bool)"/> reads a string.</remarks>
+        public static TEnum Parse<TEnum>(ReadOnlySpan<char> value, bool ignoreCase) where TEnum : struct, IStringEnum
+        {
+            return (TEnum)ParseCore(typeof(TEnum), value, ignoreCase);
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object. The return value indicates whether
+        /// the conversion succeeded.
+        /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">The span representation of the name or value of an enumerated constant.</param>
+        /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
+        /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="TryParse(Type, string, out object)"/> reads a string.</remarks>
+        public static bool TryParse(Type enumType, ReadOnlySpan<char> value, out object? result)
+        {
+            return TryParse(enumType, value, false, out result);
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the
+        /// operation is case-insensitive. The return value indicates whether the conversion succeeded.
+        /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">The span representation of the name or value of an enumerated constant.</param>
+        /// <param name="ignoreCase"><c>true</c> to read <paramref name="value"/> in case-insensitive mode; <c>false</c> to read <paramref name="value"/> in case-sensitive mode.</param>
+        /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
+        /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="TryParse(Type, string, bool, out object)"/> reads a string.</remarks>
+        public static bool TryParse(Type enumType, ReadOnlySpan<char> value, bool ignoreCase, out object? result)
+        {
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
+
+            result = TryParseCore(enumType, value, ignoreCase);
+            return result != null;
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object. The return value indicates whether
+        /// the conversion succeeded.
+        /// </summary>
+        /// <typeparam name="TEnum">The enumeration type to which to convert <paramref name="value"/>.</typeparam>
+        /// <param name="value">The span representation of the enumeration name or value to convert.</param>
+        /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>.</param>
+        /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="TryParse{TEnum}(string, out TEnum)"/> reads a string.</remarks>
+        public static bool TryParse<TEnum>(ReadOnlySpan<char> value, out TEnum result) where TEnum : struct, IStringEnum
+        {
+            return TryParse(value, false, out result);
+        }
+
+        /// <summary>
+        /// Converts the span of characters representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the
+        /// operation is case-insensitive. The return value indicates whether the conversion succeeded.
+        /// </summary>
+        /// <typeparam name="TEnum">The enumeration type to which to convert <paramref name="value"/>.</typeparam>
+        /// <param name="value">The span representation of the enumeration name or value to convert.</param>
+        /// <param name="ignoreCase"><c>true</c> to ignore case; <c>false</c> to consider case.</param>
+        /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>.</param>
+        /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks><paramref name="value"/> is read as <see cref="TryParse{TEnum}(string, bool, out TEnum)"/> reads a string.</remarks>
+        public static bool TryParse<TEnum>(ReadOnlySpan<char> value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
+        {
+            if (TryParseCore(typeof(TEnum), value, ignoreCase) is TEnum member)
+            {
+                result = member;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+#endif
+
         #endregion
 
         #region Private Methods
@@ -826,20 +1114,55 @@ namespace DataStandardizer.Core
             return converter;
         }
 
-        // Builds the conversion for the type itself rather than going through reflection, so whatever the conversion throws reaches the caller unwrapped.
+        // Builds the conversion for the type itself rather than going through reflection, so whatever the conversion throws reaches the caller unwrapped. Each type's conversion
+        // is compiled once; Expression.Convert throws InvalidOperationException for a type with no conversion from string, and that isn't cached. The conversion runs outside
+        // SyncRoot.
         private static object Cast(Type enumType, string value)
         {
-            var p = Expression.Parameter(typeof(string));
-            var c1 = Expression.Convert(p, enumType);
-            var c2 = Expression.Convert(c1, typeof(object));
-            var e = Expression.Lambda<Func<string, object>>(c2, p).Compile();
-            return e(value);
+            Func<string, object> converter;
+            lock (SyncRoot)
+            {
+                if (!FromStringConverters.TryGetValue(enumType, out var cached))
+                {
+                    var p = Expression.Parameter(typeof(string));
+                    var body = Expression.Convert(Expression.Convert(p, enumType), typeof(object));
+                    cached = Expression.Lambda<Func<string, object>>(body, p).Compile();
+                    FromStringConverters.Add(enumType, cached);
+                }
+
+                converter = cached;
+            }
+
+            return converter(value);
         }
 
-        // The work of the Parse overloads, once their arguments are checked.
-        private static object ParseCore(Type enumType, string value, bool ignoreCase)
+        // The string value of a value of any string enumeration, through its conversion to string. Takes SyncRoot, which a caller may already hold, as Monitor is re-entrant.
+#if NETCOREAPP3_0_OR_GREATER
+        private static string? ToStringValueOfStringEnum(object value, Type valueType)
+#else
+        [return: MaybeNull]
+        private static string ToStringValueOfStringEnum(object value, Type valueType)
+#endif
         {
-            if (string.IsNullOrWhiteSpace(value))
+            lock (SyncRoot)
+            {
+                var toString = GetStringConverter(valueType);
+                if (toString is null)
+                    throw new ArgumentException($"{nameof(value)} is of a string enumeration that defines no conversion to string.", nameof(value));
+
+                return toString(value);
+            }
+        }
+
+        // The work of the Parse overloads, once their arguments are checked. On .NET the matching works on a span, so the string and span overloads share it; elsewhere, on a
+        // string.
+#if NET
+        private static object ParseCore(Type enumType, ReadOnlySpan<char> value, bool ignoreCase)
+#else
+        private static object ParseCore(Type enumType, string value, bool ignoreCase)
+#endif
+        {
+            if (IsEmptyOrWhiteSpace(value))
                 throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
             lock (SyncRoot)
@@ -850,19 +1173,21 @@ namespace DataStandardizer.Core
             }
 
             // Like Enum.Parse, which gives no parameter name for a value it doesn't find.
-            throw new ArgumentException($"Requested value '{value}' was not found.");
+            throw new ArgumentException($"Requested value '{value.ToString()}' was not found.");
         }
 
         // The work of the TryParse overloads, once their arguments are checked: the member value represents, or null. Like Enum.TryParse, an empty value or one that is only
         // white space fails.
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
+        private static object? TryParseCore(Type enumType, ReadOnlySpan<char> value, bool ignoreCase)
+#elif NETCOREAPP3_0_OR_GREATER
         private static object? TryParseCore(Type enumType, string value, bool ignoreCase)
 #else
         [return: MaybeNull]
         private static object TryParseCore(Type enumType, string value, bool ignoreCase)
 #endif
         {
-            if (string.IsNullOrWhiteSpace(value))
+            if (IsEmptyOrWhiteSpace(value))
                 return null;
 
             lock (SyncRoot)
@@ -874,7 +1199,9 @@ namespace DataStandardizer.Core
         // Like Enum.Parse, white space around a name is ignored. A member's value may itself begin or end with white space, so value is compared with the values as given, and
         // then, if none matches, with the white space around it removed. Like Enum.Parse, each comparison returns the first member that matches, in GetNames order, whether or
         // not another member matches exactly when case is ignored. Callers hold SyncRoot, and value isn't empty or only white space.
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
+        private static object? FindMember(MemberCache cache, ReadOnlySpan<char> value, bool ignoreCase)
+#elif NETCOREAPP3_0_OR_GREATER
         private static object? FindMember(MemberCache cache, string value, bool ignoreCase)
 #else
         [return: MaybeNull]
@@ -891,6 +1218,12 @@ namespace DataStandardizer.Core
             return member;
         }
 
+#if NET
+        private static bool IsEmptyOrWhiteSpace(ReadOnlySpan<char> value) => value.IsWhiteSpace();
+#else
+        private static bool IsEmptyOrWhiteSpace(string value) => string.IsNullOrWhiteSpace(value);
+#endif
+
         // Whether value is the name or the value of a member, compared exactly (ordinal, case-sensitive). Callers hold SyncRoot.
         private static bool IsNameOrValueDefined(MemberCache cache, string value)
         {
@@ -898,7 +1231,9 @@ namespace DataStandardizer.Core
         }
 
         // The first member, in GetNames order, whose name matches value. Names are unique, so an ordinal match is a lookup.
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
+        private static object? FindMemberByName(MemberCache cache, ReadOnlySpan<char> value, StringComparison comparison)
+#elif NETCOREAPP3_0_OR_GREATER
         private static object? FindMemberByName(MemberCache cache, string value, StringComparison comparison)
 #else
         [return: MaybeNull]
@@ -906,11 +1241,15 @@ namespace DataStandardizer.Core
 #endif
         {
             if (comparison == StringComparison.Ordinal)
+#if NET
+                return cache.FieldsByName.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(value, out var member) ? member : null;
+#else
                 return cache.FieldsByName.TryGetValue(value, out var member) ? member : null;
+#endif
 
             foreach (var candidate in cache.Members)
             {
-                if (string.Equals(candidate.Name, value, comparison))
+                if (value.Equals(candidate.Name, comparison))
                     return candidate.Value;
             }
 
@@ -918,7 +1257,9 @@ namespace DataStandardizer.Core
         }
 
         // The first member, in GetNames order, whose value matches value.
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
+        private static object? FindMemberByValue(MemberCache cache, ReadOnlySpan<char> value, StringComparison comparison)
+#elif NETCOREAPP3_0_OR_GREATER
         private static object? FindMemberByValue(MemberCache cache, string value, StringComparison comparison)
 #else
         [return: MaybeNull]
@@ -927,7 +1268,8 @@ namespace DataStandardizer.Core
         {
             foreach (var candidate in cache.Members)
             {
-                if (string.Equals(candidate.StringValue, value, comparison))
+                // A null value matches nothing. A null string would otherwise convert to an empty span.
+                if (candidate.StringValue != null && value.Equals(candidate.StringValue, comparison))
                     return candidate.Value;
             }
 
@@ -970,6 +1312,22 @@ namespace DataStandardizer.Core
         {
             var candidateTypeInfo = candidateType.GetTypeInfo();
             return candidateTypeInfo.IsValueType && !candidateTypeInfo.ContainsGenericParameters && typeof(IStringEnum).GetTypeInfo().IsAssignableFrom(candidateTypeInfo);
+        }
+
+        // Throws unless valueType is enumType. Like Enum.IsDefined and Enum.Format, which give no parameter name for a value of the wrong type: a value of another string
+        // enumeration throws ArgumentException, and a value of any other type throws InvalidOperationException, as Enum.IsDefined does, or ArgumentException, as Enum.Format does.
+        private static void ThrowIfValueOfOtherType(Type enumType, Type valueType, bool otherTypeIsInvalidOperation)
+        {
+            if (valueType == enumType)
+                return;
+            if (IsStringEnumType(valueType))
+                throw new ArgumentException($"The value is of the string enumeration {valueType.FullName}, not of {enumType.FullName}.");
+
+            const string message = "value is neither a string enumeration value nor a string.";
+            if (otherTypeIsInvalidOperation)
+                throw new InvalidOperationException(message);
+
+            throw new ArgumentException(message);
         }
 
         private static void ThrowIfNotStringEnumType(Type enumType)

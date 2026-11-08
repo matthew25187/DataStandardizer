@@ -58,12 +58,18 @@ value type implementing this interface.
 the operations the runtime gives enums for free. Its methods mirror the familiar
 `System.Enum` surface, verified from the source:
 
-- `GetName` / `GetNames` — the member name(s) for a value, or all names in a type.
-- `GetValues` — all values defined in a type.
-- `IsDefined` — whether a given name or value exists.
+- `GetName` / `GetNames` — the member name(s) for a value, or all names in a type,
+  sorted by value as `System.Enum` sorts them.
+- `GetValues` — all values defined in a type, one for each member.
+- `IsDefined` — whether a given name or value exists, or whether a value of the
+  type is defined.
 - `Parse` / `TryParse` — convert a name or underlying value into a member, with
-  optional case-insensitive overloads.
-- `ToObject` — build a member from its underlying value.
+  optional case-insensitive overloads. On .NET 10 they also take a
+  `ReadOnlySpan<char>`.
+- `ToObject` — build a member from its underlying value, or from a value of
+  another string enumeration.
+- `Format` — write a value with the `System.Enum` format strings: `G` or `F` for
+  the name, `D` for the value.
 
 Each comes in a generic form constrained to `where TEnum : struct, IStringEnum`
 and a non-generic `Type`-based form. Internally `StringEnum` reflects over a

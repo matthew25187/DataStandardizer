@@ -11,6 +11,17 @@ namespace DataStandardizer.Core.Tests
         // Parameter names of the StringEnum methods.
         private const string EnumTypeParameterName = "enumType";
         private const string ValueParameterName = "value";
+        private const string FormatParameterName = "format";
+
+        // The format strings of Enum.Format.
+        private const string GeneralFormat = "G";
+        private const string LowerCaseGeneralFormat = "g";
+        private const string FlagsFormat = "F";
+        private const string LowerCaseFlagsFormat = "f";
+        private const string DecimalFormat = "D";
+        private const string LowerCaseDecimalFormat = "d";
+        private const string HexadecimalFormat = "X";
+        private const string LowerCaseHexadecimalFormat = "x";
 
         // Exception messages thrown by StringEnum.
         private const string NotStringEnumerationMessage = "enumType is not a string enumeration.*";
@@ -23,6 +34,7 @@ namespace DataStandardizer.Core.Tests
         private const string PaddedZeroName = " Zero ";
         private const string OtherStringEnumValueMessage = "The value is of the string enumeration *, not of *.";
         private const string NeitherStringEnumNorStringIsDefinedMessage = "value is neither a string enumeration value nor a string.";
+        private const string NullStringValueMessage = "value is of a string enumeration and converts to a null string, which no string enumeration can be made from.*";
         private const string NeitherStringEnumNorStringMessage = "value is neither a string enumeration value nor a string.*";
         private const string NoConversionToStringValueMessage = "value is of a string enumeration that defines no conversion to string.*";
         private const string NoConversionToStringTypeMessage = "The string enumeration DataStandardizer.Core.Tests.StringEnumTests+NoStringConversionEnum defines no conversion to string.";
@@ -113,6 +125,13 @@ namespace DataStandardizer.Core.Tests
         private const string AlphaValue = "a";
         private const string UndefinedUnorderedEnumValue = "q";
 
+        // A value of a type that is neither a string enumeration nor a string, the underlying type of one.
+        private const int NeitherStringEnumNorStringValue = 1;
+
+        // Inputs that are neither a name nor a value of WhiteSpaceValueEnum, with and without white space around them.
+        private const string UnmatchedWhiteSpaceValueEnumInput = "nope";
+        private const string PaddedUnmatchedWhiteSpaceValueEnumInput = " nope ";
+
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
         {
@@ -147,7 +166,7 @@ namespace DataStandardizer.Core.Tests
         public void GetNameNonGeneric_WithValueNeitherStringEnumNorString_ThrowsArgumentException()
         {
             // act
-            Action testAction = () => StringEnum.GetName(typeof(ComplexEnum), 1);
+            Action testAction = () => StringEnum.GetName(typeof(ComplexEnum), NeitherStringEnumNorStringValue);
 
             // assert
             testAction.Should().Throw<ArgumentException>().WithMessage(NeitherStringEnumNorStringMessage).WithParameterName(ValueParameterName);
@@ -452,7 +471,7 @@ namespace DataStandardizer.Core.Tests
         public void IsDefinedObjectOverload_WithValueNeitherStringEnumNorString_ThrowsInvalidOperationException()
         {
             // act
-            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), 1);
+            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), NeitherStringEnumNorStringValue);
 
             // assert
             testAction.Should().Throw<InvalidOperationException>().WithMessage(NeitherStringEnumNorStringIsDefinedMessage);
@@ -1365,6 +1384,222 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
+        [ClassData(typeof(ToObjectObjectOverload_TestCaseFactory))]
+        public void ToObjectObjectOverload_WithStringOrStringEnumValue_ReturnsValueOfEnumType(Type enumType, object value, object expectedResult)
+        {
+            // act
+            var testResult = StringEnum.ToObject(enumType, value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithValueOfStringEnumConvertingToNullString_ThrowsArgumentException()
+        {
+            // act
+            // As object, as SimpleEnum converts implicitly to string, which would bind the call to ToObject(Type, string).
+            Action testAction = () => StringEnum.ToObject(typeof(ComplexEnum), (object)default(SimpleEnum));
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NullStringValueMessage).WithParameterName(ValueParameterName);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithNullEnumType_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => StringEnum.ToObject(null!, (object)UnorderedEnum.Alpha);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithNullValue_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => StringEnum.ToObject(typeof(UnorderedEnum), (object)null!);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithNonStringEnumType_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.ToObject(typeof(DayOfWeek), (object)UnorderedEnum.Alpha);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithValueNeitherStringEnumNorString_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.ToObject(typeof(UnorderedEnum), NeitherStringEnumNorStringValue);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NeitherStringEnumNorStringMessage).WithParameterName(ValueParameterName);
+        }
+
+        [Fact]
+        public void ToObjectObjectOverload_WithValueOfStringEnumWithoutConversionToString_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.ToObject(typeof(UnorderedEnum), NoStringConversionEnum.A);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NoConversionToStringValueMessage).WithParameterName(ValueParameterName);
+        }
+
+        [Theory]
+        [ClassData(typeof(Format_TestCaseFactory))]
+        public void Format_WithValueAndFormat_ReturnsFormattedValue(object value, string format, string expectedResult)
+        {
+            // act
+            var testResult = StringEnum.Format(typeof(UnorderedEnum), value, format);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(FormatWithNullArgument))]
+        public void Format_WithNullArgument_ThrowsArgumentNullException(Action format, string expectedParameterName)
+        {
+            // act
+            var testAction = format;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(expectedParameterName);
+        }
+
+        [Fact]
+        public void Format_WithNonStringEnumType_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.Format(typeof(DayOfWeek), UnorderedEnum.Alpha, GeneralFormat);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
+        }
+
+        [Fact]
+        public void Format_WithValueOfOtherStringEnum_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.Format(typeof(UnorderedEnum), SimpleEnum.One, GeneralFormat);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(OtherStringEnumValueMessage).Which.ParamName.Should().BeNull();
+        }
+
+        [Fact]
+        public void Format_WithValueNeitherStringEnumNorString_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.Format(typeof(UnorderedEnum), NeitherStringEnumNorStringValue, GeneralFormat);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NeitherStringEnumNorStringIsDefinedMessage).Which.ParamName.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData(HexadecimalFormat), InlineData(LowerCaseHexadecimalFormat)]
+        public void Format_WithHexadecimalFormat_ThrowsInvalidOperationException(string format)
+        {
+            // act
+            Action testAction = () => StringEnum.Format(typeof(UnorderedEnum), UnorderedEnum.Alpha, format);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [InlineData(EmptyValue), InlineData("GG"), InlineData("Q")]
+        public void Format_WithInvalidFormat_ThrowsFormatException(string format)
+        {
+            // act
+            Action testAction = () => StringEnum.Format(typeof(UnorderedEnum), UnorderedEnum.Alpha, format);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(ParseSpanOverloadsOnWhiteSpaceValueEnum))]
+        [MemberData(nameof(ParseSpanIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
+        public void ParseSpanOverloads_WithWhiteSpaceAroundNameOrValue_ReturnsWhatTheStringOverloadsReturn(Func<string, object> parse, string value, WhiteSpaceValueEnum expectedResult)
+        {
+            // act
+            var testResult = parse(value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseSpanOverloadsOnWhiteSpaceValueEnum))]
+        [MemberData(nameof(TryParseSpanIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
+        public void TryParseSpanOverloads_WithWhiteSpaceAroundNameOrValue_ReturnsWhatTheStringOverloadsReturn(Func<string, (bool Success, object? Result)> tryParse, string value, WhiteSpaceValueEnum expectedResult)
+        {
+            // act
+            var testResult = tryParse(value);
+
+            // assert
+            testResult.Success.Should().BeTrue();
+            testResult.Result.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseSpanOverloadsWithUnmatchedInput))]
+        public void TryParseSpanOverloads_WithUnmatchedInput_ReturnsFalseAndNoMember(Func<(bool Success, object? Result)> tryParse, object? expectedResult)
+        {
+            // act
+            var testResult = tryParse();
+
+            // assert
+            testResult.Success.Should().BeFalse();
+            testResult.Result.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(ParseSpanOverloadsWithEmptyOrWhiteSpace))]
+        public void ParseSpanOverloads_WithEmptyOrWhiteSpace_ThrowsArgumentException(Action parse)
+        {
+            // act
+            var testAction = parse;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(EmptyOrWhiteSpaceValueMessage).WithParameterName(ValueParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(SpanOverloadsWithNullEnumType))]
+        public void SpanOverloads_WithNullEnumType_ThrowArgumentNullException(Action call)
+        {
+            // act
+            var testAction = call;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(SpanOverloadsWithNonStringEnumType))]
+        public void SpanOverloads_WithNonStringEnumType_ThrowArgumentException(Action call)
+        {
+            // act
+            var testAction = call;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
+        }
+
+        [Theory]
         [MemberData(nameof(ParseOverloadsWithUndefinedName))]
         public void ParseOverloads_WithUndefinedName_ThrowsArgumentExceptionWithMessageNamingTheValue(Action parse, string expectedMessage)
         {
@@ -1519,6 +1754,81 @@ namespace DataStandardizer.Core.Tests
                 value => StringEnum.Parse<CaseVariantNameEnum>(value, false),
             }, CaseVariantNameEnumCaseSensitiveCases);
 
+        public static TheoryData<Action, string> FormatWithNullArgument => new TheoryData<Action, string>
+        {
+            { () => StringEnum.Format(typeof(UnorderedEnum), null!, GeneralFormat), ValueParameterName },
+            { () => StringEnum.Format(typeof(UnorderedEnum), UnorderedEnum.Alpha, null!), FormatParameterName },
+            { () => StringEnum.Format(null!, UnorderedEnum.Alpha, GeneralFormat), EnumTypeParameterName },
+            // Like Enum.Format, the value is checked first.
+            { () => StringEnum.Format(null!, null!, GeneralFormat), ValueParameterName },
+        };
+
+        public static TheoryData<Func<string, object>, string, WhiteSpaceValueEnum> ParseSpanOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, object>[]
+            {
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value.AsSpan()),
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value.AsSpan(), false),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value.AsSpan()),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value.AsSpan(), false),
+            }, WhiteSpaceValueEnumCases);
+
+        public static TheoryData<Func<string, object>, string, WhiteSpaceValueEnum> ParseSpanIgnoreCaseOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, object>[]
+            {
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value.AsSpan(), true),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value.AsSpan(), true),
+            }, WhiteSpaceValueEnumIgnoreCaseCases);
+
+        public static TheoryData<Func<string, (bool Success, object? Result)>, string, WhiteSpaceValueEnum> TryParseSpanOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, (bool Success, object? Result)>[]
+            {
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value.AsSpan(), out var result), result),
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value.AsSpan(), false, out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value.AsSpan(), out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value.AsSpan(), false, out var result), result),
+            }, WhiteSpaceValueEnumCases);
+
+        public static TheoryData<Func<string, (bool Success, object? Result)>, string, WhiteSpaceValueEnum> TryParseSpanIgnoreCaseOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, (bool Success, object? Result)>[]
+            {
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value.AsSpan(), true, out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value.AsSpan(), true, out var result), result),
+            }, WhiteSpaceValueEnumIgnoreCaseCases);
+
+        // The non-generic overloads give null, and the generic ones the default value.
+        public static TheoryData<Func<(bool Success, object? Result)>, object?> TryParseSpanOverloadsWithUnmatchedInput =>
+            new TheoryData<Func<(bool Success, object? Result)>, object?>
+            {
+                { () => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), UnmatchedWhiteSpaceValueEnumInput.AsSpan(), out var result), result), null },
+                { () => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), PaddedUnmatchedWhiteSpaceValueEnumInput.AsSpan(), true, out var result), result), null },
+                { () => (StringEnum.TryParse<WhiteSpaceValueEnum>(UnmatchedWhiteSpaceValueEnumInput.AsSpan(), out var result), result), default(WhiteSpaceValueEnum) },
+                { () => (StringEnum.TryParse<WhiteSpaceValueEnum>(PaddedUnmatchedWhiteSpaceValueEnumInput.AsSpan(), true, out var result), result), default(WhiteSpaceValueEnum) },
+            };
+
+        public static TheoryData<Action> ParseSpanOverloadsWithEmptyOrWhiteSpace => new TheoryData<Action>
+        {
+            () => StringEnum.Parse(typeof(WhiteSpaceValueEnum), EmptyValue.AsSpan()),
+            () => StringEnum.Parse(typeof(WhiteSpaceValueEnum), SpaceValue.AsSpan(), true),
+            () => StringEnum.Parse<WhiteSpaceValueEnum>(TabValue.AsSpan()),
+            () => StringEnum.Parse<WhiteSpaceValueEnum>(EmptyValue.AsSpan(), true),
+        };
+
+        public static TheoryData<Action> SpanOverloadsWithNullEnumType => new TheoryData<Action>
+        {
+            () => StringEnum.Parse(null!, ZeroName.AsSpan()),
+            () => StringEnum.Parse(null!, ZeroName.AsSpan(), true),
+            () => StringEnum.TryParse(null!, ZeroName.AsSpan(), out _),
+            () => StringEnum.TryParse(null!, ZeroName.AsSpan(), true, out _),
+        };
+
+        public static TheoryData<Action> SpanOverloadsWithNonStringEnumType => new TheoryData<Action>
+        {
+            () => StringEnum.Parse(typeof(DayOfWeek), ZeroName.AsSpan()),
+            () => StringEnum.Parse(typeof(DayOfWeek), ZeroName.AsSpan(), true),
+            () => StringEnum.TryParse(typeof(DayOfWeek), ZeroName.AsSpan(), out _),
+            () => StringEnum.TryParse(typeof(DayOfWeek), ZeroName.AsSpan(), true, out _),
+        };
+
         public static TheoryData<Action, string> ParseOverloadsWithUndefinedName => new TheoryData<Action, string>
         {
             { () => StringEnum.Parse(typeof(SimpleEnum), ZeroName), ZeroNotFoundMessage },
@@ -1529,6 +1839,10 @@ namespace DataStandardizer.Core.Tests
             { () => StringEnum.Parse(typeof(SimpleEnum), PaddedZeroName, true), PaddedZeroNotFoundMessage },
             { () => StringEnum.Parse<SimpleEnum>(PaddedZeroName), PaddedZeroNotFoundMessage },
             { () => StringEnum.Parse<SimpleEnum>(PaddedZeroName, true), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse(typeof(SimpleEnum), PaddedZeroName.AsSpan()), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse(typeof(SimpleEnum), PaddedZeroName.AsSpan(), true), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse<SimpleEnum>(PaddedZeroName.AsSpan()), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse<SimpleEnum>(PaddedZeroName.AsSpan(), true), PaddedZeroNotFoundMessage },
         };
 
         public static TheoryData<Action> ParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput => new TheoryData<Action>
@@ -1607,6 +1921,10 @@ namespace DataStandardizer.Core.Tests
         // WhiteSpaceValueEnum.Blank's value is the empty string, but, as with Enum, an empty value or one that is only white space fails.
         public static TheoryData<Func<bool>> TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace => new TheoryData<Func<bool>>
         {
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue.AsSpan(), out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue.AsSpan(), true, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue.AsSpan(), out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(EmptyValue.AsSpan(), true, out _),
             () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue, out _),
             () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue, false, out _),
             () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue, true, out _),
@@ -1748,6 +2066,7 @@ namespace DataStandardizer.Core.Tests
             { () => StringEnum.Parse(null!, null!), ValueParameterName },
             { () => StringEnum.Parse(null!, null!, true), ValueParameterName },
             { () => StringEnum.ToObject(null!, null!), ValueParameterName },
+            { () => StringEnum.ToObject(null!, (object)null!), ValueParameterName },
         };
 
         // Like Enum.TryParse, a null value fails before enumType is checked.
@@ -1769,6 +2088,52 @@ namespace DataStandardizer.Core.Tests
                 yield return new object[] { typeof(ComplexEnum), ComplexEnum.First, nameof(ComplexEnum.First) };
                 yield return new object[] { typeof(ComplexEnum), ComplexEnum.Animal.Cat, nameof(ComplexEnum.Animal.Cat) };
                 yield return new object[] { typeof(ComplexEnum), ComplexEnum.Color.Black, nameof(ComplexEnum.Color.Black) };
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public class ToObjectObjectOverload_TestCaseFactory : IEnumerable<object[]>
+        {
+            public IEnumerator<object[]> GetEnumerator()
+            {
+                // A string, the underlying type, defined or not, as Enum.ToObject doesn't check that the value is defined.
+                yield return new object[] { typeof(UnorderedEnum), AlphaValue, UnorderedEnum.Alpha };
+                yield return new object[] { typeof(UnorderedEnum), UndefinedUnorderedEnumValue, (UnorderedEnum)UndefinedUnorderedEnumValue };
+                // A value of the enumeration itself is returned as it is.
+                yield return new object[] { typeof(UnorderedEnum), UnorderedEnum.Zulu, UnorderedEnum.Zulu };
+                // A value of another string enumeration, by its value.
+                yield return new object[] { typeof(ComplexEnum), SimpleEnum.One, ComplexEnum.First };
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public class Format_TestCaseFactory : IEnumerable<object[]>
+        {
+            public IEnumerator<object[]> GetEnumerator()
+            {
+                // G and F give the name, the first in GetNames order when two members share the value; D gives the value.
+                yield return new object[] { UnorderedEnum.Alpha, GeneralFormat, nameof(UnorderedEnum.Alias) };
+                yield return new object[] { UnorderedEnum.Zulu, LowerCaseGeneralFormat, nameof(UnorderedEnum.Zulu) };
+                yield return new object[] { UnorderedEnum.Zulu, FlagsFormat, nameof(UnorderedEnum.Zulu) };
+                yield return new object[] { UnorderedEnum.Zulu, LowerCaseFlagsFormat, nameof(UnorderedEnum.Zulu) };
+                yield return new object[] { UnorderedEnum.Zulu, DecimalFormat, ZuluValue };
+                yield return new object[] { UnorderedEnum.Zulu, LowerCaseDecimalFormat, ZuluValue };
+                // A value that no member has is written as itself.
+                yield return new object[] { (UnorderedEnum)UndefinedUnorderedEnumValue, GeneralFormat, UndefinedUnorderedEnumValue };
+                // A string is the underlying type.
+                yield return new object[] { ZuluValue, GeneralFormat, nameof(UnorderedEnum.Zulu) };
+                yield return new object[] { ZuluValue, DecimalFormat, ZuluValue };
+                // The default value has a null value, written as an empty string.
+                yield return new object[] { default(UnorderedEnum), GeneralFormat, EmptyValue };
+                yield return new object[] { default(UnorderedEnum), DecimalFormat, EmptyValue };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
