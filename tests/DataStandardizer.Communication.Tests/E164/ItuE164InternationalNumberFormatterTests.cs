@@ -308,6 +308,43 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
+        [InlineData("i+ccc", "6+881"),
+         InlineData("I+ccc", "I+881"),
+         InlineData("g+ccc", "g+881"),
+         InlineData("G+ccc", "G+881")]
+        public void Format_CustomFormatBeginningWithStandardFormatLetter_ReturnsCustomFormattedOutput(string testFormat, string expectedResult)
+        {
+            // arrange
+            var testNumber = ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumberWithIdentificationCode6);
+
+            var testSubject = new ItuE164InternationalNumberFormatter();
+
+            // act
+            var testResult = testSubject.Format(testFormat, testNumber, null);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData(null),
+         InlineData(""),
+         InlineData(" ")]
+        public void Format_NullEmptyOrWhiteSpaceFormat_ReturnsFullGeneralFormat(string testFormat)
+        {
+            // arrange
+            var testNumber = ItuE164InternationalNumber.CreateNumberForGeographicArea(GeographicAreaNumber);
+
+            var testSubject = new ItuE164InternationalNumberFormatter();
+
+            // act
+            var testResult = testSubject.Format(testFormat, testNumber, null);
+
+            // assert
+            testResult.Should().Be(GeographicAreaNumberFormattedWithSeparator);
+        }
+
+        [Theory]
         [InlineData(38835550100L, GeneralFormat, "+38835550100"),
          InlineData(38835550101L, GeneralFormatWithSeparators, "+388 3 5550101")]
         public void Format_InternationalNumberForGroupOfCountriesWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
