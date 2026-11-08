@@ -4,6 +4,84 @@ namespace DataStandardizer.Chronology.Tests;
 
 public class SystemTimeWithGregorianCalendarTests
 {
+    // The Julian Day Number of noon on 1 January 2000.
+    private const decimal Jdn20000101At120000 = 2451545m;
+
+    public static TheoryData<string, Func<object>> DescribingMember_TestCases => new()
+    {
+        { nameof(SystemTimeWithGregorianCalendar.JulianDayNumber), () => default(SystemTimeWithGregorianCalendar).JulianDayNumber },
+        { nameof(SystemTimeWithGregorianCalendar.Year), () => default(SystemTimeWithGregorianCalendar).Year },
+        { nameof(SystemTimeWithGregorianCalendar.Month), () => default(SystemTimeWithGregorianCalendar).Month },
+        { nameof(SystemTimeWithGregorianCalendar.Day), () => default(SystemTimeWithGregorianCalendar).Day },
+        { nameof(SystemTimeWithGregorianCalendar.Hour), () => default(SystemTimeWithGregorianCalendar).Hour },
+        { nameof(SystemTimeWithGregorianCalendar.Minute), () => default(SystemTimeWithGregorianCalendar).Minute },
+        { nameof(SystemTimeWithGregorianCalendar.Second), () => default(SystemTimeWithGregorianCalendar).Second },
+        { nameof(SystemTimeExtensions.ToDateTime), () => default(SystemTimeWithGregorianCalendar).ToDateTime() },
+        { nameof(SystemTimeExtensions.ToDateOnly), () => default(SystemTimeWithGregorianCalendar).ToDateOnly() },
+        { nameof(SystemTimeExtensions.ToTimeOnly), () => default(SystemTimeWithGregorianCalendar).ToTimeOnly() },
+    };
+
+    public static TheoryData<string, Func<object?>> BenignMember_TestCases => new()
+    {
+        { nameof(SystemTimeWithGregorianCalendar.GetHashCode), () => default(SystemTimeWithGregorianCalendar).GetHashCode() },
+        { nameof(SystemTimeWithGregorianCalendar.ToString), () => default(SystemTimeWithGregorianCalendar).ToString() },
+        { nameof(SystemTimeExtensions.AsDosDateTime), () => default(SystemTimeWithGregorianCalendar).AsDosDateTime() },
+        { nameof(SystemTimeExtensions.AsUnixTime), () => default(SystemTimeWithGregorianCalendar).AsUnixTime() },
+    };
+
+    [Theory]
+    [MemberData(nameof(DescribingMember_TestCases))]
+    public void DescribingMember_DefaultInstance_ThrowsInvalidOperationException(string testMemberName, Func<object> testMember)
+    {
+        // arrange
+
+        // act
+        Action testAction = () => testMember();
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>(testMemberName);
+    }
+
+    [Theory]
+    [MemberData(nameof(BenignMember_TestCases))]
+    public void BenignMember_DefaultInstance_DoesNotThrow(string testMemberName, Func<object?> testMember)
+    {
+        // arrange
+
+        // act
+        Action testAction = () => testMember();
+
+        // assert
+        testAction.Should().NotThrow(testMemberName);
+    }
+
+    [Fact]
+    public void Equals_TwoDefaultInstances_ReturnsTrue()
+    {
+        // arrange
+        var testValue = default(SystemTimeWithGregorianCalendar);
+
+        // act
+        var testResult = testValue.Equals(default(SystemTimeWithGregorianCalendar));
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Equals_DefaultAndInitialisedInstance_ReturnsFalse()
+    {
+        // arrange
+        var testValue = default(SystemTimeWithGregorianCalendar);
+        var testOther = new SystemTimeWithGregorianCalendar(new TestSystemTime(Jdn20000101At120000));
+
+        // act
+        var testResult = testValue.Equals(testOther);
+
+        // assert
+        testResult.Should().BeFalse();
+    }
+
     [Theory]
     [InlineData(2451545.125, 1)]
     public void Day_OnSystemTime_ReturnsDateDay(decimal testJdn, ushort expectedResult)

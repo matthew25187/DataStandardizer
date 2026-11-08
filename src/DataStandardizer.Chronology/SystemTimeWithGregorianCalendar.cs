@@ -12,8 +12,18 @@ namespace DataStandardizer.Chronology
     /// </remarks>
     public readonly struct SystemTimeWithGregorianCalendar : ISystemTimeWithDateTime
     {
+        // Null only in a default instance, which no constructor can produce.
+#if NETCOREAPP3_0_OR_GREATER
+        internal readonly ISystemTime? _systemTime;
+#else
         internal readonly ISystemTime _systemTime;
+#endif
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SystemTimeWithGregorianCalendar"/> struct that wraps a system time.
+        /// </summary>
+        /// <param name="systemTime">The system time to wrap.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="systemTime"/> is <see langword="null"/>.</exception>
         public SystemTimeWithGregorianCalendar(ISystemTime systemTime)
         {
             _systemTime = systemTime ?? throw new ArgumentNullException(nameof(systemTime));
@@ -21,23 +31,42 @@ namespace DataStandardizer.Chronology
 
         #region Public Properties
 
-        public decimal JulianDayNumber => _systemTime.JulianDayNumber;
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        public decimal JulianDayNumber => GetSystemTime().JulianDayNumber;
 
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Day => DoGetDay();
 
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Month => DoGetMonth();
 
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Year => DoGetYear();
 
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Hour => DoGetHour();
 
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Minute => DoGetMinute();
 
+        /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Second => DoGetSecond();
 
         #endregion
 
         #region Private Methods
+
+        private ISystemTime GetSystemTime()
+        {
+            return _systemTime ?? throw new InvalidOperationException($"The {nameof(SystemTimeWithGregorianCalendar)} instance is not initialised.");
+        }
 
         private int DoGetDay()
         {
