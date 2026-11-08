@@ -23,6 +23,9 @@ public class UnM49ExtensionsTests
     // A number that UN M49 doesn't assign: its codes have three digits.
     private const ushort UndefinedM49Code = 9999;
 
+    // The name of the parameter of UnM49Extensions.GetM49Codes(Type).
+    private const string GetM49CodesEnumTypeParameterName = "enumType";
+
     // ISO 3166-1 codes of New Zealand.
     private const string NewZealandIso3166Part1Alpha2Code = "NZ";
     private const string NewZealandIso3166Part1Alpha3Code = "NZL";
@@ -408,6 +411,27 @@ public class UnM49ExtensionsTests
 
         // assert
         testResult.Should().BeEquivalentTo(expectedResult);
+    }
+
+    // Iso3166CountryName is an enumeration whose underlying type is int, not ushort.
+    [Fact]
+    public void GetM49Codes_WithIntBackedEnum_ThrowsArgumentException()
+    {
+        // act
+        Action testAction = () => UnM49Extensions.GetM49Codes(typeof(Iso3166CountryName));
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName(GetM49CodesEnumTypeParameterName);
+    }
+
+    [Fact]
+    public void GetM49Codes_WithIntBackedEnumTypeArgument_ThrowsArgumentException()
+    {
+        // act
+        Action testAction = () => UnM49Extensions.GetM49Codes<Iso3166CountryName>();
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName(GetM49CodesEnumTypeParameterName);
     }
 
     #endregion

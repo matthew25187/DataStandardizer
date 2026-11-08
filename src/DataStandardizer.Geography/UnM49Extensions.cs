@@ -15,7 +15,7 @@ namespace DataStandardizer.Geography
         /// <param name="enumType">An enumeration type.</param>
         /// <returns>A collection of M49 codes.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
-        /// <exception cref="System.ArgumentException"><paramref name="enumType"/> is not an <see cref="System.Enum"/>.</exception>
+        /// <exception cref="System.ArgumentException"><paramref name="enumType"/> is not an <see cref="System.Enum"/>, or its underlying type is not <see cref="ushort"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static ushort[] GetM49Codes(Type enumType)
 #else
@@ -26,6 +26,9 @@ namespace DataStandardizer.Geography
                 throw new ArgumentNullException(nameof(enumType));
             if (!enumType.GetTypeInfo().IsEnum)
                 throw new ArgumentException($"{nameof(enumType)} is not an {nameof(Enum)}.", nameof(enumType));
+            // An M49 code is a ushort, as in the UN M49 enumerations; the values of any other enumeration aren't M49 codes.
+            if (Enum.GetUnderlyingType(enumType) != typeof(ushort))
+                throw new ArgumentException($"The underlying type of {nameof(enumType)} is not {nameof(UInt16)}.", nameof(enumType));
 
             var codeAttributes = enumType.GetTypeInfo().DeclaredFields.Select(field => field.GetCustomAttribute<UnM49AreaCodeAttribute>()).Where(attribute => attribute != null).ToArray();
             var globalCodes = codeAttributes.Select(attribute => attribute?.GlobalCode).Where(code => code.HasValue).Cast<ushort>();
@@ -41,6 +44,7 @@ namespace DataStandardizer.Geography
         /// </summary>
         /// <typeparam name="T">An enumeration type.</typeparam>
         /// <returns>A collection of M49 codes.</returns>
+        /// <exception cref="System.ArgumentException">The underlying type of <typeparamref name="T"/> is not <see cref="ushort"/>.</exception>
         public static ushort[] GetM49Codes<T>() where T : struct, Enum
         {
             return GetM49Codes(typeof(T));
