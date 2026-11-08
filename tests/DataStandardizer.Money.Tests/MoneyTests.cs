@@ -1229,15 +1229,16 @@ namespace DataStandardizer.Money.Tests
             testResult.Should().Be("1.005", NoRoundingReason);
         }
 
-        [Fact]
-        public void ToString_DefaultInstance_ReturnsZero()
+        [Theory]
+        [MemberData(nameof(GeneralFormToStringTestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_DefaultInstance_ReturnsZero(Func<Money, string> testToString)
         {
             // arrange
             using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
             var testSubject = default(Money);
 
             // act
-            var testResult = testSubject.ToString();
+            var testResult = testToString(testSubject);
 
             // assert
             testResult.Should().Be("0", "a default instance has a zero amount and no rounding");
@@ -1249,7 +1250,33 @@ namespace DataStandardizer.Money.Tests
             value => value.ToString(),
             value => value.ToString(CultureInfo.InvariantCulture),
             value => value.ToString(null, CultureInfo.InvariantCulture),
+            value => ((IConvertible)value).ToString(CultureInfo.InvariantCulture),
+            value => Convert.ToString(value, CultureInfo.InvariantCulture),
             value => $"{value}"
+        };
+
+        [Theory]
+        [MemberData(nameof(GeneralFormProviderToStringTestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_ProviderOtherThanCurrentCulture_FormatsWithTheProvider(Func<Money, IFormatProvider, string> testToString)
+        {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+            var testSubject = Money.Create(MidpointAmount, Iso4217CurrencyCurrent.USD, UsDollarMinorUnits);
+
+            // act
+            var testResult = testToString(testSubject, new CultureInfo("de-DE"));
+
+            // assert
+            testResult.Should().Be("1,00", "the amount is formatted with the decimal separator of the provider, not that of the current culture");
+        }
+
+        // Each way of rendering a value in the general form, without a format string, that takes a provider.
+        public static TheoryData<Func<Money, IFormatProvider, string>> GeneralFormProviderToStringTestCases => new()
+        {
+            (value, provider) => value.ToString(provider),
+            (value, provider) => value.ToString(null, provider),
+            (value, provider) => ((IConvertible)value).ToString(provider),
+            (value, provider) => Convert.ToString(value, provider)
         };
 
         #endregion

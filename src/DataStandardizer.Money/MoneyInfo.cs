@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Threading;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag;
@@ -21,15 +22,15 @@ namespace DataStandardizer.Money
         private readonly NumberFormatInfo _numberFormat;
         private bool _isReadOnly;
 
-#if NETSTANDARD2_0_OR_GREATER||NET
-        private static readonly object CurrentMoneyLock = new object();
+        // Each slot holds the read-only information last derived for a culture: one for the culture of the
+        // current thread, and one for any other culture. A slot is replaced whole, so a reader always sees a
+        // culture paired with the information derived from it, and no lock is needed.
 #if NETCOREAPP3_0_OR_GREATER
-        private static MoneyInfo? _cachedCurrentMoney;
-        private static string? _cachedCurrentMoneyCultureName;
+        private static CachedMoneyInfo? _cachedCurrentMoney;
+        private static CachedMoneyInfo? _cachedOtherMoney;
 #else
-        private static MoneyInfo _cachedCurrentMoney;
-        private static string _cachedCurrentMoneyCultureName;
-#endif
+        private static CachedMoneyInfo _cachedCurrentMoney;
+        private static CachedMoneyInfo _cachedOtherMoney;
 #endif
 
         #region Constructors
@@ -188,6 +189,9 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// This allows a caller to supply a <see cref="CultureInfo"/> where monetary formatting information
         /// is expected, as they would when formatting an intrinsic numeric type.
+        /// <para>
+        /// The instance may be shared with other callers that ask for the same <see cref="CultureInfo"/> instance.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static MoneyInfo GetMoneyInfo(CultureInfo? culture)
@@ -195,7 +199,9 @@ namespace DataStandardizer.Money
         public static MoneyInfo GetMoneyInfo(CultureInfo culture)
 #endif
         {
-            return new MoneyInfo(culture) { IsReadOnly = true };
+            return ReferenceEquals(culture, CultureInfo.CurrentCulture)
+                ? GetCurrentMoney()
+                : GetCachedMoneyInfo(culture, ref _cachedOtherMoney);
         }
 
         #endregion
@@ -215,26 +221,7 @@ namespace DataStandardizer.Money
         /// <value>
         /// A <see cref="MoneyInfo"/> instance configured for the current culture.
         /// </value>
-        public static MoneyInfo CurrentMoney
-        {
-            get
-            {
-                var currentCultureName = CultureInfo.CurrentCulture.Name;
-                lock (CurrentMoneyLock)
-                {
-                    if (_cachedCurrentMoney != null && _cachedCurrentMoneyCultureName == currentCultureName)
-                    {
-                        return _cachedCurrentMoney;
-                    }
-
-                    var currentMoney = DoGetCurrentMoney();
-
-                    _cachedCurrentMoney = currentMoney;
-                    _cachedCurrentMoneyCultureName = currentCultureName;
-                    return currentMoney;
-                }
-            }
-        }
+        public static MoneyInfo CurrentMoney => GetCurrentMoney();
 #endif
 
         /// <summary>
@@ -298,15 +285,46 @@ namespace DataStandardizer.Money
 
         #region Private Methods
 
-#if NETSTANDARD2_0_OR_GREATER||NET
-        private static MoneyInfo DoGetCurrentMoney()
+        /// <summary>
+        /// Gets the read-only monetary formatting information for the culture of the current thread.
+        /// </summary>
+        /// <remarks>
+        /// This is <see cref="CurrentMoney"/> on every target, including .NET Standard 1.1, where that property
+        /// is not part of the public API, so that the default formatting is the same on every target.
+        /// </remarks>
+        internal static MoneyInfo GetCurrentMoney()
         {
-            // The result is cached and handed out to every caller, so it is sealed against modification.
-            // Deriving it from the culture directly avoids interpreting the language and region subtags,
-            // which are string enumerations rather than System.Enum types.
-            return new MoneyInfo(CultureInfo.CurrentCulture) { IsReadOnly = true };
+            // Deriving the information from the culture directly avoids interpreting the language and region
+            // subtags, which are string enumerations rather than System.Enum types.
+            return GetCachedMoneyInfo(CultureInfo.CurrentCulture, ref _cachedCurrentMoney);
         }
+
+        /// <summary>
+        /// Gets the read-only monetary formatting information for a culture, from a cache slot where the slot
+        /// holds that culture, and otherwise by deriving it and storing it in the slot.
+        /// </summary>
+        /// <remarks>
+        /// The slot is keyed by the <see cref="CultureInfo"/> instance rather than its name, since the number
+        /// formatting of the information is that of the instance. Callers that race to fill a slot each derive
+        /// equivalent information, and the slot keeps whichever is stored last.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        private static MoneyInfo GetCachedMoneyInfo(CultureInfo? culture, ref CachedMoneyInfo? slot)
+#else
+        private static MoneyInfo GetCachedMoneyInfo(CultureInfo culture, ref CachedMoneyInfo slot)
 #endif
+        {
+            var cached = Volatile.Read(ref slot);
+            if (cached != null && ReferenceEquals(cached.Culture, culture))
+            {
+                return cached.MoneyInfo;
+            }
+
+            // The result is handed out to every caller, so it is sealed against modification.
+            var moneyInfo = new MoneyInfo(culture) { IsReadOnly = true };
+            Volatile.Write(ref slot, new CachedMoneyInfo(culture, moneyInfo));
+            return moneyInfo;
+        }
 
         /// <summary>
         /// Resolve the culture denoted by a language and country code.
@@ -340,5 +358,29 @@ namespace DataStandardizer.Money
         }
 
         #endregion
+
+        /// <summary>
+        /// A culture paired with the read-only monetary formatting information derived from it.
+        /// </summary>
+        private sealed class CachedMoneyInfo
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            public CachedMoneyInfo(CultureInfo? culture, MoneyInfo moneyInfo)
+#else
+            public CachedMoneyInfo(CultureInfo culture, MoneyInfo moneyInfo)
+#endif
+            {
+                Culture = culture;
+                MoneyInfo = moneyInfo;
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            public CultureInfo? Culture { get; }
+#else
+            public CultureInfo Culture { get; }
+#endif
+
+            public MoneyInfo MoneyInfo { get; }
+        }
     }
 }

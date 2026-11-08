@@ -1046,7 +1046,7 @@ namespace DataStandardizer.Money
         /// format strings are applied to the rounded amount with the number formatting of that provider: of
         /// the culture for a <see cref="CultureInfo"/> or <see cref="MoneyInfo"/>, and of the separators of a
         /// <see cref="CurrencyFormatInfo"/>. Where it is <c>null</c> or supplies neither, the culture of the
-        /// current thread is used, or the invariant culture on .NET Standard 1.1.
+        /// current thread is used.
         /// </para>
         /// </remarks>
         /// <exception cref="FormatException">
@@ -1151,11 +1151,9 @@ namespace DataStandardizer.Money
         {
             get
             {
-#if NETSTANDARD2_0_OR_GREATER||NET
-                return MoneyInfo.CurrentMoney;
-#else
-                return MoneyInfo.InvariantMoney;
-#endif
+                // The culture of the current thread on every target, so that the same inputs give the same
+                // output whichever target is in use.
+                return MoneyInfo.GetCurrentMoney();
             }
         }
 
@@ -1511,7 +1509,7 @@ namespace DataStandardizer.Money
 
         string IConvertible.ToString(IFormatProvider? provider)
         {
-            return _amount.ToString(provider);
+            return ToString(null, provider);
         }
 
         object IConvertible.ToType(Type conversionType, IFormatProvider? provider)
@@ -1596,7 +1594,7 @@ namespace DataStandardizer.Money
 
         string IConvertible.ToString(IFormatProvider provider)
         {
-            return _amount.ToString(provider);
+            return ToString(null, provider);
         }
 
         object IConvertible.ToType(Type conversionType, IFormatProvider provider)
