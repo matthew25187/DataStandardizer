@@ -46,9 +46,19 @@ The component constructor also has a date-only form for when you have no time:
 var dosDate = new DosDateTime(1984, 2, 29);
 ```
 
-> Component values are validated. Year must be 1980–2107, month 1–12, day 1–31,
-> hour 0–23, and minute and second 0–59; out-of-range values throw
-> `ArgumentOutOfRangeException`.
+You can also cast a packed integer to `DosDateTime`:
+
+```csharp
+// Cast a packed integer to DosDateTime.
+var dosDateTime = (DosDateTime)0x28217DA5u;
+```
+
+> Values are validated when the `DosDateTime` is created. Year must be
+> 1980–2107, month 1–12, day within the length of that month (so 29 February
+> only in a leap year), hour 0–23, and minute and second 0–59. Out-of-range
+> components, or a packed integer that doesn't hold a valid date and time,
+> throw `ArgumentOutOfRangeException` from the constructor and
+> `InvalidCastException` from the cast.
 
 ## Convert to and from standard .NET types
 

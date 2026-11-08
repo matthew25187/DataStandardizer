@@ -77,7 +77,7 @@ namespace DataStandardizer.Chronology
             return decimal.Divide(totalSeconds, 86400) - 0.5m;
         }
 
-        private static int GetGregorianCalendarMonthLength(int year, int month)
+        internal static int GetGregorianCalendarMonthLength(int year, int month)
         {
             var isLeapYear = IsGregorianCalendarLeapYear(year);
 
