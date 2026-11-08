@@ -250,6 +250,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionParentCode(this Iso3166Part2Subdivision subdivisionCode)
 #else
+        [return: MaybeNull]
         public static string GetSubdivisionParentCode(this Iso3166Part2Subdivision subdivisionCode)
 #endif
         {
