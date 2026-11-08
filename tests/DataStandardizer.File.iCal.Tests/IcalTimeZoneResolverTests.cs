@@ -29,6 +29,11 @@ namespace DataStandardizer.File.iCal.Tests
         private const string VendorPrefixOnly = "/example.com/";
         private const string TieTimeZoneId = "Test/Tie";
         private const string OrderTimeZoneId = "Test/Order";
+        private const string RangeStartTimeZoneId = "Test/RangeStart";
+
+        // 00:30 local time on 0001-01-01, the first day of the range of DateTime, and 23:30 local time on 9999-12-31, its last day.
+        private static readonly DateTime HalfHourIntoRangeLocal = new DateTime(1, 1, 1, 0, 30, 0);
+        private static readonly DateTime HalfHourBeforeRangeEndLocal = new DateTime(9999, 12, 31, 23, 30, 0);
 
         // 09:00 on July 1, 2026, in New York local time and in UTC.
         private const string July1Local = "20260701T090000";
@@ -100,6 +105,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly TimeSpan EasternStandardOffset = TimeSpan.FromHours(-5);
         private static readonly TimeSpan EasternDaylightOffset = TimeSpan.FromHours(-4);
+        private static readonly TimeSpan OneHourBehindOffset = TimeSpan.FromHours(-1);
 
         /// <summary>
         /// The America/New_York VTIMEZONE of RFC 5545 §3.6.5, which covers the rules from 1967 with RRULE, RDATE and UNTIL in UTC.
@@ -156,6 +162,17 @@ namespace DataStandardizer.File.iCal.Tests
             BeginTimeZone, "TZID:Test/Tie",
             BeginStandard, StartOf2026, FromZero, ToOneHourAhead, EndStandard,
             BeginDaylight, StartOf2026, FromZero, "TZOFFSETTO:+0200", EndDaylight,
+            EndTimeZone
+        };
+
+        /// <summary>
+        /// A VTIMEZONE whose clocks go back from +01:00 to -01:00 at 01:00 local time on 0001-01-01, the start of the range of DateTime, so
+        /// the first occurrence of a time in the overlap falls before that range.
+        /// </summary>
+        private static readonly string[] OverlapAtRangeStart =
+        {
+            BeginTimeZone, "TZID:Test/RangeStart",
+            BeginStandard, "DTSTART:00010101T010000", FromOneHourAhead, "TZOFFSETTO:-0100", EndStandard,
             EndTimeZone
         };
 
@@ -823,9 +840,21 @@ namespace DataStandardizer.File.iCal.Tests
         // and in New York (EST, -05:00) after 9999-12-31T23:59:59.9999999Z.
         public static TheoryData<string, DateTime> LocalTimesOutOfRange => new TheoryData<string, DateTime>
         {
-            { Tokyo, new DateTime(1, 1, 1, 0, 30, 0) },
-            { NewYork, new DateTime(9999, 12, 31, 23, 30, 0) },
+            { Tokyo, HalfHourIntoRangeLocal },
+            { NewYork, HalfHourBeforeRangeEndLocal },
         };
+
+        // VTIMEZONEs, with a local time whose instant falls outside the range of DateTime: in Kolkata, at +05:30 throughout, before
+        // 0001-01-01T00:00Z, and in the RFC 5545 New York example, at EST (-05:00), after 9999-12-31T23:59:59.9999999Z.
+        public static TheoryData<string, string, DateTime> CalendarLocalTimesOutOfRange()
+        {
+            var kolkata = WriteCalendar(IcalTimeZone.FromTzData(TzDataTimezone.Parse(Kolkata), Utc(2020), Utc(2030)));
+            return new TheoryData<string, string, DateTime>
+            {
+                { Kolkata, kolkata, HalfHourIntoRangeLocal },
+                { NewYork, ModelTestData.Calendar(RfcNewYork), HalfHourBeforeRangeEndLocal },
+            };
+        }
 
         [Theory]
         [MemberData(nameof(LocalTimesOutOfRange))]
@@ -855,19 +884,61 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeEmpty();
         }
 
-        [Fact]
-        public void ToUtc_CalendarInstantBeforeRange_ThrowsArgumentOutOfRange()
+        [Theory]
+        [MemberData(nameof(CalendarLocalTimesOutOfRange), DisableDiscoveryEnumeration = true)]
+        public void ToUtc_CalendarInstantOutOfRange_ThrowsArgumentOutOfRange(string timeZoneId, string calendarText, DateTime local)
         {
             // arrange
-            // Kolkata is at +05:30 throughout its VTIMEZONE, so 00:30 on 0001-01-01 local time is before 0001-01-01T00:00Z.
-            var timeZone = IcalTimeZone.FromTzData(TzDataTimezone.Parse(Kolkata), Utc(2020), Utc(2030));
-            var rules = IcalTimeZoneResolver.Calendar.Resolve(Kolkata, ModelTestData.ReadCalendar(WriteCalendar(timeZone)));
+            var rules = IcalTimeZoneResolver.Calendar.Resolve(timeZoneId, ModelTestData.ReadCalendar(calendarText));
 
             // act
-            Action testAction = () => rules.ToUtc(new DateTime(1, 1, 1, 0, 30, 0));
+            Action testAction = () => rules.ToUtc(local);
 
             // assert
             testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarLocalTimesOutOfRange), DisableDiscoveryEnumeration = true)]
+        public void GetUtcOffsetsForLocal_CalendarInstantOutOfRange_IsEmpty(string timeZoneId, string calendarText, DateTime local)
+        {
+            // arrange
+            var rules = IcalTimeZoneResolver.Calendar.Resolve(timeZoneId, ModelTestData.ReadCalendar(calendarText));
+
+            // act
+            var testResult = rules.GetUtcOffsetsForLocal(local);
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ToUtc_OverlapWhoseFirstOccurrenceIsBeforeRange_ThrowsArgumentOutOfRange()
+        {
+            // arrange
+            var rules = IcalTimeZoneResolver.Calendar.Resolve(RangeStartTimeZoneId,
+                ModelTestData.ReadCalendar(ModelTestData.Calendar(OverlapAtRangeStart)));
+
+            // act
+            Action testAction = () => rules.ToUtc(HalfHourIntoRangeLocal);
+
+            // assert
+            // ref. RFC 5545 §3.3.5: the first occurrence, at +01:00, would be 0000-12-31T23:30Z.
+            testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
+        }
+
+        [Fact]
+        public void GetUtcOffsetsForLocal_OverlapWhoseFirstOccurrenceIsBeforeRange_GivesOnlyTheSecondOffset()
+        {
+            // arrange
+            var rules = IcalTimeZoneResolver.Calendar.Resolve(RangeStartTimeZoneId,
+                ModelTestData.ReadCalendar(ModelTestData.Calendar(OverlapAtRangeStart)));
+
+            // act
+            var testResult = rules.GetUtcOffsetsForLocal(HalfHourIntoRangeLocal);
+
+            // assert
+            testResult.Select(offset => offset.Offset).Should().Equal(OneHourBehindOffset);
         }
 
         [Fact]
