@@ -34,7 +34,7 @@ namespace DataStandardizer.Language
             : this(englishName, frenchName)
         {
 #if NET6_0_OR_GREATER
-            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var dateValue))
+            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
                 throw new System.ArgumentException($"'{date}' is not a valid date.", nameof(date));
 
             Date = dateValue;
