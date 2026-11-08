@@ -362,4 +362,66 @@ public class MoneyParsingTests
     }
 
     #endregion
+
+    #region Test: TryParse_Sign
+
+    private const decimal NegativeFive = -5m;
+
+    [Theory]
+    [MemberData(nameof(SingleSignTestCases))]
+    public void TryParse_InputContainsOneSign_ReturnsTrueAndNegatesAmount(MoneyStyles testStyles, string testValue)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, testStyles, MoneyInfoFor(UnitedStatesCulture), out var result);
+
+        // assert
+        testResult.Should().BeTrue("{0} carries one sign", testValue);
+        ((decimal)result).Should().Be(NegativeFive);
+    }
+
+    public static TheoryData<MoneyStyles, string> SingleSignTestCases => new()
+    {
+        // A sign outside the currency token is found before the token is removed.
+        { MoneyStyles.Any, "-$5" },
+        // A sign beside the amount is found after the currency token is removed.
+        { MoneyStyles.Any, "$-5" },
+        { MoneyStyles.Currency, "5-" },
+        // Parentheses are a sign.
+        { MoneyStyles.Currency, "(5)" },
+    };
+
+    [Theory]
+    [MemberData(nameof(MultipleSignTestCases))]
+    public void TryParse_InputContainsMoreThanOneSign_ReturnsFalse(MoneyStyles testStyles, string testValue)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, testStyles, MoneyInfoFor(UnitedStatesCulture), out _);
+
+        // assert
+        testResult.Should().BeFalse("a value carries at most one sign, and parentheses are a sign");
+    }
+
+    [Theory]
+    [MemberData(nameof(MultipleSignTestCases))]
+    public void Parse_InputContainsMoreThanOneSign_ThrowsFormatException(MoneyStyles testStyles, string testValue)
+    {
+        // arrange
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        Action testAction = () => Money.Parse(testValue, testStyles, testProvider);
+
+        // assert
+        testAction.Should().Throw<FormatException>();
+    }
+
+    public static TheoryData<MoneyStyles, string> MultipleSignTestCases => new()
+    {
+        { MoneyStyles.Currency, "--5" },
+        { MoneyStyles.Currency, "-5-" },
+        { MoneyStyles.Any, "-$-5" },
+        { MoneyStyles.Currency, "(-5)" },
+    };
+
+    #endregion
 }
