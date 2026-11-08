@@ -14,8 +14,8 @@ namespace DataStandardizer.Communication.IntegrationTests
     public class TelephonyInfoTests
     {
         // The package's neutral patterns, from its Resources.resx.
-        private const string InvariantLongPattern = "pc ssssssssssss";
-        private const string InvariantShortPattern = "pcssssssssssss";
+        private const string InvariantLongPattern = "+ccc iiiissssssssssssss";
+        private const string InvariantShortPattern = "+ccciiiissssssssssssss";
 
         // A culture whose region is Australia.
         private const string AustralianEnglish = "en-AU";
