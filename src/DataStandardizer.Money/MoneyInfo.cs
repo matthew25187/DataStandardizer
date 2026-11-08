@@ -34,21 +34,47 @@ namespace DataStandardizer.Money
 
         #region Constructors
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class with culture-independent information.
+        /// </summary>
         public MoneyInfo()
             : this(GetCulture(null, null))
         {
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class for the neutral culture of a language.
+        /// </summary>
+        /// <param name="languageCode">ISO 639-1 code of the language.</param>
+        /// <remarks>
+        /// Where the language is not a culture known to the host, the culture-independent information is used.
+        /// </remarks>
         public MoneyInfo(Iso639Part1Language languageCode)
             : this(GetCulture(languageCode, null))
         {
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class for the culture of a language and country.
+        /// </summary>
+        /// <param name="languageCode">ISO 639-1 code of the language.</param>
+        /// <param name="countryCode">ISO 3166-1 alpha-2 code of the country.</param>
+        /// <remarks>
+        /// Where the combination is not a culture known to the host, the culture-independent information is used.
+        /// </remarks>
         public MoneyInfo(Iso639Part1Language languageCode, Iso3166Part1Alpha2Country countryCode)
             : this(GetCulture(languageCode, countryCode))
         {
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class for the culture of a language and country.
+        /// </summary>
+        /// <param name="languageCode">ISO 639-1 code of the language.</param>
+        /// <param name="countryCode">ISO 3166-1 alpha-3 code of the country.</param>
+        /// <remarks>
+        /// Where the combination is not a culture known to the host, the culture-independent information is used.
+        /// </remarks>
         public MoneyInfo(Iso639Part1Language languageCode, Iso3166Part1Alpha3Country countryCode)
             : this(GetCulture(languageCode, (Iso3166Part1Alpha2Country?)(ushort)countryCode))
         {
