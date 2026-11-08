@@ -9,10 +9,16 @@ public class MoneyFormatterTests
     private const string GermanCulture = "de-DE";
     private const string IndianCulture = "en-IN";
     private const string DutchCulture = "nl-NL";
+    private const string UnitedStatesCulture = "en-US";
 
     private const decimal TestAmount = 1234.5m;
     private const decimal NegativeTestAmount = -1234.5m;
     private const decimal SevenDigitAmount = 1234567.5m;
+    private const decimal OneUnitAmount = 1m;
+
+    // An amount which rounds to 1.01 at a precision of two decimal places, whatever the midpoint rounding.
+    private const decimal UnroundedAmount = 1.006m;
+    private const int RoundingToCents = 2;
 
     private const string StandardSymbolFormat = "C";
     private const string NarrowSymbolFormat = "H";
@@ -34,6 +40,7 @@ public class MoneyFormatterTests
     private const string SymbolSpaceAmountNzdResult = "NZ$ 1.234,50";
     private const string IndianGroupedNzdResult = "NZ$12,34,567.50";
     private const string GroupedAmountResult = "1,234.50";
+    private const string EuroOneUnitSymbolResult = "\x20AC1.00";
 
     private const string MinusSign = "\x2212";
 
@@ -430,6 +437,41 @@ public class MoneyFormatterTests
         // assert
         testResult.Should().Be(GermanNzdResult, "a culture may be supplied where monetary information is expected");
     }
+
+    #endregion
+
+    #region Test: Format_ProviderOfNumberFormatting
+
+    [Theory]
+    [MemberData(nameof(NumberFormattingProviderTestCases), DisableDiscoveryEnumeration = true)]
+    public void Format_ProviderIsNotMoneyInfo_UsesNumberFormattingOfTheProviderRatherThanTheCurrentCulture(string threadCulture, Money testSubject, string? testFormat, IFormatProvider testProvider, string expectedResult)
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(threadCulture));
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "the provider supplied by the caller decides the formatting, whatever the culture of the thread");
+    }
+
+    // Each case runs under a thread culture whose separators differ from those of the provider.
+    public static TheoryData<string, Money, string?, IFormatProvider, string> NumberFormattingProviderTestCases => new()
+    {
+        { UnitedStatesCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), GeneralFormat, new CultureInfo(GermanCulture), "1234,5" },
+        { UnitedStatesCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), null, new CultureInfo(GermanCulture), "1234,5" },
+        { UnitedStatesCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), "0.00", new CultureInfo(GermanCulture), "1234,50" },
+        { GermanCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), GeneralFormat, NumberFormatInfo.InvariantInfo, GeneralResult },
+        { GermanCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), null, NumberFormatInfo.InvariantInfo, GeneralResult },
+        { GermanCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), "0.00", NumberFormatInfo.InvariantInfo, "1234.50" },
+        { GermanCulture, Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR), GeneralFormat, CurrencyFormatInfo.InvariantInfo, GeneralResult },
+        { GermanCulture, Money.Create(OneUnitAmount, Iso4217CurrencyCurrent.EUR), StandardSymbolFormat, CurrencyFormatInfo.InvariantInfo, EuroOneUnitSymbolResult },
+        { GermanCulture, Money.Create(OneUnitAmount, Iso4217CurrencyCurrent.EUR), NarrowSymbolFormat, CurrencyFormatInfo.InvariantInfo, EuroOneUnitSymbolResult },
+        { GermanCulture, Money.Create(OneUnitAmount, Iso4217CurrencyCurrent.EUR), CurrencyCodeFormat, CurrencyFormatInfo.InvariantInfo, "EUR1.00" },
+        { GermanCulture, Money.Create(OneUnitAmount, Iso4217CurrencyCurrent.EUR), CurrencyNameFormat, CurrencyFormatInfo.InvariantInfo, "Euro1.00" },
+        { GermanCulture, Money.Create(UnroundedAmount, Iso4217CurrencyCurrent.USD, RoundingToCents), "0.000", CurrencyFormatInfo.InvariantInfo, "1.010" },
+    };
 
     #endregion
 }

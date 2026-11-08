@@ -1029,6 +1029,14 @@ namespace DataStandardizer.Money
         /// Only the presentation of the value is taken from <paramref name="formatProvider"/>. The currency
         /// denoted, and the default precision, come from the value itself.
         /// </para>
+        /// <para>
+        /// <paramref name="formatProvider"/> may be a <see cref="MoneyInfo"/>, a <see cref="CurrencyFormatInfo"/>,
+        /// a <see cref="CultureInfo"/> or a <see cref="NumberFormatInfo"/>. The general format and custom numeric
+        /// format strings are applied to the rounded amount with the number formatting of that provider: of
+        /// the culture for a <see cref="CultureInfo"/> or <see cref="MoneyInfo"/>, and of the separators of a
+        /// <see cref="CurrencyFormatInfo"/>. Where it is <c>null</c> or supplies neither, the culture of the
+        /// current thread is used, or the invariant culture on .NET Standard 1.1.
+        /// </para>
         /// </remarks>
         /// <exception cref="FormatException">
         /// Thrown when <paramref name="format"/> is not a valid format string, or names a currency other than
@@ -1043,7 +1051,9 @@ namespace DataStandardizer.Money
             var useProvider = ResolveMoneyProvider(formatProvider);
             var formatter = useProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
 
-            return formatter?.Format(format, this, useProvider) ?? _amount.ToString(format, formatProvider);
+            // The resolved provider always supplies a formatter. Were it not to, the rounded value is formatted,
+            // so that any rounding the value carries is still honoured.
+            return formatter?.Format(format, this, useProvider) ?? ((decimal)this).ToString(format, useProvider);
         }
 
         /// <summary>
@@ -1052,8 +1062,10 @@ namespace DataStandardizer.Money
         /// <param name="formatProvider">Format provider supplied by the caller, which may be <c>null</c>.</param>
         /// <returns>A provider which supplies both a formatter and currency formatting information.</returns>
         /// <remarks>
-        /// A caller may reasonably pass a <see cref="CultureInfo"/> rather than a <see cref="MoneyInfo"/>,
-        /// in which case the monetary formatting information for that culture is resolved on their behalf.
+        /// A caller may reasonably pass a <see cref="CultureInfo"/>, a <see cref="NumberFormatInfo"/> or a
+        /// <see cref="CurrencyFormatInfo"/> rather than a <see cref="MoneyInfo"/>. Each is resolved to a
+        /// <see cref="MoneyInfo"/> which keeps the formatting information the caller supplied, so that the
+        /// caller's provider rather than the culture of the current thread decides the formatting.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         private static IFormatProvider ResolveMoneyProvider(IFormatProvider? formatProvider)
@@ -1061,19 +1073,27 @@ namespace DataStandardizer.Money
         private static IFormatProvider ResolveMoneyProvider(IFormatProvider formatProvider)
 #endif
         {
-            if (formatProvider is null)
+            if (formatProvider is null || formatProvider is MoneyInfo)
             {
-#if NETSTANDARD2_0_OR_GREATER||NET
-                return MoneyInfo.CurrentMoney;
-#else
-                return MoneyInfo.InvariantMoney;
-#endif
+                return formatProvider ?? DefaultMoneyProvider;
             }
 
-            // A provider which already supplies currency formatting information is used as it stands.
-            if (formatProvider.GetFormat(typeof(CurrencyFormatInfo)) is CurrencyFormatInfo)
+            var currencyFormat = formatProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo;
+            if (currencyFormat != null)
             {
-                return formatProvider;
+                // A provider which supplies both currency formatting information and a formatter is used as it
+                // stands. One which supplies only the former, such as a CurrencyFormatInfo, is given the money
+                // formatter, so that a money format string is never handed to the number formatter.
+                if (formatProvider.GetFormat(typeof(ICustomFormatter)) is ICustomFormatter)
+                {
+                    return formatProvider;
+                }
+
+                // Number formatting the provider does not supply is taken from its currency formatting
+                // information, as it is when parsing, rather than from the culture of the current thread.
+                var currencyNumberFormat = formatProvider.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo
+                                           ?? GetNumberFormat(null, currencyFormat);
+                return new MoneyInfo(currencyFormat, currencyNumberFormat) { IsReadOnly = true };
             }
 
             if (formatProvider is CultureInfo culture)
@@ -1081,11 +1101,30 @@ namespace DataStandardizer.Money
                 return MoneyInfo.GetMoneyInfo(culture);
             }
 
+            // A provider of number formatting information alone, such as a NumberFormatInfo, decides the
+            // formatting of the amount as a number. The presentation of the currency is the default.
+            var defaultProvider = DefaultMoneyProvider;
+            if (formatProvider.GetFormat(typeof(NumberFormatInfo)) is NumberFormatInfo numberFormat)
+            {
+                return new MoneyInfo(defaultProvider.CurrencyFormat, numberFormat) { IsReadOnly = true };
+            }
+
+            return defaultProvider;
+        }
+
+        /// <summary>
+        /// Gets the provider of monetary formatting information used where a caller supplies none.
+        /// </summary>
+        private static MoneyInfo DefaultMoneyProvider
+        {
+            get
+            {
 #if NETSTANDARD2_0_OR_GREATER||NET
-            return MoneyInfo.CurrentMoney;
+                return MoneyInfo.CurrentMoney;
 #else
-            return MoneyInfo.InvariantMoney;
+                return MoneyInfo.InvariantMoney;
 #endif
+            }
         }
 
         /// <summary>

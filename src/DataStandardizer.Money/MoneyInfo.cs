@@ -18,6 +18,7 @@ namespace DataStandardizer.Money
         CurrencyFormatInfo _currencyFormat;
         [MaybeNull] MoneyFormatter _formatter;
 #endif
+        private readonly NumberFormatInfo _numberFormat;
         private bool _isReadOnly;
 
 #if NETSTANDARD2_0_OR_GREATER||NET
@@ -34,30 +35,33 @@ namespace DataStandardizer.Money
         #region Constructors
 
         public MoneyInfo()
+            : this(GetCulture(null, null))
         {
-            LoadCurrencyFormatInformation(null, null);
         }
 
         public MoneyInfo(Iso639Part1Language languageCode)
+            : this(GetCulture(languageCode, null))
         {
-            LoadCurrencyFormatInformation(languageCode, null);
         }
 
         public MoneyInfo(Iso639Part1Language languageCode, Iso3166Part1Alpha2Country countryCode)
+            : this(GetCulture(languageCode, countryCode))
         {
-            LoadCurrencyFormatInformation(languageCode, countryCode);
         }
 
         public MoneyInfo(Iso639Part1Language languageCode, Iso3166Part1Alpha3Country countryCode)
+            : this(GetCulture(languageCode, (Iso3166Part1Alpha2Country?)(ushort)countryCode))
         {
-            var countryCodeNumeric = (ushort)countryCode;
-            LoadCurrencyFormatInformation(languageCode, (Iso3166Part1Alpha2Country?)countryCodeNumeric);
         }
 
         /// <summary>
         /// Initialises a new instance of the <see cref="MoneyInfo"/> class for a culture.
         /// </summary>
         /// <param name="culture">Culture whose monetary formatting information is required, or <c>null</c> for the culture-independent information.</param>
+        /// <remarks>
+        /// A custom numeric format string, and the general format, are applied to the amount with the number
+        /// formatting of <paramref name="culture"/>, or the invariant number formatting where it is <c>null</c>.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public MoneyInfo(CultureInfo? culture)
 #else
@@ -65,6 +69,19 @@ namespace DataStandardizer.Money
 #endif
         {
             CurrencyFormat = CurrencyFormatInfo.CreateForCulture(culture);
+            _numberFormat = culture != null ? culture.NumberFormat : NumberFormatInfo.InvariantInfo;
+        }
+
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class from currency and number formatting
+        /// information supplied by a caller.
+        /// </summary>
+        /// <param name="currencyFormat">Currency formatting information.</param>
+        /// <param name="numberFormat">Number formatting information, applied to the amount for the general format and custom numeric formats.</param>
+        internal MoneyInfo(CurrencyFormatInfo currencyFormat, NumberFormatInfo numberFormat)
+        {
+            CurrencyFormat = currencyFormat;
+            _numberFormat = numberFormat;
         }
 
         #endregion
@@ -72,6 +89,15 @@ namespace DataStandardizer.Money
         #region Public Methods
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Gets an object that provides formatting information for the requested type.
+        /// </summary>
+        /// <param name="formatType">Type of the format object required.</param>
+        /// <returns>
+        /// The monetary formatter for <see cref="ICustomFormatter"/>, <see cref="CurrencyFormat"/> for
+        /// <see cref="CurrencyFormatInfo"/>, the number formatting of the culture this instance was created
+        /// for (invariant where there is none) for <see cref="NumberFormatInfo"/>; otherwise <c>null</c>.
+        /// </returns>
         public object? GetFormat(Type? formatType)
         {
             if (formatType == typeof(ICustomFormatter))
@@ -84,9 +110,26 @@ namespace DataStandardizer.Money
                 return CurrencyFormat;
             }
 
+            // The general format and custom numeric formats are applied to the amount as a number, which
+            // asks for number formatting information. Without it the amount would be formatted with the
+            // culture of the current thread rather than the culture of this instance.
+            if (formatType == typeof(NumberFormatInfo))
+            {
+                return _numberFormat;
+            }
+
             return null;
         }
 #else
+        /// <summary>
+        /// Gets an object that provides formatting information for the requested type.
+        /// </summary>
+        /// <param name="formatType">Type of the format object required.</param>
+        /// <returns>
+        /// The monetary formatter for <see cref="ICustomFormatter"/>, <see cref="CurrencyFormat"/> for
+        /// <see cref="CurrencyFormatInfo"/>, the number formatting of the culture this instance was created
+        /// for (invariant where there is none) for <see cref="NumberFormatInfo"/>; otherwise <c>null</c>.
+        /// </returns>
         public object GetFormat(Type formatType)
         {
             if (formatType == typeof(ICustomFormatter))
@@ -97,6 +140,14 @@ namespace DataStandardizer.Money
             if (formatType == typeof(CurrencyFormatInfo))
             {
                 return CurrencyFormat;
+            }
+
+            // The general format and custom numeric formats are applied to the amount as a number, which
+            // asks for number formatting information. Without it the amount would be formatted with the
+            // culture of the current thread rather than the culture of this instance.
+            if (formatType == typeof(NumberFormatInfo))
+            {
+                return _numberFormat;
             }
 
             return null;
@@ -230,11 +281,6 @@ namespace DataStandardizer.Money
             return new MoneyInfo(CultureInfo.CurrentCulture) { IsReadOnly = true };
         }
 #endif
-
-        private void LoadCurrencyFormatInformation(Iso639Part1Language? languageCode, Iso3166Part1Alpha2Country? countryCode)
-        {
-            CurrencyFormat = CurrencyFormatInfo.CreateForCulture(GetCulture(languageCode, countryCode));
-        }
 
         /// <summary>
         /// Resolve the culture denoted by a language and country code.
