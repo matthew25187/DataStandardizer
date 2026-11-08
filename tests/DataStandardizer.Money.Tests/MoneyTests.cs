@@ -42,6 +42,10 @@ namespace DataStandardizer.Money.Tests
         // An amount midway between two US Dollar amounts of two minor units, so that the rounding method decides the result.
         private const decimal MidpointAmount = 1.005m;
 
+        // The greatest scale a System.Decimal can have, and so the greatest number of places Math.Round accepts.
+        private const int MaximumDecimalScale = 28;
+        private const int BeyondMaximumDecimalScale = 29;
+
         private const string FundCodeIsNotCurrencyReason = "ISO 4217 lists {0} as a funds code, not a currency";
 
         // Funds codes from ISO 4217 List One.
@@ -58,6 +62,44 @@ namespace DataStandardizer.Money.Tests
             // assert
             testAction.Should().Throw<ArgumentException>(FundCodeIsNotCurrencyReason, testCurrency);
         }
+
+        [Theory]
+        [MemberData(nameof(RoundingPrecisionOutOfRangeTestCases), DisableDiscoveryEnumeration = true)]
+        public void Create_RoundingPrecisionOutOfRange_ThrowsArgumentOutOfRangeException(Func<int, Money> testCreate, int testPrecision)
+        {
+            // act
+            Action testAction = () => testCreate(testPrecision);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>("a decimal can be rounded to from 0 to 28 places").WithParameterName("roundingPrecision");
+        }
+
+        [Theory]
+        [MemberData(nameof(RoundingPrecisionInRangeTestCases), DisableDiscoveryEnumeration = true)]
+        public void Create_RoundingPrecisionAtLimitOfRange_ReturnsValueWithThatPrecision(Func<int, Money> testCreate, int testPrecision)
+        {
+            // act
+            var testResult = testCreate(testPrecision);
+
+            // assert
+            testResult.RoundingPrecision.Should().Be(testPrecision);
+        }
+
+        public static TheoryData<Func<int, Money>, int> RoundingPrecisionOutOfRangeTestCases => new()
+        {
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision), -1 },
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision), BeyondMaximumDecimalScale },
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision, MidpointRounding.AwayFromZero), -1 },
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision, MidpointRounding.AwayFromZero), BeyondMaximumDecimalScale }
+        };
+
+        public static TheoryData<Func<int, Money>, int> RoundingPrecisionInRangeTestCases => new()
+        {
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision), 0 },
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision), MaximumDecimalScale },
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision, MidpointRounding.AwayFromZero), 0 },
+            { precision => Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.USD, precision, MidpointRounding.AwayFromZero), MaximumDecimalScale }
+        };
 
         [Fact]
         public void AdditionOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
