@@ -249,28 +249,32 @@ namespace DataStandardizer.Communication.Mime
             {
                 CheckRange(bytes, byteIndex, byteCount);
 
-                if (_inner != null)
+                var inner = _inner;
+                var source = bytes;
+                var sourceIndex = byteIndex;
+                var sourceCount = byteCount;
+                if (inner is null)
                 {
-                    var innerCharCount = _inner.GetChars(bytes, byteIndex, byteCount, chars, charIndex, flush);
+                    var combined = Combine(bytes, byteIndex, byteCount);
+                    if (combined.Length < _pending.Length && !flush)
+                    {
+                        Array.Copy(combined, _pending, combined.Length);
+                        _pendingCount = combined.Length;
+                        return 0;
+                    }
 
-                    // A flush ends the message, so the next one starts again by looking for a byte order mark.
-                    if (flush) _inner = null;
-                    return innerCharCount;
+                    int markLength;
+                    inner = _encoding.SelectEncoding(combined, 0, combined.Length, out markLength).GetDecoder();
+                    source = combined;
+                    sourceIndex = markLength;
+                    sourceCount = combined.Length - markLength;
                 }
 
-                var combined = Combine(bytes, byteIndex, byteCount);
-                if (combined.Length < _pending.Length && !flush)
-                {
-                    Array.Copy(combined, _pending, combined.Length);
-                    _pendingCount = combined.Length;
-                    return 0;
-                }
-
-                int markLength;
-                var encoding = _encoding.SelectEncoding(combined, 0, combined.Length, out markLength);
-                var inner = encoding.GetDecoder();
-                var charCount = inner.GetChars(combined, markLength, combined.Length - markLength, chars, charIndex, flush);
+                // The state changes only once the bytes are decoded, so a call that throws can be made again.
+                var charCount = inner.GetChars(source, sourceIndex, sourceCount, chars, charIndex, flush);
                 _pendingCount = 0;
+
+                // A flush ends the message, so the next one starts again by looking for a byte order mark.
                 _inner = flush ? null : inner;
                 return charCount;
             }
