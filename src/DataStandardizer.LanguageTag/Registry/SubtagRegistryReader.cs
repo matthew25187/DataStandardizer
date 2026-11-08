@@ -18,7 +18,7 @@ namespace DataStandardizer.LanguageTag.Registry
     /// <remarks>
     /// Input that the format doesn't allow throws a <see cref="FormatException"/> that names its line: a line that is blank, holds a control character
     /// (a tab among them), or is neither a field nor a folded line that starts with a space; a field body that ends with a space; a File-Date, Subtag,
-    /// Tag or Type field with no value; and a record that is empty, has none or more than one of the File-Date, Subtag and Tag fields, or has no Type
+    /// Tag or Type field with no value; a File-Date, Added or Deprecated field that is not an RFC 3339 full-date; and a record that is empty, has none or more than one of the File-Date, Subtag and Tag fields, or has no Type
     /// that RFC 5646 §3.1.3 defines for its kind of record.
     /// </remarks>
     internal class SubtagRegistryReader
@@ -32,6 +32,7 @@ namespace DataStandardizer.LanguageTag.Registry
         private int _lineNumber;
         private int _recordLineNumber;
         private int _fieldLineNumber;
+        private int _fieldStartLineNumber;
         private bool _fieldEndsWithSpace;
         private bool _isAtEnd;
 
@@ -149,6 +150,7 @@ namespace DataStandardizer.LanguageTag.Registry
             _fieldName = GetFieldName(line, nameLength);
             _fieldBody = Trim(line, colonIndex + 1);
             _fieldLineNumber = _lineNumber;
+            _fieldStartLineNumber = _lineNumber;
             _fieldEndsWithSpace = _fieldBody.Length > 0 && line[line.Length - 1] == ' ';
 
             return false;
@@ -187,6 +189,13 @@ namespace DataStandardizer.LanguageTag.Registry
             }
             else
             {
+                // File-Date, Added and Deprecated are each an RFC 3339 full-date (ref. RFC 5646 §3.1.1)
+                if (IsDateField(_fieldName) && SubtagRegistryRecordBase.ParseDate(fieldBody) is null)
+                {
+                    throw CreateException("The {1} field at line {0} has the value '{2}', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1).",
+                        _fieldStartLineNumber, _fieldName, fieldBody);
+                }
+
                 _fields.Add(new KeyValuePair<string, string>(_fieldName, fieldBody));
             }
 
@@ -301,6 +310,14 @@ namespace DataStandardizer.LanguageTag.Registry
         {
             return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Subtag) || ReferenceEquals(fieldName, FieldName.Tag) ||
                 ReferenceEquals(fieldName, FieldName.Type);
+        }
+
+        /// <summary>
+        /// Gets whether a field holds a date.
+        /// </summary>
+        private static bool IsDateField(string fieldName)
+        {
+            return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Added) || ReferenceEquals(fieldName, FieldName.Deprecated);
         }
 
 #if NETCOREAPP3_0_OR_GREATER

@@ -14,7 +14,6 @@ namespace DataStandardizer.LanguageTag.Registry
     /// </summary>
     /// <remarks>
     /// The fields are parsed once, when the record is created. Where a field that appears at most once per record (ref. RFC 5646 §3.1.2) appears more than once, the first is used.
-    /// A date that is not in the <c>yyyy-MM-dd</c> form reads as if the field were absent; its text is still in <see cref="ISubtagRegistryRecord.Fields"/>.
     /// </remarks>
     public abstract class SubtagRegistryTagRecordBase : SubtagRegistryRecordBase
     {

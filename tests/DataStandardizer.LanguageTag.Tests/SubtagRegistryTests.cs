@@ -788,23 +788,6 @@ namespace DataStandardizer.LanguageTag.Tests
             testResult.Second.Should().Equal(new[] { "English" });
         }
 
-        [Theory]
-        [InlineData("2005-13-01", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 2005-13-01\nDeprecated: 2005-13-01")]
-        [InlineData("2005-02-30", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 2005-02-30\nDeprecated: 2005-02-30")]
-        [InlineData("16 Oct 2005", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 16 Oct 2005\nDeprecated: 16 Oct 2005")]
-        [InlineData("2005-1-16", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 2005-1-16\nDeprecated: 2005-1-16")]
-        public void CreateFromContent_WhenDateIsMalformed_ReadsDateAsAbsentAndKeepsField(string date, string content)
-        {
-            // act
-            var testResult = SubtagRegistry.CreateFromContent(content);
-
-            // assert
-            var record = testResult.Languages.Should().ContainSingle().Subject;
-            record.Added.Should().Be(default(DateTime), "{0} is not a date in the yyyy-MM-dd form", date);
-            record.Deprecated.Should().BeNull("{0} is not a date in the yyyy-MM-dd form", date);
-            record.Fields.Should().Contain(new KeyValuePair<string, string>(AddedFieldName, date));
-        }
-
         /// <summary>
         /// Each typed list of the IANA registry fixture, with the number of records of its type in the fixture and the subtag or tag of the first and last of them.
         /// </summary>
@@ -1153,6 +1136,19 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The Subtag field ends with a space at line 4 (ref. RFC 5646 §3.1.1)."),
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua\n  Association ",
                 "The Description field ends with a space at line 6 (ref. RFC 5646 §3.1.1)."),
+            // File-Date, Added and Deprecated are each an RFC 3339 full-date: 4DIGIT "-" 2DIGIT "-" 2DIGIT, with a month and a day of that month
+            ("File-Date: 2025-13-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+                "The File-Date field at line 1 has the value '2025-13-01', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-1",
+                "The Added field at line 6 has the value '2005-10-1', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-02-30",
+                "The Added field at line 6 has the value '2005-02-30', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 16 Oct 2005",
+                "The Added field at line 6 has the value '16 Oct 2005', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: region\nSubtag: BU\nDescription: Burma\nAdded: 2005-10-16\nDeprecated: 1989-12-5",
+                "The Deprecated field at line 7 has the value '1989-12-5', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: grandfathered\nTag: i-ami\nDescription: Amis\nAdded: 1999-05-25\nDeprecated: 2009-07-29\nDeprecated: 2009-7-29",
+                "The Deprecated field at line 8 has the value '2009-7-29', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
             // the kind of record is told by its File-Date, Subtag or Tag field, and its type by its Type field, which each need a value
             ("File-Date: 2025-01-01\n%%\nType:\nSubtag: aa",
                 "The Type field at line 3 has no value (ref. RFC 5646 §3.1.2)."),

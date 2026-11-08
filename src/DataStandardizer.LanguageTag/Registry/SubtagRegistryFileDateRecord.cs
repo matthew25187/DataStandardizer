@@ -20,11 +20,12 @@ namespace DataStandardizer.LanguageTag.Registry
             : base(fields)
         {
             var fileDate = GetFirstValue(fields, FieldName.FileDate);
+            // the registry has checked that File-Date is a full-date before it creates the record
             FileDate = (fileDate is null ? null : ParseDate(fileDate)) ?? default(DateTime);
         }
 
         /// <summary>
-        /// Gets the File-Date field value, or the default <see cref="DateTime"/> when it is not a date in the <c>yyyy-MM-dd</c> form.
+        /// Gets the File-Date field value.
         /// </summary>
         public DateTime FileDate { get; }
     }
