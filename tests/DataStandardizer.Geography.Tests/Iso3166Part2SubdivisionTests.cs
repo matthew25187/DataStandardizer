@@ -4,6 +4,11 @@ namespace DataStandardizer.Geography.Tests;
 
 public class Iso3166Part2SubdivisionTests
 {
+    /// <summary>
+    /// The ISO 3166-2 subdivision code for New South Wales, Australia.
+    /// </summary>
+    private const string Iso3166Part2NewSouthWalesCode = "AU-NSW";
+
     #region Test: CompareTo
 
     [Theory]
@@ -71,39 +76,6 @@ public class Iso3166Part2SubdivisionTests
     }
 
     [Fact]
-    public void CompareTo_NullObject_ThrowsArgumentNullException()
-    {
-        // act
-        Action testAction = () => Iso3166Part2Subdivision.AU._NSW.CompareTo(null);
-
-        // assert
-        testAction.Should().Throw<ArgumentNullException>().WithParameterName("obj");
-    }
-
-    [Fact]
-    public void CompareTo_ObjectOfOtherType_ThrowsArgumentException()
-    {
-        // act
-        Action testAction = () => Iso3166Part2Subdivision.AU._NSW.CompareTo("AU-NSW");
-
-        // assert
-        testAction.Should().Throw<ArgumentException>().WithParameterName("obj");
-    }
-
-    [Fact]
-    public void CompareTo_DefaultInstanceObject_ThrowsArgumentException()
-    {
-        // arrange
-        object otherValue = default(Iso3166Part2Subdivision);
-
-        // act
-        Action testAction = () => Iso3166Part2Subdivision.AU._NSW.CompareTo(otherValue);
-
-        // assert
-        testAction.Should().Throw<ArgumentException>().WithParameterName("obj");
-    }
-
-    [Fact]
     public void CompareTo_ListSort_OrdersSubdivisionsByCode()
     {
         // arrange
@@ -124,6 +96,39 @@ public class Iso3166Part2SubdivisionTests
             Iso3166Part2Subdivision.AU._NSW,
             Iso3166Part2Subdivision.AU._VIC,
             Iso3166Part2Subdivision.NZ._AUK);
+    }
+
+    [Fact]
+    public void CompareTo_NullObject_ReturnsPositive()
+    {
+        // act
+        var testResult = Iso3166Part2Subdivision.AU._NSW.CompareTo(null);
+
+        // assert
+        testResult.Should().BePositive();
+    }
+
+    [Fact]
+    public void CompareTo_ObjectOfOtherType_ThrowsArgumentException()
+    {
+        // act
+        Action testAction = () => Iso3166Part2Subdivision.AU._NSW.CompareTo(Iso3166Part2NewSouthWalesCode);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("obj");
+    }
+
+    [Fact]
+    public void CompareTo_DefaultInstanceObject_ThrowsArgumentException()
+    {
+        // arrange
+        object otherValue = default(Iso3166Part2Subdivision);
+
+        // act
+        Action testAction = () => Iso3166Part2Subdivision.AU._NSW.CompareTo(otherValue);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("obj");
     }
 
     #endregion
