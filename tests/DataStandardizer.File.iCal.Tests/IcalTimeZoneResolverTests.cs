@@ -14,6 +14,10 @@ namespace DataStandardizer.File.iCal.Tests
         private const string London = "Europe/London";
         private const string Dublin = "Europe/Dublin";
         private const string Kolkata = "Asia/Kolkata";
+        private const string Tokyo = "Asia/Tokyo";
+
+        // The parameter of IcalTimeZoneRules.ToUtc that an out-of-range instant is reported against.
+        private const string LocalParameterName = "local";
         private const string EtcUtcIdentifier = "Etc/UTC";
         private const string EtcUtcAbbreviation = "UTC";
 
@@ -813,6 +817,57 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        // Local times whose instants fall outside the range of DateTime: in Tokyo (local mean time, +09:18:59) before 0001-01-01T00:00Z,
+        // and in New York (EST, -05:00) after 9999-12-31T23:59:59.9999999Z.
+        public static TheoryData<string, DateTime> LocalTimesOutOfRange => new TheoryData<string, DateTime>
+        {
+            { Tokyo, new DateTime(1, 1, 1, 0, 30, 0) },
+            { NewYork, new DateTime(9999, 12, 31, 23, 30, 0) },
+        };
+
+        [Theory]
+        [MemberData(nameof(LocalTimesOutOfRange))]
+        public void ToUtc_TzDataInstantOutOfRange_ThrowsArgumentOutOfRange(string timeZoneId, DateTime local)
+        {
+            // arrange
+            var rules = IcalTimeZoneResolver.TzData.Resolve(timeZoneId, null);
+
+            // act
+            Action testAction = () => rules.ToUtc(local);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(LocalTimesOutOfRange))]
+        public void GetUtcOffsetsForLocal_TzDataInstantOutOfRange_IsEmpty(string timeZoneId, DateTime local)
+        {
+            // arrange
+            var rules = IcalTimeZoneResolver.TzData.Resolve(timeZoneId, null);
+
+            // act
+            var testResult = rules.GetUtcOffsetsForLocal(local);
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ToUtc_CalendarInstantBeforeRange_ThrowsArgumentOutOfRange()
+        {
+            // arrange
+            // Kolkata is at +05:30 throughout its VTIMEZONE, so 00:30 on 0001-01-01 local time is before 0001-01-01T00:00Z.
+            var timeZone = IcalTimeZone.FromTzData(TzDataTimezone.Parse(Kolkata), Utc(2020), Utc(2030));
+            var rules = IcalTimeZoneResolver.Calendar.Resolve(Kolkata, ModelTestData.ReadCalendar(WriteCalendar(timeZone)));
+
+            // act
+            Action testAction = () => rules.ToUtc(new DateTime(1, 1, 1, 0, 30, 0));
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
         }
 
         [Fact]

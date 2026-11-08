@@ -77,7 +77,9 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <param name="local">The local time, of kind <see cref="DateTimeKind.Unspecified"/>.</param>
         /// <returns>The offsets, in chronological order of the instants at which the local clock shows the time: none where the time falls in a
-        /// gap, as when clocks go forward; one normally; and two where the time falls in an overlap, as when clocks go back.</returns>
+        /// gap, as when clocks go forward; one normally; and two where the time falls in an overlap, as when clocks go back.  Within a day of
+        /// either end of the range of <see cref="DateTime"/>, an offset that would put the time's instant outside that range may be left out,
+        /// so the result can also be empty there.</returns>
         /// <exception cref="ArgumentException"><paramref name="local"/> is of kind <see cref="DateTimeKind.Utc"/> or
         /// <see cref="DateTimeKind.Local"/>.</exception>
         public IReadOnlyList<IcalUtcOffset> GetUtcOffsetsForLocal(DateTime local)
@@ -157,7 +159,7 @@ namespace DataStandardizer.File.iCal
         protected virtual IReadOnlyList<IcalUtcOffset> GetUtcOffsetsForLocalCore(DateTime local)
         {
             var offsets = new List<IcalUtcOffset>(2);
-            WalkLocal(local, offsets);
+            WalkLocal(local, offsets, out _);
             return offsets;
         }
 
@@ -166,23 +168,29 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private IcalUtcOffset GetOffsetBeforeGap(DateTime local)
         {
-            var offsetBeforeGap = WalkLocal(local, null);
-            if (!offsetBeforeGap.HasValue)
-                throw new InvalidOperationException("The local time has no UTC offset, but falls in no gap between the time zone's offsets.");
+            bool isOutOfRange;
+            var offsetBeforeGap = WalkLocal(local, null, out isOutOfRange);
+            if (offsetBeforeGap.HasValue) return offsetBeforeGap.Value;
 
-            return offsetBeforeGap.Value;
+            // A time with no offset that falls in no gap is one whose instant falls outside the range of DateTime.
+            if (isOutOfRange)
+                throw new ArgumentOutOfRangeException(nameof(local), local, "The instant falls outside the range of DateTime.");
+
+            throw new InvalidOperationException("The local time has no UTC offset, but falls in no gap between the time zone's offsets.");
         }
 
         /// <summary>
         /// Walks the periods of constant offset within a day either side of a local time, adding to <paramref name="offsets"/> each offset that
-        /// gives the time, and returns the offset before the first gap the time falls in.
+        /// gives the time, and returns the offset before the first gap the time falls in.  <paramref name="isOutOfRange"/> is set where one of
+        /// the offsets would put the time's instant outside the range of <see cref="DateTime"/>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private IcalUtcOffset? WalkLocal(DateTime local, List<IcalUtcOffset>? offsets)
+        private IcalUtcOffset? WalkLocal(DateTime local, List<IcalUtcOffset>? offsets, out bool isOutOfRange)
 #else
-        private IcalUtcOffset? WalkLocal(DateTime local, List<IcalUtcOffset> offsets)
+        private IcalUtcOffset? WalkLocal(DateTime local, List<IcalUtcOffset> offsets, out bool isOutOfRange)
 #endif
         {
+            isOutOfRange = false;
             // An offset is less than a day, so only the offsets in use within a day either side of the time can give it.
             var windowStart = AddClamped(local, -TimeSpan.TicksPerDay, DateTimeKind.Utc);
             var windowEnd = AddClamped(local, TimeSpan.TicksPerDay, DateTimeKind.Utc);
@@ -192,6 +200,7 @@ namespace DataStandardizer.File.iCal
             foreach (var transition in GetTransitionsCore(windowStart, windowEnd))
             {
                 var periodEnd = transition.InstantUtc.Ticks;
+                isOutOfRange |= IsOutOfRange(local, offset);
                 AddIfInPeriod(offsets, local, offset, periodStart, periodEnd);
 
                 // The time falls in a gap where it comes after the transition on the clock before it, and before it on the clock after it.
@@ -205,8 +214,18 @@ namespace DataStandardizer.File.iCal
                 periodStart = periodEnd;
             }
 
+            isOutOfRange |= IsOutOfRange(local, offset);
             AddIfInPeriod(offsets, local, offset, periodStart, long.MaxValue);
             return offsetBeforeGap;
+        }
+
+        /// <summary>
+        /// Tells whether an offset would put the instant of a local time outside the range of <see cref="DateTime"/>.
+        /// </summary>
+        private static bool IsOutOfRange(DateTime local, IcalUtcOffset offset)
+        {
+            var candidate = local.Ticks - offset.Offset.Ticks;
+            return candidate < DateTime.MinValue.Ticks || candidate > DateTime.MaxValue.Ticks;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
