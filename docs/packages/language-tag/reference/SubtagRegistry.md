@@ -32,7 +32,8 @@ format of RFC 5646 §3.1.1: a blank line, a tab or other control character, a
 line that is neither a field nor a folded line starting with a space, a field
 that ends with a space, a `File-Date`, `Subtag`, `Tag` or `Type` field
 with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
-RFC 3339 full-date, or a record that is empty, has none or more than one
+RFC 3339 full-date (or is one in the year 0000, before the first year a
+`DateTime` holds), or a record that is empty, has none or more than one
 of the `File-Date`, `Subtag` and `Tag` fields, or has no `Type` that
 RFC 5646 §3.1.3 defines for it. Pass a loaded registry
 to the [Bcp47LanguageTag](Bcp47LanguageTag.md) `Create` / `TryCreate` overloads, or

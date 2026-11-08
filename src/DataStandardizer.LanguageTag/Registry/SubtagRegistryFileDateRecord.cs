@@ -13,15 +13,13 @@ namespace DataStandardizer.LanguageTag.Registry
     public sealed class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
     {
 #if NETCOREAPP3_0_OR_GREATER
-        internal SubtagRegistryFileDateRecord(KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryFileDateRecord(KeyValuePair<string, string>[] fields, DateTime fileDate)
 #else
-        internal SubtagRegistryFileDateRecord([DisallowNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryFileDateRecord([DisallowNull] KeyValuePair<string, string>[] fields, DateTime fileDate)
 #endif
             : base(fields)
         {
-            var fileDate = GetFirstValue(fields, FieldName.FileDate);
-            // the registry has checked that File-Date is a full-date before it creates the record
-            FileDate = (fileDate is null ? null : ParseDate(fileDate)) ?? default(DateTime);
+            FileDate = fileDate;
         }
 
         /// <summary>

@@ -1147,6 +1147,14 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The Added field at line 6 has the value '16 Oct 2005', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
             ("File-Date: 2025-01-01\n%%\nType: region\nSubtag: BU\nDescription: Burma\nAdded: 2005-10-16\nDeprecated: 1989-12-5",
                 "The Deprecated field at line 7 has the value '1989-12-5', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n  extra",
+                "The Added field at line 6 has the value '2005-10-16 extra', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            // 1900 is not a leap year in the Gregorian calendar (RFC 3339 §5.7)
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 1900-02-29",
+                "The Added field at line 6 has the value '1900-02-29', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
+            // the year 0000 is a full-date, but before the first year a DateTime holds
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 0000-02-29",
+                "The Added field at line 6 has the value '0000-02-29', a full-date in the year 0000, which is before the year 0001 that a DateTime starts at."),
             ("File-Date: 2025-01-01\n%%\nType: grandfathered\nTag: i-ami\nDescription: Amis\nAdded: 1999-05-25\nDeprecated: 2009-07-29\nDeprecated: 2009-7-29",
                 "The Deprecated field at line 8 has the value '2009-7-29', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
             // the kind of record is told by its File-Date, Subtag or Tag field, and its type by its Type field, which each need a value

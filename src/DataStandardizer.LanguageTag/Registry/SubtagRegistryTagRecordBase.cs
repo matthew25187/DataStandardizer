@@ -33,18 +33,21 @@ namespace DataStandardizer.LanguageTag.Registry
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal SubtagRegistryTagRecordBase(KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryTagRecordBase(KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
 #else
-        internal SubtagRegistryTagRecordBase([DisallowNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryTagRecordBase([DisallowNull] KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
 #endif
             : base(fields)
         {
+            // the registry parses the first Added and Deprecated fields, and fails to load when any of them is not a full-date; a record with no Added
+            // field reads as the default date
+            Added = added ?? default(DateTime);
+            Deprecated = deprecated;
+
             var descriptionCount = 0;
             var prefixCount = 0;
             var commentsCount = 0;
             var hasType = false;
-            var hasAdded = false;
-            var hasDeprecated = false;
 
             foreach (var field in fields)
             {
@@ -56,14 +59,6 @@ namespace DataStandardizer.LanguageTag.Registry
                         break;
                     case FieldName.Description:
                         descriptionCount++;
-                        break;
-                    case FieldName.Added:
-                        if (!hasAdded) Added = ParseDate(field.Value) ?? default(DateTime);
-                        hasAdded = true;
-                        break;
-                    case FieldName.Deprecated:
-                        if (!hasDeprecated) Deprecated = ParseDate(field.Value);
-                        hasDeprecated = true;
                         break;
                     case FieldName.PreferredValue:
                         if (PreferredValue is null) PreferredValue = field.Value;
