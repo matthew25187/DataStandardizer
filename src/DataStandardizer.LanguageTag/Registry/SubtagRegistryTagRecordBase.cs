@@ -13,7 +13,8 @@ namespace DataStandardizer.LanguageTag.Registry
     /// The shared base of the tag and subtag records of the Subtag Registry, with the fields they have in common.
     /// </summary>
     /// <remarks>
-    /// The fields are parsed once, when the record is created. Where a field that appears at most once per record (ref. RFC 5646 §3.1.2) appears more than once, the first is used.
+    /// The fields are parsed once, when the record is created. A registry where a field other than Description, Comments and Prefix appears more than
+    /// once in a record fails to load (ref. RFC 5646 §3.1.2).
     /// </remarks>
     public abstract class SubtagRegistryTagRecordBase : SubtagRegistryRecordBase
     {
@@ -33,15 +34,14 @@ namespace DataStandardizer.LanguageTag.Registry
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal SubtagRegistryTagRecordBase(KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
+        internal SubtagRegistryTagRecordBase(KeyValuePair<string, string>[] fields, DateTime added, DateTime? deprecated)
 #else
-        internal SubtagRegistryTagRecordBase([DisallowNull] KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
+        internal SubtagRegistryTagRecordBase([DisallowNull] KeyValuePair<string, string>[] fields, DateTime added, DateTime? deprecated)
 #endif
             : base(fields)
         {
-            // the registry parses the first Added and Deprecated fields, and fails to load when any of them is not a full-date; a record with no Added
-            // field reads as the default date
-            Added = added ?? default(DateTime);
+            // the registry parses the Added and Deprecated fields, and fails to load when Added is missing or either is not a full-date
+            Added = added;
             Deprecated = deprecated;
 
             var descriptionCount = 0;
@@ -97,7 +97,7 @@ namespace DataStandardizer.LanguageTag.Registry
         public IReadOnlyList<string> Description => GetValuesView(_description, ref _descriptionView);
 
         /// <summary>
-        /// Gets the Added field value, or the default <see cref="DateTime"/> when the record has none.
+        /// Gets the Added field value, which every tag and subtag record has (ref. RFC 5646 §3.1.2).
         /// </summary>
         public DateTime Added { get; }
 

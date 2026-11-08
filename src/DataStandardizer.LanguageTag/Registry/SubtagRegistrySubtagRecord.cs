@@ -13,9 +13,9 @@ namespace DataStandardizer.LanguageTag.Registry
     public sealed class SubtagRegistrySubtagRecord : SubtagRegistryTagRecordBase
     {
 #if NETCOREAPP3_0_OR_GREATER
-        internal SubtagRegistrySubtagRecord(KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
+        internal SubtagRegistrySubtagRecord(KeyValuePair<string, string>[] fields, DateTime added, DateTime? deprecated)
 #else
-        internal SubtagRegistrySubtagRecord([DisallowNull] KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
+        internal SubtagRegistrySubtagRecord([DisallowNull] KeyValuePair<string, string>[] fields, DateTime added, DateTime? deprecated)
 #endif
             : base(fields, added, deprecated)
         {

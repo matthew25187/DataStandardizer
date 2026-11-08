@@ -111,7 +111,7 @@ namespace DataStandardizer.LanguageTag
         #region Public Properties
 
         /// <summary>
-        /// Gets the date of the registry's File-Date record, or <see langword="null"/> when it has none.
+        /// Gets the date of the registry's File-Date record, which every loaded registry has (ref. RFC 5646 §3.1.2), so it is never <see langword="null"/>.
         /// </summary>
         public DateTime? FileDate { get; }
 
