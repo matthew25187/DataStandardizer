@@ -210,6 +210,280 @@
           ]
         }
       ]
+    },
+    "209fff0295605aca542db502364154cc5d2611b4": {
+      "subject": "The packages no longer depend on `JetBrains.Annotations` (#533)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "The `netstandard1.x` and `netstandard2.0` builds no longer list `JetBrains.Annotations` as a NuGet dependency. If your code uses its attributes and you got the package through DataStandardizer, add a reference to `JetBrains.Annotations` to your project",
+          "packages": [
+            "DataStandardizer.Chronology",
+            "DataStandardizer.Communication",
+            "DataStandardizer.Core",
+            "DataStandardizer.File.CSV",
+            "DataStandardizer.File.iCal",
+            "DataStandardizer.Geography",
+            "DataStandardizer.Language",
+            "DataStandardizer.LanguageTag",
+            "DataStandardizer.Money"
+          ]
+        }
+      ]
+    },
+    "9f21eb22dcd6e1556316154e3f1fd60463081695": {
+      "subject": "Debuggers can step into the packages' source through Source Link (#540)",
+      "notes": [
+        {
+          "category": "fixed",
+          "packages": [
+            "DataStandardizer.Chronology",
+            "DataStandardizer.Communication",
+            "DataStandardizer.Core",
+            "DataStandardizer.File.CSV",
+            "DataStandardizer.File.iCal",
+            "DataStandardizer.Geography",
+            "DataStandardizer.Language",
+            "DataStandardizer.LanguageTag",
+            "DataStandardizer.Money"
+          ]
+        }
+      ]
+    },
+    "491985226b261c9ce90d14b9894b8d11a4715b11": {
+      "subject": "Nullable-enabled projects get null warnings from the netstandard1.x and netstandard2.0 builds (#552)",
+      "notes": [
+        {
+          "category": "changed",
+          "text": "The netstandard1.x and netstandard2.0 builds now carry nullable annotations, so projects on C# 8 or later with nullable enabled get null warnings from them",
+          "packages": [
+            "DataStandardizer.Chronology",
+            "DataStandardizer.Communication",
+            "DataStandardizer.Core",
+            "DataStandardizer.File.CSV",
+            "DataStandardizer.File.iCal",
+            "DataStandardizer.Geography",
+            "DataStandardizer.Language",
+            "DataStandardizer.LanguageTag",
+            "DataStandardizer.Money"
+          ]
+        }
+      ]
+    },
+    "810f8b1e8a63ebdb93042c08e004b2ba1a3b1960": {
+      "subject": "Accept raw UTF-8 in a quoted Content-Type parameter value (RFC 6532 §3.2) (#579)",
+      "notes": [
+        {
+          "category": "fixed",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        }
+      ]
+    },
+    "67913a65523253a1b88c6bc1d95b516ec0903bb8": {
+      "subject": "MaxLineLength also limits the folds in a content line (#606)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`MaxLineLength` also limits the folds in a content line, so a line with more folds than the limit is rejected as too long",
+          "packages": [
+            "DataStandardizer.File.iCal"
+          ]
+        }
+      ]
+    },
+    "17f55bc698c637db3255bafd93be88e055b1a356": {
+      "subject": "XcalReader and XcardReader no longer overflow the stack on .NET Framework when their source fails a read with an OperationCanceledException (#724)",
+      "notes": [
+        {
+          "category": "fixed",
+          "packages": [
+            "DataStandardizer.File.iCal"
+          ]
+        }
+      ]
+    },
+    "f9774b35e4dfe4770205d1ba0ac8c4d3542e91f9": {
+      "subject": "Read and write mbox files (RFC 4155), and make Internet message defaults follow the standards (#566)",
+      "notes": [
+        {
+          "category": "added"
+        },
+        {
+          "category": "added",
+          "text": "`ImfWriter` writes a message read from an mbox file with CRLF line breaks"
+        }
+      ]
+    },
+    "7dd3e7cd32e1325857838180fe0cc09b94c8197e": {
+      "subject": "ImfEntityWriter errors give the right EntityPath for a message within a message body (#578)",
+      "notes": []
+    },
+    "11be6aa3a4a7a4a920b0def75b1539fd546b1da2": {
+      "subject": "Readers accept a message with no Date or From, recording a diagnostic (RFC 5322 §4.5) (#580)",
+      "notes": []
+    },
+    "ab9965f64f42101099aec9db76ce754c78779cdb": {
+      "subject": "Readers and writers refuse octets above 127 in a nested header under a 7bit label (RFC 2045 §2.7, §6.4) (#582)",
+      "notes": []
+    },
+    "46c634dbe9cec8b034cde3c395d70b40e862e77a": {
+      "subject": "MboxWriter and MboxReader count an mbox quote towards the 998-octet line limit (RFC 4155, RFC 5322 §2.1.1) (#581)",
+      "notes": []
+    },
+    "eaf39411a38cccd753ddef41ae0d62282485ec0b": {
+      "subject": "ImfEntityReader applies the message-level rules, and ImfEntityWriter checks raw parts, by default (#583)",
+      "notes": []
+    },
+    "cae39430164072ed14e51c56eb318c32d30c0f71": {
+      "subject": "Readers and writers check the bytes of a body several times faster (#587)",
+      "notes": []
+    },
+    "ed7fd5c8f18f301709a9af77275918356667d0c7": {
+      "subject": "ImfReader allocates about a quarter of the memory for a message from a seekable stream (#588)",
+      "notes": []
+    },
+    "0f18245fe9f78ebf0e6e4c1ec28dd462c584f6b5": {
+      "subject": "Readers allocate less for each message when they check its header (#589)",
+      "notes": []
+    },
+    "92c3a12cedfc6d4a0aa01135e8056954c809c825": {
+      "subject": "ImfEntityWriter and ImfWriter choose a transfer encoding about three times faster (#590)",
+      "notes": []
+    },
+    "2b53030cd0c848e24b6aca4c5e0346041b25dad1": {
+      "subject": "File.InternetMessage readers and writers cancel an asynchronous operation only when the caller's token is canceled (#714)",
+      "notes": []
+    },
+    "2b2160ceed1612bfe729faeb3d0d231d21be27cf": {
+      "subject": "ImfReader and EmlxReader cancel an asynchronous read only when the caller's token is canceled (#722)",
+      "notes": []
+    },
+    "ee037b964d013795c83e4735ca4e3db18bacb083": {
+      "subject": "MboxReader reads no more than one 16 KiB block from its stream at a time (#727)",
+      "notes": []
+    },
+    "e28ddde8749591ce44b0cf3ba05c53f42c5f155c": {
+      "subject": "ImfEntityWriter writes an encoded body in blocks of no more than 16 KiB (#736)",
+      "notes": []
+    },
+    "bd531ae87faa1a7b62602fcebb669298faeeba4a": {
+      "subject": "Recognise the vCard 4.0 extensions of RFC 6473, 6474, 6715, 6869 and 8605 (#616)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "Read and write the vCard 4.0 extensions of RFC 6473, RFC 6474, RFC 6715, RFC 6869 and RFC 8605, with typed members on `VcardCard` and `IVcard40Card`"
+        }
+      ]
+    },
+    "c63919f212e15f2f3d910ad435c94ef9fdc20101": {
+      "subject": "Read and write the vCard 4.0 extensions of RFC 9554 (#618)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "Read and write the vCard 4.0 extensions of RFC 9554, including `CREATED`, `GRAMGENDER`, `LANGUAGE`, `PRONOUNS`, `SOCIALPROFILE` and their parameters, with typed members on `VcardCard` and `IVcard40Card`"
+        }
+      ]
+    },
+    "096696a5f4bf3dbbe407e90e2d535b134fbca422": {
+      "subject": "Read and write vCard 3.0 cards, and convert cards between versions (#620)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "Read and write vCard 3.0 cards (RFC 2426, RFC 2739 and RFC 4770) with `VcardReader` and `VcardOptions.WriteVersion`, and view them through `IVcard30Card`"
+        },
+        {
+          "category": "added",
+          "text": "`VcardVersionConverter` lists what a card loses in another version and converts it, and writing data the version can't hold throws unless `AllowLossyVersionConversion` is set"
+        },
+        {
+          "category": "added",
+          "text": "`VcardCard` has `Mailer`, `Classification`, `SourceName`, `Profile`, `CalendarAccessUris` and `Agents` for the properties of older versions"
+        }
+      ]
+    },
+    "882f75dbd6c200fd9a8ce30a5b4ebd3d779b64fe": {
+      "subject": "Read and write vCard 2.1 cards (#621)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "Read and write vCard 2.1 cards, including quoted-printable, `CHARSET`, `BASE64` and the card an `AGENT` holds, with `VcardReader` and `VcardOptions.WriteVersion`, and view them through `IVcard21Card`"
+        },
+        {
+          "category": "added",
+          "text": "`VcardOptions.WriteNamedTypesInVersion21` writes each `TYPE` of a vCard 2.1 card with its name, as `TEL;TYPE=WORK:`"
+        }
+      ]
+    },
+    "95a507a0de97a30c38d2862c5bc70d3c66b487da": {
+      "subject": "VcardCard.Photos, Logos and Sounds hold media of any length on every target (#682)",
+      "notes": [
+        {
+          "category": "none"
+        }
+      ]
+    },
+    "cb96d3954d0f80fbb65cfe39ef5f100fa8a943cb": {
+      "subject": "VcardContentLineReader rejects a byte order mark whatever VcardOptions.Encoding is (#694)",
+      "notes": []
+    },
+    "159c082233df13a058f37e991ec7c5eaed1b816e": {
+      "subject": "VcardContentLineWriter.WriteLineAsync reports disposal during a write, and faults a task it used to cancel (#695)",
+      "notes": []
+    },
+    "e4c297106c62c6c4b3e992d7774ca467d620db11": {
+      "subject": "VcardContentLineWriter cancels an asynchronous operation only when the caller's token is canceled (#710)",
+      "notes": [
+        {
+          "category": "none"
+        }
+      ]
+    },
+    "fba3d302cdcc9a4cf0d53149baf9b65bf21c202d": {
+      "subject": "VcardWriter, JcardWriter, XcardWriter and VcardContentLineReader cancel an asynchronous operation only when the caller's token is canceled (#713)",
+      "notes": []
+    },
+    "34f74b2eac494acd3127ad0f4f1d0f751e53dbbf": {
+      "subject": "VcardReader, JcardReader and XcardReader cancel an asynchronous read only when the caller's token is canceled (#721)",
+      "notes": []
+    },
+    "c63323a3596fe7728ce62d0572c8b8e347a7d980": {
+      "subject": "JcardWriter refuses further writes after a flush of its stream fails (#723)",
+      "notes": []
+    },
+    "f397569629a30ec7c3e77c6ba0311b9ff24106b8": {
+      "subject": "StringEnum.Parse and TryParse with ignoreCase no longer throw when two member names differ only by case (#729)",
+      "notes": [
+        {
+          "category": "none"
+        }
+      ]
+    },
+    "2918691234fb62fe689b57be617e1e97ce6b5d42": {
+      "subject": "Raise the lowest target of LanguageTag, Money and Communication to netstandard1.1 (#448)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "Bcp47LanguageTag's ReadOnlySpan<char> overloads and AsSpan() are now available on netstandard1.1",
+          "packages": [
+            "DataStandardizer.LanguageTag"
+          ]
+        }
+      ]
+    },
+    "023c6202967adf0222ab4cb042d8d414b30a7606": {
+      "subject": "IcalReader and IcalWriter reject a quoted value for a parameter whose grammar has no quoted form (#675)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`IcalReader` rejects, and `IcalWriter` refuses to write, a parameter value in double quotes where the parameter's grammar has no quoted form, such as `FMTTYPE=\"audio/basic\"` (RFC 5545 §3.2.8)"
+        },
+        {
+          "category": "added",
+          "text": "`IcalOptions.AllowQuotedParameterValues` accepts a quoted value for a parameter whose grammar has no quoted form, reported as the new `IcalDiagnosticKind.QuotedParameterValue`."
+        }
+      ]
     }
   }
 }
