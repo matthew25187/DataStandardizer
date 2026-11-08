@@ -45,6 +45,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # Every github/codeql-action step in a workflow has to run the same version, so they move together.
+      codeql-action:
+        patterns:
+          - github/codeql-action/*
 
   # Changes only the version in global.json, so rollForward stays at disable.
   - package-ecosystem: dotnet-sdk
