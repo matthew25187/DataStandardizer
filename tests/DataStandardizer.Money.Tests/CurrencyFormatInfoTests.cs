@@ -7,6 +7,9 @@ public class CurrencyFormatInfoTests
 {
     private const string NewZealandCulture = "en-NZ";
     private const string GermanCulture = "de-DE";
+    private const int FirstGroupSize = 3;
+    private const int LaterGroupSize = 2;
+    private const int ChangedGroupSize = 1;
 
     #region Test: InvariantInfo
 
@@ -33,6 +36,53 @@ public class CurrencyFormatInfoTests
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the instance is read only");
+    }
+
+    #endregion
+
+    #region Test: CurrencyGroupSizes
+
+    [Fact]
+    public void CurrencyGroupSizes_WhenReturnedArrayIsChanged_KeepsTheOriginalSizes()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo { CurrencyGroupSizes = new[] { FirstGroupSize, LaterGroupSize } };
+        var returnedSizes = testInfo.CurrencyGroupSizes;
+
+        // act
+        returnedSizes[0] = ChangedGroupSize;
+        var testResult = testInfo.CurrencyGroupSizes;
+
+        // assert
+        testResult.Should().Equal(new[] { FirstGroupSize, LaterGroupSize }, "the getter must return a copy of the sizes");
+    }
+
+    [Fact]
+    public void CurrencyGroupSizes_WhenAssignedArrayIsChangedAfterwards_KeepsTheSizesAsSet()
+    {
+        // arrange
+        var assignedSizes = new[] { FirstGroupSize, LaterGroupSize };
+        var testInfo = new CurrencyFormatInfo { CurrencyGroupSizes = assignedSizes };
+
+        // act
+        assignedSizes[0] = ChangedGroupSize;
+        var testResult = testInfo.CurrencyGroupSizes;
+
+        // assert
+        testResult.Should().Equal(new[] { FirstGroupSize, LaterGroupSize }, "the setter must store a copy of the sizes");
+    }
+
+    [Fact]
+    public void CurrencyGroupSizes_WhenSetToNull_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyGroupSizes = null!;
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>();
     }
 
     #endregion

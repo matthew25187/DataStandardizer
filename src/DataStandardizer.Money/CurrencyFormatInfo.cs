@@ -217,13 +217,21 @@ namespace DataStandardizer.Money
         /// Each element in the array specifies the number of digits in a group. For example, an array of {3, 2}
         /// indicates that the first group contains three digits, and the subsequent groups contain two digits each,
         /// as used in the Indian numbering system.
+        /// <para>
+        /// As with <see cref="NumberFormatInfo.NumberGroupSizes"/>, the getter returns a copy of the sizes and the
+        /// setter stores a copy of the array it is given, so changing either array afterwards does not change
+        /// this instance.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
         public int[] CurrencyGroupSizes
         {
-            get => _currencyGroupSizes;
+            get => CopyGroupSizes(_currencyGroupSizes);
             set
             {
                 if (IsReadOnly)
@@ -231,7 +239,12 @@ namespace DataStandardizer.Money
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
                 }
 
-                _currencyGroupSizes = value;
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                _currencyGroupSizes = CopyGroupSizes(value);
             }
         }
 
@@ -459,6 +472,15 @@ namespace DataStandardizer.Money
             }
 
             return value ?? string.Empty;
+        }
+
+        private static int[] CopyGroupSizes(int[] groupSizes)
+        {
+            // Array.Clone is not available on netstandard1.x, so the copy is made explicitly.
+            var result = new int[groupSizes.Length];
+            Array.Copy(groupSizes, result, groupSizes.Length);
+
+            return result;
         }
 
         private static int[] ParseGroupSizes(string groupSizesText)
