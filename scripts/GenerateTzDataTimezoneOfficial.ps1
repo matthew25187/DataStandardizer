@@ -25,8 +25,11 @@
     such as the deprecated names in backward, have no fields; those that refer to a canonical timezone are
     generated into the link data partial source file, so that they can be parsed to it.
 
-    Etc/UTC, which is defined in etcetera rather than listed in zone1970.tab, is given a field after the canonical
-    timezones, with no countries, no comment and coordinates of 0, as the default value of the type stands for it.
+    Etc/UTC and Etc/GMT, which are defined in etcetera rather than listed in zone1970.tab, are given fields after the
+    canonical timezones, with no countries, no comment and coordinates of 0.  The default value of the type stands for
+    Etc/UTC, and Etc/GMT is the target of GMT, Greenwich and the other names for universal time that etcetera and
+    backward link to it.  The other zones of etcetera, Etc/GMT-14 to Etc/GMT+12, are not generated, so their names
+    are not identifiers of the type.
     The generated members that compare, convert or format a timezone work on its identifier, which is Etc/UTC for
     the default value; the Identifier property that supplies it is hand-written, in <SourceCodeTypeName>.Members.cs.
 
@@ -42,7 +45,7 @@
 
     The file version, which identifies the release, is optional.
 
-    Generation fails, rather than emitting bad data, where a timezone listed in zone1970.tab, or Etc/UTC, has no
+    Generation fails, rather than emitting bad data, where a timezone listed in zone1970.tab, Etc/UTC or Etc/GMT has no
     Zone, a zone line references a rule set that does not exist, any zone line but the last has no UNTIL, the UNTIL
     values of a zone do not strictly increase, a timezone listed in zone.tab is neither listed in zone1970.tab nor a Link to a
     timezone that is, a chain of links has a cycle or does not end at a Zone, or any line of the source cannot be
@@ -1071,7 +1074,7 @@ function Out-SourceCode {
         if ($coordinateLongitudeDMS.StartsWith('-')) {
             $coordinateLongitude *= -1
         }
-        # Etc/UTC is used in no country, so it has none.
+        # Etc/UTC and Etc/GMT are used in no country, so they have none.
         [string[]]$countryCodes = [string]::IsNullOrEmpty($_.'country-codes') ? @() : @($_.'country-codes' -split ',')
         $comment = $null
         if (-not [string]::IsNullOrWhiteSpace($_.comments)) {
@@ -1230,6 +1233,10 @@ function Out-SourceCode {
 # The identifier of the timezone that the default value of the type stands for.
 $DefaultIdentifier = 'Etc/UTC'
 
+# The zones of etcetera that are generated, after the timezones of zone1970.tab: Etc/UTC, which the default value
+# stands for, and Etc/GMT, which GMT, Greenwich and the other names for universal time in etcetera and backward link to.
+$EtceteraIdentifiers = @($DefaultIdentifier, 'Etc/GMT')
+
 # Validate parameters.
 if (-not (Test-Path -Path $SourceFolderPath -PathType Container)) {
     Write-Error "Source folder $SourceFolderPath not found."
@@ -1303,17 +1310,19 @@ try {
     $timezoneLines = $zonesFileLines | Select-Object -Skip $zonesFileHeaderLineCount | Where-Object { -not $_.StartsWith('#') }
     [pscustomobject[]]$timezones = @($timezoneLines | ConvertFrom-Csv -Delimiter "`t" -Header $zonesFileHeaderFieldNames)
 
-    # Etc/UTC, which the default value of the type stands for, is defined in etcetera rather than listed in
-    # zone1970.tab, so it is added after the timezones of zone1970.tab, with no countries and no coordinates.
-    if (-not $tzDataSource.Zones.Contains($DefaultIdentifier)) {
-        throw "No Zone is defined for $DefaultIdentifier, which the default value stands for."
-    }
-    $timezones += [pscustomobject]@{
-        'country-codes' = $null
-        coordinates     = '+0000+00000'
-        TZ              = $DefaultIdentifier
-        comments        = $null
-        LinkTarget      = $null
+    # Etc/UTC and Etc/GMT are defined in etcetera rather than listed in zone1970.tab, so they are added after the
+    # timezones of zone1970.tab, with no countries and no coordinates.
+    foreach ($etceteraIdentifier in $EtceteraIdentifiers) {
+        if (-not $tzDataSource.Zones.Contains($etceteraIdentifier)) {
+            throw "No Zone is defined for $etceteraIdentifier, which is defined in etcetera."
+        }
+        $timezones += [pscustomobject]@{
+            'country-codes' = $null
+            coordinates     = '+0000+00000'
+            TZ              = $etceteraIdentifier
+            comments        = $null
+            LinkTarget      = $null
+        }
     }
     $canonicalIdentifiers = [System.Collections.Generic.HashSet[string]]::new([string[]]@($timezones | ForEach-Object TZ), [System.StringComparer]::Ordinal)
 

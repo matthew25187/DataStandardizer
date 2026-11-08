@@ -23,6 +23,13 @@ public class TzDataTimezoneParseTests
     private const string Germany = "DE";
     private const string Liechtenstein = "LI";
 
+    // Zones of the etcetera file of TZ Database 2026e with a fixed offset other than 0, which the package does not cover.
+    private const string EtcGmtPlus1Identifier = "Etc/GMT+1";
+    private const string EtcGmtPlus5Identifier = "Etc/GMT+5";
+    private const string EtcGmtPlus12Identifier = "Etc/GMT+12";
+    private const string EtcGmtMinus1Identifier = "Etc/GMT-1";
+    private const string EtcGmtMinus14Identifier = "Etc/GMT-14";
+
     public static TheoryData<string> TimezoneField_TestCases => TimezoneFieldCatalog.CreateIdentifierTestCases();
 
     public static TheoryData<string> UnknownIdentifier_TestCases => new()
@@ -139,6 +146,21 @@ public class TzDataTimezoneParseTests
 
         // assert
         testResult.Should().BeApproximately(ZurichLongitude, CoordinateTolerance);
+    }
+
+    [Theory]
+    [InlineData(EtcGmtPlus1Identifier)]
+    [InlineData(EtcGmtPlus5Identifier)]
+    [InlineData(EtcGmtPlus12Identifier)]
+    [InlineData(EtcGmtMinus1Identifier)]
+    [InlineData(EtcGmtMinus14Identifier)]
+    public void Parse_EtcGmtZoneWithNonzeroOffset_ThrowsFormatException(string testIdentifier)
+    {
+        // act
+        Action testAction = () => TzDataTimezone.Parse(testIdentifier);
+
+        // assert
+        testAction.Should().Throw<FormatException>(NotKnownBecause, testIdentifier);
     }
 
     [Theory]

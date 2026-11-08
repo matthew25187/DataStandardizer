@@ -322,8 +322,8 @@ public class TzDataExtensionsOffsetTests
 
     public static TheoryData<TzDataTimezone> EveryTimezone_TestCases => TimezoneFieldCatalog.CreateTimezoneTestCases();
 
-    // Every timezone but Etc/UTC, which has a single zone line and no rules, and so no transitions; GetTransitions_EtcUtc_ReturnsNone
-    // covers it.
+    // Every timezone but Etc/UTC and Etc/GMT, which each have a single zone line and no rules, and so no transitions;
+    // GetTransitions_EtcUtc_ReturnsNone and GetTransitions_EtcGmt_ReturnsNone cover them.
     public static TheoryData<TzDataTimezone> EveryTimezoneWithTransitions_TestCases
     {
         get
@@ -331,7 +331,7 @@ public class TzDataExtensionsOffsetTests
             var testCases = new TheoryData<TzDataTimezone>();
             foreach (var timezone in TimezoneFieldCatalog.Timezones.Values)
             {
-                if (timezone != TzDataTimezone.Etc.UTC)
+                if (timezone != TzDataTimezone.Etc.UTC && timezone != TzDataTimezone.Etc.GMT)
                     testCases.Add(timezone);
             }
 
@@ -826,6 +826,31 @@ public class TzDataExtensionsOffsetTests
 
         // assert
         testResult.Should().BeEmpty("Etc/UTC, the {0}, has a single zone line and no rules", testInstance);
+    }
+
+    [Fact]
+    public void GetTransitions_EtcGmt_ReturnsNone()
+    {
+        // act
+        var testResult = TzDataTimezone.Etc.GMT.GetTransitions(EarliestUtc, LatestUtc);
+
+        // assert
+        testResult.Should().BeEmpty("Etc/GMT has a single zone line and no rules");
+    }
+
+    [Theory]
+    [MemberData(nameof(EtcUtcInstant_TestCases))]
+    public void GetOffsetInfo_EtcGmt_ReturnsZeroWithAbbreviationGmt(DateTime testUtc)
+    {
+        // arrange
+        // The Zone line of Etc/GMT in the etcetera file of TZ Database 2026e: an offset of 0, no rules and the format GMT.
+        var expectedResult = (UtcOffset: UtcZero, IsDaylightSavingTime: false, Abbreviation: Gmt);
+
+        // act
+        var testResult = TzDataTimezone.Etc.GMT.GetOffsetInfo(testUtc);
+
+        // assert
+        (testResult.UtcOffset, testResult.IsDaylightSavingTime, testResult.Abbreviation).Should().Be(expectedResult);
     }
 
     [Fact]

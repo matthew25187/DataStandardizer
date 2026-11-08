@@ -112,7 +112,14 @@ bool shared = oslo.Canonical == TzDataTimezone.Europe.Berlin.Canonical; // true
 The deprecated names in the TZ Database's `backward` file, such as
 `Asia/Calcutta` and `US/Eastern`, have no fields. `Parse` and `TryParse` return
 the canonical time zone for them. The names that `backward` links to `Etc/UTC`,
-such as `UTC` and `Zulu`, return `TzDataTimezone.Etc.UTC`.
+such as `UTC` and `Zulu`, return `TzDataTimezone.Etc.UTC`. `GMT`, which
+`etcetera` links to `Etc/GMT`, and the names that `backward` links to it, such as
+`Greenwich` and `GMT0`, return `TzDataTimezone.Etc.GMT`.
+
+The time zones are those listed in `zone1970.tab` and `zone.tab`, with `Etc/UTC`
+and `Etc/GMT` from `etcetera`. The other zones of `etcetera`, `Etc/GMT-14` to
+`Etc/GMT+12`, which have fixed offsets and are used in no country, aren't
+included, so `Parse` and `TryParse` reject their identifiers.
 
 ### Generated source
 
@@ -122,10 +129,10 @@ produces four source files:
 
 | File | Contents |
 | --- | --- |
-| `TzDataTimezone.cs` | The struct, its identifier members, and a field for each time zone, nested by region, with `Etc.UTC` from the `etcetera` file. |
+| `TzDataTimezone.cs` | The struct, its identifier members, and a field for each time zone, nested by region, with `Etc.UTC` and `Etc.GMT` from the `etcetera` file. |
 | `TzDataTimezone.ZoneLineData.cs` | The zone lines of each canonical time zone, which the fields of the time zone and of its links share. |
 | `TzDataTimezone.RuleSets.cs` | The daylight saving rule sets referenced by the zone lines. |
-| `TzDataTimezone.LinkData.cs` | The deprecated names from the `backward` file, which `Parse` and `TryParse` accept. |
+| `TzDataTimezone.LinkData.cs` | The deprecated names from the `backward` file, and `GMT` from the `etcetera` file, which `Parse` and `TryParse` accept. |
 
 The zone line data, rule sets and link data are private. They are reached
 through `ZoneLines` and the methods of [TzDataExtensions](TzDataExtensions.md).
@@ -152,7 +159,7 @@ The time zone instances are grouped by region:
 - [Asia](TzDataTimezone.Asia.md) — 74 time zones and 8 links
 - [Atlantic](TzDataTimezone.Atlantic.md) — 8 time zones and 2 links
 - [Australia](TzDataTimezone.Australia.md) — 11 time zones
-- [Etc](TzDataTimezone.Etc.md) — 1 time zone, which the default instance stands for
+- [Etc](TzDataTimezone.Etc.md) — 2 time zones, `Etc/UTC`, which the default instance stands for, and `Etc/GMT`
 - [Europe](TzDataTimezone.Europe.md) — 38 time zones and 20 links
 - [Indian](TzDataTimezone.Indian.md) — 3 time zones and 8 links
 - [Pacific](TzDataTimezone.Pacific.md) — 30 time zones and 8 links

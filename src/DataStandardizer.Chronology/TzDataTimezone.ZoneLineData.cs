@@ -3528,6 +3528,12 @@ namespace DataStandardizer.Chronology
             /// </summary>
             internal static readonly TzDataZoneLine[] Etc_UTC = new TzDataZoneLine[] {
                     new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, "UTC", null)};
+            
+            /// <summary>
+            /// Etc/GMT
+            /// </summary>
+            internal static readonly TzDataZoneLine[] Etc_GMT = new TzDataZoneLine[] {
+                    new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, "GMT", null)};
         }
     }
 }

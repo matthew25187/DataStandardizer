@@ -8326,6 +8326,20 @@ namespace DataStandardizer.Chronology
             /// <para>The default value of <see cref="TzDataTimezone"/> is equal to this timezone.</para>
             /// </remarks>
             public static readonly DataStandardizer.Chronology.TzDataTimezone UTC = new DataStandardizer.Chronology.TzDataTimezone("Etc/UTC", TzDataTimezone.ZoneLineData.Etc_UTC, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
+            
+            /// <summary>
+            /// Etc/GMT
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 	</list>
+            /// </remarks>
+            public static readonly DataStandardizer.Chronology.TzDataTimezone GMT = new DataStandardizer.Chronology.TzDataTimezone("Etc/GMT", TzDataTimezone.ZoneLineData.Etc_GMT, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
         }
         
         public static class Arctic
