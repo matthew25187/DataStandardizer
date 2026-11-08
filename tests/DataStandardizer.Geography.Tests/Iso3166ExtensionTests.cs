@@ -13,14 +13,18 @@ public class Iso3166ExtensionTests
     private const string Iso639Part1Greek = "el";
     private const string Iso639Part1French = "fr";
     private const string Iso639Part1Italian = "it";
+    private const string Iso639Part1Khmer = "km";
     private const string Iso639Part1Latin = "la";
+    private const string Iso639Part1Russian = "ru";
     private const string Iso639Part1Spanish = "es";
 
     // ISO 639-2 three-letter language codes.
     private const string Iso639Part2Arabic = "ara";
+    private const string Iso639Part2Belarusian = "bel";
     private const string Iso639Part2English = "eng";
     private const string Iso639Part2French = "fra";
     private const string Iso639Part2Italian = "ita";
+    private const string Iso639Part2Russian = "rus";
     private const string Iso639Part2Spanish = "spa";
     private const string Iso639Part2Turkish = "tur";
 
@@ -44,6 +48,7 @@ public class Iso3166ExtensionTests
     // ISO 3166-2 subdivision category identifiers.
     private const ushort Iso3166Part2ProvinceCategoryId = 107;
     private const ushort Iso3166Part2CityCategoryId = 182;
+    private const ushort Iso3166Part2KyrgyzstanCityCategoryId = 187;
     private const ushort Iso3166Part2DistrictCategoryId = 297;
 
     // ISO 3166-2 subdivision category names.
@@ -61,6 +66,19 @@ public class Iso3166ExtensionTests
     private const string AnjouanNameArabicBgnPcgn1956 = "Anjwān";
     private const string AnjouanNameArabicConventional = "Andjouân";
     private const string LibertadorGeneralBernardoOHigginsLocalVariantSpanish = "O'Higgins";
+    private const string BgnPcgn1947RomanizationSystem = "BGN/PCGN 1947";
+    private const string BgnPcgn1972RomanizationSystem = "BGN/PCGN 1972";
+    private const string BgnPcgn1979RomanizationSystem = "BGN/PCGN 1979";
+    private const string Gost1983RomanizationSystem = "GOST 1983 = UN V/18 1987";
+    private const string NationalDraft1997RomanizationSystem = "National draft 1997";
+    private const string UnX6Of2012RomanizationSystem = "UN X/6 2012";
+    private const string OshNameRussianBgnPcgn1947 = "Gorod Osh";
+    private const string OshNameRussianGost1983 = "Gorod Oš";
+    private const string BishkekNameRussianBgnPcgn1947 = "Gorod Bishkek";
+    private const string BishkekNameRussianGost1983 = "Gorod Biškek";
+    private const string MinskNameBelarusian = "Horad Minsk";
+    private const string MinskNameRussian = "Gorod Minsk";
+    private const string SiemReapLocalVariantKhmerNationalDraft1997 = "Siem Reap";
 
     // ISO 3166-2 subdivision codes.
     private const string GreeceEastMacedoniaAndThraceSubdivisionCode = "GR-A";
@@ -383,6 +401,22 @@ public class Iso3166ExtensionTests
 
                 yield return new object[] { Iso3166Part2Subdivision.KM._A, Iso639Part1Arabic, BgnPcgn1956RomanizationSystem, AnjouanNameArabicBgnPcgn1956 };
                 yield return new object[] { Iso3166Part2Subdivision.KM._A, Iso639Part2Arabic, ConventionalNamesRomanizationSystem, AnjouanNameArabicConventional };
+
+                // Several names in one language: without a romanization system, the name ISO 3166-2 lists first.
+                yield return new object?[] { Iso3166Part2Subdivision.KG._GO, Iso639Part1Russian, null, OshNameRussianBgnPcgn1947 };
+                yield return new object?[] { Iso3166Part2Subdivision.KG._GB, Iso639Part1Russian, null, BishkekNameRussianGost1983 };
+                yield return new object?[] { Iso3166Part2Subdivision.BY._HM, Iso639Part2Belarusian, null, MinskNameBelarusian };
+                yield return new object?[] { Iso3166Part2Subdivision.BY._HM, Iso639Part1Russian, null, MinskNameRussian };
+
+                // Several names in one language: each romanization system named explicitly.
+                yield return new object[] { Iso3166Part2Subdivision.KG._GO, Iso639Part1Russian, BgnPcgn1947RomanizationSystem, OshNameRussianBgnPcgn1947 };
+                yield return new object[] { Iso3166Part2Subdivision.KG._GO, Iso639Part1Russian, Gost1983RomanizationSystem, OshNameRussianGost1983 };
+                yield return new object[] { Iso3166Part2Subdivision.KG._GB, Iso639Part1Russian, BgnPcgn1947RomanizationSystem, BishkekNameRussianBgnPcgn1947 };
+                yield return new object[] { Iso3166Part2Subdivision.KG._GB, Iso639Part1Russian, Gost1983RomanizationSystem, BishkekNameRussianGost1983 };
+                yield return new object[] { Iso3166Part2Subdivision.BY._HM, Iso639Part2Belarusian, UnX6Of2012RomanizationSystem, MinskNameBelarusian };
+                yield return new object[] { Iso3166Part2Subdivision.BY._HM, Iso639Part2Belarusian, BgnPcgn1979RomanizationSystem, MinskNameBelarusian };
+                yield return new object[] { Iso3166Part2Subdivision.BY._HM, Iso639Part1Russian, BgnPcgn1947RomanizationSystem, MinskNameRussian };
+                yield return new object[] { Iso3166Part2Subdivision.BY._HM, Iso639Part1Russian, Gost1983RomanizationSystem, MinskNameRussian };
             }
         }
     }
@@ -411,6 +445,88 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part2Subdivision.CL._LI, Iso639Part1Spanish, LibertadorGeneralBernardoOHigginsLocalVariantSpanish };
                 yield return new object?[] { Iso3166Part2Subdivision.CL._RM, Iso639Part2Spanish, null };
                 yield return new object?[] { Iso3166Part2Subdivision.CL._TA, Iso639Part1German, null };
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(GetSubdivisionNativeNameLocalVariant_SeveralNamesInLanguage_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionNativeNameLocalVariant_SeveralNamesInLanguage_TestCaseGenerator))]
+    public void GetSubdivisionNativeNameLocalVariant_SeveralNamesInLanguage_ReturnsLocalVariantOfSelectedName(Iso3166Part2Subdivision testCode, string languageCode, string? romanizationSystem, string? expectedResult)
+    {
+        // act
+        var testResult = testCode.GetSubdivisionNativeNameLocalVariant(languageCode, romanizationSystem: romanizationSystem);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetSubdivisionNativeNameLocalVariant_SeveralNamesInLanguage_TestCaseGenerator
+    {
+        public static IEnumerable<object?[]> TestCases
+        {
+            get
+            {
+                yield return new object?[] { Iso3166Part2Subdivision.KH._17, Iso639Part1Khmer, null, SiemReapLocalVariantKhmerNationalDraft1997 };
+                yield return new object[] { Iso3166Part2Subdivision.KH._17, Iso639Part1Khmer, NationalDraft1997RomanizationSystem, SiemReapLocalVariantKhmerNationalDraft1997 };
+                yield return new object?[] { Iso3166Part2Subdivision.KH._17, Iso639Part1Khmer, BgnPcgn1972RomanizationSystem, null };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: SelectSubdivisionNameAttribute
+
+    [Fact]
+    public void SelectSubdivisionNameAttribute_SeveralNamesInReverseSequence_ReturnsLowestSequence()
+    {
+        // arrange
+        var testAttributes = new[]
+        {
+            new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947, 1) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
+            new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983, 0) { RomanizationSystem = Gost1983RomanizationSystem },
+        };
+
+        // act
+        var testResult = Iso3166Extensions.SelectSubdivisionNameAttribute(testAttributes, Iso3166Part2KyrgyzstanCityCategoryId, Iso639Part1Russian, null);
+
+        // assert
+        testResult!.SubdivisionName.Should().Be(BishkekNameRussianGost1983);
+    }
+
+    [Theory]
+    [MemberData(nameof(SelectSubdivisionNameAttribute_SameSequence_TestCaseGenerator.TestCases), MemberType = typeof(SelectSubdivisionNameAttribute_SameSequence_TestCaseGenerator))]
+    public void SelectSubdivisionNameAttribute_SameSequence_ReturnsOrdinallyFirstNameInAnyOrder(Iso3166SubdivisionNameAttribute[] testAttributes)
+    {
+        // act
+        var testResult = Iso3166Extensions.SelectSubdivisionNameAttribute(testAttributes, Iso3166Part2KyrgyzstanCityCategoryId, Iso639Part1Russian, null);
+
+        // assert
+        testResult!.SubdivisionName.Should().Be(BishkekNameRussianBgnPcgn1947);
+    }
+
+    private class SelectSubdivisionNameAttribute_SameSequence_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                yield return new object[]
+                {
+                    new[]
+                    {
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983) { RomanizationSystem = Gost1983RomanizationSystem },
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
+                    }
+                };
+                yield return new object[]
+                {
+                    new[]
+                    {
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983) { RomanizationSystem = Gost1983RomanizationSystem },
+                    }
+                };
             }
         }
     }

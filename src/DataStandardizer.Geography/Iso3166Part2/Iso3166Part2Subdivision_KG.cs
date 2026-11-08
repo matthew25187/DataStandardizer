@@ -35,8 +35,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(187, "KG-GO")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 187, "Osh Shaary", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Osh", RomanizationSystem="BGN/PCGN 1947")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Oš", RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Osh", 0, RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Oš", 1, RomanizationSystem="GOST 1983 = UN V/18 1987")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _GO = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-GO");
             
             /// <summary>
@@ -44,8 +44,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(187, "KG-GB")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 187, "Bishkek Shaary", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Biškek", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Bishkek", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Biškek", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 187, "Gorod Bishkek", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _GB = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-GB");
             #endregion
             
@@ -55,8 +55,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-B")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Batken", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Batkenskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Batkenskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Batkenskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Batkenskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _B = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-B");
             
             /// <summary>
@@ -64,8 +64,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-C")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Chüy", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Čujskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Chuyskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Čujskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Chuyskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _C = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-C");
             
             /// <summary>
@@ -73,8 +73,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-J")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Jalal-Abad", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Džalal-Abadskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Dzhalal-Abadskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Džalal-Abadskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Dzhalal-Abadskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _J = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-J");
             
             /// <summary>
@@ -82,8 +82,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-N")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Naryn", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Narynskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Narynskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Narynskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Narynskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _N = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-N");
             
             /// <summary>
@@ -91,8 +91,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-O")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Osh", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Ošskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Oshskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Ošskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Oshskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _O = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-O");
             
             /// <summary>
@@ -100,8 +100,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-T")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Talas", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Talasskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Talasskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Talasskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Talasskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _T = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-T");
             
             /// <summary>
@@ -109,8 +109,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(328, "KG-Y")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ky", "kir", 328, "Ysyk-Köl", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Issyk-Kul\'skaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Issyk-Kul\'skaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Issyk-Kul\'skaya oblast\'", 0, RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 328, "Issyk-Kul\'skaja oblast\'", 1, RomanizationSystem="GOST 1983 = UN V/18 1987")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _Y = new DataStandardizer.Geography.Iso3166Part2Subdivision("KG-Y");
             #endregion
         }

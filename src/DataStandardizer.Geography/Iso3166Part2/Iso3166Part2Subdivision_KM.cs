@@ -30,8 +30,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(174, "KM-A")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute(null, "002", 174, "Ndzuwani")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Anjwān", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Andjouân", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Anjwān", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Andjouân", 1, RomanizationSystem="conventional names")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("fr", "fra", 174, "Anjouan")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _A = new DataStandardizer.Geography.Iso3166Part2Subdivision("KM-A");
             
@@ -40,8 +40,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(174, "KM-G")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute(null, "002", 174, "Ngazidja")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Anjazījah", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Andjazîdja", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Anjazījah", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Andjazîdja", 1, RomanizationSystem="conventional names")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("fr", "fra", 174, "Grande Comore")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _G = new DataStandardizer.Geography.Iso3166Part2Subdivision("KM-G");
             
@@ -50,8 +50,8 @@ namespace DataStandardizer.Geography
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(174, "KM-M")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute(null, "002", 174, "Mwali")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Mūhīlī", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Moûhîlî", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Mūhīlī", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 174, "Moûhîlî", 1, RomanizationSystem="conventional names")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("fr", "fra", 174, "Mohéli")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _M = new DataStandardizer.Geography.Iso3166Part2Subdivision("KM-M");
             #endregion
