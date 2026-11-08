@@ -22,8 +22,8 @@ public sealed class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
 
 The constructor is internal; the record is created when a
 [SubtagRegistry](SubtagRegistry.md) is loaded, and the registry's `FileDate`
-property returns its date. A `File-Date` that isn't in the `yyyy-MM-dd` form
-reads as the default `DateTime`.
+property returns its date. A registry whose `File-Date` isn't an RFC 3339
+full-date (`yyyy-MM-dd`) fails to load with a `FormatException`.
 
 ## Properties
 

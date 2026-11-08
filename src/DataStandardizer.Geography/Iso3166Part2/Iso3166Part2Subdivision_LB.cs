@@ -28,64 +28,64 @@ namespace DataStandardizer.Geography
             /// B‘alabak-Al Hirmil
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-BH")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "B‘alabak-Al Hirmil", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Baalbek-Hermel", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "B‘alabak-Al Hirmil", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Baalbek-Hermel", 1, RomanizationSystem="conventional names")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _BH = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-BH");
             
             /// <summary>
             /// Béqaa
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-BI")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Béqaa", RomanizationSystem="conventional names")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Al Biqā‘", RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Béqaa", 0, RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Al Biqā‘", 1, RomanizationSystem="BGN/PCGN 1956")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _BI = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-BI");
             
             /// <summary>
             /// Al Janūb
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-JA")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Al Janūb", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Liban-Sud", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Al Janūb", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Liban-Sud", 1, RomanizationSystem="conventional names")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _JA = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-JA");
             
             /// <summary>
             /// Mont-Liban
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-JL")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Mont-Liban", RomanizationSystem="conventional names")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Jabal Lubnān", RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Mont-Liban", 0, RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Jabal Lubnān", 1, RomanizationSystem="BGN/PCGN 1956")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _JL = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-JL");
             
             /// <summary>
             /// Nabatîyé
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-NA")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Nabatîyé", RomanizationSystem="conventional names")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "An Nabaţīyah", RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Nabatîyé", 0, RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "An Nabaţīyah", 1, RomanizationSystem="BGN/PCGN 1956")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _NA = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-NA");
             
             /// <summary>
             /// Bayrūt
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-BA")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Bayrūt", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Beyrouth", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Bayrūt", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Beyrouth", 1, RomanizationSystem="conventional names")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _BA = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-BA");
             
             /// <summary>
             /// ‘Akkār
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-AK")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "‘Akkār", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Aakkâr", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "‘Akkār", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Aakkâr", 1, RomanizationSystem="conventional names")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _AK = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-AK");
             
             /// <summary>
             /// Ash Shimāl
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(208, "LB-AS")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Ash Shimāl", RomanizationSystem="BGN/PCGN 1956")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Liban-Nord", RomanizationSystem="conventional names")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Ash Shimāl", 0, RomanizationSystem="BGN/PCGN 1956")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ar", "ara", 208, "Liban-Nord", 1, RomanizationSystem="conventional names")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _AS = new DataStandardizer.Geography.Iso3166Part2Subdivision("LB-AS");
             #endregion
         }

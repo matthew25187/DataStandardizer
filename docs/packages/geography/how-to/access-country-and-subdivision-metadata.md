@@ -100,6 +100,15 @@ You can get the native name of a subdivision in a supported language.
 var nativeName = Iso3166Part2Subdivision.ZA._EC.GetSubdivisionNativeName("af");
 ```
 
+ISO 3166-2 can give a subdivision several names in one language, each in a
+different romanization system. Name the system to get a particular one. Without
+it, you get the name ISO 3166-2 lists first for that language.
+
+```csharp
+var oshName = Iso3166Part2Subdivision.KG._GO.GetSubdivisionNativeName("ru");  // returns Gorod Osh
+var oshNameGost = Iso3166Part2Subdivision.KG._GO.GetSubdivisionNativeName("ru", "GOST 1983 = UN V/18 1987");  // returns Gorod Oš
+```
+
 There may also be a local variant of the native name, retrieved separately.
 
 ```csharp

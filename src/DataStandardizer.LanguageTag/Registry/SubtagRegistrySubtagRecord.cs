@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -12,11 +13,11 @@ namespace DataStandardizer.LanguageTag.Registry
     public sealed class SubtagRegistrySubtagRecord : SubtagRegistryTagRecordBase
     {
 #if NETCOREAPP3_0_OR_GREATER
-        internal SubtagRegistrySubtagRecord(KeyValuePair<string, string>[] fields)
+        internal SubtagRegistrySubtagRecord(KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
 #else
-        internal SubtagRegistrySubtagRecord([DisallowNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistrySubtagRecord([DisallowNull] KeyValuePair<string, string>[] fields, DateTime? added, DateTime? deprecated)
 #endif
-            : base(fields)
+            : base(fields, added, deprecated)
         {
             Subtag = GetFirstValue(fields, FieldName.Subtag) ?? string.Empty;
         }
