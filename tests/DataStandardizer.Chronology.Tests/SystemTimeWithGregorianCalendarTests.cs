@@ -80,6 +80,37 @@ public class SystemTimeWithGregorianCalendarTests
     }
 
     [Theory]
+    [InlineData(-199998L, 42),
+     InlineData(2L, 2),
+     InlineData(1700000000L, 20)]
+    public void Second_OnUnixTime_ReturnsTimeSecond(long testUnixTime, int expectedResult)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
+
+        // act
+        var testResult = testValue.Second;
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [InlineData(-1L, 1969),
+     InlineData(4102444799L, 2099)]
+    public void Year_OnUnixTimeJustBeforeMidnight_ReturnsDateYear(long testUnixTime, int expectedResult)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
+
+        // act
+        var testResult = testValue.Year;
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
     [InlineData(2451545.125, 2000)]
     public void Year_OnSystemTime_ReturnsDateYear(decimal testJdn, ushort expectedResult)
     {

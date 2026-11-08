@@ -13,8 +13,13 @@ namespace DataStandardizer.Chronology
         private const int MinuteMaximum = 59;
         private const int SecondMinimum = 0;
         private const int SecondMaximum = 59;
+        private const int SecondsPerDay = 24 * SecondsPerHour;
         private const int SecondsPerHour = 60 * 60;
         private const int SecondsPerMinute = 60;
+        private const int SubSecondDigits = 9;
+
+        // The Julian Day Number of the day of the Unix epoch, 1970-01-01; its midnight is JDN 2440587.5.
+        private const long UnixEpochDayNumber = 2440588;
         private const int YearMinimum = -4799;
 
         internal static decimal ConvertGregorianCalendarDateToJdn(int year, int month, int day)
@@ -38,7 +43,8 @@ namespace DataStandardizer.Chronology
 
         internal static (int Year, int Month, int Day) ConvertJdnToGregorianCalendarDate(decimal jdn)
         {
-            var a = (int)decimal.Floor(jdn + 0.5m) + 32044;
+            var (dayNumber, _) = SplitJdn(jdn);
+            var a = dayNumber + 32044;
             var b = (int)decimal.Floor(decimal.Divide(4 * a + 3, 146097));
             var c = a - (int)decimal.Floor(decimal.Divide(146097 * b, 4));
             var d = (int)decimal.Floor(decimal.Divide(4 * c + 3, 1461));
@@ -52,8 +58,7 @@ namespace DataStandardizer.Chronology
 
         internal static (int Hour, int Minute, int Second) ConvertJdnToTimeOfDay(decimal jdn)
         {
-            var fractionOfDay = jdn + 0.5m - decimal.Truncate(jdn + 0.5m);
-            var secondsRemaining = (int)(fractionOfDay * 86400);
+            var (_, secondsRemaining) = SplitJdn(jdn);
             var hour = secondsRemaining / SecondsPerHour;
             secondsRemaining -= hour * SecondsPerHour;
             var minute = secondsRemaining / SecondsPerMinute;
@@ -62,7 +67,39 @@ namespace DataStandardizer.Chronology
             return (hour, minute, second);
         }
 
+        internal static long ConvertGregorianCalendarDateTimeToUnixTime(int year, int month, int day, int hour, int minute, int second)
+        {
+            var dayNumber = (long)ConvertGregorianCalendarDateToJdn(year, month, day);
+            var secondOfDay = ConvertTimeOfDayToSeconds(hour, minute, second);
+            return (dayNumber - UnixEpochDayNumber) * SecondsPerDay + secondOfDay;
+        }
+
         internal static decimal ConvertTimeOfDayToJdn(int hour, int minute, int second)
+        {
+            var totalSeconds = ConvertTimeOfDayToSeconds(hour, minute, second);
+            return decimal.Divide(totalSeconds, SecondsPerDay) - 0.5m;
+        }
+
+        /// <summary>
+        /// Splits a Julian Day Number into the number of the day on which it falls and the whole seconds elapsed since the
+        /// midnight that starts that day.
+        /// </summary>
+        /// <remarks>
+        /// A Julian Day Number meant to fall on a whole second is often inexact, because a <see cref="decimal"/> can't hold a
+        /// number of seconds divided by the number of seconds in a day exactly. A value meant to be <c>x</c> seconds can then
+        /// arrive a tiny fraction below <c>x</c>, and truncating it would lose a whole second. The seconds are first rounded to
+        /// <see cref="SubSecondDigits"/> decimal places, far coarser than that error and far finer than a second, so that such
+        /// a value gives <c>x</c> while a genuine fraction of a second is still dropped.
+        /// </remarks>
+        private static (int DayNumber, int SecondOfDay) SplitJdn(decimal jdn)
+        {
+            var secondsSinceMidnight = decimal.Floor(Math.Round((jdn + 0.5m) * SecondsPerDay, SubSecondDigits));
+            var dayNumber = decimal.Floor(secondsSinceMidnight / SecondsPerDay);
+            var secondOfDay = secondsSinceMidnight - dayNumber * SecondsPerDay;
+            return ((int)dayNumber, (int)secondOfDay);
+        }
+
+        private static int ConvertTimeOfDayToSeconds(int hour, int minute, int second)
         {
             if (hour < HourMinimum || hour > HourMaximum)
                 throw new ArgumentOutOfRangeException(nameof(hour), hour, $"Hour must be in the range {HourMinimum} - {HourMaximum}.");
@@ -73,8 +110,7 @@ namespace DataStandardizer.Chronology
             if (second < SecondMinimum || second > SecondMaximum)
                 throw new ArgumentOutOfRangeException(nameof(second), second, $"Second must be in the range {SecondMinimum} - {SecondMaximum}.");
 
-            var totalSeconds = hour * SecondsPerHour + minute * SecondsPerMinute + second;
-            return decimal.Divide(totalSeconds, 86400) - 0.5m;
+            return hour * SecondsPerHour + minute * SecondsPerMinute + second;
         }
 
         private static int GetGregorianCalendarMonthLength(int year, int month)
