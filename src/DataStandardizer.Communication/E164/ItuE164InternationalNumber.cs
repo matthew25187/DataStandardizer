@@ -43,9 +43,68 @@ namespace DataStandardizer.Communication.E164
             _numberStructure = numberStructure;
         }
 
+        /// <summary>
+        /// Determines whether this number and <paramref name="other"/> have the same <see cref="Number"/>.
+        /// </summary>
+        /// <param name="other">The number to compare with this number.</param>
+        /// <returns>
+        /// <c>true</c> if both numbers have the same <see cref="Number"/>, or both are uninitialized; otherwise, <c>false</c>.
+        /// </returns>
         public bool Equals(ItuE164InternationalNumber other)
         {
             return _numberStructure?.Number == other._numberStructure?.Number;
+        }
+
+        /// <summary>
+        /// Determines whether <paramref name="obj"/> is an <see cref="ItuE164InternationalNumber"/> with the same
+        /// <see cref="Number"/> as this number.
+        /// </summary>
+        /// <param name="obj">The object to compare with this number.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="obj"/> is an <see cref="ItuE164InternationalNumber"/> that equals this number,
+        /// as <see cref="Equals(ItuE164InternationalNumber)"/> decides; otherwise, <c>false</c>.
+        /// </returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public override bool Equals(object? obj)
+#else
+        public override bool Equals(object obj)
+#endif
+        {
+            return obj is ItuE164InternationalNumber other && Equals(other);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this number, derived from its <see cref="Number"/>.
+        /// </summary>
+        /// <returns>
+        /// A hash code that is the same for any two numbers that <see cref="Equals(ItuE164InternationalNumber)"/> finds equal,
+        /// or 0 for an uninitialized number.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return _numberStructure?.Number.GetHashCode() ?? 0;
+        }
+
+        /// <summary>
+        /// Determines whether two numbers have the same <see cref="Number"/>.
+        /// </summary>
+        /// <param name="left">The first number to compare.</param>
+        /// <param name="right">The second number to compare.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> equals <paramref name="right"/>; otherwise, <c>false</c>.</returns>
+        public static bool operator ==(ItuE164InternationalNumber left, ItuE164InternationalNumber right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Determines whether two numbers have different <see cref="Number"/> values.
+        /// </summary>
+        /// <param name="left">The first number to compare.</param>
+        /// <param name="right">The second number to compare.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> does not equal <paramref name="right"/>; otherwise, <c>false</c>.</returns>
+        public static bool operator !=(ItuE164InternationalNumber left, ItuE164InternationalNumber right)
+        {
+            return !left.Equals(right);
         }
 
         public static explicit operator ulong(ItuE164InternationalNumber value)
