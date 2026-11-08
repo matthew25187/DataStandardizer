@@ -93,6 +93,11 @@ namespace DataStandardizer.Communication.Tests.E164
         // What ToString returns for an uninitialized instance: the full name of the type.
         private const string TypeFullName = "DataStandardizer.Communication.E164.ItuE164InternationalNumber";
 
+        // A custom pattern that begins with 'i', a digit of the identification code, rather than a standard format; and NetworkNumber
+        // (country code 883, identification code 110) in that pattern.
+        private const string IdentificationCodeFirstPattern = "iii-ccc";
+        private const string NetworkNumberInIdentificationCodeFirstPattern = "110-883";
+
         // Format providers that supply no ICustomFormatter.
         public static TheoryData<IFormatProvider> ProvidersWithoutCustomFormatter => new TheoryData<IFormatProvider>
         {
@@ -506,6 +511,64 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // assert
             testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Theory]
+        [InlineData(null),
+         InlineData(""),
+         InlineData(" ")]
+        public void ToString_NullEmptyOrWhiteSpaceFormat_ReturnsFullGeneralFormat(string format)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(format);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Theory]
+        [InlineData(null),
+         InlineData(""),
+         InlineData(" ")]
+        public void ToString_NullEmptyOrWhiteSpaceFormatAndInvariantCulture_ReturnsFullGeneralFormat(string format)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(format, CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Fact]
+        public void ToString_CompositeFormatWithoutFormatStringAndInvariantCulture_ReturnsFullGeneralFormat()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = string.Format(CultureInfo.InvariantCulture, "{0}", testSubject);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Fact]
+        public void ToString_CustomFormatBeginningWithIdentificationCodePlaceholder_ReturnsCustomFormattedNumber()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber);
+
+            // act
+            var testResult = testSubject.ToString(IdentificationCodeFirstPattern);
+
+            // assert
+            testResult.Should().Be(NetworkNumberInIdentificationCodeFirstPattern);
         }
 
         [Fact]

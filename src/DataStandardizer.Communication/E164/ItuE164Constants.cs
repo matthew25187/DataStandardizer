@@ -10,6 +10,9 @@
             internal const char SubscriberNumberPlaceholder = 's';
         }
 
+        // The format used when none is given: the full general format.
+        internal const string DefaultFormat = "G";
+
         internal const char InternationalPrefixSymbol = '+';
         internal const int MaximumDigitCount = 15;
     }
