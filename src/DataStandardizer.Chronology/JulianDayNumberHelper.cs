@@ -13,16 +13,22 @@ namespace DataStandardizer.Chronology
         private const int MinuteMaximum = 59;
         private const int SecondMinimum = 0;
         private const int SecondMaximum = 59;
-        private const int SecondsPerDay = 24 * SecondsPerHour;
+        internal const int SecondsPerDay = 24 * SecondsPerHour;
         private const int SecondsPerHour = 60 * 60;
         private const int SecondsPerMinute = 60;
         private const int SubSecondDigits = 9;
 
-        // The Julian Day Number of the day of the Unix epoch, 1970-01-01; its midnight is JDN 2440587.5.
+        // The Julian Day Number of the day of the Unix epoch, 1970-01-01, and of the midnight that starts it.
         private const long UnixEpochDayNumber = 2440588;
+        internal const decimal UnixEpochJdn = 2440587.5m;
         private const int YearMinimum = -4799;
 
         internal static decimal ConvertGregorianCalendarDateToJdn(int year, int month, int day)
+        {
+            return ConvertGregorianCalendarDateToDayNumber(year, month, day);
+        }
+
+        private static int ConvertGregorianCalendarDateToDayNumber(int year, int month, int day)
         {
             if (year < YearMinimum)
                 throw new ArgumentOutOfRangeException(nameof(year), year, $"Dates preceding {Math.Abs(YearMinimum) + 1} BCE not supported.");
@@ -44,21 +50,46 @@ namespace DataStandardizer.Chronology
         internal static (int Year, int Month, int Day) ConvertJdnToGregorianCalendarDate(decimal jdn)
         {
             var (dayNumber, _) = SplitJdn(jdn);
-            var a = dayNumber + 32044;
-            var b = (int)decimal.Floor(decimal.Divide(4 * a + 3, 146097));
-            var c = a - (int)decimal.Floor(decimal.Divide(146097 * b, 4));
-            var d = (int)decimal.Floor(decimal.Divide(4 * c + 3, 1461));
-            var e = c - (int)decimal.Floor(decimal.Divide(1461 * d, 4));
-            var m = (int)decimal.Floor(decimal.Divide(5 * e + 2, 153));
-            var day = e - (int)decimal.Floor(decimal.Divide(153 * m + 2, 5)) + 1;
-            var month = m + 3 - 12 * (int)decimal.Floor(decimal.Divide(m, 10));
-            var year = 100 * b + d - 4800 + (int)decimal.Floor(decimal.Divide(m, 10));
-            return (year, month, day);
+            return ConvertDayNumberToGregorianCalendarDate(dayNumber);
         }
 
         internal static (int Hour, int Minute, int Second) ConvertJdnToTimeOfDay(decimal jdn)
         {
-            var (_, secondsRemaining) = SplitJdn(jdn);
+            var (_, secondOfDay) = SplitJdn(jdn);
+            return ConvertSecondOfDayToTimeOfDay(secondOfDay);
+        }
+
+        internal static (int Year, int Month, int Day, int Hour, int Minute, int Second) ConvertJdnToGregorianCalendarDateTime(decimal jdn)
+        {
+            var (dayNumber, secondOfDay) = SplitJdn(jdn);
+            var (year, month, day) = ConvertDayNumberToGregorianCalendarDate(dayNumber);
+            var (hour, minute, second) = ConvertSecondOfDayToTimeOfDay(secondOfDay);
+            return (year, month, day, hour, minute, second);
+        }
+
+        /// <remarks>
+        /// The arithmetic is checked, so that a day number too far from the epoch of the Julian Day Number to give a year
+        /// throws <see cref="OverflowException"/> instead of giving a wrong date.
+        /// </remarks>
+        private static (int Year, int Month, int Day) ConvertDayNumberToGregorianCalendarDate(int dayNumber)
+        {
+            checked
+            {
+                var a = dayNumber + 32044;
+                var b = (int)decimal.Floor(decimal.Divide(4 * a + 3, 146097));
+                var c = a - (int)decimal.Floor(decimal.Divide(146097 * b, 4));
+                var d = (int)decimal.Floor(decimal.Divide(4 * c + 3, 1461));
+                var e = c - (int)decimal.Floor(decimal.Divide(1461 * d, 4));
+                var m = (int)decimal.Floor(decimal.Divide(5 * e + 2, 153));
+                var day = e - (int)decimal.Floor(decimal.Divide(153 * m + 2, 5)) + 1;
+                var month = m + 3 - 12 * (int)decimal.Floor(decimal.Divide(m, 10));
+                var year = 100 * b + d - 4800 + (int)decimal.Floor(decimal.Divide(m, 10));
+                return (year, month, day);
+            }
+        }
+
+        private static (int Hour, int Minute, int Second) ConvertSecondOfDayToTimeOfDay(int secondsRemaining)
+        {
             var hour = secondsRemaining / SecondsPerHour;
             secondsRemaining -= hour * SecondsPerHour;
             var minute = secondsRemaining / SecondsPerMinute;
@@ -69,7 +100,7 @@ namespace DataStandardizer.Chronology
 
         internal static long ConvertGregorianCalendarDateTimeToUnixTime(int year, int month, int day, int hour, int minute, int second)
         {
-            var dayNumber = (long)ConvertGregorianCalendarDateToJdn(year, month, day);
+            long dayNumber = ConvertGregorianCalendarDateToDayNumber(year, month, day);
             var secondOfDay = ConvertTimeOfDayToSeconds(hour, minute, second);
             return (dayNumber - UnixEpochDayNumber) * SecondsPerDay + secondOfDay;
         }
@@ -85,18 +116,26 @@ namespace DataStandardizer.Chronology
         /// midnight that starts that day.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// A Julian Day Number meant to fall on a whole second is often inexact, because a <see cref="decimal"/> can't hold a
         /// number of seconds divided by the number of seconds in a day exactly. A value meant to be <c>x</c> seconds can then
-        /// arrive a tiny fraction below <c>x</c>, and truncating it would lose a whole second. The seconds are first rounded to
-        /// <see cref="SubSecondDigits"/> decimal places, far coarser than that error and far finer than a second, so that such
-        /// a value gives <c>x</c> while a genuine fraction of a second is still dropped.
+        /// arrive a tiny fraction below <c>x</c>, and truncating it would lose a whole second.
+        /// </para>
+        /// <para>
+        /// The seconds are therefore first rounded to the nearest nanosecond (<see cref="SubSecondDigits"/> decimal places),
+        /// which is far coarser than that error, and then truncated to a whole second. A fraction of a second is dropped, with
+        /// one tolerance: a value less than half a nanosecond below a whole second is taken as that second.
+        /// </para>
+        /// <para>
+        /// A day number that doesn't fit an <see cref="int"/> throws <see cref="OverflowException"/>.
+        /// </para>
         /// </remarks>
         private static (int DayNumber, int SecondOfDay) SplitJdn(decimal jdn)
         {
             var secondsSinceMidnight = decimal.Floor(Math.Round((jdn + 0.5m) * SecondsPerDay, SubSecondDigits));
             var dayNumber = decimal.Floor(secondsSinceMidnight / SecondsPerDay);
             var secondOfDay = secondsSinceMidnight - dayNumber * SecondsPerDay;
-            return ((int)dayNumber, (int)secondOfDay);
+            return (checked((int)dayNumber), (int)secondOfDay);
         }
 
         private static int ConvertTimeOfDayToSeconds(int hour, int minute, int second)

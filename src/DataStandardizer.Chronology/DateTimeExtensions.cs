@@ -26,7 +26,8 @@ namespace DataStandardizer.Chronology
         /// Converts the specified <see cref="DateTime"/> to a <see cref="UnixTime"/> representation.
         /// </summary>
         /// <param name="dateTime">
-        /// The <see cref="DateTime"/> instance to convert. The time is assumed to be in UTC.
+        /// The <see cref="DateTime"/> instance to convert. Its fields are read as a time in UTC, whatever its
+        /// <see cref="DateTime.Kind"/>; to convert a local time, call <see cref="DateTime.ToUniversalTime"/> on it first.
         /// </param>
         /// <returns>
         /// A <see cref="UnixTime"/> instance representing the number of seconds elapsed since 

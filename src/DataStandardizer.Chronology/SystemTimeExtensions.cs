@@ -54,8 +54,7 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
-            var (year, month, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(systemTime.JulianDayNumber);
-            var (hour, minute, second) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(systemTime.JulianDayNumber);
+            var (year, month, day, hour, minute, second) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDateTime(systemTime.JulianDayNumber);
             return new DateTime(year, month, day, hour, minute, second);
         }
 

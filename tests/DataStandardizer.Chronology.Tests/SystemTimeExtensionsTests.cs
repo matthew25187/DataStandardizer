@@ -51,13 +51,22 @@ public class SystemTimeExtensionsTests
         testResult.Should().Be(expectedResult);
     }
 
-    // About half a second after noon on 2000-01-01.
+    // Julian Day Numbers a fraction of a second after noon on 2000-01-01 (JDN 2451545), and what each gives.
+    public static TheoryData<decimal, DateTime> FractionOfSecondCases => new()
+    {
+        // Half a second after noon.
+        { 2451545.0000057870370370370370m, new DateTime(2000, 1, 1, 12, 0, 0) },
+        // Two nanoseconds before 12:00:01, outside the tolerance of half a nanosecond.
+        { 2451545.0000115740740509259259m, new DateTime(2000, 1, 1, 12, 0, 0) },
+        // 0.4 nanoseconds before 12:00:01, within the tolerance of half a nanosecond.
+        { 2451545.0000115740740694444444m, new DateTime(2000, 1, 1, 12, 0, 1) },
+    };
+
     [Theory]
-    [InlineData(2451545.000005787, 2000, 1, 1, 12, 0, 0)]
-    public void ToDateTime_OnSystemTimeValueWithFractionOfSecond_DropsFraction(decimal testJdn, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
+    [MemberData(nameof(FractionOfSecondCases))]
+    public void ToDateTime_OnSystemTimeValueWithFractionOfSecond_DropsFractionBeyondTolerance(decimal testJdn, DateTime expectedResult)
     {
         // arrange
-        var expectedResult = new DateTime(expectedYear, expectedMonth, expectedDay, expectedHour, expectedMinute, expectedSecond);
         var testValue = new TestSystemTime(testJdn);
 
         // act
@@ -111,6 +120,22 @@ public class SystemTimeExtensionsTests
 
         // assert
         ((long)testResult).Should().Be(testUnixTime);
+    }
+
+    // About 3.2 million years from the epoch, too far for the day number arithmetic.
+    [Theory]
+    [InlineData(100000000000000L),
+     InlineData(-100000000000000L)]
+    public void ToDateTime_OnUnixTimeFarFromEpoch_ThrowsOverflowException(long testUnixTime)
+    {
+        // arrange
+        var testValue = new UnixTime(testUnixTime);
+
+        // act
+        Action testAction = () => testValue.ToDateTime();
+
+        // assert
+        testAction.Should().Throw<OverflowException>();
     }
 
     // DOS time 0x0001 is two seconds past midnight; a DOS time counts seconds in units of two.

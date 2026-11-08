@@ -110,6 +110,22 @@ public class SystemTimeWithGregorianCalendarTests
         testResult.Should().Be(expectedResult);
     }
 
+    // About 3.2 million years from the epoch, too far for the day number arithmetic.
+    [Theory]
+    [InlineData(100000000000000L),
+     InlineData(-100000000000000L)]
+    public void Year_OnUnixTimeFarFromEpoch_ThrowsOverflowException(long testUnixTime)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
+
+        // act
+        Action testAction = () => _ = testValue.Year;
+
+        // assert
+        testAction.Should().Throw<OverflowException>();
+    }
+
     [Theory]
     [InlineData(2451545.125, 2000)]
     public void Year_OnSystemTime_ReturnsDateYear(decimal testJdn, ushort expectedResult)
