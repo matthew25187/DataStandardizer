@@ -216,23 +216,44 @@ namespace DataStandardizer.Communication
         {
             var formatInfo = new ItuE164InternationalNumberFormatInfo();
 
-            string longInternationalNumberPattern = string.Empty, shortInternationalNumberPattern = string.Empty;
-            if (Enum.ToObject(typeof(Iso3166Part1Alpha2Country), countryCodeValue) is Iso3166Part1Alpha2Country countryCode && Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), countryCode))
-            {
-                var culture = new CultureInfo($"en-{countryCode}"); // don't care about the language; just want resources for the region
-                longInternationalNumberPattern = resourceManager.GetString(nameof(formatInfo.LongInternationalNumberPattern), culture) ?? string.Empty;
-                shortInternationalNumberPattern = resourceManager.GetString(nameof(formatInfo.ShortInternationalNumberPattern), culture) ?? string.Empty;
-            }
+            var regionCulture = Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), countryCodeValue)
+                ? GetRegionCulture((Iso3166Part1Alpha2Country)countryCodeValue)
+                : null;
 
-            if (string.IsNullOrEmpty(longInternationalNumberPattern) && string.IsNullOrEmpty(shortInternationalNumberPattern))
-            {
-                longInternationalNumberPattern = resourceManager.GetString(nameof(formatInfo.LongInternationalNumberPattern)) ?? string.Empty;
-                shortInternationalNumberPattern = resourceManager.GetString(nameof(formatInfo.ShortInternationalNumberPattern)) ?? string.Empty;
-            }
-
-            formatInfo.LongInternationalNumberPattern = longInternationalNumberPattern;
-            formatInfo.ShortInternationalNumberPattern = shortInternationalNumberPattern;
+            // Each pattern the region's resources don't hold comes from the neutral resources.
+            formatInfo.LongInternationalNumberPattern = GetPattern(resourceManager, nameof(formatInfo.LongInternationalNumberPattern), regionCulture);
+            formatInfo.ShortInternationalNumberPattern = GetPattern(resourceManager, nameof(formatInfo.ShortInternationalNumberPattern), regionCulture);
             return formatInfo;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static string GetPattern(ResourceManager resourceManager, string name, CultureInfo? regionCulture)
+#else
+        private static string GetPattern(ResourceManager resourceManager, string name, CultureInfo regionCulture)
+#endif
+        {
+            var pattern = regionCulture == null ? null : resourceManager.GetString(name, regionCulture);
+            return string.IsNullOrEmpty(pattern)
+                ? resourceManager.GetString(name) ?? string.Empty
+                : pattern;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static CultureInfo? GetRegionCulture(Iso3166Part1Alpha2Country countryCode)
+#else
+        private static CultureInfo GetRegionCulture(Iso3166Part1Alpha2Country countryCode)
+#endif
+        {
+            try
+            {
+                return new CultureInfo($"en-{countryCode}"); // don't care about the language; just want resources for the region
+            }
+            catch (ArgumentException)
+            {
+                // CultureNotFoundException: the platform has no culture for the region, as under invariant globalization mode or
+                // for a region its culture data lacks, so the region can have no resources of its own.
+                return null;
+            }
         }
 
         #endregion

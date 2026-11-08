@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Resources;
 using DataStandardizer.Communication.E164;
 using DataStandardizer.Geography;
 using FluentAssertions;
@@ -23,73 +25,110 @@ namespace DataStandardizer.Communication.Tests
         // A culture whose region is Australia.
         private const string AustralianEnglish = "en-AU";
 
+        // The names of the resources that hold the number patterns.
+        private const string LongPatternResourceName = nameof(ItuE164InternationalNumberFormatInfo.LongInternationalNumberPattern);
+        private const string ShortPatternResourceName = nameof(ItuE164InternationalNumberFormatInfo.ShortInternationalNumberPattern);
+
         // Patterns held by test resources for the region of Australia, and for every other culture.
-        private const string AustralianPattern = PrefixedCountryAreaThenSubscriberPattern;
-        private const string NeutralPattern = PrefixedCountryThenSubscriberPattern;
+        private const string AustralianLongPattern = PrefixedCountryAreaThenSubscriberPattern;
+        private const string AustralianShortPattern = PrefixedCompactPattern;
+        private const string NeutralLongPattern = SpacedPrefixCountryThenSubscriberPattern;
+        private const string NeutralShortPattern = SpacedPrefixCompactPattern;
 
-        [Fact]
-        public void Constructor_Alpha2CountryWithRegionResources_LoadsRegionLongInternationalNumberPattern()
+        // Constructors for Australia, by its ISO 3166-1 alpha-2 and alpha-3 codes.
+        public static TheoryData<Func<ResourceManager, TelephonyInfo>> AustraliaConstructors => new TheoryData<Func<ResourceManager, TelephonyInfo>>
+        {
+            resources => new TelephonyInfo(Iso3166Part1Alpha2Country.AU, resources),
+            resources => new TelephonyInfo(Iso3166Part1Alpha3Country.AUS, resources),
+        };
+
+        // Constructors for the United States, a country the test resources hold nothing for, by its ISO 3166-1 alpha-2 and alpha-3 codes.
+        public static TheoryData<Func<ResourceManager, TelephonyInfo>> UnitedStatesConstructors => new TheoryData<Func<ResourceManager, TelephonyInfo>>
+        {
+            resources => new TelephonyInfo(Iso3166Part1Alpha2Country.US, resources),
+            resources => new TelephonyInfo(Iso3166Part1Alpha3Country.USA, resources),
+        };
+
+        [Theory]
+        [MemberData(nameof(AustraliaConstructors))]
+        public void Constructor_CountryWithRegionResources_LoadsRegionLongInternationalNumberPattern(Func<ResourceManager, TelephonyInfo> createTelephony)
         {
             // arrange
-            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+            var resources = CreateResources(AustralianLongPattern, AustralianShortPattern);
+
+            // act
+            var testResult = createTelephony(resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(AustralianLongPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(AustraliaConstructors))]
+        public void Constructor_CountryWithRegionResources_LoadsRegionShortInternationalNumberPattern(Func<ResourceManager, TelephonyInfo> createTelephony)
+        {
+            // arrange
+            var resources = CreateResources(AustralianLongPattern, AustralianShortPattern);
+
+            // act
+            var testResult = createTelephony(resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(AustralianShortPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(UnitedStatesConstructors))]
+        public void Constructor_CountryWithoutRegionResources_LoadsNeutralLongInternationalNumberPattern(Func<ResourceManager, TelephonyInfo> createTelephony)
+        {
+            // arrange
+            var resources = CreateResources(AustralianLongPattern, AustralianShortPattern);
+
+            // act
+            var testResult = createTelephony(resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(NeutralLongPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(UnitedStatesConstructors))]
+        public void Constructor_CountryWithoutRegionResources_LoadsNeutralShortInternationalNumberPattern(Func<ResourceManager, TelephonyInfo> createTelephony)
+        {
+            // arrange
+            var resources = CreateResources(AustralianLongPattern, AustralianShortPattern);
+
+            // act
+            var testResult = createTelephony(resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(NeutralShortPattern);
+        }
+
+        [Fact]
+        public void Constructor_RegionResourcesWithoutShortPattern_LoadsRegionLongInternationalNumberPattern()
+        {
+            // arrange
+            var resources = CreateResourcesWithRegionLongPatternOnly(AustralianLongPattern);
 
             // act
             var testResult = new TelephonyInfo(Iso3166Part1Alpha2Country.AU, resources);
 
             // assert
-            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(AustralianPattern);
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(AustralianLongPattern);
         }
 
         [Fact]
-        public void Constructor_Alpha2CountryWithRegionResources_LoadsRegionShortInternationalNumberPattern()
+        public void Constructor_RegionResourcesWithoutShortPattern_LoadsNeutralShortInternationalNumberPattern()
         {
             // arrange
-            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+            var resources = CreateResourcesWithRegionLongPatternOnly(AustralianLongPattern);
 
             // act
             var testResult = new TelephonyInfo(Iso3166Part1Alpha2Country.AU, resources);
 
             // assert
-            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(AustralianPattern);
-        }
-
-        [Fact]
-        public void Constructor_Alpha3CountryWithRegionResources_LoadsRegionLongInternationalNumberPattern()
-        {
-            // arrange
-            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
-
-            // act
-            var testResult = new TelephonyInfo(Iso3166Part1Alpha3Country.AUS, resources);
-
-            // assert
-            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(AustralianPattern);
-        }
-
-        [Fact]
-        public void Constructor_Alpha3CountryWithRegionResources_LoadsRegionShortInternationalNumberPattern()
-        {
-            // arrange
-            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
-
-            // act
-            var testResult = new TelephonyInfo(Iso3166Part1Alpha3Country.AUS, resources);
-
-            // assert
-            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(AustralianPattern);
-        }
-
-        [Fact]
-        public void Constructor_CountryWithoutRegionResources_LoadsNeutralLongInternationalNumberPattern()
-        {
-            // arrange
-            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
-
-            // act
-            var testResult = new TelephonyInfo(Iso3166Part1Alpha2Country.US, resources);
-
-            // assert
-            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(NeutralPattern);
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(NeutralShortPattern);
         }
 
         [Theory]
@@ -265,5 +304,22 @@ namespace DataStandardizer.Communication.Tests
                 .Throw<InvalidOperationException>()
                 .WithMessage("TelephonyInfo is read only.");
         }
+
+        // Resources that hold the given patterns for the region of Australia, and the neutral patterns for every other culture.
+        private static RegionResourceManager CreateResources(string regionLongPattern, string regionShortPattern) =>
+            new RegionResourceManager(
+                AustralianEnglish,
+                new Dictionary<string, string> { [LongPatternResourceName] = regionLongPattern, [ShortPatternResourceName] = regionShortPattern },
+                CreateNeutralPatterns());
+
+        // Resources that hold only a long pattern for the region of Australia, and the neutral patterns for every other culture.
+        private static RegionResourceManager CreateResourcesWithRegionLongPatternOnly(string regionLongPattern) =>
+            new RegionResourceManager(
+                AustralianEnglish,
+                new Dictionary<string, string> { [LongPatternResourceName] = regionLongPattern },
+                CreateNeutralPatterns());
+
+        private static Dictionary<string, string> CreateNeutralPatterns() =>
+            new Dictionary<string, string> { [LongPatternResourceName] = NeutralLongPattern, [ShortPatternResourceName] = NeutralShortPattern };
     }
 }
