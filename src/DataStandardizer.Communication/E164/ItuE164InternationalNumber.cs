@@ -39,7 +39,15 @@ namespace DataStandardizer.Communication.E164
         [MaybeNull] private readonly IItuE164InternationalNumber _numberStructure;
 #endif
 
-        private ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)
+        /// <summary>
+        /// Wraps a number structure without checking that its codes are assigned.
+        /// </summary>
+        /// <remarks>
+        /// Internal, not private, as a seam for the unit tests: no Group Identification Code or Trial Identification
+        /// Code is assigned today, so the factories can't create a number for a group of countries or a trial, and the
+        /// tests build one from its structure to cover the members that handle those numbers.
+        /// </remarks>
+        internal ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)
         {
             _numberStructure = numberStructure;
         }
