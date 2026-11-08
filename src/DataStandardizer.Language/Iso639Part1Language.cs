@@ -1314,9 +1314,14 @@ namespace DataStandardizer.Language
             }
             if ((this._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
-            return this._value.CompareTo(obj);
+            var other = ((DataStandardizer.Language.Iso639Part1Language)(obj));
+            if ((other._value == null))
+            {
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
+            }
+            return string.CompareOrdinal(this._value, other._value);
         }
         
         public override bool Equals(object? obj)
@@ -1365,9 +1370,14 @@ namespace DataStandardizer.Language
             }
             if ((this._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
             }
-            return ((System.IComparable)(this._value)).CompareTo(obj);
+            var other = ((DataStandardizer.Language.Iso639Part1Language)(obj));
+            if ((other._value == null))
+            {
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
+            }
+            return string.CompareOrdinal(this._value, other._value);
         }
         
         public override bool Equals(object obj)
