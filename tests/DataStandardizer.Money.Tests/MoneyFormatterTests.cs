@@ -473,5 +473,19 @@ public class MoneyFormatterTests
         { GermanCulture, Money.Create(UnroundedAmount, Iso4217CurrencyCurrent.USD, RoundingToCents), "0.000", CurrencyFormatInfo.InvariantInfo, "1.010" },
     };
 
+    [Fact]
+    public void Format_GeneralFormatOfNegativeValueWithCurrencyFormatInfoHavingEmptyNegativeSign_EmitsNoNegativeSign()
+    {
+        // arrange
+        var testSubject = Money.Create(NegativeTestAmount, Iso4217CurrencyCurrent.EUR);
+        var testProvider = new CurrencyFormatInfo { NegativeSign = string.Empty };
+
+        // act
+        var testResult = testSubject.ToString(GeneralFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(GeneralResult, "the general form uses the negative sign of the currency formatting information, as the money forms do");
+    }
+
     #endregion
 }

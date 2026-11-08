@@ -1090,9 +1090,9 @@ namespace DataStandardizer.Money
                 }
 
                 // Number formatting the provider does not supply is taken from its currency formatting
-                // information, as it is when parsing, rather than from the culture of the current thread.
+                // information rather than from the culture of the current thread.
                 var currencyNumberFormat = formatProvider.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo
-                                           ?? GetNumberFormat(null, currencyFormat);
+                                           ?? GetFormattingNumberFormat(currencyFormat);
                 return new MoneyInfo(currencyFormat, currencyNumberFormat) { IsReadOnly = true };
             }
 
@@ -1110,6 +1110,27 @@ namespace DataStandardizer.Money
             }
 
             return defaultProvider;
+        }
+
+        /// <summary>
+        /// Derive the number formatting used to format the amount from currency formatting information.
+        /// </summary>
+        /// <param name="currencyFormat">Currency formatting information whose separators and sign are to be used.</param>
+        /// <returns>Invariant number formatting with the separators, group sizes and negative sign of <paramref name="currencyFormat"/>.</returns>
+        /// <remarks>
+        /// The negative sign is taken as it stands, even where it is empty, so that the general format and
+        /// custom numeric formats emit the same sign as the money formats do. Parsing substitutes a hyphen
+        /// for an empty sign instead, since an empty sign cannot be recognised in input.
+        /// </remarks>
+        private static NumberFormatInfo GetFormattingNumberFormat(CurrencyFormatInfo currencyFormat)
+        {
+            return new NumberFormatInfo
+            {
+                NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator,
+                NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator,
+                NumberGroupSizes = currencyFormat.CurrencyGroupSizes,
+                NegativeSign = currencyFormat.NegativeSign ?? string.Empty
+            };
         }
 
         /// <summary>
