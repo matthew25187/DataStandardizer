@@ -8326,6 +8326,14 @@ namespace DataStandardizer.Chronology
             /// <para>The default value of <see cref="TzDataTimezone"/> is equal to this timezone.</para>
             /// </remarks>
             public static readonly DataStandardizer.Chronology.TzDataTimezone UTC = new DataStandardizer.Chronology.TzDataTimezone("Etc/UTC", TzDataTimezone.ZoneLineData.Etc_UTC, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
+            
+            /// <summary>
+            /// Etc/GMT
+            /// </summary>
+            /// <remarks>
+            /// Greenwich Mean Time, which is used in no country, and so has no location: its latitude and longitude are 0.
+            /// </remarks>
+            public static readonly DataStandardizer.Chronology.TzDataTimezone GMT = new DataStandardizer.Chronology.TzDataTimezone("Etc/GMT", TzDataTimezone.ZoneLineData.Etc_GMT, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
         }
         
         public static class Arctic

@@ -24,7 +24,6 @@ namespace DataStandardizer.Communication
     {
         // The country code of an instance for no country; no ISO 3166-1 country has the numeric code 0.
         private const ushort NoCountryCode = 0;
-
         private readonly ushort _countryCode;
 #if NETCOREAPP3_0_OR_GREATER
         private ItuE164InternationalNumberFormatter? _formatter; 
@@ -131,7 +130,8 @@ namespace DataStandardizer.Communication
         /// <remarks>
         /// The returned instance is determined based on the region subtag of the current thread's culture.
         /// If the region subtag corresponds to a valid ISO 3166-1 alpha-2 country code, a corresponding 
-        /// <see cref="TelephonyInfo"/> instance is returned. Otherwise, a default read-only instance is provided.
+        /// <see cref="TelephonyInfo"/> instance is returned. Otherwise, a default read-only instance is provided. That includes a
+        /// region subtag that is a UN M.49 code, such as <c>419</c> in <c>es-419</c>.
         /// </remarks>
         /// <value>
         /// A <see cref="TelephonyInfo"/> instance representing the telephony settings for the current culture.
@@ -200,17 +200,28 @@ namespace DataStandardizer.Communication
 #if NETSTANDARD2_0_OR_GREATER || NET
         private static TelephonyInfo DoGetCurrentTelephony()
         {
-            // The invariant culture's name is empty, which isn't a language tag; like any culture without a country, it gets
-            // the default instance.
-            Iso3166Part1Alpha2Country? countryCode = Bcp47LanguageTag.TryCreate(Thread.CurrentThread.CurrentCulture.Name, out var currentCultureTag)
-                && Enum.TryParse(currentCultureTag.RegionSubtag, out Iso3166Part1Alpha2Country countryCodeValue)
-                ? countryCodeValue
-                : default(Iso3166Part1Alpha2Country?);
+            var countryCode = GetCultureCountryCode(Thread.CurrentThread.CurrentCulture.Name);
             return countryCode.HasValue
                 ? new TelephonyInfo(countryCode.Value) { IsReadOnly = true }
                 : new TelephonyInfo { IsReadOnly = true };
         }
 #endif
+
+        /// <summary>
+        /// Gets the ISO 3166-1 alpha-2 country that a culture's region subtag names, or <c>null</c> when it names none.
+        /// </summary>
+        /// <param name="cultureName">The culture's name.</param>
+        /// <remarks>A seam for tests, which reach it through <c>InternalsVisibleTo</c>.</remarks>
+        internal static Iso3166Part1Alpha2Country? GetCultureCountryCode(string cultureName)
+        {
+            // The invariant culture's name is empty, which isn't a language tag; like any culture without a country, it has no
+            // country code. Nor does a culture whose region subtag is a UN M.49 code, such as 419 in es-419 or 036 in en-036: only an
+            // ISO 3166-1 alpha-2 code names a country, and ToIso3166Part1Alpha2 takes only that form, in any case (RFC 5646,
+            // section 2.1.1).
+            return Bcp47LanguageTag.TryCreate(cultureName, out var cultureTag)
+                ? cultureTag.ToIso3166Part1Alpha2()
+                : default(Iso3166Part1Alpha2Country?);
+        }
 
         private static ItuE164InternationalNumberFormatInfo LoadInternationalNumberFormatInformation(ushort countryCodeValue, ResourceManager resourceManager)
         {

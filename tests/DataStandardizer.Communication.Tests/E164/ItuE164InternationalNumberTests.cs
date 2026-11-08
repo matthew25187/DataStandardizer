@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using DataStandardizer.Communication.E164;
@@ -19,6 +20,7 @@ namespace DataStandardizer.Communication.Tests.E164
         private const ulong GreatBritainNumber = 443071234567L;
         private const ulong OtherGreatBritainNumber = 445071234567L;
         private const string GreatBritainNumberText = "443071234567";
+
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
         private const ulong GlobalSubscriberNumber = 8001234567L;
@@ -64,6 +66,71 @@ namespace DataStandardizer.Communication.Tests.E164
         private const ulong FifteenDigitGeographicAreaNumber = 211123456789012L;
         private const string FifteenDigitGlobalServiceNumberText = "800123456789012";
         private const ulong FifteenDigitGlobalServiceNumber = 800123456789012L;
+
+        // GreatBritainNumber in the full general format, "G", and the format string itself.
+        private const string GreatBritainNumberInGeneralFormat = "+44 3071234567";
+        private const string FullGeneralFormat = "G";
+
+        // The long international format, "I"; a long international pattern ('+' the international prefix symbol, 'c' a digit of the
+        // country code, 's' of the subscriber number); and GreatBritainNumber in that pattern.
+        private const string LongInternationalFormat = "I";
+        private const string GroupedLongInternationalPattern = "+cc sss sss ssss";
+        private const string GreatBritainNumberInGroupedLongInternationalPattern = "+44 307 123 4567";
+
+        // GreatBritainNumber in the invariant telephony's long international pattern: the international prefix symbol, the Country Code
+        // and, after a space, the national significant number (ITU-T E.123 international notation).
+        private const string GreatBritainNumberInInvariantLongInternationalPattern = "+44 3071234567";
+
+        // The short international format, "i".
+        private const string ShortInternationalFormat = "i";
+
+        // A number for a geographic area in the United States, whose Country Code, 1, has one digit (ITU-T E.164).
+        private const ulong UnitedStatesNumber = 12135550123L;
+
+        // What a format provider's own formatter returns in the tests that show it takes precedence.
+        private const string CustomFormatterResult = "custom";
+
+        // What ToString returns for an uninitialized instance: the full name of the type.
+        private const string TypeFullName = "DataStandardizer.Communication.E164.ItuE164InternationalNumber";
+
+        // Format providers that supply no ICustomFormatter.
+        public static TheoryData<IFormatProvider> ProvidersWithoutCustomFormatter => new TheoryData<IFormatProvider>
+        {
+            null,
+            CultureInfo.InvariantCulture
+        };
+
+        // Every ToString overload, with null, culture and telephony providers.
+        public static TheoryData<Func<ItuE164InternationalNumber, string>> ToStringOverloads => new TheoryData<Func<ItuE164InternationalNumber, string>>
+        {
+            number => number.ToString(),
+            number => number.ToString(FullGeneralFormat),
+            number => number.ToString((IFormatProvider)null),
+            number => number.ToString(CultureInfo.InvariantCulture),
+            number => number.ToString(TelephonyInfo.InvariantTelephony),
+            number => number.ToString(FullGeneralFormat, null),
+            number => number.ToString(FullGeneralFormat, CultureInfo.InvariantCulture),
+            number => number.ToString(FullGeneralFormat, TelephonyInfo.InvariantTelephony)
+        };
+
+        // Numbers whose Country Codes have one, two and three digits, and a network number with an identification code, each in the
+        // invariant telephony's long international pattern (ITU-T E.123 international notation).
+        public static TheoryData<ItuE164InternationalNumber, string> InvariantLongInternationalPattern_TestCases => new TheoryData<ItuE164InternationalNumber, string>
+        {
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(UnitedStatesNumber), "+1 2135550123" },
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber), GreatBritainNumberInInvariantLongInternationalPattern },
+            { ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber), "+800 4121234567" },
+            { ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber), "+883 1101234567" },
+        };
+
+        // The same numbers in the invariant telephony's short international pattern, which has no space.
+        public static TheoryData<ItuE164InternationalNumber, string> InvariantShortInternationalPattern_TestCases => new TheoryData<ItuE164InternationalNumber, string>
+        {
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(UnitedStatesNumber), "+12135550123" },
+            { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber), "+443071234567" },
+            { ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber), "+8004121234567" },
+            { ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber), "+8831101234567" },
+        };
 
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
         {
@@ -398,6 +465,166 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // assert
             testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(ProvidersWithoutCustomFormatter))]
+        public void ToString_FormatAndProviderWithoutCustomFormatter_ReturnsFormattedNumber(IFormatProvider formatProvider)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(FullGeneralFormat, formatProvider);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Theory]
+        [MemberData(nameof(ProvidersWithoutCustomFormatter))]
+        public void ToString_ProviderWithoutCustomFormatter_ReturnsFormattedNumber(IFormatProvider formatProvider)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(formatProvider);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Fact]
+        public void ToString_NoArguments_ReturnsFormattedNumber()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString();
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Fact]
+        public void ToString_CompositeFormatWithFormatStringAndInvariantCulture_ReturnsFormattedNumber()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = string.Format(CultureInfo.InvariantCulture, "{0:G}", testSubject);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Theory]
+        [MemberData(nameof(ToStringOverloads))]
+        public void ToString_InstanceIsNotInitialized_ReturnsTypeName(Func<ItuE164InternationalNumber, string> toString)
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = toString(testSubject);
+
+            // assert
+            testResult.Should().Be(TypeFullName);
+        }
+
+        [Fact]
+        public void ToString_LongInternationalFormatAndInvariantCulture_ReturnsInvariantPattern()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInInvariantLongInternationalPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvariantLongInternationalPattern_TestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_LongInternationalFormatAndInvariantTelephony_ReturnsPrefixAndWholeCountryCode(ItuE164InternationalNumber testSubject, string expectedResult)
+        {
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, TelephonyInfo.InvariantTelephony);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvariantShortInternationalPattern_TestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_ShortInternationalFormatAndInvariantTelephony_ReturnsPrefixAndWholeCountryCode(ItuE164InternationalNumber testSubject, string expectedResult)
+        {
+            // act
+            var testResult = testSubject.ToString(ShortInternationalFormat, TelephonyInfo.InvariantTelephony);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Fact]
+        public void ToString_LongInternationalFormatAndTelephonyInfoWithPattern_ReturnsNumberInThatPattern()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var formatInfo = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = GroupedLongInternationalPattern };
+            var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
+
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, formatProvider);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGroupedLongInternationalPattern);
+        }
+
+        [Fact]
+        public void ToString_LongInternationalFormatAndFormatInfoWithPattern_ReturnsNumberInThatPattern()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var formatProvider = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = GroupedLongInternationalPattern };
+
+            // act
+            var testResult = testSubject.ToString(LongInternationalFormat, formatProvider);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGroupedLongInternationalPattern);
+        }
+
+        [Fact]
+        public void ToString_ProviderWithCustomFormatter_ReturnsCustomFormatterResult()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var formatProvider = new FixedResultFormatProvider(CustomFormatterResult);
+
+            // act
+            var testResult = testSubject.ToString(FullGeneralFormat, formatProvider);
+
+            // assert
+            testResult.Should().Be(CustomFormatterResult);
+        }
+
+        [Fact]
+        public void ToString_ProviderWithCustomFormatterThatReturnsNull_ReturnsEmptyString()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var formatProvider = new FixedResultFormatProvider(null);
+
+            // act
+            var testResult = testSubject.ToString(FullGeneralFormat, formatProvider);
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         [Fact]
@@ -1728,15 +1955,7 @@ namespace DataStandardizer.Communication.Tests.E164
             {
                 get
                 {
-                    var identificationCodeLookup = (
-                            from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
-                            from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
-                            let sharedCodeAttribute = identificationCode.GetType().GetFields()
-                                .First(@field => @field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
-                                .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                            where sharedCodeAttribute.CountryCode == countryCode
-                            select new { countryCode, identificationCode = (ushort)identificationCode })
-                        .ToLookup(kvp => kvp.countryCode, kvp => kvp.identificationCode);
+                    var identificationCodeLookup = ItuE164InternationalNumberStructureBase.ComposeIdentificationCodeLookup(typeof(ItuE164AssignedCountryCodesForNetworks), typeof(ItuE164AssignedIdentificationCodesForNetworks));
                     var subscriberNumberIndex = 0;
                     foreach (var kvp in identificationCodeLookup)
                     {
@@ -1763,6 +1982,29 @@ namespace DataStandardizer.Communication.Tests.E164
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// A format provider whose own formatter returns the same result, which may be <c>null</c>, for every value.
+        /// </summary>
+        private sealed class FixedResultFormatProvider : IFormatProvider, ICustomFormatter
+        {
+            private readonly string _result;
+
+            public FixedResultFormatProvider(string result)
+            {
+                _result = result;
+            }
+
+            public object GetFormat(Type formatType)
+            {
+                return formatType == typeof(ICustomFormatter) ? this : null;
+            }
+
+            public string Format(string format, object arg, IFormatProvider formatProvider)
+            {
+                return _result;
             }
         }
     }

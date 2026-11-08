@@ -53,7 +53,8 @@ namespace DataStandardizer.Chronology
         /// <paramref name="systemTime"/> and constructs a corresponding <see cref="DateTime"/> object.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
-        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>.
+        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
+        /// or a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.
         /// </exception>
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
@@ -79,7 +80,8 @@ namespace DataStandardizer.Chronology
         /// <paramref name="systemTime"/> and constructs a corresponding <see cref="DateOnly"/> object.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
-        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>.
+        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
+        /// or a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.
         /// </exception>
         public static DateOnly ToDateOnly<T>(this T systemTime) where T : struct, ISystemTime
         {
@@ -104,7 +106,8 @@ namespace DataStandardizer.Chronology
         /// provided by the <paramref name="systemTime"/> and constructs a corresponding <see cref="TimeOnly"/> object.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
-        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>.
+        /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
+        /// or a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.
         /// </exception>
         public static TimeOnly ToTimeOnly<T>(this T systemTime) where T : struct, ISystemTime
         {

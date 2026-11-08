@@ -62,7 +62,7 @@ namespace DataStandardizer.Communication {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to pc ssssssssssss.
+        ///   Looks up a localized string similar to +ccc iiiissssssssssssss.
         /// </summary>
         internal static string LongInternationalNumberPattern {
             get {
@@ -71,7 +71,7 @@ namespace DataStandardizer.Communication {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to pcssssssssssss.
+        ///   Looks up a localized string similar to +ccciiiissssssssssssss.
         /// </summary>
         internal static string ShortInternationalNumberPattern {
             get {

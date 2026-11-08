@@ -33,6 +33,16 @@ Every member that reads the wrapped value's Julian Day Number (`JulianDayNumber`
 `InvalidOperationException` when the wrapped value is a default instance that
 holds no date, such as `default(DosDateTime)`.
 
+A default instance, `default(SystemTimeWithGregorianCalendar)`, wraps no system
+time. Those same members, and the `ToDateTime`, `ToDateOnly` and `ToTimeOnly`
+extensions, throw `InvalidOperationException` for it. `Equals` (two default
+instances are equal), `GetHashCode` and `ToString` don't throw, and
+`AsUnixTime()` and `AsDosDateTime()` return `null`.
+
+Two instances are equal when the system times they wrap are equal.
+`GetHashCode` returns the wrapped system time's hash code, or 0 for a default
+instance, and `ToString` returns the full name of the type.
+
 ## Constructors
 
 | Constructor | Notes |
