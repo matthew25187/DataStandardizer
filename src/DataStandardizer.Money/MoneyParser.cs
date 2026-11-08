@@ -270,30 +270,37 @@ namespace DataStandardizer.Money
             return false;
         }
 
+        /// <summary>
+        /// Remove a negative sign from either end of a value.
+        /// </summary>
+        /// <remarks>
+        /// A value carries at most one sign, and parentheses are a sign, so a sign found once
+        /// <paramref name="isNegative"/> is already set fails the parse.
+        /// </remarks>
         private static bool TryExtractSign(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, ref bool isNegative)
         {
             var negativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
 
             if (value.StartsWith(negativeSign, StringComparison.Ordinal))
             {
-                if ((styles & MoneyStyles.AllowLeadingSign) == 0)
+                if ((styles & MoneyStyles.AllowLeadingSign) == 0 || isNegative)
                 {
                     return false;
                 }
 
-                isNegative = !isNegative;
+                isNegative = true;
                 value = value.Substring(negativeSign.Length);
                 return true;
             }
 
             if (value.EndsWith(negativeSign, StringComparison.Ordinal))
             {
-                if ((styles & MoneyStyles.AllowTrailingSign) == 0)
+                if ((styles & MoneyStyles.AllowTrailingSign) == 0 || isNegative)
                 {
                     return false;
                 }
 
-                isNegative = !isNegative;
+                isNegative = true;
                 value = value.Substring(0, value.Length - negativeSign.Length);
                 return true;
             }
