@@ -47,9 +47,12 @@ namespace DataStandardizer.Chronology
         /// </param>
         /// <returns>
         /// A <see cref="DateTime"/> instance representing the date and time derived from the Julian Day Number.
+        /// For a <see cref="UnixTime"/>, which counts seconds since the Unix epoch in UTC, its <see cref="DateTime.Kind"/>
+        /// is <see cref="DateTimeKind.Utc"/>. For any other system time, including a <see cref="SystemTimeWithGregorianCalendar"/>,
+        /// whose time zone isn't known, it is <see cref="DateTimeKind.Unspecified"/>.
         /// </returns>
         /// <remarks>
-        /// This method calculates the date and time components based on the Julian Day Number provided by the 
+        /// This method calculates the date and time components based on the Julian Day Number provided by the
         /// <paramref name="systemTime"/> and constructs a corresponding <see cref="DateTime"/> object.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
@@ -59,7 +62,8 @@ namespace DataStandardizer.Chronology
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
             var (year, month, day, hour, minute, second) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDateTime(systemTime.JulianDayNumber);
-            return new DateTime(year, month, day, hour, minute, second);
+            var kind = typeof(T) == typeof(UnixTime) ? DateTimeKind.Utc : DateTimeKind.Unspecified;
+            return new DateTime(year, month, day, hour, minute, second, kind);
         }
 
 #if NET6_0_OR_GREATER

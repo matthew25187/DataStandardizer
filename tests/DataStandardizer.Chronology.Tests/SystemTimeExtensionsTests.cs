@@ -122,6 +122,68 @@ public class SystemTimeExtensionsTests
         ((long)testResult).Should().Be(testUnixTime);
     }
 
+    [Theory]
+    [InlineData(-1L),
+     InlineData(0L),
+     InlineData(1700000000L)]
+    public void ToDateTime_OnUnixTimeValue_ReturnsUtcKind(long testUnixTime)
+    {
+        // arrange
+        var testValue = new UnixTime(testUnixTime);
+
+        // act
+        var testResult = testValue.ToDateTime();
+
+        // assert
+        testResult.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Theory]
+    [InlineData(-1L, 1969, 12, 31, 23, 59, 59),
+     InlineData(0L, 1970, 1, 1, 0, 0, 0),
+     InlineData(1700000000L, 2023, 11, 14, 22, 13, 20)]
+    public void ToDateTime_OnUnixTimeValue_ToUniversalTimeKeepsInstant(long testUnixTime, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
+    {
+        // arrange
+        var expectedResult = new DateTime(expectedYear, expectedMonth, expectedDay, expectedHour, expectedMinute, expectedSecond, DateTimeKind.Utc);
+        var testValue = new UnixTime(testUnixTime);
+
+        // act
+        var testResult = testValue.ToDateTime().ToUniversalTime();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+        testResult.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Theory]
+    [InlineData(0x00210001U)]
+    public void ToDateTime_OnDosDateTimeValue_ReturnsUnspecifiedKind(uint testDosDateTime)
+    {
+        // arrange
+        var testValue = new DosDateTime(testDosDateTime);
+
+        // act
+        var testResult = testValue.ToDateTime();
+
+        // assert
+        testResult.Kind.Should().Be(DateTimeKind.Unspecified);
+    }
+
+    [Theory]
+    [InlineData(0L)]
+    public void ToDateTime_OnSystemTimeWithGregorianCalendarValue_ReturnsUnspecifiedKind(long testUnixTime)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
+
+        // act
+        var testResult = testValue.ToDateTime();
+
+        // assert
+        testResult.Kind.Should().Be(DateTimeKind.Unspecified);
+    }
+
     // About 3.2 million years from the epoch, too far for the day number arithmetic.
     [Theory]
     [InlineData(100000000000000L),

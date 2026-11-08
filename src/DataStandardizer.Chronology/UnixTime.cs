@@ -6,7 +6,9 @@
     /// </summary>
     /// <remarks>
     /// This struct provides implicit conversions to and from <see cref="System.Int64"/> 
-    /// and includes functionality to calculate the Julian Day Number.
+    /// and includes functionality to calculate the Julian Day Number. Because Unix time is defined in UTC,
+    /// <see cref="SystemTimeExtensions.ToDateTime{T}(T)"/> returns a <see cref="System.DateTime"/> of kind
+    /// <see cref="System.DateTimeKind.Utc"/> for it.
     /// </remarks>
     public readonly struct UnixTime : ISystemTime
     {
