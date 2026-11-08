@@ -8,6 +8,10 @@ namespace DataStandardizer.Communication.Tests.E164
     {
         // The format strings of ItuE164InternationalNumberFormatter: general, general with separators, and the short and long international
         // number patterns of the format provider.
+        // No Group Identification Code or Trial Identification Code is assigned, so no such number can be created.
+        private const string NumberForGroupsOfCountriesSkipMessage = "There is currently no available Group Identification Code.";
+        private const string NumberForTrialsSkipMessage = "There is currently no available Trial Identification Code.";
+
         private const string GeneralFormat = "g";
         private const string GeneralFormatWithSeparators = "G";
         private const string ShortInternationalFormat = "i";
@@ -226,12 +230,12 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData(88101235550199L, GeneralFormat, "+88101235550199"),
-         InlineData(88111235550199L, GeneralFormatWithSeparators, "+881 11235550199")]
+        [InlineData(NetworkNumberWithIdentificationCode6, GeneralFormat, "+88161235550100"),
+         InlineData(NetworkNumberWithIdentificationCode7, GeneralFormatWithSeparators, "+881 7 1235550102")]
         public void Format_InternationalNumberForNetworkWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGlobalService(testValue);
+            var testNumber = ItuE164InternationalNumber.CreateNumberForNetwork(testValue);
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -307,7 +311,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
         [InlineData(38835550100L, GeneralFormat, "+38835550100"),
          InlineData(38835550101L, GeneralFormatWithSeparators, "+388 3 5550101")]
         public void Format_InternationalNumberForGroupOfCountriesWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
@@ -324,7 +328,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
         [InlineData(GroupOfCountriesNumber0102, CountryIdentificationAndSubscriberPattern, "+38835550102"),
          InlineData(GroupOfCountriesNumber0102, SpacedCountryIdentificationAndSubscriberPattern, "+ 38835550102")]
         public void Format_InternationalNumberForGroupOfCountriesWithShortInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
@@ -343,7 +347,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
         [InlineData(GroupOfCountriesNumber0103, CountryThenIdentificationAndSubscriberPattern, "+388 35550103"),
          InlineData(GroupOfCountriesNumber0103, SpacedCountryThenIdentificationAndSubscriberPattern, "+ 388 35550103"),
          InlineData(GroupOfCountriesNumber0104, CountryThenIdentificationThenSubscriberPattern, "+388 3 5550104"),
@@ -364,7 +368,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
         [InlineData(GroupOfCountriesNumber0105, CountryIdentificationAndSubscriberPattern, "+38835550105"),
          InlineData(GroupOfCountriesNumber0105, SpacedCountryIdentificationAndSubscriberPattern, "+ 38835550105"),
          InlineData(GroupOfCountriesNumber0106, CountryThenIdentificationAndSubscriberPattern, "+388 35550106"),
@@ -387,7 +391,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForTrialsSkipMessage)]
         [InlineData(TrialNumberWithoutSubscriber, GeneralFormat, TrialNumberWithoutSubscriberFormatted),
          InlineData(99115550100L, GeneralFormat, "+99115550100"),
          InlineData(TrialNumberWithoutSubscriber, GeneralFormatWithSeparators, TrialNumberWithoutSubscriberWithSeparator),
@@ -406,7 +410,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForTrialsSkipMessage)]
         [InlineData(TrialNumberWithoutSubscriber, CountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberFormatted),
          InlineData(TrialNumberWithoutSubscriber, SpacedCountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberSpaced),
          InlineData(TrialNumber0102, CountryIdentificationAndSubscriberPattern, "+99115550102"),
@@ -427,7 +431,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForTrialsSkipMessage)]
         [InlineData(TrialNumberWithoutSubscriber, CountryThenIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberWithSeparator),
          InlineData(TrialNumberWithoutSubscriber, SpacedCountryThenIdentificationAndSubscriberPattern, "+ 991 1"),
          InlineData(TrialNumber0103, CountryThenIdentificationAndSubscriberPattern, "+991 15550103"),
@@ -448,7 +452,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory]
+        [Theory(Skip = NumberForTrialsSkipMessage)]
         [InlineData(TrialNumberWithoutSubscriber, CountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberFormatted),
          InlineData(TrialNumberWithoutSubscriber, SpacedCountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberSpaced),
          InlineData(TrialNumber0104, CountryThenIdentificationAndSubscriberPattern, "+991 15550104"),
