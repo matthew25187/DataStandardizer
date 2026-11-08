@@ -10,6 +10,9 @@ public class CurrencyFormatInfoTests
     private const int FirstGroupSize = 3;
     private const int LaterGroupSize = 2;
     private const int ChangedGroupSize = 1;
+    private const int InvariantGroupSize = 3;
+    private const string SetterParameterName = "value";
+    private static readonly int[] ExpectedGroupSizes = { FirstGroupSize, LaterGroupSize };
 
     #region Test: InvariantInfo
 
@@ -23,7 +26,7 @@ public class CurrencyFormatInfoTests
         testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "the invariant information denotes no currency");
         testResult.CurrencyDecimalSeparator.Should().Be(".");
         testResult.CurrencyGroupSeparator.Should().Be(",");
-        testResult.CurrencyGroupSizes.Should().Equal(3);
+        testResult.CurrencyGroupSizes.Should().Equal(InvariantGroupSize);
         testResult.NegativeSign.Should().Be("-");
         testResult.IsReadOnly.Should().BeTrue("the shared instance must not be modifiable");
     }
@@ -54,7 +57,21 @@ public class CurrencyFormatInfoTests
         var testResult = testInfo.CurrencyGroupSizes;
 
         // assert
-        testResult.Should().Equal(new[] { FirstGroupSize, LaterGroupSize }, "the getter must return a copy of the sizes");
+        testResult.Should().Equal(ExpectedGroupSizes, "the getter must return a copy of the sizes");
+    }
+
+    [Fact]
+    public void CurrencyGroupSizes_WhenArrayReturnedByInvariantInfoIsChanged_KeepsTheInvariantSizes()
+    {
+        // arrange
+        var returnedSizes = CurrencyFormatInfo.InvariantInfo.CurrencyGroupSizes;
+
+        // act
+        returnedSizes[0] = ChangedGroupSize;
+        var testResult = CurrencyFormatInfo.InvariantInfo.CurrencyGroupSizes;
+
+        // assert
+        testResult.Should().Equal(new[] { InvariantGroupSize }, "a read-only instance must not be changed through the array it returns");
     }
 
     [Fact]
@@ -69,7 +86,7 @@ public class CurrencyFormatInfoTests
         var testResult = testInfo.CurrencyGroupSizes;
 
         // assert
-        testResult.Should().Equal(new[] { FirstGroupSize, LaterGroupSize }, "the setter must store a copy of the sizes");
+        testResult.Should().Equal(ExpectedGroupSizes, "the setter must store a copy of the sizes");
     }
 
     [Fact]
@@ -82,8 +99,66 @@ public class CurrencyFormatInfoTests
         Action testAction = () => testInfo.CurrencyGroupSizes = null!;
 
         // assert
-        testAction.Should().Throw<ArgumentNullException>();
+        testAction.Should().Throw<ArgumentNullException>().WithParameterName(SetterParameterName);
     }
+
+    [Fact]
+    public void CurrencyGroupSizes_WhenReadOnlyInstanceIsSetToNull_ThrowsArgumentNullException()
+    {
+        // act
+        Action testAction = () => CurrencyFormatInfo.InvariantInfo.CurrencyGroupSizes = null!;
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>("the argument is checked before the instance is, as NumberFormatInfo does").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidGroupSizesTestCases))]
+    public void CurrencyGroupSizes_WhenSetToInvalidSizes_ThrowsArgumentException(int[] testSizes)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyGroupSizes = testSizes;
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [MemberData(nameof(ValidGroupSizesTestCases))]
+    public void CurrencyGroupSizes_WhenSetToValidSizes_StoresTheSizes(int[] testSizes, int[] expectedSizes)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyGroupSizes = testSizes;
+        var testResult = testInfo.CurrencyGroupSizes;
+
+        // assert
+        testResult.Should().Equal(expectedSizes);
+    }
+
+    // The rule NumberFormatInfo.NumberGroupSizes applies: each size is from 1 to 9, and only the last may be 0.
+    public static TheoryData<int[]> InvalidGroupSizesTestCases => new()
+    {
+        new[] { 0, 3 },
+        new[] { -1 },
+        new[] { 3, -1 },
+        new[] { 10 },
+        new[] { 3, 10 }
+    };
+
+    public static TheoryData<int[], int[]> ValidGroupSizesTestCases => new()
+    {
+        { new int[0], new int[0] },
+        { new[] { 1 }, new[] { 1 } },
+        { new[] { 9 }, new[] { 9 } },
+        { new[] { 0 }, new[] { 0 } },
+        { new[] { 3, 0 }, new[] { 3, 0 } }
+    };
 
     #endregion
 
