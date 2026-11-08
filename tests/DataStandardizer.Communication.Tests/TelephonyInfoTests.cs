@@ -23,6 +23,75 @@ namespace DataStandardizer.Communication.Tests
         // A culture whose region is Australia.
         private const string AustralianEnglish = "en-AU";
 
+        // Patterns held by test resources for the region of Australia, and for every other culture.
+        private const string AustralianPattern = PrefixedCountryAreaThenSubscriberPattern;
+        private const string NeutralPattern = PrefixedCountryThenSubscriberPattern;
+
+        [Fact]
+        public void Constructor_Alpha2CountryWithRegionResources_LoadsRegionLongInternationalNumberPattern()
+        {
+            // arrange
+            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+
+            // act
+            var testResult = new TelephonyInfo(Iso3166Part1Alpha2Country.AU, resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(AustralianPattern);
+        }
+
+        [Fact]
+        public void Constructor_Alpha2CountryWithRegionResources_LoadsRegionShortInternationalNumberPattern()
+        {
+            // arrange
+            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+
+            // act
+            var testResult = new TelephonyInfo(Iso3166Part1Alpha2Country.AU, resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(AustralianPattern);
+        }
+
+        [Fact]
+        public void Constructor_Alpha3CountryWithRegionResources_LoadsRegionLongInternationalNumberPattern()
+        {
+            // arrange
+            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+
+            // act
+            var testResult = new TelephonyInfo(Iso3166Part1Alpha3Country.AUS, resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(AustralianPattern);
+        }
+
+        [Fact]
+        public void Constructor_Alpha3CountryWithRegionResources_LoadsRegionShortInternationalNumberPattern()
+        {
+            // arrange
+            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+
+            // act
+            var testResult = new TelephonyInfo(Iso3166Part1Alpha3Country.AUS, resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(AustralianPattern);
+        }
+
+        [Fact]
+        public void Constructor_CountryWithoutRegionResources_LoadsNeutralLongInternationalNumberPattern()
+        {
+            // arrange
+            var resources = new RegionResourceManager(AustralianEnglish, AustralianPattern, NeutralPattern);
+
+            // act
+            var testResult = new TelephonyInfo(Iso3166Part1Alpha2Country.US, resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(NeutralPattern);
+        }
+
         [Theory]
         [InlineData(""), InlineData("en")]
         public void CurrentTelephony_CurrentCultureWithoutRegion_ReturnsReadOnlyTelephonyWithoutCountry(string cultureName)
