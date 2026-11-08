@@ -27,6 +27,6 @@
             return new UnixTime(value);
         }
 
-        public decimal JulianDayNumber => decimal.Divide(_value, 86400) + 2440587.5m;
+        public decimal JulianDayNumber => decimal.Divide(_value, JulianDayNumberHelper.SecondsPerDay) + JulianDayNumberHelper.UnixEpochJdn;
     }
 }

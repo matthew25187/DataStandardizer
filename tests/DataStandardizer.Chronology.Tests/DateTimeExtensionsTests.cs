@@ -25,7 +25,13 @@ public class DateTimeExtensionsTests
     }
 
     [Theory]
-    [InlineData(2000, 1, 1, 15, 0, 0, 946738800L)]
+    [InlineData(2000, 1, 1, 15, 0, 0, 946738800L),
+     InlineData(2000, 1, 1, 0, 0, 2, 946684802L),
+     InlineData(1980, 1, 1, 0, 0, 2, 315532802L),
+     InlineData(2023, 11, 14, 22, 13, 20, 1700000000L),
+     InlineData(1970, 1, 1, 0, 0, 0, 0L),
+     InlineData(1969, 12, 31, 23, 59, 59, -1L),
+     InlineData(1969, 12, 29, 16, 26, 42, -199998L)]
     public void ToUnixTime_OnDateTimeValue_ReturnsUnixTimeEquivalent(ushort testYear, ushort testMonth, ushort testDay, ushort testHour, ushort testMinute, ushort testSecond, long expectedResult)
     {
         // arrange
