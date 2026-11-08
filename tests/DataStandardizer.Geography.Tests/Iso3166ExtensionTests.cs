@@ -24,6 +24,7 @@ public class Iso3166ExtensionTests
     private const string Iso639Part2English = "eng";
     private const string Iso639Part2French = "fra";
     private const string Iso639Part2Italian = "ita";
+    private const string Iso639Part2Russian = "rus";
     private const string Iso639Part2Spanish = "spa";
     private const string Iso639Part2Turkish = "tur";
 
@@ -482,8 +483,8 @@ public class Iso3166ExtensionTests
         // arrange
         var testAttributes = new[]
         {
-            new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, "rus", Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947, 1) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
-            new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, "rus", Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983, 0) { RomanizationSystem = Gost1983RomanizationSystem },
+            new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947, 1) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
+            new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983, 0) { RomanizationSystem = Gost1983RomanizationSystem },
         };
 
         // act
@@ -491,6 +492,43 @@ public class Iso3166ExtensionTests
 
         // assert
         testResult!.SubdivisionName.Should().Be(BishkekNameRussianGost1983);
+    }
+
+    [Theory]
+    [MemberData(nameof(SelectSubdivisionNameAttribute_SameSequence_TestCaseGenerator.TestCases), MemberType = typeof(SelectSubdivisionNameAttribute_SameSequence_TestCaseGenerator))]
+    public void SelectSubdivisionNameAttribute_SameSequence_ReturnsOrdinallyFirstNameInAnyOrder(Iso3166SubdivisionNameAttribute[] testAttributes)
+    {
+        // act
+        var testResult = Iso3166Extensions.SelectSubdivisionNameAttribute(testAttributes, Iso3166Part2KyrgyzstanCityCategoryId, Iso639Part1Russian, null);
+
+        // assert
+        testResult!.SubdivisionName.Should().Be(BishkekNameRussianBgnPcgn1947);
+    }
+
+    private class SelectSubdivisionNameAttribute_SameSequence_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                yield return new object[]
+                {
+                    new[]
+                    {
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983) { RomanizationSystem = Gost1983RomanizationSystem },
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
+                    }
+                };
+                yield return new object[]
+                {
+                    new[]
+                    {
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianBgnPcgn1947) { RomanizationSystem = BgnPcgn1947RomanizationSystem },
+                        new Iso3166SubdivisionNameAttribute(Iso639Part1Russian, Iso639Part2Russian, Iso3166Part2KyrgyzstanCityCategoryId, BishkekNameRussianGost1983) { RomanizationSystem = Gost1983RomanizationSystem },
+                    }
+                };
+            }
+        }
     }
 
     #endregion
