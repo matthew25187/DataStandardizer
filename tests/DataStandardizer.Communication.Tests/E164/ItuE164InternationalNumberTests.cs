@@ -18,6 +18,7 @@ namespace DataStandardizer.Communication.Tests.E164
         // network, 883; and parts of numbers.
         private const ulong GreatBritainNumber = 443071234567L;
         private const ulong OtherGreatBritainNumber = 445071234567L;
+        private const string GreatBritainNumberText = "443071234567";
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
         private const ulong GlobalSubscriberNumber = 8001234567L;
@@ -194,7 +195,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Fact]
-        public void HashSetContains_NumberEqualInValue_ReturnsTrue()
+        public void GetHashCode_NumberEqualInValueInHashSet_ContainsReturnsTrue()
         {
             // arrange
             var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber) };
@@ -244,6 +245,118 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // act
             var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualityOperator_OneInstanceNotInitialized_ReturnsFalse()
+        {
+            // arrange
+            var testSubject1 = new ItuE164InternationalNumber();
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void InequalityOperator_OneInstanceNotInitialized_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = new ItuE164InternationalNumber();
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 != testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualsObject_InstanceNotInitializedAndBoxedNumberInitialized_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+            object other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_InstanceInitializedAndBoxedNumberNotInitialized_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_BoxedNumberParsedFromSameText_ReturnsTrue()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+            object other = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_NumbersParsedFromSameText_ReturnsSameHashCode()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+            var testSubject2 = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+
+            // act
+            var testResult = new[] { testSubject1.GetHashCode(), testSubject2.GetHashCode() };
+
+            // assert
+            testResult[1].Should().Be(testResult[0]);
+        }
+
+        [Fact]
+        public void GetHashCode_NumberParsedFromSameTextInHashSet_ContainsReturnsTrue()
+        {
+            // arrange
+            var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.Parse(GreatBritainNumberText) };
+            var other = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+
+            // act
+            var testResult = testSubject.Contains(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_ParsedNumberInHashSetAndCreatedNumberEqualInValue_ContainsReturnsTrue()
+        {
+            // arrange
+            var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.Parse(GreatBritainNumberText) };
+            var other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Contains(other);
 
             // assert
             testResult.Should().BeTrue();

@@ -77,7 +77,8 @@ namespace DataStandardizer.Communication.E164
         /// Returns a hash code for this number, derived from its <see cref="Number"/>.
         /// </summary>
         /// <returns>
-        /// A hash code that is the same for any two numbers that <see cref="Equals(ItuE164InternationalNumber)"/> finds equal.
+        /// A hash code that is the same for any two numbers that <see cref="Equals(ItuE164InternationalNumber)"/> finds equal,
+        /// or 0 for an uninitialized number.
         /// </returns>
         public override int GetHashCode()
         {
