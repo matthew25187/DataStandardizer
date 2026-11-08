@@ -28,6 +28,7 @@ namespace DataStandardizer.Communication.E164
             internal const string DigitCountRangeInvalidTemplate = "{0} must be {1} to {2} digits.";
             internal const string FieldNotSupportedTemplate = "This number does not support the {0} field.";
             internal const string FieldValueInvalidTemplate = "'{0}' is not a valid {1}.";
+            internal const string NumberForStructureInvalidTemplate = "'{0}' is not a valid number for {1}.";
         }
 
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
@@ -38,7 +39,15 @@ namespace DataStandardizer.Communication.E164
         [MaybeNull] private readonly IItuE164InternationalNumber _numberStructure;
 #endif
 
-        private ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)
+        /// <summary>
+        /// Wraps a number structure without checking that its codes are assigned.
+        /// </summary>
+        /// <remarks>
+        /// Internal, not private, as a seam for the unit tests: no Group Identification Code or Trial Identification
+        /// Code is assigned today, so the factories can't create a number for a group of countries or a trial, and the
+        /// tests build one from its structure to cover the members that handle those numbers.
+        /// </remarks>
+        internal ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)
         {
             _numberStructure = numberStructure;
         }
@@ -387,6 +396,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code assigned to a geographic area, followed by
+        /// a National Significant Number of at least one digit.
+        /// </exception>
         /// <remarks>
         /// This method validates the provided number to ensure it adheres to the ITU-T E.164 standard
         /// for geographic area numbers. If the validation passes, the number is encapsulated within
@@ -402,7 +415,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForGeographicAreas(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForGeographicAreas.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a geographic area");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -458,6 +477,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code assigned to a global service, followed by
+        /// a Global Subscriber Number of 1 to 12 digits.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGlobalService(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -468,7 +491,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForGlobalServices(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForGlobalServices.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a global service");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -521,6 +550,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code and an Identification Code assigned to a
+        /// network, followed by a Subscriber Number of at least one digit.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForNetwork(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -531,7 +564,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForNetworks(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForNetworks.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a network");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -597,6 +636,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code and a Group Identification Code assigned to
+        /// a group of countries, followed by a Subscriber Number of at least one digit.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGroupOfCountries(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -607,7 +650,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForGroupsOfCountries(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForGroupsOfCountries.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a group of countries");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -670,6 +719,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code and a Trial Identification Code assigned to
+        /// a trial.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForTrial(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -680,7 +733,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForTrials(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForTrials.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a trial");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 

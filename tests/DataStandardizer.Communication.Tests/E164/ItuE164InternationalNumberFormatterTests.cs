@@ -8,6 +8,9 @@ namespace DataStandardizer.Communication.Tests.E164
     {
         // The format strings of ItuE164InternationalNumberFormatter: general, general with separators, and the short and long international
         // number patterns of the format provider.
+        // No Group Identification Code or Trial Identification Code is assigned, so the factories reject numbers for a
+        // group of countries or a trial; the tests for those numbers build them from their structures instead.
+
         private const string GeneralFormat = "g";
         private const string GeneralFormatWithSeparators = "G";
         private const string ShortInternationalFormat = "i";
@@ -226,12 +229,12 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData(88101235550199L, GeneralFormat, "+88101235550199"),
-         InlineData(88111235550199L, GeneralFormatWithSeparators, "+881 11235550199")]
+        [InlineData(NetworkNumberWithIdentificationCode6, GeneralFormat, "+88161235550100"),
+         InlineData(NetworkNumberWithIdentificationCode7, GeneralFormatWithSeparators, "+881 7 1235550102")]
         public void Format_InternationalNumberForNetworkWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGlobalService(testValue);
+            var testNumber = ItuE164InternationalNumber.CreateNumberForNetwork(testValue);
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -351,7 +354,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForGroupOfCountriesWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -368,7 +371,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForGroupOfCountriesWithShortInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { ShortInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -389,7 +392,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForGroupOfCountriesWithLongInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -414,7 +417,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForGroupOfCountriesWithCustomFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -433,7 +436,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -452,7 +455,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithShortInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { ShortInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -473,7 +476,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithLongInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -498,7 +501,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithCustomFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 

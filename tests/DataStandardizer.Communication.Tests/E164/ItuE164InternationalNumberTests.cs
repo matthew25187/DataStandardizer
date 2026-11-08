@@ -57,6 +57,9 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TooLongNumber = "9911012345678901";
         private const string NotANumber = "Not A Number";
 
+        // 800 is a Country Code for a global service, not a geographic area.
+        private const ulong GlobalServiceCountryCodeNumber = 800123;
+
         // Sixteen digits, one more than ITU-T E.164 §6.1 allows, after a Country Code for a geographic area (211) and for a global service (800).
         private const string TooLongGeographicAreaNumber = "2111234567890123";
         private const string TooLongGlobalServiceNumber = "8001234567890123";
@@ -185,7 +188,7 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(226071234567L);
-            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGlobalService(226091234567L);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber);
 
             // act
             var testResult = testSubject1.Equals(testSubject2);
@@ -748,7 +751,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGlobalService_NotInternationalNumberForGlobalServices_ReturnsFalse()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(GroupOfCountriesNumber);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
 
             // act
             var testResult = testSubject.IsNumberForGlobalService();
@@ -761,7 +764,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGroupOfCountries_InternationalNumberForGroupsOfCountries_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(GroupOfCountriesNumber);
+            var testSubject = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(GroupOfCountriesNumber));
 
             // act
             var testResult = testSubject.IsNumberForGroupOfCountries();
@@ -800,7 +803,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForNetwork_NotInternationalNumberForNetworks_ReturnsFalse()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(TrialNumber);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber);
 
             // act
             var testResult = testSubject.IsNumberForNetwork();
@@ -813,7 +816,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForTrial_InternationalNumberForTrials_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(TrialNumber);
+            var testSubject = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(TrialNumber));
 
             // act
             var testResult = testSubject.IsNumberForTrial();
@@ -939,7 +942,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IdentificationCode_NotInternationalNumberForNetworks_ThrowsNotSupportedException()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(8005671234L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
 
             // act
             Action testAction = () => _ = ((IItuE164InternationalNumberForNetworks)testSubject).IdentificationCode;
@@ -997,7 +1000,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void TrialIdentificationCode_NotInternationalNumberForTrials_ThrowsNotSupportedException()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(804071234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
 
             // act
             Action testAction = () => _ = ((IItuE164InternationalNumberForTrials)testSubject).TrialIdentificationCode;
@@ -1124,6 +1127,58 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("This number does not support the Global Subscriber Number field.");
         }
 
+        // Calls to the ulong factories with numbers whose digits don't divide into the fields of the structure the factory creates.
+        public static TheoryData<Action> UlongFactoryCallsWithInvalidNumber => new TheoryData<Action>
+        {
+            () => ItuE164InternationalNumber.CreateNumberForGeographicArea(GlobalServiceCountryCodeNumber),
+            // The Country Code 1 alone, without a National Significant Number.
+            () => ItuE164InternationalNumber.CreateNumberForGeographicArea(1),
+            // 226 is a Country Code for a geographic area, not a global service.
+            () => ItuE164InternationalNumber.CreateNumberForGlobalService(226091234567),
+            // The Country Code 800 alone, without a Global Subscriber Number.
+            () => ItuE164InternationalNumber.CreateNumberForGlobalService(800),
+            // Fewer digits than a Country Code.
+            () => ItuE164InternationalNumber.CreateNumberForNetwork(88),
+            // Country Code 882, whose Identification Codes have two digits, followed by one digit.
+            () => ItuE164InternationalNumber.CreateNumberForNetwork(8821),
+            // Country Code 881, whose Identification Codes are 6 to 9, followed by 1.
+            () => ItuE164InternationalNumber.CreateNumberForNetwork(88111234567),
+            // Country Code 881 and Identification Code 6, without a Subscriber Number.
+            () => ItuE164InternationalNumber.CreateNumberForNetwork(8816),
+            // No Group Identification Code is assigned.
+            () => ItuE164InternationalNumber.CreateNumberForGroupOfCountries(GroupOfCountriesNumber),
+            // No Trial Identification Code is assigned.
+            () => ItuE164InternationalNumber.CreateNumberForTrial(TrialNumber)
+        };
+
+        [Theory]
+        [MemberData(nameof(UlongFactoryCallsWithInvalidNumber))]
+        public void CreateNumber_NumberWithoutAssignedFields_ThrowsArgumentException(Action factoryCall)
+        {
+            // act
+            var testAction = factoryCall;
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentException>()
+                .WithParameterName("number");
+        }
+
+        [Fact]
+        public void CreateNumberForGeographicArea_CountryCodeNotForGeographicArea_ThrowsArgumentExceptionNamingNumber()
+        {
+            // arrange
+            const ulong testNumber = GlobalServiceCountryCodeNumber;
+
+            // act
+            Action testAction = () => ItuE164InternationalNumber.CreateNumberForGeographicArea(testNumber);
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentException>()
+                .WithMessage("'800123' is not a valid number for a geographic area.*");
+        }
+
         [Fact]
         public void CreateNumberForGeographicArea_InternationalNumberTooLong_ThrowsArgumentOutOfRangeException()
         {
@@ -1219,7 +1274,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGlobalService_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ulong number = GreatBritainNumber;
+            const ulong number = GlobalServiceNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForGlobalService(number);
@@ -1295,7 +1350,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForNetwork_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ulong number = 8813091234567L;
+            const ulong number = NetworkNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForNetwork(number);
@@ -1385,7 +1440,7 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("Number must be 5 to 15 digits.*");
         }
 
-        [Fact]
+        [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
         public void CreateNumberForGroupOfCountries_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
@@ -1479,7 +1534,7 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("Number must be 4 to 15 digits.*");
         }
 
-        [Fact]
+        [Fact(Skip = NumberForTrialsSkipMessage)]
         public void CreateNumberForTrial_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
