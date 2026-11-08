@@ -39,6 +39,10 @@ extensions, throw `InvalidOperationException` for it. `Equals` (two default
 instances are equal), `GetHashCode` and `ToString` don't throw, and
 `AsUnixTime()` and `AsDosDateTime()` return `null`.
 
+Two instances are equal when the system times they wrap are equal.
+`GetHashCode` returns the wrapped system time's hash code, or 0 for a default
+instance, and `ToString` returns the full name of the type.
+
 ## Constructors
 
 | Constructor | Notes |

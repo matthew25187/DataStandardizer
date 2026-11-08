@@ -30,7 +30,9 @@ Number. `ToDateOnly` and `ToTimeOnly` require the `net10.0` build. `AsUnixTime` 
 
 `ToDateTime`, `ToDateOnly`, and `ToTimeOnly` throw `InvalidOperationException`
 for a default instance of a type that holds no date, such as
-`default(DosDateTime)`, because its `JulianDayNumber` throws.
+`default(DosDateTime)`, or for `default(SystemTimeWithGregorianCalendar)`,
+which wraps no system time, because its `JulianDayNumber` throws. `AsUnixTime`
+and `AsDosDateTime` return `null` for `default(SystemTimeWithGregorianCalendar)`.
 
 ## Methods
 

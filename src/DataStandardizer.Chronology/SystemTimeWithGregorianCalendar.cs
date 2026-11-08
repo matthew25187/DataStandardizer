@@ -10,7 +10,7 @@ namespace DataStandardizer.Chronology
     /// utilizing the Gregorian calendar for date calculations. It encapsulates both date and time details, including year, month, day,
     /// hour, minute, and second, while also supporting the Julian Day Number representation.
     /// </remarks>
-    public readonly struct SystemTimeWithGregorianCalendar : ISystemTimeWithDateTime
+    public readonly struct SystemTimeWithGregorianCalendar : ISystemTimeWithDateTime, IEquatable<SystemTimeWithGregorianCalendar>
     {
         // Null only in a default instance, which no constructor can produce.
 #if NETCOREAPP3_0_OR_GREATER
@@ -58,6 +58,46 @@ namespace DataStandardizer.Chronology
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
         public int Second => DoGetSecond();
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Indicates whether this instance wraps a system time equal to the one that <paramref name="other"/> wraps.
+        /// </summary>
+        /// <param name="other">The instance to compare with this instance.</param>
+        /// <returns>
+        /// <see langword="true"/> if both instances wrap equal system times, or both are default instances; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool Equals(SystemTimeWithGregorianCalendar other)
+        {
+            return Equals(_systemTime, other._systemTime);
+        }
+
+        /// <inheritdoc/>
+#if NETCOREAPP3_0_OR_GREATER
+        public override bool Equals(object? obj)
+#else
+        public override bool Equals(object obj)
+#endif
+        {
+            return obj is SystemTimeWithGregorianCalendar other && Equals(other);
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>A default instance returns 0.</remarks>
+        public override int GetHashCode()
+        {
+            return _systemTime?.GetHashCode() ?? 0;
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>Returns the full name of the type, for a default instance as for any other.</remarks>
+        public override string ToString()
+        {
+            return $"{typeof(SystemTimeWithGregorianCalendar).Namespace}.{nameof(SystemTimeWithGregorianCalendar)}";
+        }
 
         #endregion
 

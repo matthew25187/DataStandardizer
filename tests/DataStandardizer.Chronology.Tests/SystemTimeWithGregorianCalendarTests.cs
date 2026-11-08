@@ -7,6 +7,9 @@ public class SystemTimeWithGregorianCalendarTests
     // The Julian Day Number of noon on 1 January 2000.
     private const decimal Jdn20000101At120000 = 2451545m;
 
+    // What ToString returns, for a default instance as for any other: the full name of the type.
+    private const string TypeFullName = "DataStandardizer.Chronology.SystemTimeWithGregorianCalendar";
+
     public static TheoryData<string, Func<object>> DescribingMember_TestCases => new()
     {
         { nameof(SystemTimeWithGregorianCalendar.JulianDayNumber), () => default(SystemTimeWithGregorianCalendar).JulianDayNumber },
@@ -19,14 +22,6 @@ public class SystemTimeWithGregorianCalendarTests
         { nameof(SystemTimeExtensions.ToDateTime), () => default(SystemTimeWithGregorianCalendar).ToDateTime() },
         { nameof(SystemTimeExtensions.ToDateOnly), () => default(SystemTimeWithGregorianCalendar).ToDateOnly() },
         { nameof(SystemTimeExtensions.ToTimeOnly), () => default(SystemTimeWithGregorianCalendar).ToTimeOnly() },
-    };
-
-    public static TheoryData<string, Func<object?>> BenignMember_TestCases => new()
-    {
-        { nameof(SystemTimeWithGregorianCalendar.GetHashCode), () => default(SystemTimeWithGregorianCalendar).GetHashCode() },
-        { nameof(SystemTimeWithGregorianCalendar.ToString), () => default(SystemTimeWithGregorianCalendar).ToString() },
-        { nameof(SystemTimeExtensions.AsDosDateTime), () => default(SystemTimeWithGregorianCalendar).AsDosDateTime() },
-        { nameof(SystemTimeExtensions.AsUnixTime), () => default(SystemTimeWithGregorianCalendar).AsUnixTime() },
     };
 
     [Theory]
@@ -42,19 +37,6 @@ public class SystemTimeWithGregorianCalendarTests
         testAction.Should().Throw<InvalidOperationException>(testMemberName);
     }
 
-    [Theory]
-    [MemberData(nameof(BenignMember_TestCases))]
-    public void BenignMember_DefaultInstance_DoesNotThrow(string testMemberName, Func<object?> testMember)
-    {
-        // arrange
-
-        // act
-        Action testAction = () => testMember();
-
-        // assert
-        testAction.Should().NotThrow(testMemberName);
-    }
-
     [Fact]
     public void Equals_TwoDefaultInstances_ReturnsTrue()
     {
@@ -66,6 +48,85 @@ public class SystemTimeWithGregorianCalendarTests
 
         // assert
         testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Equals_InitialisedAndDefaultInstance_ReturnsFalse()
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new TestSystemTime(Jdn20000101At120000));
+
+        // act
+        var testResult = testValue.Equals(default(SystemTimeWithGregorianCalendar));
+
+        // assert
+        testResult.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Equals_InstancesWrappingEqualSystemTimes_ReturnsTrue()
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new TestSystemTime(Jdn20000101At120000));
+        var testOther = new SystemTimeWithGregorianCalendar(new TestSystemTime(Jdn20000101At120000));
+
+        // act
+        var testResult = testValue.Equals(testOther);
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetHashCode_DefaultInstance_ReturnsZero()
+    {
+        // arrange
+        var testValue = default(SystemTimeWithGregorianCalendar);
+
+        // act
+        var testResult = testValue.GetHashCode();
+
+        // assert
+        testResult.Should().Be(0);
+    }
+
+    [Fact]
+    public void ToString_DefaultInstance_ReturnsTypeFullName()
+    {
+        // arrange
+        var testValue = default(SystemTimeWithGregorianCalendar);
+
+        // act
+        var testResult = testValue.ToString();
+
+        // assert
+        testResult.Should().Be(TypeFullName);
+    }
+
+    [Fact]
+    public void AsDosDateTime_DefaultInstance_ReturnsNull()
+    {
+        // arrange
+        var testValue = default(SystemTimeWithGregorianCalendar);
+
+        // act
+        var testResult = testValue.AsDosDateTime();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    [Fact]
+    public void AsUnixTime_DefaultInstance_ReturnsNull()
+    {
+        // arrange
+        var testValue = default(SystemTimeWithGregorianCalendar);
+
+        // act
+        var testResult = testValue.AsUnixTime();
+
+        // assert
+        testResult.Should().BeNull();
     }
 
     [Fact]
