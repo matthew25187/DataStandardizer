@@ -1728,15 +1728,7 @@ namespace DataStandardizer.Communication.Tests.E164
             {
                 get
                 {
-                    var identificationCodeLookup = (
-                            from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
-                            from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
-                            let sharedCodeAttribute = identificationCode.GetType().GetFields()
-                                .First(@field => @field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
-                                .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                            where sharedCodeAttribute.CountryCode == countryCode
-                            select new { countryCode, identificationCode = (ushort)identificationCode })
-                        .ToLookup(kvp => kvp.countryCode, kvp => kvp.identificationCode);
+                    var identificationCodeLookup = ItuE164InternationalNumberStructureBase.ComposeIdentificationCodeLookup(typeof(ItuE164AssignedCountryCodesForNetworks), typeof(ItuE164AssignedIdentificationCodesForNetworks));
                     var subscriberNumberIndex = 0;
                     foreach (var kvp in identificationCodeLookup)
                     {

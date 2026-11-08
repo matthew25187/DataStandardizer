@@ -127,7 +127,12 @@ namespace DataStandardizer.Communication.E164
         /// <remarks>
         /// Reads only the members of the identification code enumeration, which are its static fields. Its
         /// instance field, which holds the value of an instance, is not a member and has no shared code.
+        /// Members that share a value with the same shared code appear once.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// A member of <paramref name="identificationCodeEnumType"/> has no <see cref="ItuE164SharedCodeAttribute"/>,
+        /// which means the generated enumeration is wrong.
+        /// </exception>
         internal static ILookup<ushort, ushort> ComposeIdentificationCodeLookup(Type countryCodeEnumType, Type identificationCodeEnumType)
         {
             var countryCodes = new HashSet<ushort>(Enum.GetValues(countryCodeEnumType).Cast<object>().Select(countryCode => Convert.ToUInt16(countryCode, CultureInfo.InvariantCulture)));
@@ -136,11 +141,12 @@ namespace DataStandardizer.Communication.E164
                     from field in identificationCodeEnumType.GetTypeInfo().DeclaredFields
                     where field.IsStatic
                     let sharedCodeAttribute = field.GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                    where sharedCodeAttribute != null && countryCodes.Contains(sharedCodeAttribute.CountryCode)
-                    let identificationCode = Convert.ToUInt16(field.GetValue(null), CultureInfo.InvariantCulture)
-                    orderby sharedCodeAttribute.CountryCode, identificationCode
-                    select new { sharedCodeAttribute.CountryCode, IdentificationCode = identificationCode })
+                        ?? throw new InvalidOperationException($"Identification code '{field.Name}' of {identificationCodeEnumType.Name} has no shared Country Code.")
+                    where countryCodes.Contains(sharedCodeAttribute.CountryCode)
+                    select new { sharedCodeAttribute.CountryCode, IdentificationCode = Convert.ToUInt16(field.GetValue(null), CultureInfo.InvariantCulture) })
                 .Distinct()
+                .OrderBy(pair => pair.CountryCode)
+                .ThenBy(pair => pair.IdentificationCode)
                 .ToLookup(pair => pair.CountryCode, pair => pair.IdentificationCode);
         }
 
