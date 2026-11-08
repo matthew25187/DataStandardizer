@@ -30,12 +30,20 @@ methods throw `ArgumentNullException` for a `null` argument, and
 `FormatException`, naming the line, for content that is not in the record-jar
 format of RFC 5646 §3.1.1: a blank line, a tab or other control character, a
 line that is neither a field nor a folded line starting with a space, a field
-that ends with a space, a `File-Date`, `Subtag`, `Tag` or `Type` field
-with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
+that ends with a space, a `File-Date`, `Subtag`, `Tag`, `Type`,
+`Description`, `Added` or `Deprecated` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
 RFC 3339 full-date (or is one in the year 0000, before the first year a
 `DateTime` holds), or a record that is empty, has none or more than one
 of the `File-Date`, `Subtag` and `Tag` fields, or has no `Type` that
-RFC 5646 §3.1.3 defines for it. Pass a loaded registry
+RFC 5646 §3.1.3 defines for it. They also throw `FormatException` for a
+registry that breaks the record rules of RFC 5646 §3.1.2: the first record
+isn't the `File-Date` record, there's a second `File-Date` record, the
+`File-Date` record has another field, a tag or subtag record has no
+`Description` or `Added` field, or a field other than `Description`,
+`Comments` and `Prefix` appears twice in a record. In a tag or subtag record,
+fields that RFC 5646 doesn't define are kept in `Fields`, and these rules
+ignore them, as §3.1.2 asks. The `File-Date` record has the `File-Date` field
+alone. Pass a loaded registry
 to the [Bcp47LanguageTag](Bcp47LanguageTag.md) `Create` / `TryCreate` overloads, or
 to the builder's `WithLanguageSubtagRegistry` step, to validate against it.
 
@@ -88,7 +96,7 @@ stream's current position and leave the stream open; the caller disposes it.
 | Property | Signature | Notes |
 | --- | --- | --- |
 | `Count` | `int Count { get; }` | Number of records in the registry. |
-| `FileDate` | `DateTime? FileDate { get; }` | Date of the registry's `File-Date` record, or `null` when it has none. |
+| `FileDate` | `DateTime? FileDate { get; }` | Date of the registry's `File-Date` record. Every loaded registry has one (RFC 5646 §3.1.2), so it is never `null`. |
 | `Languages` | `IReadOnlyList<SubtagRegistrySubtagRecord> Languages { get; }` | Records of `Type` `language`. |
 | `ExtendedLanguages` | `IReadOnlyList<SubtagRegistrySubtagRecord> ExtendedLanguages { get; }` | Records of `Type` `extlang`. |
 | `Scripts` | `IReadOnlyList<SubtagRegistrySubtagRecord> Scripts { get; }` | Records of `Type` `script`. |

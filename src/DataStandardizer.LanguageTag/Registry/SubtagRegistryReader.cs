@@ -19,7 +19,11 @@ namespace DataStandardizer.LanguageTag.Registry
     /// Input that the format doesn't allow throws a <see cref="FormatException"/> that names its line: a line that is blank, holds a control character
     /// (a tab among them), or is neither a field nor a folded line that starts with a space; a field body that ends with a space; a File-Date, Subtag,
     /// Tag or Type field with no value; a File-Date, Added or Deprecated field that is not an RFC 3339 full-date; and a record that is empty, has none
-    /// or more than one of the File-Date, Subtag and Tag fields, or has no Type that RFC 5646 §3.1.3 defines for its kind of record.
+    /// or more than one of the File-Date, Subtag and Tag fields, or has no Type that RFC 5646 §3.1.3 defines for its kind of record. It also throws for
+    /// a record that breaks the rules of RFC 5646 §3.1.2: a first record that is not the File-Date record, a second File-Date record, a File-Date record
+    /// with another field, a tag or subtag record with no Description or Added field, and a field other than Description, Comments and Prefix that
+    /// appears twice in a record. Fields that RFC 5646 doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks;
+    /// the File-Date record has the File-Date field alone.
     /// <para>
     /// A full-date in the year 0000, which RFC 3339 allows, also throws, as <see cref="DateTime"/> starts at the year 0001.
     /// </para>
@@ -32,6 +36,13 @@ namespace DataStandardizer.LanguageTag.Registry
 
         private readonly List<KeyValuePair<string, string>> _fields = new List<KeyValuePair<string, string>>();
 
+        // the fields of the record being read, with or without a value, for the rules of §3.1.2: how many there are, and a flag for each field seen
+        // that may appear only once
+        private int _recordFieldCount;
+        private int _singleFieldFlags;
+
+        private int _recordCount;
+
         private int _lineNumber;
         private int _recordLineNumber;
         // the first line of the field being read, which errors about its whole value name, and its last line so far, which an error about how
@@ -41,7 +52,7 @@ namespace DataStandardizer.LanguageTag.Registry
         private bool _fieldEndsWithSpace;
         private bool _isAtEnd;
 
-        // the first File-Date, Added and Deprecated of the record being read, parsed once, for the record to take
+        // the File-Date, Added and Deprecated of the record being read, each of which appears at most once, parsed once for the record to take
         private DateTime? _fileDate;
         private DateTime? _added;
         private DateTime? _deprecated;
@@ -185,11 +196,9 @@ namespace DataStandardizer.LanguageTag.Registry
         }
 
         /// <summary>
-        /// Parses the body of a File-Date, Added or Deprecated field, each an RFC 3339 full-date (ref. RFC 5646 §3.1.1), which every occurrence of the
-        /// field must be, though the record takes the first.
+        /// Parses the body of a File-Date, Added or Deprecated field, each an RFC 3339 full-date (ref. RFC 5646 §3.1.1).
         /// </summary>
-        /// <returns>The first date of the field in the record: <paramref name="firstDate"/>, or the date parsed when there is none.</returns>
-        private DateTime ParseDateField(string fieldBody, DateTime? firstDate)
+        private DateTime ParseDateField(string fieldBody)
         {
             if (!TryParseFullDate(fieldBody, out var year, out var month, out var day))
             {
@@ -204,7 +213,7 @@ namespace DataStandardizer.LanguageTag.Registry
                     _fieldStartLineNumber, _fieldName, fieldBody);
             }
 
-            return firstDate ?? new DateTime(year, month, day);
+            return new DateTime(year, month, day);
         }
 
         private void AddField()
@@ -214,17 +223,33 @@ namespace DataStandardizer.LanguageTag.Registry
             // the field body ends with CHARS, so a space before the line break is allowed only where a folded line follows (ref. RFC 5646 §3.1.1)
             if (_fieldEndsWithSpace) throw CreateException("The {1} field ends with a space at line {0} (ref. RFC 5646 §3.1.1).", _fieldLineNumber, _fieldName);
 
+            // field-names other than Description, Comments and Prefix occur at most once per record (ref. RFC 5646 §3.1.2); fields that RFC 5646 doesn't
+            // define have no flag, as §3.1.2 asks that they be ignored
+            _recordFieldCount++;
+            var singleFieldFlag = GetSingleFieldFlag(_fieldName);
+            if (singleFieldFlag != 0)
+            {
+                if ((_singleFieldFlags & singleFieldFlag) != 0)
+                {
+                    throw CreateException(
+                        "The {1} field at line {0} is the second in its record, which may have only one (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
+                }
+
+                _singleFieldFlags |= singleFieldFlag;
+            }
+
             var fieldBody = _foldedFieldBody?.Length > 0 ? _foldedFieldBody.ToString() : _fieldBody;
             if (string.IsNullOrEmpty(fieldBody))
             {
-                // the grammar allows an empty field body, but the fields that tell a record's kind and type each need a value (ref. RFC 5646 §3.1.2)
-                if (IsClassifyingField(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
+                // the grammar allows an empty field body, but the fields that tell a record's kind and type, the fields every tag and subtag record
+                // has, and the dates, each need a value (ref. RFC 5646 §3.1.2)
+                if (IsValueRequired(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
             }
             else
             {
-                if (ReferenceEquals(_fieldName, FieldName.FileDate)) _fileDate = ParseDateField(fieldBody, _fileDate);
-                else if (ReferenceEquals(_fieldName, FieldName.Added)) _added = ParseDateField(fieldBody, _added);
-                else if (ReferenceEquals(_fieldName, FieldName.Deprecated)) _deprecated = ParseDateField(fieldBody, _deprecated);
+                if (ReferenceEquals(_fieldName, FieldName.FileDate)) _fileDate = ParseDateField(fieldBody);
+                else if (ReferenceEquals(_fieldName, FieldName.Added)) _added = ParseDateField(fieldBody);
+                else if (ReferenceEquals(_fieldName, FieldName.Deprecated)) _deprecated = ParseDateField(fieldBody);
 
                 _fields.Add(new KeyValuePair<string, string>(_fieldName, fieldBody));
             }
@@ -242,11 +267,13 @@ namespace DataStandardizer.LanguageTag.Registry
             var isFileDate = false;
             var hasSubtag = false;
             var hasTag = false;
+            var hasDescription = false;
             foreach (var field in _fields)
             {
                 isFileDate |= field.Key == FieldName.FileDate;
                 hasSubtag |= field.Key == FieldName.Subtag;
                 hasTag |= field.Key == FieldName.Tag;
+                hasDescription |= field.Key == FieldName.Description;
             }
 
             var recordLineNumber = _recordLineNumber;
@@ -254,8 +281,13 @@ namespace DataStandardizer.LanguageTag.Registry
             var fileDate = _fileDate;
             var added = _added;
             var deprecated = _deprecated;
+            var recordFieldCount = _recordFieldCount;
+            var isFirstRecord = _recordCount == 0;
+            _recordCount++;
             _recordLineNumber = 0;
             _fields.Clear();
+            _recordFieldCount = 0;
+            _singleFieldFlags = 0;
             _fileDate = null;
             _added = null;
             _deprecated = null;
@@ -265,12 +297,30 @@ namespace DataStandardizer.LanguageTag.Registry
             if (kindCount == 0) throw CreateException("The record at line {0} has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2).", recordLineNumber);
             if (kindCount > 1) throw CreateException("The record at line {0} has more than one of the File-Date, Subtag and Tag fields (ref. RFC 5646 §3.1.2).", recordLineNumber);
 
+            // the first record is always the File-Date record, which occurs only once and has a single field (ref. RFC 5646 §3.1.2)
+            if (isFirstRecord && !isFileDate) throw CreateException("The first record, at line {0}, is not the File-Date record (ref. RFC 5646 §3.1.2).", recordLineNumber);
+            if (!isFirstRecord && isFileDate)
+            {
+                throw CreateException(
+                    "The record at line {0} is a second File-Date record, which occurs only once, as the first record (ref. RFC 5646 §3.1.2).", recordLineNumber);
+            }
+
+            // the File-Date record "contains a single field", so a field that RFC 5646 doesn't define is not ignored there (ref. RFC 5646 §3.1.2)
+            if (isFileDate && recordFieldCount > 1)
+            {
+                throw CreateException("The File-Date record at line {0} has a field other than File-Date (ref. RFC 5646 §3.1.2).", recordLineNumber);
+            }
+
             // a File-Date field has a value, which is a full-date, so the record has its date
             if (fileDate.HasValue) return new SubtagRegistryFileDateRecord(fields, fileDate.Value);
 
+            // every tag and subtag record has a Description field and an Added field (ref. RFC 5646 §3.1.2)
+            if (!hasDescription) throw CreateException("The record at line {0} has no Description field (ref. RFC 5646 §3.1.2).", recordLineNumber);
+            if (!added.HasValue) throw CreateException("The record at line {0} has no Added field (ref. RFC 5646 §3.1.2).", recordLineNumber);
+
             var record = hasSubtag
-                ? new SubtagRegistrySubtagRecord(fields, added, deprecated)
-                : (SubtagRegistryTagRecordBase)new SubtagRegistryTagRecord(fields, added, deprecated);
+                ? new SubtagRegistrySubtagRecord(fields, added.Value, deprecated)
+                : (SubtagRegistryTagRecordBase)new SubtagRegistryTagRecord(fields, added.Value, deprecated);
             if (record.Type == SubtagRegistryRecordType.Unknown)
             {
                 // the record reads the first Type field, as the error does
@@ -343,12 +393,35 @@ namespace DataStandardizer.LanguageTag.Registry
         }
 
         /// <summary>
-        /// Gets whether a field tells a record's kind or type, so that it needs a value.
+        /// Gets whether a field needs a value: the fields that tell a record's kind or type, the Description and Added fields every tag and subtag record
+        /// has, and the dates (ref. RFC 5646 §3.1.2).
         /// </summary>
-        private static bool IsClassifyingField(string fieldName)
+        private static bool IsValueRequired(string fieldName)
         {
             return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Subtag) || ReferenceEquals(fieldName, FieldName.Tag) ||
-                ReferenceEquals(fieldName, FieldName.Type);
+                ReferenceEquals(fieldName, FieldName.Type) || ReferenceEquals(fieldName, FieldName.Description) || ReferenceEquals(fieldName, FieldName.Added) ||
+                ReferenceEquals(fieldName, FieldName.Deprecated);
+        }
+
+        /// <summary>
+        /// Gets the flag of a field that RFC 5646 §3.1.2 defines and that may appear only once per record, or 0 for any other field: Description, Comments
+        /// and Prefix, which may repeat, and a field that RFC 5646 doesn't define.
+        /// </summary>
+        private static int GetSingleFieldFlag(string fieldName)
+        {
+            // GetFieldName returns each name that RFC 5646 defines as the constant in FieldName
+            if (ReferenceEquals(fieldName, FieldName.FileDate)) return 1 << 0;
+            if (ReferenceEquals(fieldName, FieldName.Type)) return 1 << 1;
+            if (ReferenceEquals(fieldName, FieldName.Subtag)) return 1 << 2;
+            if (ReferenceEquals(fieldName, FieldName.Tag)) return 1 << 3;
+            if (ReferenceEquals(fieldName, FieldName.Added)) return 1 << 4;
+            if (ReferenceEquals(fieldName, FieldName.Deprecated)) return 1 << 5;
+            if (ReferenceEquals(fieldName, FieldName.PreferredValue)) return 1 << 6;
+            if (ReferenceEquals(fieldName, FieldName.SuppressScript)) return 1 << 7;
+            if (ReferenceEquals(fieldName, FieldName.Macrolanguage)) return 1 << 8;
+            if (ReferenceEquals(fieldName, FieldName.Scope)) return 1 << 9;
+
+            return 0;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
