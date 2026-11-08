@@ -10,6 +10,7 @@ public class MoneyInfoTests
     private const string NewZealandCulture = "en-NZ";
     private const string GermanCulture = "de-DE";
     private const string GermanDecimalSeparator = ",";
+    private const string CustomDecimalSeparator = "!";
 
     // ISO 639-1 language codes.
     private const string EnglishLanguageCode = "en";
@@ -186,6 +187,24 @@ public class MoneyInfoTests
 
         // assert
         testAction.Should().NotThrow("the current information is derived from the current culture");
+    }
+
+    [Fact]
+    public void CurrentMoney_AfterChangeToAnotherCultureWithTheSameName_ReflectsTheNewCulture()
+    {
+        // arrange
+        var customCulture = new CultureInfo(GermanCulture);
+        customCulture.NumberFormat.NumberDecimalSeparator = CustomDecimalSeparator;
+        using var germanCultureScope = new CurrentCultureScope(new CultureInfo(GermanCulture));
+
+        // act
+        var germanResult = MoneyInfo.CurrentMoney.GetFormat(typeof(NumberFormatInfo));
+        using var customCultureScope = new CurrentCultureScope(customCulture);
+        var customResult = MoneyInfo.CurrentMoney.GetFormat(typeof(NumberFormatInfo));
+
+        // assert
+        germanResult.Should().BeOfType<NumberFormatInfo>().Which.NumberDecimalSeparator.Should().Be(GermanDecimalSeparator);
+        customResult.Should().BeOfType<NumberFormatInfo>().Which.NumberDecimalSeparator.Should().Be(CustomDecimalSeparator, "the information must track a change to another culture instance, even one with the same name");
     }
 
     #endregion

@@ -334,11 +334,11 @@ function Out-SourceCode {
                 (Get-EqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
+                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName -UseNullableReferenceTypes),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName -UseNullableReferenceTypes),
                 (Get-InheritedToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-                (Get-CompareToMethodDefinition),
+                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-InheritedToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')

@@ -93,7 +93,7 @@ namespace DataStandardizer.LanguageTag.Registry
         }
 
         /// <summary>
-        /// Gets the Type field value, or <see cref="SubtagRegistryRecordType.Unknown"/> when the record has none that RFC 5646 defines.
+        /// Gets the Type field value, which is one that RFC 5646 §3.1.3 defines for the kind of record.
         /// </summary>
         public SubtagRegistryRecordType Type { get; }
 

@@ -6,7 +6,7 @@
     public enum SubtagRegistryRecordType
     {
         /// <summary>
-        /// The record has no Type field, or its value is not one that RFC 5646 defines.
+        /// The default value, which no record of a loaded <see cref="SubtagRegistry"/> has: a record with no Type field, or with a value that RFC 5646 §3.1.3 doesn't define, fails the load.
         /// </summary>
         Unknown = 0,
 

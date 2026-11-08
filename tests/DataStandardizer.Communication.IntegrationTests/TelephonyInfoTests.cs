@@ -1,0 +1,46 @@
+﻿using DataStandardizer.Geography;
+using FluentAssertions;
+using Xunit;
+
+namespace DataStandardizer.Communication.IntegrationTests
+{
+    /// <summary>
+    /// Tests of <see cref="TelephonyInfo"/> that depend on the operating system's culture data.
+    /// </summary>
+    /// <remarks>
+    /// Whether the platform has a culture for a region varies with its culture data and globalization mode, so these are integration
+    /// tests. Their expected results are the same either way.
+    /// </remarks>
+    public class TelephonyInfoTests
+    {
+        // The package's neutral patterns, from its Resources.resx.
+        private const string InvariantLongPattern = "pc ssssssssssss";
+        private const string InvariantShortPattern = "pcssssssssssss";
+
+        [Fact]
+        public void Constructor_RegionThePlatformMayHaveNoCultureFor_LoadsInvariantLongInternationalNumberPattern()
+        {
+            // arrange
+            const Iso3166Part1Alpha2Country countryCode = Iso3166Part1Alpha2Country.AQ;
+
+            // act
+            var testResult = new TelephonyInfo(countryCode);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(InvariantLongPattern);
+        }
+
+        [Fact]
+        public void Constructor_RegionThePlatformMayHaveNoCultureFor_LoadsInvariantShortInternationalNumberPattern()
+        {
+            // arrange
+            const Iso3166Part1Alpha2Country countryCode = Iso3166Part1Alpha2Country.AQ;
+
+            // act
+            var testResult = new TelephonyInfo(countryCode);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(InvariantShortPattern);
+        }
+    }
+}

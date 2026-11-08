@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Resources;
 using System.Threading;
 using DataStandardizer.Communication.E164;
 using DataStandardizer.Geography;
@@ -21,6 +22,9 @@ namespace DataStandardizer.Communication
     /// </remarks>
     public class TelephonyInfo : IFormatProvider
     {
+        // The country code of an instance for no country; no ISO 3166-1 country has the numeric code 0.
+        private const ushort NoCountryCode = 0;
+
         private readonly ushort _countryCode;
 #if NETCOREAPP3_0_OR_GREATER
         private ItuE164InternationalNumberFormatter? _formatter; 
@@ -37,22 +41,46 @@ namespace DataStandardizer.Communication
         #region Constructors
 
         public TelephonyInfo()
+            : this(NoCountryCode, Resources.ResourceManager)
         {
-            LoadInternationalNumberFormatInformation();
         }
 
+        // TODO: This functionality is not yet fully supported; addition of country-specific telephony rules is pending.
         public TelephonyInfo(Iso3166Part1Alpha2Country countryCode)
-            : this()
+            : this(countryCode, Resources.ResourceManager)
         {
-            // TODO: This functionality is not yet fully supported; addition of country-specific telephony rules is pending.
-            _countryCode = (ushort)countryCode;
         }
 
+        // TODO: This functionality is not yet fully supported; addition of country-specific telephony rules is pending.
         public TelephonyInfo(Iso3166Part1Alpha3Country countryCode)
-            : this()
+            : this(countryCode, Resources.ResourceManager)
         {
-            // TODO: This functionality is not yet fully supported; addition of country-specific telephony rules is pending.
-            _countryCode = (ushort)countryCode;
+        }
+
+        /// <summary>
+        /// Initializes a new instance for a country, loading its number format information from the given resources.
+        /// </summary>
+        /// <remarks>A seam for tests, which supply their own resources.</remarks>
+        internal TelephonyInfo(Iso3166Part1Alpha2Country countryCode, ResourceManager resourceManager)
+            : this((ushort)countryCode, resourceManager)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance for a country, loading its number format information from the given resources.
+        /// </summary>
+        /// <remarks>A seam for tests, which supply their own resources.</remarks>
+        internal TelephonyInfo(Iso3166Part1Alpha3Country countryCode, ResourceManager resourceManager)
+            : this((ushort)countryCode, resourceManager)
+        {
+        }
+
+        private TelephonyInfo(ushort countryCode, ResourceManager resourceManager)
+        {
+            // The country code is set before the format information loads, which takes it as an input, so that a country's
+            // patterns come from its own resources.
+            _countryCode = countryCode;
+            _ituE164InternationalNumberFormat = LoadInternationalNumberFormatInformation(countryCode, resourceManager);
         }
 
         #endregion
@@ -184,27 +212,48 @@ namespace DataStandardizer.Communication
         }
 #endif
 
-        private void LoadInternationalNumberFormatInformation()
+        private static ItuE164InternationalNumberFormatInfo LoadInternationalNumberFormatInformation(ushort countryCodeValue, ResourceManager resourceManager)
         {
             var formatInfo = new ItuE164InternationalNumberFormatInfo();
 
-            string longInternationalNumberPattern = string.Empty, shortInternationalNumberPattern = string.Empty;
-            if (Enum.ToObject(typeof(Iso3166Part1Alpha2Country), _countryCode) is Iso3166Part1Alpha2Country countryCode && Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), countryCode))
-            {
-                var culture = new CultureInfo($"en-{countryCode}"); // don't care about the language; just want resources for the region
-                longInternationalNumberPattern = Resources.ResourceManager.GetString(nameof(formatInfo.LongInternationalNumberPattern), culture) ?? string.Empty;
-                shortInternationalNumberPattern = Resources.ResourceManager.GetString(nameof(formatInfo.ShortInternationalNumberPattern), culture) ?? string.Empty;
-            }
+            var regionCulture = Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), countryCodeValue)
+                ? GetRegionCulture((Iso3166Part1Alpha2Country)countryCodeValue)
+                : null;
 
-            if (string.IsNullOrEmpty(longInternationalNumberPattern) && string.IsNullOrEmpty(shortInternationalNumberPattern))
-            {
-                longInternationalNumberPattern = Resources.ResourceManager.GetString(nameof(formatInfo.LongInternationalNumberPattern)) ?? string.Empty;
-                shortInternationalNumberPattern = Resources.ResourceManager.GetString(nameof(formatInfo.ShortInternationalNumberPattern)) ?? string.Empty;
-            }
+            // Each pattern the region's resources don't hold comes from the neutral resources.
+            formatInfo.LongInternationalNumberPattern = GetPattern(resourceManager, nameof(formatInfo.LongInternationalNumberPattern), regionCulture);
+            formatInfo.ShortInternationalNumberPattern = GetPattern(resourceManager, nameof(formatInfo.ShortInternationalNumberPattern), regionCulture);
+            return formatInfo;
+        }
 
-            formatInfo.LongInternationalNumberPattern = longInternationalNumberPattern;
-            formatInfo.ShortInternationalNumberPattern = shortInternationalNumberPattern;
-            ItuE164InternationalNumberFormat = formatInfo;
+#if NETCOREAPP3_0_OR_GREATER
+        private static string GetPattern(ResourceManager resourceManager, string name, CultureInfo? regionCulture)
+#else
+        private static string GetPattern(ResourceManager resourceManager, string name, CultureInfo regionCulture)
+#endif
+        {
+            var pattern = regionCulture == null ? null : resourceManager.GetString(name, regionCulture);
+            return string.IsNullOrEmpty(pattern)
+                ? resourceManager.GetString(name) ?? string.Empty
+                : pattern;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static CultureInfo? GetRegionCulture(Iso3166Part1Alpha2Country countryCode)
+#else
+        private static CultureInfo GetRegionCulture(Iso3166Part1Alpha2Country countryCode)
+#endif
+        {
+            try
+            {
+                return new CultureInfo($"en-{countryCode}"); // don't care about the language; just want resources for the region
+            }
+            catch (ArgumentException)
+            {
+                // CultureNotFoundException: the platform has no culture for the region, as under invariant globalization mode or
+                // for a region its culture data lacks, so the region can have no resources of its own.
+                return null;
+            }
         }
 
         #endregion

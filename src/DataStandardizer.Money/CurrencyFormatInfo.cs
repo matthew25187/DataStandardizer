@@ -31,6 +31,7 @@ namespace DataStandardizer.Money
         private const string InvariantCurrencyDecimalSeparator = ".";
         private const string InvariantCurrencyGroupSeparator = ",";
         private static readonly int[] InvariantCurrencyGroupSizes = { 3 };
+        private const int MaximumGroupSize = 9;
         private const int InvariantCurrencyNegativePattern = 0;
         private const int InvariantCurrencyPositivePattern = 0;
         private const string InvariantNegativeSign = "-";
@@ -217,23 +218,54 @@ namespace DataStandardizer.Money
         /// Each element in the array specifies the number of digits in a group. For example, an array of {3, 2}
         /// indicates that the first group contains three digits, and the subsequent groups contain two digits each,
         /// as used in the Indian numbering system.
+        /// <para>
+        /// As with <see cref="NumberFormatInfo.NumberGroupSizes"/>, the getter returns a copy of the sizes and the
+        /// setter stores a copy of the array it is given, so changing either array afterwards does not change
+        /// this instance. The setter accepts the same sizes as <see cref="NumberFormatInfo.NumberGroupSizes"/>:
+        /// every element is from 1 to 9, except the last, which may also be 0 to show that the remaining digits
+        /// are not grouped.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when an element of the array is less than 1 or greater than 9, other than a last element of 0.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
         public int[] CurrencyGroupSizes
         {
-            get => _currencyGroupSizes;
+            get => (int[])_currencyGroupSizes.Clone();
             set
             {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
                 }
 
-                _currencyGroupSizes = value;
+                // The copy is the array that is checked and stored, so a change the caller makes to their own
+                // array afterwards can bypass neither.
+                var groupSizes = (int[])value.Clone();
+                CheckGroupSizes(groupSizes, nameof(value));
+                _currencyGroupSizes = groupSizes;
             }
         }
+
+        /// <summary>
+        /// Gets the array that holds the group sizes, without copying it.
+        /// </summary>
+        /// <remarks>
+        /// For handing the sizes to <see cref="NumberFormatInfo.NumberGroupSizes"/>, which copies them itself.
+        /// The array is never to be changed.
+        /// </remarks>
+        internal int[] CurrencyGroupSizesUncopied => _currencyGroupSizes;
 
         /// <summary>
         /// Gets or sets the format pattern for negative currency values.
@@ -459,6 +491,23 @@ namespace DataStandardizer.Money
             }
 
             return value ?? string.Empty;
+        }
+
+        private static void CheckGroupSizes(int[] groupSizes, string parameterName)
+        {
+            // The same rule as NumberFormatInfo.NumberGroupSizes, which receives these sizes when a value is
+            // formatted: each size is from 1 to 9, and only the last may be 0.
+            for (var index = 0; index < groupSizes.Length; index++)
+            {
+                var groupSize = groupSizes[index];
+                var isLast = index == groupSizes.Length - 1;
+                if (groupSize > MaximumGroupSize || groupSize < (isLast ? 0 : 1))
+                {
+                    throw new ArgumentException(
+                        "Every element in the array must be from 1 to 9, except the last, which may also be 0.",
+                        parameterName);
+                }
+            }
         }
 
         private static int[] ParseGroupSizes(string groupSizesText)

@@ -26,7 +26,14 @@ Enumerating the registry yields [ISubtagRegistryRecord](ISubtagRegistryRecord.md
 instances ([SubtagRegistryTagRecord](SubtagRegistryTagRecord.md),
 [SubtagRegistrySubtagRecord](SubtagRegistrySubtagRecord.md), and
 [SubtagRegistryFileDateRecord](SubtagRegistryFileDateRecord.md)). The factory
-methods throw `ArgumentNullException` for a `null` argument. Pass a loaded registry
+methods throw `ArgumentNullException` for a `null` argument, and
+`FormatException`, naming the line, for content that is not in the record-jar
+format of RFC 5646 §3.1.1: a blank line, a tab or other control character, a
+line that is neither a field nor a folded line starting with a space, a field
+that ends with a space, a `File-Date`, `Subtag`, `Tag` or `Type` field
+with no value, or a record that is empty, has none or more than one
+of the `File-Date`, `Subtag` and `Tag` fields, or has no `Type` that
+RFC 5646 §3.1.3 defines for it. Pass a loaded registry
 to the [Bcp47LanguageTag](Bcp47LanguageTag.md) `Create` / `TryCreate` overloads, or
 to the builder's `WithLanguageSubtagRegistry` step, to validate against it.
 

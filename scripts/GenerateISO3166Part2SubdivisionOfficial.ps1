@@ -397,11 +397,11 @@ function Out-SourceCode {
                 (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                 (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
+                (Get-CompareToMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
                 (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-                (Get-CompareToMethodDefinition),
+                (Get-CompareToMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                 (Get-SpecialToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')

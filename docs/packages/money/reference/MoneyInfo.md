@@ -55,7 +55,7 @@ falls back to the culture-independent information rather than failing.
 | --- | --- | --- |
 | `CurrentMoney` | `MoneyInfo` | Read-only information for the current culture; tracks a change of culture. |
 | `InvariantMoney` | `MoneyInfo` | Read-only culture-independent information. |
-| `GetMoneyInfo(CultureInfo?)` | `MoneyInfo` | Read-only information for a culture. |
+| `GetMoneyInfo(CultureInfo?)` | `MoneyInfo` | Read-only information for a culture. Calls for the same `CultureInfo` instance may share one instance. |
 
 ## Methods
 
@@ -67,8 +67,9 @@ falls back to the culture-independent information rather than failing.
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.
 
-`CurrentMoney` requires `netstandard2.0` or later, because the current culture is
-unavailable on `netstandard1.1`.
+`CurrentMoney` is part of the API on `netstandard2.0` and later only. On every target,
+including `netstandard1.1`, a `Money` value that is formatted or parsed without a
+provider uses the culture of the current thread.
 
 ## See also
 

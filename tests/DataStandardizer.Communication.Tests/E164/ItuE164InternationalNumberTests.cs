@@ -18,6 +18,7 @@ namespace DataStandardizer.Communication.Tests.E164
         // network, 883; and parts of numbers.
         private const ulong GreatBritainNumber = 443071234567L;
         private const ulong OtherGreatBritainNumber = 445071234567L;
+        private const string GreatBritainNumberText = "443071234567";
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
         private const ulong GlobalSubscriberNumber = 8001234567L;
@@ -53,6 +54,16 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TooShortNumber = "991";
         private const string TooLongNumber = "9911012345678901";
         private const string NotANumber = "Not A Number";
+
+        // Sixteen digits, one more than ITU-T E.164 §6.1 allows, after a Country Code for a geographic area (211) and for a global service (800).
+        private const string TooLongGeographicAreaNumber = "2111234567890123";
+        private const string TooLongGlobalServiceNumber = "8001234567890123";
+
+        // Fifteen digits, the most that ITU-T E.164 §6.1 allows, after the same Country Codes.
+        private const string FifteenDigitGeographicAreaNumberText = "211123456789012";
+        private const ulong FifteenDigitGeographicAreaNumber = 211123456789012L;
+        private const string FifteenDigitGlobalServiceNumberText = "800123456789012";
+        private const ulong FifteenDigitGlobalServiceNumber = 800123456789012L;
 
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
         {
@@ -109,6 +120,284 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // assert
             testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_BoxedNumberEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualsObject_BoxedNumberNotEqualInValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_ObjectOfAnotherType_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = GreatBritainNumber;
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_Null_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(null);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetHashCode_NumbersEqualInValue_ReturnsSameHashCode()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = new[] { testSubject1.GetHashCode(), testSubject2.GetHashCode() };
+
+            // assert
+            testResult[1].Should().Be(testResult[0]);
+        }
+
+        [Fact]
+        public void GetHashCode_InstanceIsNotInitialized_ReturnsZero()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject.GetHashCode();
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
+        [Fact]
+        public void GetHashCode_NumberEqualInValueInHashSet_ContainsReturnsTrue()
+        {
+            // arrange
+            var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber) };
+            var other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Contains(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualityOperator_NumbersEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualityOperator_NumbersNotEqualInValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualityOperator_BothInstancesNotInitialized_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = new ItuE164InternationalNumber();
+            var testSubject2 = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualityOperator_OneInstanceNotInitialized_ReturnsFalse()
+        {
+            // arrange
+            var testSubject1 = new ItuE164InternationalNumber();
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 == testSubject2;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void InequalityOperator_OneInstanceNotInitialized_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = new ItuE164InternationalNumber();
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 != testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void EqualsObject_InstanceNotInitializedAndBoxedNumberInitialized_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+            object other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_InstanceInitializedAndBoxedNumberNotInitialized_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            object other = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_BoxedNumberParsedFromSameText_ReturnsTrue()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+            object other = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+
+            // act
+            var testResult = testSubject.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_NumbersParsedFromSameText_ReturnsSameHashCode()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+            var testSubject2 = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+
+            // act
+            var testResult = new[] { testSubject1.GetHashCode(), testSubject2.GetHashCode() };
+
+            // assert
+            testResult[1].Should().Be(testResult[0]);
+        }
+
+        [Fact]
+        public void GetHashCode_NumberParsedFromSameTextInHashSet_ContainsReturnsTrue()
+        {
+            // arrange
+            var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.Parse(GreatBritainNumberText) };
+            var other = ItuE164InternationalNumber.Parse(GreatBritainNumberText);
+
+            // act
+            var testResult = testSubject.Contains(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_ParsedNumberInHashSetAndCreatedNumberEqualInValue_ContainsReturnsTrue()
+        {
+            // arrange
+            var testSubject = new HashSet<ItuE164InternationalNumber> { ItuE164InternationalNumber.Parse(GreatBritainNumberText) };
+            var other = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.Contains(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void InequalityOperator_NumbersEqualInValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 != testSubject2;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void InequalityOperator_NumbersNotEqualInValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject1 = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+            var testSubject2 = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
+
+            // act
+            var testResult = testSubject1 != testSubject2;
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
@@ -1267,6 +1556,104 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // act
             var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.None),
+         InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite),
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.None),
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite)]
+        public void TryParse_SixteenDigitsWithoutInternationalPrefixSymbolStyle_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(TooLongGeographicAreaNumber, "The input string '2111234567890123' was not in a correct format."),
+         InlineData(TooLongGlobalServiceNumber, "The input string '8001234567890123' was not in a correct format.")]
+        public void Parse_SixteenDigitsWithNoneStyle_ThrowsFormatException(string testNumber, string expectedMessage)
+        {
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.None);
+
+            // assert
+            testAction.Should()
+                .Throw<FormatException>()
+                .WithMessage(expectedMessage);
+        }
+
+        [Theory]
+        [InlineData(FifteenDigitGeographicAreaNumberText, FifteenDigitGeographicAreaNumber),
+         InlineData(FifteenDigitGlobalServiceNumberText, FifteenDigitGlobalServiceNumber)]
+        public void TryParse_FifteenDigitsWithNoneStyle_ReturnsNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.None, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData(" 211123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData("\t211123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData(" 211123456789012", ItuE164InternationalNumberStyles.InternationalNumber),
+         InlineData(" 211123456789012", ItuE164InternationalNumberStyles.AllowTrailingWhite),
+         InlineData(" 800123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData(" 8831101234567", ItuE164InternationalNumberStyles.None),
+         InlineData(" 8831101234567", ItuE164InternationalNumberStyles.InternationalNumber),
+         InlineData("211123456789012 ", ItuE164InternationalNumberStyles.None),
+         InlineData("211123456789012\n", ItuE164InternationalNumberStyles.None),
+         InlineData("211123456789012\n", ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData("8831101234567\n", ItuE164InternationalNumberStyles.None)]
+        public void TryParse_WhiteSpaceWithoutWhiteSpaceStyle_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(" 211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGeographicAreaNumber),
+         InlineData("\x000B211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGeographicAreaNumber),
+         InlineData("+ 211123456789012", ItuE164InternationalNumberStyles.InternationalNumber, FifteenDigitGeographicAreaNumber),
+         InlineData("211123456789012\n", ItuE164InternationalNumberStyles.AllowTrailingWhite, FifteenDigitGeographicAreaNumber),
+         InlineData(" 800123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGlobalServiceNumber),
+         InlineData(" 8831101234567", ItuE164InternationalNumberStyles.AllowLeadingWhite, NetworkNumber),
+         InlineData("+ 8831101234567", ItuE164InternationalNumberStyles.InternationalNumber, NetworkNumber)]
+        public void TryParse_WhiteSpaceWithWhiteSpaceStyle_ReturnsNumber(string testNumber, ItuE164InternationalNumberStyles numberStyles, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("\x0000211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData("\x001B211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData("211123456789012\x0000", ItuE164InternationalNumberStyles.AllowTrailingWhite),
+         InlineData("+\x0000211123456789012", ItuE164InternationalNumberStyles.InternationalNumber),
+         InlineData("211\x0000123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData("\x00008831101234567", ItuE164InternationalNumberStyles.AllowLeadingWhite)]
+        public void TryParse_ControlCharacterThatIsNotWhiteSpace_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
 
             // assert
             testResult.Should().BeFalse();

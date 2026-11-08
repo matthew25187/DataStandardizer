@@ -35,11 +35,13 @@ namespace DataStandardizer.Communication.E164
 
         /// <summary>
         /// Allows leading whitespace characters in the number when parsing ITU E.164 international numbers.
+        /// White space is a space separator (Unicode category Zs) or a control character from U+0009 to U+000D.
         /// </summary>
         AllowLeadingWhite = 1 << 1,
 
         /// <summary>
         /// Allows trailing whitespace characters in the number when parsing ITU E.164 international numbers.
+        /// White space is a space separator (Unicode category Zs) or a control character from U+0009 to U+000D.
         /// </summary>
         AllowTrailingWhite = 1 << 2,
 

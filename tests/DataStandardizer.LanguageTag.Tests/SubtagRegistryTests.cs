@@ -57,9 +57,6 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         private const string MinimalRecordSubtag = "aa";
 
-        private const string EmptyRecordContent = "File-Date: 2025-01-01\n%%\n%%\nType: language\nSubtag: aa\n";
-        private const string UnclassifiableRecordContent = "File-Date: 2025-01-01\n%%\nType: language\nDescription: No subtag or tag\n%%\nType: language\nSubtag: aa\n";
-
         private const string SubtagRegistryContentParameterName = "subtagRegistryContent";
         private const string SubtagRegistryFilePathParameterName = "subtagRegistryFilePath";
 
@@ -320,6 +317,21 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
+        public async Task CreateFromStreamAsync_WhenTokenIsCancelledAfterLastRecordIsRead_ThrowsOperationCanceledException()
+        {
+            // arrange
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            using (var subtagRegistryStream = new CancelAtEndStream(Encoding.UTF8.GetBytes("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\n"), cancellationTokenSource))
+            {
+                // act
+                Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled when the end of the stream was read, after the last record");
+            }
+        }
+
+        [Fact]
         public async Task CreateFromStreamAsync_WhenTokenIsNotCancelled_ReturnsDeserializedRegistry()
         {
             // arrange
@@ -378,6 +390,48 @@ namespace DataStandardizer.LanguageTag.Tests
                 return base.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, MaximumReadLength)), CancellationToken.None);
             }
 #endif
+        }
+
+        /// <summary>
+        /// A stream that cancels a token when a read finds the end of the stream, to cancel a load after its last line has been read.
+        /// </summary>
+        private sealed class CancelAtEndStream : MemoryStream
+        {
+            private readonly CancellationTokenSource _cancellationTokenSource;
+
+            public CancelAtEndStream(byte[] buffer, CancellationTokenSource cancellationTokenSource)
+                : base(buffer)
+            {
+                _cancellationTokenSource = cancellationTokenSource;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                return CancelAtEnd(base.Read(buffer, offset, count));
+            }
+
+            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                return CancelAtEnd(await base.ReadAsync(buffer, offset, count, CancellationToken.None));
+            }
+
+#if NET
+            public override int Read(Span<byte> buffer)
+            {
+                return CancelAtEnd(base.Read(buffer));
+            }
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                return CancelAtEnd(await base.ReadAsync(buffer, CancellationToken.None));
+            }
+#endif
+
+            private int CancelAtEnd(int bytesRead)
+            {
+                if (bytesRead == 0) _cancellationTokenSource.Cancel();
+                return bytesRead;
+            }
         }
 
         /// <summary>
@@ -735,23 +789,6 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenTypeIsUnknown_ReadsRecordWithUnknownType(string loaderName, Func<string, Task<SubtagRegistry>> load)
-        {
-            // arrange
-            const string content = "Type: future\nSubtag: qaa\nDescription: Private use\nAdded: 2005-10-16";
-
-            // act
-            var testResult = await load(content);
-
-            // assert
-            var record = testResult.Should().ContainSingle("{0} reads the one record", loaderName).Which.Should().BeOfType<SubtagRegistrySubtagRecord>().Subject;
-            record.Type.Should().Be(SubtagRegistryRecordType.Unknown);
-            record.Fields.Should().Contain(new KeyValuePair<string, string>(TypeFieldName, "future"), "the field is kept as it was read");
-            testResult.Languages.Should().BeEmpty("a record of an unknown type is not a language record");
-        }
-
-        [Theory]
         [InlineData("2005-13-01", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 2005-13-01\nDeprecated: 2005-13-01")]
         [InlineData("2005-02-30", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 2005-02-30\nDeprecated: 2005-02-30")]
         [InlineData("16 Oct 2005", "Type: language\nSubtag: qaa\nDescription: Private use\nAdded: 16 Oct 2005\nDeprecated: 16 Oct 2005")]
@@ -1011,7 +1048,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldIsFolded_JoinsLinesWithOneSpace(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "Type: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first\n\t  second \n   \n  third\nAdded: 2005-10-16";
+            const string content = "Type: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first \n  second\n   third\nAdded: 2005-10-16";
 
             // act
             var testResult = await load(content);
@@ -1019,7 +1056,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             var record = testResult.Languages.Should().ContainSingle("{0} reads the one record", loaderName).Subject;
             record.Description.Should().Equal(new[] { "Interlingua (International Auxiliary Language Association)" }, "a folded line is unfolded with one space (ref. RFC 5646 §3.1.1)");
-            record.Comments.Should().Equal(new[] { "first second third" }, "each folded line is trimmed, and a blank one adds nothing");
+            record.Comments.Should().Equal(new[] { "first second third" }, "each folded line is trimmed, and a space may come before the line break where a folded line follows");
             record.Added.Should().Be(RegistryCreationDate);
         }
 
@@ -1054,18 +1091,102 @@ namespace DataStandardizer.LanguageTag.Tests
             record.Fields.Should().Contain(new KeyValuePair<string, string>("Future-Field", "some value"));
         }
 
+        [Theory]
+        [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFromContent_WhenFieldSeparatorHasSpaces_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
+        {
+            // arrange
+            const string content = "Type  :  language\nSubtag : qaa\nDescription: Private use\nAdded: 2005-10-16";
+
+            // act
+            var testResult = await load(content);
+
+            // assert
+            testResult.Languages.Should().ContainSingle("{0} reads the spaces around the colon as part of the separator (ref. RFC 5646 §3.1.1)", loaderName)
+                .Which.Subtag.Should().Be("qaa");
+        }
+
         /// <summary>
-        /// Registries with a record that is empty or has no File-Date, Subtag or Tag field, each with both ways to load a registry from its content.
+        /// Registries that the record-jar format of RFC 5646 §3.1.1, or the records of §3.1.2 and §3.1.3, don't allow, each with the message of the
+        /// <see cref="FormatException"/> it fails with, which names its line.
         /// </summary>
-        public static TheoryData<string, Func<string, Task<SubtagRegistry>>, string> SkippedRecordCases
+        private static readonly (string Content, string ExpectedMessage)[] MalformedRegistries =
+        {
+            // a line that doesn't start with a space is not a folded line (field-body)
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: fr\nDescription: French\nUnited Kingdom",
+                "Line 6 has no colon, so it is neither a field nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1)."),
+            // field-name = (ALPHA / DIGIT) [*(ALPHA / DIGIT / "-") (ALPHA / DIGIT)]
+            ("File-Date: 2025-01-01\n%%\n-Type: language\nSubtag: aa",
+                "Line 3 has a field name that starts or ends with a hyphen (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\n: language\nSubtag: aa",
+                "Line 3 has no field name before its colon (ref. RFC 5646 §3.1.1)."),
+            // a byte order mark left in the content, U+FEFF
+            ("\xFEFFFile-Date: 2025-01-01\n%%\nType: language\nSubtag: aa",
+                "Line 1 has the character U+FEFF in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1)."),
+            // a no-break space, U+00A0, is not SP
+            ("File-Date: 2025-01-01\n%%\nType\xA0: language\nSubtag: aa",
+                "Line 3 has the character U+00A0 in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1)."),
+            // records are separated by lines of "%%" alone
+            ("File-Date: 2025-01-01\n%% \nType: language\nSubtag: aa",
+                "Line 2 has spaces after the \"%%\" that separates records, which is a line of \"%%\" alone (ref. RFC 5646 §3.1.1)."),
+            // a tab is not white space in field-sep or field-body, nor one of CHARS
+            ("File-Date: 2025-01-01\n%%\nType\t: language\nSubtag: aa",
+                "Line 3 holds the control character U+0009, which a field may not hold (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua\n\tAssociation",
+                "Line 6 holds the control character U+0009, which a field may not hold (ref. RFC 5646 §3.1.1)."),
+            // record = 1*field, with no blank lines
+            ("File-Date: 2025-01-01\n%%\nType: language\n\nSubtag: aa",
+                "Line 4 is blank, which a record may not hold (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\n%%\nType: language\nSubtag: aa",
+                "The record that ends at line 3 has no fields (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\n",
+                "The registry ends after the \"%%\" at line 2, with no record after it (ref. RFC 5646 §3.1.1)."),
+            ("",
+                "The registry has no records (ref. RFC 5646 §3.1.1)."),
+            // a folded line continues a field, and holds more than spaces
+            ("File-Date: 2025-01-01\n%%\n  Type: language\nSubtag: aa",
+                "Line 3 is a folded line, but no field comes before it in its record (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nComments: first\n   \n  second",
+                "Line 6 is a folded line with nothing but spaces (ref. RFC 5646 §3.1.1)."),
+            // field-body ends with CHARS
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa \nDescription: Afar",
+                "The Subtag field ends with a space at line 4 (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua\n  Association ",
+                "The Description field ends with a space at line 6 (ref. RFC 5646 §3.1.1)."),
+            // the kind of record is told by its File-Date, Subtag or Tag field, and its type by its Type field, which each need a value
+            ("File-Date: 2025-01-01\n%%\nType:\nSubtag: aa",
+                "The Type field at line 3 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag:",
+                "The Subtag field at line 4 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtg: en\nDescription: English",
+                "The record at line 3 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\n%%\nType: language\nDescription: No subtag or tag",
+                "The record at line 6 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nTag: aa",
+                "The record at line 3 has more than one of the File-Date, Subtag and Tag fields (ref. RFC 5646 §3.1.2)."),
+            // every tag and subtag record has a Type, which is one of the values of §3.1.3 that goes with its Tag or Subtag field
+            ("File-Date: 2025-01-01\n%%\nSubtag: aa\nDescription: Afar",
+                "The record at line 3 has no Type field (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: future\nSubtag: qaa",
+                "The record at line 3 has the Type 'future', which is not one that RFC 5646 §3.1.3 defines."),
+            ("File-Date: 2025-01-01\n%%\nType: grandfathered\nSubtag: i-klingon",
+                "The record at line 3 has a Subtag field, but its Type 'grandfathered' is one whose records have a Tag field (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\n%%\nType: language\nTag: aa",
+                "The record at line 3 has a Tag field, but its Type 'language' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2)."),
+        };
+
+        /// <summary>
+        /// Each malformed registry, with both ways to load a registry from its content.
+        /// </summary>
+        public static TheoryData<string, Func<string, Task<SubtagRegistry>>, string, string> MalformedRegistryCases
         {
             get
             {
-                var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>, string>();
+                var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>, string, string>();
                 foreach (var loader in ContentLoaders)
-                foreach (var content in new[] { EmptyRecordContent, UnclassifiableRecordContent })
+                foreach (var registry in MalformedRegistries)
                 {
-                    data.Add(loader.Key, loader.Value, content);
+                    data.Add(loader.Key, loader.Value, registry.Content, registry.ExpectedMessage);
                 }
 
                 return data;
@@ -1073,15 +1194,15 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(SkippedRecordCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenRecordIsEmptyOrUnclassifiable_SkipsItAndReadsTheRest(string loaderName, Func<string, Task<SubtagRegistry>> load, string content)
+        [MemberData(nameof(MalformedRegistryCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFromContent_WhenRegistryIsMalformed_ThrowsFormatExceptionNamingTheLine(string loaderName, Func<string, Task<SubtagRegistry>> load, string content, string expectedMessage)
         {
             // act
-            var testResult = await load(content);
+            Func<Task> testAction = () => load(content);
 
             // assert
-            testResult.Count.Should().Be(2, "{0} skips a record that is empty or has no File-Date, Subtag or Tag field, and doesn't take it as the end of the registry", loaderName);
-            testResult.Languages.Should().ContainSingle(record => record.Subtag == MinimalRecordSubtag);
+            (await testAction.Should().ThrowAsync<FormatException>("{0} reads only the format of RFC 5646 §3.1.1", loaderName))
+                .Which.Message.Should().Be(expectedMessage);
         }
 
         #endregion
