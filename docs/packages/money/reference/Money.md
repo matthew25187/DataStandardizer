@@ -72,9 +72,9 @@ never equal and have no order: `Equals`, `==` and `!=` treat them as not equal,
 | `Parse(string s, MoneyStyles styles, IFormatProvider? provider)` | `Money` | Permits only the specified elements. |
 | `ParseExact(string s, string format, IFormatProvider? provider)` | `Money` | Requires `s` to be in the given format. |
 | `ParseExact(string s, string[] formats, IFormatProvider? provider, MoneyStyles styles)` | `Money` | Requires `s` to be in one of the given formats. |
-| `ToString()` | `string` | The amount alone. |
-| `ToString(IFormatProvider? provider)` | `string` | |
-| `ToString(string? format)` | `string` | |
+| `ToString()` | `string` | The amount alone, with the rounding the value carries. The same as `ToString(null, null)`. |
+| `ToString(IFormatProvider? provider)` | `string` | The same as `ToString(null, provider)`. |
+| `ToString(string? format)` | `string` | The same as `ToString(format, null)`. |
 | `ToString(string? format, IFormatProvider? formatProvider)` | `string` | `IFormattable` implementation (a normal public method). |
 | `TryParse(string? s, out Money result)` | `bool` | Returns `false` instead of throwing on failure. |
 | `TryParse(string? s, IFormatProvider? provider, out Money result)` | `bool` | Culture-specific try-parse. |
@@ -109,7 +109,7 @@ See [Format money values](../how-to/format-money-values.md) and
 
 `Money` implements `IConvertible` explicitly; each member delegates to the
 underlying `decimal` and is callable only through an `IConvertible` reference.
-The members convert the amount before any rounding the value carries, and the
+The numeric members convert the amount before any rounding the value carries, and the
 integer members round a fraction to the nearest integer, with ties to even.
 They don't give the amount in minor units that the integer casts give.
 *(netstandard2.0+/.NET)*
@@ -128,7 +128,7 @@ They don't give the amount in minor units that the integer casts give.
 | `ToInt64(IFormatProvider provider)` | `long` | |
 | `ToSByte(IFormatProvider provider)` | `sbyte` | |
 | `ToSingle(IFormatProvider provider)` | `float` | |
-| `ToString(IFormatProvider provider)` | `string` | |
+| `ToString(IFormatProvider provider)` | `string` | The same as `ToString(null, provider)`, so the rounding the value carries is applied. |
 | `ToType(Type conversionType, IFormatProvider provider)` | `object` | |
 | `ToUInt16(IFormatProvider provider)` | `ushort` | |
 | `ToUInt32(IFormatProvider provider)` | `uint` | |

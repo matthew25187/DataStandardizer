@@ -976,24 +976,35 @@ namespace DataStandardizer.Money
             return Parse(s, MoneyStyles.Currency, provider ?? CultureInfo.CurrentCulture);
         }
 
+        /// <summary>
+        /// Converts the value of this instance to its equivalent string representation, in the general format.
+        /// </summary>
+        /// <returns>The string representation of the value of this instance, as <see cref="ToString(string, IFormatProvider)"/> gives it for a <c>null</c> format and provider.</returns>
+        /// <remarks>
+        /// The rounded amount is formatted, as <c>(decimal)value</c> gives it, so that any rounding the value
+        /// carries is honoured.
+        /// </remarks>
         public override string ToString()
         {
-            return _amount.ToString();
+            return ToString(null, null);
         }
 
         /// <summary>
-        /// Converts the numeric value of this instance to its equivalent string representation using the specified culture-specific format information.
+        /// Converts the value of this instance to its equivalent string representation, in the general format, using the specified culture-specific format information.
         /// </summary>
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific formatting information.</param>
-        /// <returns>The string representation of the value of this instance as specified by <paramref name="provider"/>.</returns>
+        /// <returns>The string representation of the value of this instance, as <see cref="ToString(string, IFormatProvider)"/> gives it for a <c>null</c> format and <paramref name="provider"/>.</returns>
+        /// <remarks>
+        /// The rounded amount is formatted, as <c>(decimal)value</c> gives it, so that any rounding the value
+        /// carries is honoured.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(IFormatProvider? provider)
 #else
         public string ToString(IFormatProvider provider)
 #endif
         {
-            // ReSharper disable once PossiblyImpureMethodCallOnReadonlyVariable
-            return _amount.ToString(provider);
+            return ToString(null, provider);
         }
 
         /// <summary>
@@ -1035,7 +1046,7 @@ namespace DataStandardizer.Money
         /// format strings are applied to the rounded amount with the number formatting of that provider: of
         /// the culture for a <see cref="CultureInfo"/> or <see cref="MoneyInfo"/>, and of the separators of a
         /// <see cref="CurrencyFormatInfo"/>. Where it is <c>null</c> or supplies neither, the culture of the
-        /// current thread is used, or the invariant culture on .NET Standard 1.1.
+        /// current thread is used.
         /// </para>
         /// </remarks>
         /// <exception cref="FormatException">
@@ -1140,11 +1151,9 @@ namespace DataStandardizer.Money
         {
             get
             {
-#if NETSTANDARD2_0_OR_GREATER||NET
-                return MoneyInfo.CurrentMoney;
-#else
-                return MoneyInfo.InvariantMoney;
-#endif
+                // The culture of the current thread on every target, so that the same inputs give the same
+                // output whichever target is in use.
+                return MoneyInfo.GetCurrentMoney();
             }
         }
 
@@ -1500,7 +1509,7 @@ namespace DataStandardizer.Money
 
         string IConvertible.ToString(IFormatProvider? provider)
         {
-            return _amount.ToString(provider);
+            return ToString(null, provider);
         }
 
         object IConvertible.ToType(Type conversionType, IFormatProvider? provider)
@@ -1585,7 +1594,7 @@ namespace DataStandardizer.Money
 
         string IConvertible.ToString(IFormatProvider provider)
         {
-            return _amount.ToString(provider);
+            return ToString(null, provider);
         }
 
         object IConvertible.ToType(Type conversionType, IFormatProvider provider)
