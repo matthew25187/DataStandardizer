@@ -1,0 +1,3 @@
+# The copy of the IANA Language Subtag Registry that the LanguageTag tests and benchmarks load keeps the line feeds that IANA publishes it with,
+# on every checkout, so that its line breaks don't depend on the OS or on core.autocrlf (#756).
+tests/DataStandardizer.LanguageTag.Tests/Resources/IanaSubtagRegistry.txt text eol=lf

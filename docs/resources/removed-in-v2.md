@@ -297,9 +297,17 @@ var languageTag = Bcp47LanguageTag.Create("en-NZ", registry);
 // After
 using DataStandardizer.LanguageTag;
 
-var registry = SubtagRegistry.CreateFromFile(path);
+var registry = SubtagRegistry.CreateFromFile(path, SubtagRegistryLoadOptions.AcceptBareLineFeed);
 var languageTag = Bcp47LanguageTag.Create("en-NZ", registry);
 ```
+
+Version 2.0 also reads the registry by the record-jar format of RFC 5646 §3.1.1,
+which ends every line, the last one included, with CRLF. IANA publishes the
+registry with a line feed alone at the end of each line, so a copy of it that
+version 1.x loaded now throws `FormatException` unless you pass
+`SubtagRegistryLoadOptions.AcceptBareLineFeed`, as above. Pass
+`SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak` as well for a copy whose last
+line has no line break.
 
 ## The netstandard1.0 target
 

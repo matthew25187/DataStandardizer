@@ -100,14 +100,14 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public void CreateFromContent_WhenRegistryContentIsValid_ReturnsDeserializedRegistry()
+        public void CreateFromContent_WithAcceptBareLineFeedForIanaRegistry_ReturnsDeserializedRegistry()
         {
             // arrange
-            var subtagRegistryContent = IanaSubtagRegistryResource.Content;
+            var subtagRegistryContent = IanaSubtagRegistryResource.Text;
 
             // act
             // ReSharper disable once MethodHasAsyncOverload
-            var testResult = SubtagRegistry.CreateFromContent(subtagRegistryContent);
+            var testResult = SubtagRegistry.CreateFromContent(subtagRegistryContent, SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
             // assert
             testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the Subtag Registry", IanaRegistryRecordCount);
@@ -125,13 +125,13 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public async Task CreateFromContentAsync_WhenRegistryContentIsValid_ReturnsDeserializedRegistry()
+        public async Task CreateFromContentAsync_WithAcceptBareLineFeedForIanaRegistry_ReturnsDeserializedRegistry()
         {
             // arrange
-            var subtagRegistryContent = IanaSubtagRegistryResource.Content;
+            var subtagRegistryContent = IanaSubtagRegistryResource.Text;
 
             // act
-            var testResult = await SubtagRegistry.CreateFromContentAsync(subtagRegistryContent);
+            var testResult = await SubtagRegistry.CreateFromContentAsync(subtagRegistryContent, SubtagRegistryLoadOptions.AcceptBareLineFeed, CancellationToken.None);
 
             // assert
             testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the Subtag Registry", IanaRegistryRecordCount);
@@ -171,14 +171,14 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public void CreateFromStream_WhenStreamIsSupplied_ReturnsDeserializedRegistry()
+        public void CreateFromStream_WithAcceptBareLineFeedForIanaRegistry_ReturnsDeserializedRegistry()
         {
             // arrange
-            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content)))
+            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Text)))
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                var testResult = SubtagRegistry.CreateFromStream(subtagRegistryStream);
+                var testResult = SubtagRegistry.CreateFromStream(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the subtag registry", IanaRegistryRecordCount);
@@ -196,13 +196,13 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public async Task CreateFromStreamAsync_WhenStreamIsSupplied_ReturnsDeserializedRegistry()
+        public async Task CreateFromStreamAsync_WithAcceptBareLineFeedForIanaRegistry_ReturnsDeserializedRegistry()
         {
             // arrange
-            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content)))
+            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Text)))
             {
                 // act
-                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed, CancellationToken.None);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the subtag registry", IanaRegistryRecordCount);
@@ -213,11 +213,11 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromStream_WhenStreamIsPositioned_ReadsFromCurrentPosition()
         {
             // arrange
-            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Content))
+            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Text))
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                var testResult = SubtagRegistry.CreateFromStream(subtagRegistryStream);
+                var testResult = SubtagRegistry.CreateFromStream(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "only the content after the stream's current position is read");
@@ -228,11 +228,11 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromStream_WhenStreamIsPositioned_LeavesStreamOpenAtItsEnd()
         {
             // arrange
-            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Content))
+            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Text))
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                SubtagRegistry.CreateFromStream(subtagRegistryStream);
+                SubtagRegistry.CreateFromStream(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
                 // assert
                 subtagRegistryStream.CanRead.Should().BeTrue("the caller owns the stream");
@@ -244,10 +244,10 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromStreamAsync_WhenStreamIsPositioned_ReadsFromCurrentPosition()
         {
             // arrange
-            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Content))
+            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Text))
             {
                 // act
-                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed, CancellationToken.None);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "only the content after the stream's current position is read");
@@ -258,10 +258,10 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromStreamAsync_WhenStreamIsPositioned_LeavesStreamOpenAtItsEnd()
         {
             // arrange
-            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Content))
+            using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Text))
             {
                 // act
-                await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+                await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed, CancellationToken.None);
 
                 // assert
                 subtagRegistryStream.CanRead.Should().BeTrue("the caller owns the stream");
@@ -278,7 +278,7 @@ namespace DataStandardizer.LanguageTag.Tests
                 cancellationTokenSource.Cancel();
 
                 // act
-                Func<Task> testAction = () => SubtagRegistry.CreateFromContentAsync(IanaSubtagRegistryResource.Content, cancellationTokenSource.Token);
+                Func<Task> testAction = () => SubtagRegistry.CreateFromContentAsync(IanaSubtagRegistryResource.Text, SubtagRegistryLoadOptions.AcceptBareLineFeed, cancellationTokenSource.Token);
 
                 // assert
                 await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled");
@@ -290,10 +290,10 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             using (var cancellationTokenSource = new CancellationTokenSource())
-            using (var subtagRegistryStream = new CancelOnFirstReadStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content), cancellationTokenSource))
+            using (var subtagRegistryStream = new CancelOnFirstReadStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Text), cancellationTokenSource))
             {
                 // act
-                Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+                Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed, cancellationTokenSource.Token);
 
                 // assert
                 await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled after the first read from the stream");
@@ -305,10 +305,10 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             using (var cancellationTokenSource = new CancellationTokenSource())
-            using (var subtagRegistryStream = new CancelOnFirstReadStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content), cancellationTokenSource))
+            using (var subtagRegistryStream = new CancelOnFirstReadStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Text), cancellationTokenSource))
             {
                 // act
-                var testResult = await Record.ExceptionAsync(() => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token));
+                var testResult = await Record.ExceptionAsync(() => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed, cancellationTokenSource.Token));
 
                 // assert
                 testResult.Should().BeAssignableTo<OperationCanceledException>("the token was cancelled after the first read from the stream");
@@ -321,7 +321,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             using (var cancellationTokenSource = new CancellationTokenSource())
-            using (var subtagRegistryStream = new CancelAtEndStream(Encoding.UTF8.GetBytes("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n"), cancellationTokenSource))
+            using (var subtagRegistryStream = new CancelAtEndStream(Encoding.UTF8.GetBytes("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n"), cancellationTokenSource))
             {
                 // act
                 Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
@@ -336,10 +336,10 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             using (var cancellationTokenSource = new CancellationTokenSource())
-            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content)))
+            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Text)))
             {
                 // act
-                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, SubtagRegistryLoadOptions.AcceptBareLineFeed, cancellationTokenSource.Token);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the subtag registry", IanaRegistryRecordCount);
@@ -435,12 +435,46 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         /// <summary>
+        /// A stream that returns at most one byte per read. A <see cref="StreamReader"/> over it returns from each read what that byte decodes to, so
+        /// the registry reader reads the content a character at a time, and the carriage return and the line feed of each CRLF come from different reads.
+        /// </summary>
+        private sealed class OneByteReadStream : MemoryStream
+        {
+            public OneByteReadStream(byte[] buffer)
+                : base(buffer)
+            {
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                return base.Read(buffer, offset, Math.Min(count, 1));
+            }
+
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                return base.ReadAsync(buffer, offset, Math.Min(count, 1), cancellationToken);
+            }
+
+#if NET
+            public override int Read(Span<byte> buffer)
+            {
+                return base.Read(buffer.Slice(0, Math.Min(buffer.Length, 1)));
+            }
+
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                return base.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, 1)), cancellationToken);
+            }
+#endif
+        }
+
+        /// <summary>
         /// A stream with a complete tag record ahead of the registry content, positioned after that record, so reading from the start of the stream would fail,
         /// as the first record is not the File-Date record.
         /// </summary>
         private static MemoryStream CreatePositionedRegistryStream(string registryContent)
         {
-            var precedingBytes = Encoding.UTF8.GetBytes("Type: language\nSubtag: qaa\nDescription: Preceding record\nAdded: 2000-01-01\n%%\n");
+            var precedingBytes = Encoding.UTF8.GetBytes("Type: language\r\nSubtag: qaa\r\nDescription: Preceding record\r\nAdded: 2000-01-01\r\n%%\r\n");
             var registryBytes = Encoding.UTF8.GetBytes(registryContent);
 
             var stream = new MemoryStream();
@@ -766,7 +800,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TagRecordLists_WhenCastToMutableList_CannotBeChanged(string listName, Action<SubtagRegistrySubtagRecord> change)
         {
             // arrange
-            var record = SubtagRegistry.CreateFromContent("File-Date: 2025-01-01\n%%\nType: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16").Languages[0];
+            var record = SubtagRegistry.CreateFromContent("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: en\r\nDescription: English\r\nAdded: 2005-10-16\r\n").Languages[0];
 
             // act
             Action testAction = () => change(record);
@@ -934,8 +968,8 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var registry = SubtagRegistry.CreateFromContent(
-                "File-Date: 2025-01-01\n%%\nType: language\nSubtag: ab\nDescription: Other\nAdded: 2005-10-16\n%%\nType: language\nSubtag: AA\nDescription: First\nAdded: 2005-10-16\n%%\n" +
-                "Type: language\nSubtag: aa\nDescription: Second\nAdded: 2005-10-16\n%%\nType: language\nSubtag: zz\nDescription: Other\nAdded: 2005-10-16");
+                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: AA\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\n" +
+                "Type: language\r\nSubtag: aa\r\nDescription: Second\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Other\r\nAdded: 2005-10-16\r\n");
 
             // act
             var testResult = registry.TryGetSubtag(SubtagRegistryRecordType.Language, subtag, out var record);
@@ -1002,7 +1036,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void IsGrandfathered_ForRecordOfTagThatTheAbnfDoesNotList_ReturnsTrue()
         {
             // arrange
-            var registry = SubtagRegistry.CreateFromContent("File-Date: 2025-01-01\n%%\nType: grandfathered\nTag: a-bb\nDescription: T\nAdded: 2005-10-16");
+            var registry = SubtagRegistry.CreateFromContent("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2005-10-16\r\n");
 
             // act
             var testResult = registry.IsGrandfathered("a-bb");
@@ -1019,10 +1053,11 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToString_WhenRegistryIsLoadedAgainFromIt_WritesSameContent()
         {
             // arrange
+            // ToString writes Environment.NewLine between lines, and no line break after the last
             var content = IanaSubtagRegistryResource.Content;
 
             // act
-            var testResult = SubtagRegistry.CreateFromContent(content).ToString();
+            var testResult = SubtagRegistry.CreateFromContent(content, SubtagRegistryLoadOptions.AcceptBareLineFeed | SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak).ToString();
 
             // assert
             testResult.Should().Be(content, "every record and field is read and written back as it was");
@@ -1033,7 +1068,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldIsFolded_JoinsLinesWithOneSpace(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first \n  second\n   third\nAdded: 2005-10-16";
+            const string content = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ia\r\nDescription: Interlingua (International Auxiliary Language\r\n  Association)\r\nComments: first \r\n  second\r\n   third\r\nAdded: 2005-10-16\r\n";
 
             // act
             var testResult = await load(content);
@@ -1049,10 +1084,10 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromContent_ForEveryFieldInRegistry_HasNoDoubledOrSurroundingSpaces()
         {
             // arrange
-            var content = IanaSubtagRegistryResource.Content;
+            var content = IanaSubtagRegistryResource.Text;
 
             // act
-            var testResult = SubtagRegistry.CreateFromContent(content);
+            var testResult = SubtagRegistry.CreateFromContent(content, SubtagRegistryLoadOptions.AcceptBareLineFeed);
 
             // assert
             testResult.Should().OnlyContain(
@@ -1065,7 +1100,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldNameIsUnknown_ReadsItAsSeparateField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: qaa\nDescription: Private use\nFuture-Field: some value\nAdded: 2005-10-16";
+            const string content = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qaa\r\nDescription: Private use\r\nFuture-Field: some value\r\nAdded: 2005-10-16\r\n";
 
             // act
             var testResult = await load(content);
@@ -1081,7 +1116,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldThatRfcDoesNotDefineRepeatsInSubtagRecord_ReadsEveryOccurrence(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\nFuture-Field: two\nFuture-Field: three";
+            const string content = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nFuture-Field: two\r\nFuture-Field: three\r\n";
 
             // act
             var testResult = await load(content);
@@ -1102,7 +1137,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContent_WhenFieldSeparatorHasSpaces_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "File-Date: 2025-01-01\n%%\nType  :  language\nSubtag : qaa\nDescription: Private use\nAdded: 2005-10-16";
+            const string content = "File-Date: 2025-01-01\r\n%%\r\nType  :  language\r\nSubtag : qaa\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n";
 
             // act
             var testResult = await load(content);
@@ -1119,107 +1154,107 @@ namespace DataStandardizer.LanguageTag.Tests
         private static readonly (string Content, string ExpectedMessage)[] MalformedRegistries =
         {
             // a line that doesn't start with a space is not a folded line (field-body)
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: fr\nDescription: French\nUnited Kingdom",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: fr\r\nDescription: French\r\nUnited Kingdom\r\n",
                 "Line 6 has no colon, so it is neither a field nor a folded line, which starts with a space (ref. RFC 5646 §3.1.1)."),
             // field-name = (ALPHA / DIGIT) [*(ALPHA / DIGIT / "-") (ALPHA / DIGIT)]
-            ("File-Date: 2025-01-01\n%%\n-Type: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\n-Type: language\r\nSubtag: aa\r\n",
                 "Line 3 has a field name that starts or ends with a hyphen (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\n: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\n: language\r\nSubtag: aa\r\n",
                 "Line 3 has no field name before its colon (ref. RFC 5646 §3.1.1)."),
             // a byte order mark left in the content, U+FEFF
-            ("\xFEFFFile-Date: 2025-01-01\n%%\nType: language\nSubtag: aa",
+            ("\xFEFFFile-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\n",
                 "Line 1 has the character U+FEFF in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1)."),
             // a no-break space, U+00A0, is not SP
-            ("File-Date: 2025-01-01\n%%\nType\xA0: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\nType\xA0: language\r\nSubtag: aa\r\n",
                 "Line 3 has the character U+00A0 in its field name, which holds only letters, digits and hyphens (ref. RFC 5646 §3.1.1)."),
             // records are separated by lines of "%%" alone
-            ("File-Date: 2025-01-01\n%% \nType: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%% \r\nType: language\r\nSubtag: aa\r\n",
                 "Line 2 has spaces after the \"%%\" that separates records, which is a line of \"%%\" alone (ref. RFC 5646 §3.1.1)."),
             // a tab is not white space in field-sep or field-body, nor one of CHARS
-            ("File-Date: 2025-01-01\n%%\nType\t: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\nType\t: language\r\nSubtag: aa\r\n",
                 "Line 3 holds the control character U+0009, which a field may not hold (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua\n\tAssociation",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ia\r\nDescription: Interlingua\r\n\tAssociation\r\n",
                 "Line 6 holds the control character U+0009, which a field may not hold (ref. RFC 5646 §3.1.1)."),
             // record = 1*field, with no blank lines
-            ("File-Date: 2025-01-01\n%%\nType: language\n\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\n\r\nSubtag: aa\r\n",
                 "Line 4 is blank, which a record may not hold (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\n%%\nType: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\n%%\r\nType: language\r\nSubtag: aa\r\n",
                 "The record that ends at line 3 has no fields (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\n",
+            ("File-Date: 2025-01-01\r\n%%\r\n",
                 "The registry ends after the \"%%\" at line 2, with no record after it (ref. RFC 5646 §3.1.1)."),
             ("",
                 "The registry has no records (ref. RFC 5646 §3.1.1)."),
             // a folded line continues a field, and holds more than spaces
-            ("File-Date: 2025-01-01\n%%\n  Type: language\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\n  Type: language\r\nSubtag: aa\r\n",
                 "Line 3 is a folded line, but no field comes before it in its record (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nComments: first\n   \n  second",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nComments: first\r\n   \r\n  second\r\n",
                 "Line 6 is a folded line with nothing but spaces (ref. RFC 5646 §3.1.1)."),
             // field-body ends with CHARS
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa \nDescription: Afar",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa \r\nDescription: Afar\r\n",
                 "The Subtag field ends with a space at line 4 (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: ia\nDescription: Interlingua\n  Association ",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ia\r\nDescription: Interlingua\r\n  Association \r\n",
                 "The Description field ends with a space at line 6 (ref. RFC 5646 §3.1.1)."),
             // File-Date, Added and Deprecated are each an RFC 3339 full-date: 4DIGIT "-" 2DIGIT "-" 2DIGIT, with a month and a day of that month
-            ("File-Date: 2025-13-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-13-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The File-Date field at line 1 has the value '2025-13-01', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-1",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-1\r\n",
                 "The Added field at line 6 has the value '2005-10-1', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-02-30",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-02-30\r\n",
                 "The Added field at line 6 has the value '2005-02-30', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 16 Oct 2005",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 16 Oct 2005\r\n",
                 "The Added field at line 6 has the value '16 Oct 2005', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: region\nSubtag: BU\nDescription: Burma\nAdded: 2005-10-16\nDeprecated: 1989-12-5",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-5\r\n",
                 "The Deprecated field at line 7 has the value '1989-12-5', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n  extra",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n  extra\r\n",
                 "The Added field at line 6 has the value '2005-10-16 extra', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
             // 1900 is not a leap year in the Gregorian calendar (RFC 3339 §5.7)
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 1900-02-29",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 1900-02-29\r\n",
                 "The Added field at line 6 has the value '1900-02-29', which is not an RFC 3339 full-date (ref. RFC 5646 §3.1.1)."),
             // the year 0000 is a full-date, but before the first year a DateTime holds
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 0000-02-29",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 0000-02-29\r\n",
                 "The Added field at line 6 has the value '0000-02-29', a full-date in the year 0000, which is before the year 0001 that a DateTime starts at."),
-            ("File-Date: 2025-01-01\n%%\nType: grandfathered\nTag: i-ami\nDescription: Amis\nAdded: 1999-05-25\nDeprecated: 2009-07-29\nDeprecated: 2009-7-29",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: i-ami\r\nDescription: Amis\r\nAdded: 1999-05-25\r\nDeprecated: 2009-07-29\r\nDeprecated: 2009-7-29\r\n",
                 "The Deprecated field at line 8 is the second in its record, which may have only one (ref. RFC 5646 §3.1.2)."),
             // the kind of record is told by its File-Date, Subtag or Tag field, and its type by its Type field, which each need a value
-            ("File-Date: 2025-01-01\n%%\nType:\nSubtag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\nType:\r\nSubtag: aa\r\n",
                 "The Type field at line 3 has no value (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag:",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag:\r\n",
                 "The Subtag field at line 4 has no value (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtg: en\nDescription: English",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtg: en\r\nDescription: English\r\n",
                 "The record at line 3 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n%%\nType: language\nDescription: No subtag or tag",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nDescription: No subtag or tag\r\n",
                 "The record at line 8 has no File-Date, Subtag or Tag field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nTag: aa",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nTag: aa\r\n",
                 "The record at line 3 has more than one of the File-Date, Subtag and Tag fields (ref. RFC 5646 §3.1.2)."),
             // the first record is the File-Date record, which occurs once and has a single field
-            ("Type: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("Type: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The first record, at line 1, is not the File-Date record (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nFile-Date: 2025-01-02",
+            ("File-Date: 2025-01-01\r\n%%\r\nFile-Date: 2025-01-02\r\n",
                 "The record at line 3 is a second File-Date record, which occurs only once, as the first record (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\nComments: Test\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\nComments: Test\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The File-Date record at line 1 has a field other than File-Date (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\nFuture-Field: Test\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\nFuture-Field: Test\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The File-Date record at line 1 has a field other than File-Date (ref. RFC 5646 §3.1.2)."),
             // every tag and subtag record has a Description and an Added field
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nAdded: 2005-10-16\r\n",
                 "The record at line 3 has no Description field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription:\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription:\r\nAdded: 2005-10-16\r\n",
                 "The Description field at line 5 has no value (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\n",
                 "The record at line 3 has no Added field (ref. RFC 5646 §3.1.2)."),
             // a field other than Description, Comments and Prefix appears at most once in a record
-            ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nSubtag: ab\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nSubtag: ab\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The Subtag field at line 5 is the second in its record, which may have only one (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nType: script\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nType: script\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The Type field at line 4 is the second in its record, which may have only one (ref. RFC 5646 §3.1.2)."),
             // every tag and subtag record has a Type, which is one of the values of §3.1.3 that goes with its Tag or Subtag field
-            ("File-Date: 2025-01-01\n%%\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The record at line 3 has no Type field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: future\nSubtag: qaa\nDescription: Private use\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: future\r\nSubtag: qaa\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
                 "The record at line 3 has the Type 'future', which is not one that RFC 5646 §3.1.3 defines."),
-            ("File-Date: 2025-01-01\n%%\nType: grandfathered\nSubtag: i-klingon\nDescription: Klingon\nAdded: 1999-05-26",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nSubtag: i-klingon\r\nDescription: Klingon\r\nAdded: 1999-05-26\r\n",
                 "The record at line 3 has a Subtag field, but its Type 'grandfathered' is one whose records have a Tag field (ref. RFC 5646 §3.1.2)."),
-            ("File-Date: 2025-01-01\n%%\nType: language\nTag: aa\nDescription: Afar\nAdded: 2005-10-16",
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nTag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The record at line 3 has a Tag field, but its Type 'language' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2)."),
         };
 
@@ -1255,7 +1290,329 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: line breaks
+
+        /// <summary>
+        /// The description of the record of <see cref="MinimalRecordSubtag"/> in each of the registries of line breaks.
+        /// </summary>
+        private const string MinimalRecordDescription = "Afar";
+
+        /// <summary>
+        /// The smallest registry, with CRLF at the end of every line, the last one included, as RFC 5646 §3.1.1 requires.
+        /// </summary>
+        private const string CrLfRegistry = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n";
+
+        /// <summary>
+        /// <see cref="CrLfRegistry"/> with a line feed alone at the end of every line, as IANA publishes the registry.
+        /// </summary>
+        private const string LineFeedRegistry = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n";
+
+        /// <summary>
+        /// <see cref="CrLfRegistry"/> with a line feed alone at the end of every other line.
+        /// </summary>
+        private const string MixedLineBreakRegistry = "File-Date: 2025-01-01\r\n%%\nType: language\r\nSubtag: aa\nDescription: Afar\r\nAdded: 2005-10-16\n";
+
+        /// <summary>
+        /// <see cref="CrLfRegistry"/> with no line break after its last line.
+        /// </summary>
+        private const string CrLfRegistryWithoutFinalLineBreak = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16";
+
+        /// <summary>
+        /// <see cref="LineFeedRegistry"/> with no line break after its last line.
+        /// </summary>
+        private const string LineFeedRegistryWithoutFinalLineBreak = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16";
+
+        /// <summary>
+        /// <see cref="LineFeedRegistry"/> with a carriage return alone, not a line feed, at the end of its first line, which is then one line with the
+        /// <c>%%</c> after it.
+        /// </summary>
+        private const string CarriageReturnRegistry = "File-Date: 2025-01-01\r%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\n";
+
+        /// <summary>
+        /// <see cref="CrLfRegistry"/> with a carriage return alone at the end of every line, which is then one line with no line break after it.
+        /// </summary>
+        private const string BareCarriageReturnRegistry = "File-Date: 2025-01-01\r%%\rType: language\rSubtag: aa\rDescription: Afar\rAdded: 2005-10-16\r";
+
+        private const string LineFeedMessage = "Line 1 ends with a line feed alone, not the CRLF that ends every line (ref. RFC 5646 §3.1.1).";
+        private const string SecondLineFeedMessage = "Line 2 ends with a line feed alone, not the CRLF that ends every line (ref. RFC 5646 §3.1.1).";
+        private const string BareCarriageReturnMessage = "Line 1, the last, has no CRLF after it, which ends every line, the last one included (ref. RFC 5646 §3.1.1).";
+        private const string MissingFinalLineBreakMessage = "Line 6, the last, has no CRLF after it, which ends every line, the last one included (ref. RFC 5646 §3.1.1).";
+        private const string CarriageReturnMessage =
+            "Line 1 holds a carriage return that no line feed follows, which is not a line break but a control character, which a field may not hold (ref. RFC 5646 §3.1.1).";
+
+        private const string OptionsParameterName = "options";
+
+        /// <summary>
+        /// The path of a file that a test never opens, as the method it is passed to throws before it opens the file.
+        /// </summary>
+        private const string UnopenedRegistryFilePath = "registry.txt";
+
+        /// <summary>
+        /// A value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.
+        /// </summary>
+        private const SubtagRegistryLoadOptions UndefinedLoadOptions = (SubtagRegistryLoadOptions)(1 << 2);
+
+        /// <summary>
+        /// Each way to load a registry with the default options, from its content or from a stream of its UTF-8 bytes, which a stream that returns one byte
+        /// per read gives one character at a time, so that the carriage return and the line feed of each CRLF come from different reads.
+        /// </summary>
+        private static readonly Dictionary<string, Func<string, Task<SubtagRegistry>>> DefaultLoaders = new Dictionary<string, Func<string, Task<SubtagRegistry>>>
+        {
+            { nameof(SubtagRegistry.CreateFromContent), content => Task.FromResult(SubtagRegistry.CreateFromContent(content)) },
+            { nameof(SubtagRegistry.CreateFromContentAsync), SubtagRegistry.CreateFromContentAsync },
+            { nameof(SubtagRegistry.CreateFromContentAsync) + " with a token", content => SubtagRegistry.CreateFromContentAsync(content, CancellationToken.None) },
+            { nameof(SubtagRegistry.CreateFromStream), content => Task.FromResult(LoadFromStream(content, stream => SubtagRegistry.CreateFromStream(stream))) },
+            { nameof(SubtagRegistry.CreateFromStreamAsync), content => LoadFromStreamAsync(content, SubtagRegistry.CreateFromStreamAsync) },
+            { nameof(SubtagRegistry.CreateFromStreamAsync) + " with a token", content => LoadFromStreamAsync(content, stream => SubtagRegistry.CreateFromStreamAsync(stream, CancellationToken.None)) },
+            { nameof(SubtagRegistry.CreateFromStream) + " one byte at a time", content => Task.FromResult(LoadFromOneByteReadStream(content, stream => SubtagRegistry.CreateFromStream(stream))) },
+            { nameof(SubtagRegistry.CreateFromStreamAsync) + " one byte at a time", content => LoadFromOneByteReadStreamAsync(content, SubtagRegistry.CreateFromStreamAsync) }
+        };
+
+        /// <summary>
+        /// Each way to load a registry with options, from its content or from a stream of its UTF-8 bytes, as <see cref="DefaultLoaders"/> does.
+        /// </summary>
+        private static readonly Dictionary<string, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>>> OptionLoaders =
+            new Dictionary<string, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>>>
+            {
+                { nameof(SubtagRegistry.CreateFromContent), (content, options) => Task.FromResult(SubtagRegistry.CreateFromContent(content, options)) },
+                { nameof(SubtagRegistry.CreateFromContentAsync), (content, options) => SubtagRegistry.CreateFromContentAsync(content, options, CancellationToken.None) },
+                { nameof(SubtagRegistry.CreateFromStream), (content, options) => Task.FromResult(LoadFromStream(content, stream => SubtagRegistry.CreateFromStream(stream, options))) },
+                { nameof(SubtagRegistry.CreateFromStreamAsync), (content, options) => LoadFromStreamAsync(content, stream => SubtagRegistry.CreateFromStreamAsync(stream, options, CancellationToken.None)) },
+                {
+                    nameof(SubtagRegistry.CreateFromStream) + " one byte at a time",
+                    (content, options) => Task.FromResult(LoadFromOneByteReadStream(content, stream => SubtagRegistry.CreateFromStream(stream, options)))
+                },
+                {
+                    nameof(SubtagRegistry.CreateFromStreamAsync) + " one byte at a time",
+                    (content, options) => LoadFromOneByteReadStreamAsync(content, stream => SubtagRegistry.CreateFromStreamAsync(stream, options, CancellationToken.None))
+                }
+            };
+
+        /// <summary>
+        /// Registries whose line breaks the default options accept: CRLF at the end of every line.
+        /// </summary>
+        public static TheoryData<string, Func<string, Task<SubtagRegistry>>> CrLfRegistryCases
+        {
+            get
+            {
+                var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>>();
+                foreach (var loader in DefaultLoaders)
+                {
+                    data.Add(loader.Key, loader.Value);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(CrLfRegistryCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFrom_WhenEveryLineEndsWithCrLf_ReturnsRegistry(string loaderName, Func<string, Task<SubtagRegistry>> load)
+        {
+            // act
+            var testResult = await load(CrLfRegistry);
+
+            // assert
+            testResult.Count.Should().Be(2, "{0} reads the File-Date record and the record after it", loaderName);
+            var record = testResult.Languages.Should().ContainSingle().Subject;
+            record.Subtag.Should().Be(MinimalRecordSubtag);
+            record.Description.Should().Equal(new[] { MinimalRecordDescription }, "the CRLF is not part of the line it ends");
+            record.Added.Should().Be(RegistryCreationDate);
+        }
+
+        /// <summary>
+        /// Registries whose line breaks the default options don't accept, with each way to load a registry with them, and the message of the
+        /// <see cref="FormatException"/> each fails with.
+        /// </summary>
+        public static TheoryData<string, Func<string, Task<SubtagRegistry>>, string, string> NonCrLfRegistryCases
+        {
+            get
+            {
+                var registries = new[]
+                {
+                    (LineFeedRegistry, LineFeedMessage),
+                    (CrLfRegistryWithoutFinalLineBreak, MissingFinalLineBreakMessage),
+                    (CarriageReturnRegistry, LineFeedMessage),
+                    (MixedLineBreakRegistry, SecondLineFeedMessage),
+                    (BareCarriageReturnRegistry, BareCarriageReturnMessage)
+                };
+                var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>, string, string>();
+                foreach (var loader in DefaultLoaders)
+                foreach (var registry in registries)
+                {
+                    data.Add(loader.Key, loader.Value, registry.Item1, registry.Item2);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(NonCrLfRegistryCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFrom_WhenLineDoesNotEndWithCrLf_ThrowsFormatExceptionNamingTheLine(string loaderName, Func<string, Task<SubtagRegistry>> load, string content, string expectedMessage)
+        {
+            // act
+            Func<Task> testAction = () => load(content);
+
+            // assert
+            (await testAction.Should().ThrowAsync<FormatException>("{0} ends every line with CRLF by default (ref. RFC 5646 §3.1.1)", loaderName))
+                .Which.Message.Should().Be(expectedMessage);
+        }
+
+        /// <summary>
+        /// Registries with the options that accept their line breaks, with each way to load a registry with options.
+        /// </summary>
+        public static TheoryData<string, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>>, SubtagRegistryLoadOptions, string> AcceptedLineBreakCases
+        {
+            get
+            {
+                var registries = new[]
+                {
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed, LineFeedRegistry),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed, MixedLineBreakRegistry),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed, CrLfRegistry),
+                    (SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak, CrLfRegistryWithoutFinalLineBreak),
+                    (SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak, CrLfRegistry),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed | SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak, LineFeedRegistryWithoutFinalLineBreak),
+                    (SubtagRegistryLoadOptions.None, CrLfRegistry)
+                };
+                var data = new TheoryData<string, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>>, SubtagRegistryLoadOptions, string>();
+                foreach (var loader in OptionLoaders)
+                foreach (var registry in registries)
+                {
+                    data.Add(loader.Key, loader.Value, registry.Item1, registry.Item2);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(AcceptedLineBreakCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFrom_WhenOptionAcceptsTheLineBreaks_ReturnsRegistry(
+            string loaderName, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>> load, SubtagRegistryLoadOptions options, string content)
+        {
+            // act
+            var testResult = await load(content, options);
+
+            // assert
+            testResult.Count.Should().Be(2, "{0} with {1} reads the File-Date record and the record after it", loaderName, options);
+            var record = testResult.Languages.Should().ContainSingle().Subject;
+            record.Subtag.Should().Be(MinimalRecordSubtag);
+            record.Description.Should().Equal(new[] { MinimalRecordDescription }, "the line break is not part of the line it ends");
+            record.Added.Should().Be(RegistryCreationDate);
+        }
+
+        /// <summary>
+        /// Registries with options that don't accept their line breaks, each turning on only what it names, with each way to load a registry with options,
+        /// and the message of the <see cref="FormatException"/> each fails with.
+        /// </summary>
+        public static TheoryData<string, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>>, SubtagRegistryLoadOptions, string, string> RejectedLineBreakCases
+        {
+            get
+            {
+                var registries = new[]
+                {
+                    (SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak, LineFeedRegistry, LineFeedMessage),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed, CrLfRegistryWithoutFinalLineBreak, MissingFinalLineBreakMessage),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed, LineFeedRegistryWithoutFinalLineBreak, MissingFinalLineBreakMessage),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed | SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak, CarriageReturnRegistry, CarriageReturnMessage),
+                    (SubtagRegistryLoadOptions.AcceptBareLineFeed | SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak, BareCarriageReturnRegistry, CarriageReturnMessage)
+                };
+                var data = new TheoryData<string, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>>, SubtagRegistryLoadOptions, string, string>();
+                foreach (var loader in OptionLoaders)
+                foreach (var registry in registries)
+                {
+                    data.Add(loader.Key, loader.Value, registry.Item1, registry.Item2, registry.Item3);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RejectedLineBreakCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFrom_WhenOptionDoesNotAcceptTheLineBreaks_ThrowsFormatExceptionNamingTheLine(
+            string loaderName, Func<string, SubtagRegistryLoadOptions, Task<SubtagRegistry>> load, SubtagRegistryLoadOptions options, string content, string expectedMessage)
+        {
+            // act
+            Func<Task> testAction = () => load(content, options);
+
+            // assert
+            (await testAction.Should().ThrowAsync<FormatException>("{0} with {1} accepts only the line breaks it names", loaderName, options))
+                .Which.Message.Should().Be(expectedMessage);
+        }
+
+        /// <summary>
+        /// Each method that takes options, called with a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.
+        /// </summary>
+        public static TheoryData<string, Func<Task>> UndefinedOptionsCalls => new TheoryData<string, Func<Task>>
+        {
+            { nameof(SubtagRegistry.CreateFromContent), () => Task.FromResult(SubtagRegistry.CreateFromContent(CrLfRegistry, UndefinedLoadOptions)) },
+            { nameof(SubtagRegistry.CreateFromContentAsync), () => SubtagRegistry.CreateFromContentAsync(CrLfRegistry, UndefinedLoadOptions, CancellationToken.None) },
+            { nameof(SubtagRegistry.CreateFromStream), () => Task.FromResult(LoadFromStream(CrLfRegistry, stream => SubtagRegistry.CreateFromStream(stream, UndefinedLoadOptions))) },
+            { nameof(SubtagRegistry.CreateFromStreamAsync), () => LoadFromStreamAsync(CrLfRegistry, stream => SubtagRegistry.CreateFromStreamAsync(stream, UndefinedLoadOptions, CancellationToken.None)) },
+            // the options are checked before the file is opened, so the path is never used
+            { nameof(SubtagRegistry.CreateFromFile), () => Task.FromResult(SubtagRegistry.CreateFromFile(UnopenedRegistryFilePath, UndefinedLoadOptions)) },
+            { nameof(SubtagRegistry.CreateFromFileAsync), () => SubtagRegistry.CreateFromFileAsync(UnopenedRegistryFilePath, UndefinedLoadOptions, CancellationToken.None) }
+        };
+
+        [Theory]
+        [MemberData(nameof(UndefinedOptionsCalls), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFrom_WhenOptionsAreUndefined_ThrowsArgumentOutOfRangeException(string methodName, Func<Task> call)
+        {
+            // act
+            var testAction = call;
+
+            // assert
+            (await testAction.Should().ThrowAsync<ArgumentOutOfRangeException>("{0} takes only the options that SubtagRegistryLoadOptions defines", methodName))
+                .WithParameterName(OptionsParameterName);
+        }
+
+        #endregion
+
         #region Helpers
+
+        /// <summary>
+        /// Loads a registry from a stream of the UTF-8 bytes of its content, and disposes the stream.
+        /// </summary>
+        private static SubtagRegistry LoadFromStream(string content, Func<Stream, SubtagRegistry> load)
+        {
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(content)))
+            {
+                return load(stream);
+            }
+        }
+
+        /// <inheritdoc cref="LoadFromStream"/>
+        private static async Task<SubtagRegistry> LoadFromStreamAsync(string content, Func<Stream, Task<SubtagRegistry>> load)
+        {
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(content)))
+            {
+                return await load(stream);
+            }
+        }
+
+        /// <summary>
+        /// Loads a registry from a <see cref="OneByteReadStream"/> of the UTF-8 bytes of its content, and disposes the stream.
+        /// </summary>
+        private static SubtagRegistry LoadFromOneByteReadStream(string content, Func<Stream, SubtagRegistry> load)
+        {
+            using (var stream = new OneByteReadStream(Encoding.UTF8.GetBytes(content)))
+            {
+                return load(stream);
+            }
+        }
+
+        /// <inheritdoc cref="LoadFromOneByteReadStream"/>
+        private static async Task<SubtagRegistry> LoadFromOneByteReadStreamAsync(string content, Func<Stream, Task<SubtagRegistry>> load)
+        {
+            using (var stream = new OneByteReadStream(Encoding.UTF8.GetBytes(content)))
+            {
+                return await load(stream);
+            }
+        }
+
 
         private static SubtagRegistrySubtagRecord GetSubtagRecord(SubtagRegistryRecordType type, string subtag)
         {

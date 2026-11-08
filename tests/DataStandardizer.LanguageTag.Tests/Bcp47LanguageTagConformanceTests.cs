@@ -142,23 +142,23 @@ namespace DataStandardizer.LanguageTag.Tests
         /// A registry with records that have the shape RFC 5646 §2.1 gives their type (<c>en</c>, <c>enochian</c>, <c>yue</c>), and records that don't, which can't make a tag valid.
         /// </summary>
         private const string RegistryWithRecordsOutsideTheAbnf =
-            "File-Date: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: en\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: enochian\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: a\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: ab1\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: language\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: extlang\nSubtag: yue\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
-            "%%\nType: extlang\nSubtag: yuee\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
-            "%%\nType: script\nSubtag: Lat\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: script\nSubtag: Latin\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: region\nSubtag: U\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: region\nSubtag: USA\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: variant\nSubtag: abc\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: variant\nSubtag: abcd\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: variant\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: grandfathered\nTag: a-bb\nDescription: T\nAdded: 2026-11-02\n" +
-            "%%\nType: grandfathered\nTag: en-abcde\nDescription: T\nAdded: 2026-11-02\n";
+            "File-Date: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: en\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: enochian\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: a\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: ab1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: language\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: yuee\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
+            "%%\r\nType: script\r\nSubtag: Lat\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: script\r\nSubtag: Latin\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: region\r\nSubtag: U\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: region\r\nSubtag: USA\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: variant\r\nSubtag: abc\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: variant\r\nSubtag: abcd\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: variant\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: grandfathered\r\nTag: en-abcde\r\nDescription: T\r\nAdded: 2026-11-02\r\n";
 
         private const string NotWellFormedMessage = "The language tag is not well-formed.";
         private const string NotValidMessage = "The language tag is not valid against the subtag registry.";

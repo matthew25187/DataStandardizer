@@ -73,6 +73,11 @@ every other field, instead of keeping its raw text. See
 types of its records move to `DataStandardizer.LanguageTag.Registry`. See
 [where the registry types live](removed-in-v2.md#where-the-registry-types-live).
 
+`SubtagRegistry` now ends every line of the registry with CRLF by default, as
+RFC 5646 §3.1.1 requires. IANA publishes the registry with a line feed alone at the
+end of each line, so load it with `SubtagRegistryLoadOptions.AcceptBareLineFeed`,
+which the `CreateFrom…` methods take.
+
 In `DataStandardizer.LanguageTag`, Subtag Registry records are now immutable,
 with their fields parsed once when the registry is loaded:
 

@@ -73,11 +73,11 @@ public static class BenchmarkData
     }
 
     /// <summary>
-    /// Loads the IANA Language Subtag Registry fixture.
+    /// Loads the IANA Language Subtag Registry fixture, which has the line feeds that IANA publishes it with.
     /// </summary>
     public static SubtagRegistry LoadRegistry()
     {
         using var stream = new MemoryStream(ReadRegistryBytes(), writable: false);
-        return SubtagRegistry.CreateFromStream(stream);
+        return SubtagRegistry.CreateFromStream(stream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
     }
 }

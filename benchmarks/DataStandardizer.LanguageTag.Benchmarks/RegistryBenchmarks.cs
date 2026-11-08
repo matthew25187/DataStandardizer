@@ -23,7 +23,7 @@ public class RegistryBenchmarks
     public int Registry_CreateFromStream()
     {
         using var stream = new MemoryStream(_registryBytes, writable: false);
-        return SubtagRegistry.CreateFromStream(stream).Count;
+        return SubtagRegistry.CreateFromStream(stream, SubtagRegistryLoadOptions.AcceptBareLineFeed).Count;
     }
 
     [Benchmark]
