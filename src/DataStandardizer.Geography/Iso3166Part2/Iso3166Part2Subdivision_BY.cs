@@ -34,10 +34,10 @@ namespace DataStandardizer.Geography
             /// Horad Minsk
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(102, "BY-HM")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 102, "Horad Minsk", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 102, "Horad Minsk", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 102, "Gorod Minsk", RomanizationSystem="BGN/PCGN 1947")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 102, "Gorod Minsk", RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 102, "Horad Minsk", 0, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 102, "Horad Minsk", 1, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 102, "Gorod Minsk", 0, RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 102, "Gorod Minsk", 1, RomanizationSystem="GOST 1983 = UN V/18 1987")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _HM = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-HM");
             #endregion
             
@@ -46,60 +46,60 @@ namespace DataStandardizer.Geography
             /// Viciebskaja voblasć
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(411, "BY-VI")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Viciebskaja voblasć", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Vitsyebskaya voblasts\'", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Vitebskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Vitebskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Viciebskaja voblasć", 0, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Vitsyebskaya voblasts\'", 1, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Vitebskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Vitebskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _VI = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-VI");
             
             /// <summary>
             /// Minskaja voblasć
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(411, "BY-MI")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Minskaja voblasć", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Minskaya voblasts\'", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Minskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Minskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Minskaja voblasć", 0, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Minskaya voblasts\'", 1, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Minskaya oblast\'", 0, RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Minskaja oblast\'", 1, RomanizationSystem="GOST 1983 = UN V/18 1987")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _MI = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-MI");
             
             /// <summary>
             /// Homieĺskaja voblasć
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(411, "BY-HO")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Homieĺskaja voblasć", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Homyel\'skaya voblasts\'", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Gomel\'skaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Gomel\'skaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Homieĺskaja voblasć", 0, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Homyel\'skaya voblasts\'", 1, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Gomel\'skaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Gomel\'skaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _HO = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-HO");
             
             /// <summary>
             /// Bresckaja voblasć
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(411, "BY-BR")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Bresckaja voblasć", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Brestskaya voblasts\'", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Brestskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Brestskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Bresckaja voblasć", 0, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Brestskaya voblasts\'", 1, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Brestskaya oblast\'", 0, RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Brestskaja oblast\'", 1, RomanizationSystem="GOST 1983 = UN V/18 1987")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _BR = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-BR");
             
             /// <summary>
             /// Hrodzyenskaya voblasts'
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(411, "BY-HR")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Hrodzyenskaya voblasts\'", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Hrodzienskaja voblasć", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Grodnenskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Grodnenskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Hrodzyenskaya voblasts\'", 0, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Hrodzienskaja voblasć", 1, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Grodnenskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Grodnenskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _HR = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-HR");
             
             /// <summary>
             /// Mahilioŭskaja voblasć
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(411, "BY-MA")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Mahilioŭskaja voblasć", RomanizationSystem="UN X/6 2012")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Mahilyowskaya voblasts\'", RomanizationSystem="BGN/PCGN 1979")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Mogilevskaja oblast\'", RomanizationSystem="GOST 1983 = UN V/18 1987")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Mogilevskaya oblast\'", RomanizationSystem="BGN/PCGN 1947")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Mahilioŭskaja voblasć", 0, RomanizationSystem="UN X/6 2012")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("be", "bel", 411, "Mahilyowskaya voblasts\'", 1, RomanizationSystem="BGN/PCGN 1979")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Mogilevskaja oblast\'", 0, RomanizationSystem="GOST 1983 = UN V/18 1987")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ru", "rus", 411, "Mogilevskaya oblast\'", 1, RomanizationSystem="BGN/PCGN 1947")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _MA = new DataStandardizer.Geography.Iso3166Part2Subdivision("BY-MA");
             #endregion
         }

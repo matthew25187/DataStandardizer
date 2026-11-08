@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -264,8 +265,14 @@ namespace DataStandardizer.Geography
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
         /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
-        /// <param name="romanizationSystem">System by which the written form of the name was converted from native script to Latin script.</param>
+        /// <param name="romanizationSystem">
+        /// System by which the written form of the name was converted from native script to Latin script, or <c>null</c> to accept a name in any romanization system.
+        /// </param>
         /// <returns>Native name of the country subdivision, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// ISO 3166-2 can give a subdivision several names in one language, each in a different romanization system.
+        /// When <paramref name="romanizationSystem"/> is <c>null</c> and there are several, the name ISO 3166-2 lists first for that language is used.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
 #else
@@ -273,15 +280,7 @@ namespace DataStandardizer.Geography
         public static string GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, [DisallowNull] string iso639LanguageCode, string romanizationSystem = null)
 #endif
         {
-            var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
-
-            var subdivisionCodeAttribute = countrySubdivisionCodeInformation?.SubdivisionCodeField.GetCustomAttribute<Iso3166SubdivisionCodeAttribute>();
-            var subdivisionCodeNameAttributes = countrySubdivisionCodeInformation?.SubdivisionCodeField.GetCustomAttributes<Iso3166SubdivisionNameAttribute>();
-            var subdivisionCodeNameAttribute = subdivisionCodeNameAttributes?
-                .FirstOrDefault(attribute =>
-                    attribute.SubdivisionCategoryIdentifier == subdivisionCodeAttribute?.SubdivisionCategoryIdentifier && (string.Equals(attribute.Iso639Part1Code, iso639LanguageCode, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                                           string.Equals(attribute.Iso639Part2TCode, iso639LanguageCode, StringComparison.OrdinalIgnoreCase)) &&
-                    (romanizationSystem is null || attribute.RomanizationSystem == romanizationSystem));
+            var subdivisionCodeNameAttribute = FindSubdivisionNameAttribute(subdivisionCode, iso639LanguageCode, romanizationSystem);
 
             return subdivisionCodeNameAttribute?.SubdivisionName;
         }
@@ -291,8 +290,14 @@ namespace DataStandardizer.Geography
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
         /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
-        /// <param name="romanizationSystem">System by which the written form of the name was converted from native script to Latin script.</param>
+        /// <param name="romanizationSystem">
+        /// System by which the written form of the name was converted from native script to Latin script, or <c>null</c> to accept a name in any romanization system.
+        /// </param>
         /// <returns>Local variant of the country subdivision's native name, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// ISO 3166-2 can give a subdivision several names in one language, each in a different romanization system.
+        /// When <paramref name="romanizationSystem"/> is <c>null</c> and there are several, the name ISO 3166-2 lists first for that language is used.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
 #else
@@ -300,15 +305,7 @@ namespace DataStandardizer.Geography
         public static string GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, [DisallowNull] string iso639LanguageCode, string romanizationSystem = null)
 #endif
         {
-            var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
-
-            var subdivisionCodeAttribute = countrySubdivisionCodeInformation?.SubdivisionCodeField.GetCustomAttribute<Iso3166SubdivisionCodeAttribute>();
-            var subdivisionCodeNameAttributes = countrySubdivisionCodeInformation?.SubdivisionCodeField.GetCustomAttributes<Iso3166SubdivisionNameAttribute>();
-            var subdivisionCodeNameAttribute = subdivisionCodeNameAttributes?
-                .FirstOrDefault(attribute =>
-                    attribute.SubdivisionCategoryIdentifier == subdivisionCodeAttribute?.SubdivisionCategoryIdentifier && (string.Equals(attribute.Iso639Part1Code, iso639LanguageCode, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                                           string.Equals(attribute.Iso639Part2TCode, iso639LanguageCode, StringComparison.OrdinalIgnoreCase)) &&
-                    (romanizationSystem is null || attribute.RomanizationSystem == romanizationSystem));
+            var subdivisionCodeNameAttribute = FindSubdivisionNameAttribute(subdivisionCode, iso639LanguageCode, romanizationSystem);
 
             return subdivisionCodeNameAttribute?.SubdivisionNameLocalVariant;
         }
@@ -316,6 +313,42 @@ namespace DataStandardizer.Geography
         #endregion
 
         #region Private Methods
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static Iso3166SubdivisionNameAttribute? FindSubdivisionNameAttribute(Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem)
+#else
+        private static Iso3166SubdivisionNameAttribute FindSubdivisionNameAttribute(Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string romanizationSystem)
+#endif
+        {
+            var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
+            if (countrySubdivisionCodeInformation is null)
+            {
+                return null;
+            }
+
+            var subdivisionCodeAttribute = countrySubdivisionCodeInformation.Value.SubdivisionCodeField.GetCustomAttribute<Iso3166SubdivisionCodeAttribute>();
+            var subdivisionCodeNameAttributes = countrySubdivisionCodeInformation.Value.SubdivisionCodeField.GetCustomAttributes<Iso3166SubdivisionNameAttribute>();
+            return SelectSubdivisionNameAttribute(subdivisionCodeNameAttributes, subdivisionCodeAttribute?.SubdivisionCategoryIdentifier, iso639LanguageCode, romanizationSystem);
+        }
+
+        /// <summary>
+        /// Selects the name attribute for a language and, optionally, a romanization system. When several names match, the one with the lowest
+        /// <see cref="Iso3166SubdivisionNameAttribute.Sequence"/> is returned, whatever order <paramref name="subdivisionNameAttributes"/> is in.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        internal static Iso3166SubdivisionNameAttribute? SelectSubdivisionNameAttribute(IEnumerable<Iso3166SubdivisionNameAttribute> subdivisionNameAttributes, ushort? subdivisionCategoryIdentifier, string iso639LanguageCode, string? romanizationSystem)
+#else
+        internal static Iso3166SubdivisionNameAttribute SelectSubdivisionNameAttribute(IEnumerable<Iso3166SubdivisionNameAttribute> subdivisionNameAttributes, ushort? subdivisionCategoryIdentifier, string iso639LanguageCode, string romanizationSystem)
+#endif
+        {
+            return subdivisionNameAttributes
+                .Where(attribute =>
+                    attribute.SubdivisionCategoryIdentifier == subdivisionCategoryIdentifier && (string.Equals(attribute.Iso639Part1Code, iso639LanguageCode, StringComparison.OrdinalIgnoreCase) ||
+                                                                                               string.Equals(attribute.Iso639Part2TCode, iso639LanguageCode, StringComparison.OrdinalIgnoreCase)) &&
+                    (romanizationSystem is null || attribute.RomanizationSystem == romanizationSystem))
+                .OrderBy(attribute => attribute.Sequence)
+                .FirstOrDefault();
+        }
 
         private static CountrySubdivisionCodeField? GetCountrySubdivisionCodeField(Iso3166Part2Subdivision countrySubdivisionCode)
         {
