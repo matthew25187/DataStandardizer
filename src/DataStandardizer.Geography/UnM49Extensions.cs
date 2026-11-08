@@ -15,7 +15,8 @@ namespace DataStandardizer.Geography
         /// <param name="enumType">An enumeration type.</param>
         /// <returns>A collection of M49 codes.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
-        /// <exception cref="System.ArgumentException"><paramref name="enumType"/> is not an <see cref="System.Enum"/>.</exception>
+        /// <exception cref="System.ArgumentException"><paramref name="enumType"/> is not an <see cref="System.Enum"/>; or its underlying type is not <see cref="ushort"/>;
+        /// or it has no members, or a member that doesn't carry <see cref="UnM49AreaCodeAttribute"/>, so it isn't a UN M49 enumeration.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static ushort[] GetM49Codes(Type enumType)
 #else
@@ -26,8 +27,16 @@ namespace DataStandardizer.Geography
                 throw new ArgumentNullException(nameof(enumType));
             if (!enumType.GetTypeInfo().IsEnum)
                 throw new ArgumentException($"{nameof(enumType)} is not an {nameof(Enum)}.", nameof(enumType));
+            // Only a UN M49 enumeration holds M49 codes: its underlying type is ushort, and each of its members carries
+            // UnM49AreaCodeAttribute. The values of any other enumeration aren't M49 codes.
+            if (Enum.GetUnderlyingType(enumType) != typeof(ushort))
+                throw new ArgumentException($"The underlying type of {nameof(enumType)} is not ushort.", nameof(enumType));
 
-            var codeAttributes = enumType.GetTypeInfo().DeclaredFields.Select(field => field.GetCustomAttribute<UnM49AreaCodeAttribute>()).Where(attribute => attribute != null).ToArray();
+            // An enumeration's members are its static fields.
+            var codeAttributes = enumType.GetTypeInfo().DeclaredFields.Where(field => field.IsStatic).Select(field => field.GetCustomAttribute<UnM49AreaCodeAttribute>()).ToArray();
+            if (codeAttributes.Length == 0 || codeAttributes.Any(attribute => attribute == null))
+                throw new ArgumentException($"{nameof(enumType)} is not a UN M49 enumeration: not every member carries {nameof(UnM49AreaCodeAttribute)}.", nameof(enumType));
+
             var globalCodes = codeAttributes.Select(attribute => attribute?.GlobalCode).Where(code => code.HasValue).Cast<ushort>();
             var regionCodes = codeAttributes.Select(attribute => attribute?.RegionCode).Where(code => code.HasValue).Cast<ushort>();
             var subRegionCodes = codeAttributes.Select(attribute => attribute?.SubRegionCode).Where(code => code.HasValue).Cast<ushort>();
@@ -41,6 +50,8 @@ namespace DataStandardizer.Geography
         /// </summary>
         /// <typeparam name="T">An enumeration type.</typeparam>
         /// <returns>A collection of M49 codes.</returns>
+        /// <exception cref="System.ArgumentException">The underlying type of <typeparamref name="T"/> is not <see cref="ushort"/>;
+        /// or <typeparamref name="T"/> has no members, or a member that doesn't carry <see cref="UnM49AreaCodeAttribute"/>, so it isn't a UN M49 enumeration.</exception>
         public static ushort[] GetM49Codes<T>() where T : struct, Enum
         {
             return GetM49Codes(typeof(T));
