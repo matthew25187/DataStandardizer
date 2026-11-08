@@ -152,7 +152,7 @@ namespace DataStandardizer.Chronology
             return hour * SecondsPerHour + minute * SecondsPerMinute + second;
         }
 
-        private static int GetGregorianCalendarMonthLength(int year, int month)
+        internal static int GetGregorianCalendarMonthLength(int year, int month)
         {
             var isLeapYear = IsGregorianCalendarLeapYear(year);
 
