@@ -32,9 +32,6 @@ namespace DataStandardizer.Communication.E164
 
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
 
-        // Formats the number when the format provider supplies no ICustomFormatter.
-        private static readonly ICustomFormatter InvariantFormatter = new ItuE164InternationalNumberFormatter();
-
 #if NETCOREAPP3_0_OR_GREATER
         private readonly IItuE164InternationalNumber? _numberStructure;
 #else
@@ -213,97 +210,26 @@ namespace DataStandardizer.Communication.E164
             return FormatCore("G", null);
         }
 
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format string.
+        /// </summary>
+        /// <param name="format">
+        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
+        /// </param>
+        /// <returns>
+        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
+        /// formatted according to the specified format string, or the name of the type for an uninitialized instance.
+        /// </returns>
+        /// <remarks>
+        /// The number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, which supplies both the formatter
+        /// and the patterns of the <c>i</c> and <c>I</c> formats, so the result doesn't depend on the culture of the current thread.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format string.
-        /// </summary>
-        /// <param name="format">
-        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
-        /// </param>
-        /// <returns>
-        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
-        /// formatted according to the specified format string.
-        /// </returns>
-        /// <remarks>
-        /// The number is formatted with the formatter of <see cref="TelephonyInfo.InvariantTelephony"/>.
-        /// An uninitialized instance returns the name of the type.
-        /// </remarks>
         public string ToString(string? format)
-        {
-            return FormatCore(format, null);
-        }
-
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format provider.
-        /// </summary>
-        /// <param name="formatProvider">
-        /// An object that provides formatting information, such as a <see cref="TelephonyInfo"/>, or <c>null</c>.
-        /// </param>
-        /// <returns>
-        /// The number in the full general format (<c>G</c>), or the name of the type for an uninitialized instance.
-        /// </returns>
-        /// <remarks>
-        /// The number is formatted with the <see cref="ICustomFormatter"/> that <paramref name="formatProvider"/> supplies.
-        /// When it is <c>null</c> or supplies none, such as a <see cref="CultureInfo"/>, the formatter of
-        /// <see cref="TelephonyInfo.InvariantTelephony"/> is used.
-        /// </remarks>
-        public string ToString(IFormatProvider? formatProvider)
-        {
-            return FormatCore("G", formatProvider);
-        }
-
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format string and format provider.
-        /// </summary>
-        /// <param name="format">
-        /// A format string that specifies the format to use.
-        /// </param>
-        /// <param name="formatProvider">
-        /// An object that provides formatting information, such as a <see cref="TelephonyInfo"/>, or <c>null</c>.
-        /// </param>
-        /// <returns>
-        /// The number formatted according to <paramref name="format"/>, or the name of the type for an uninitialized instance.
-        /// </returns>
-        /// <remarks>
-        /// The number is formatted with the <see cref="ICustomFormatter"/> that <paramref name="formatProvider"/> supplies.
-        /// When it is <c>null</c> or supplies none, such as a <see cref="CultureInfo"/>, the formatter of
-        /// <see cref="TelephonyInfo.InvariantTelephony"/> is used.
-        /// </remarks>
-        public string ToString(string? format, IFormatProvider? formatProvider)
-        {
-            return FormatCore(format, formatProvider);
-        }
-
-        private string FormatCore(string? format, IFormatProvider? formatProvider)
-        {
-            if (_numberStructure == null)
-            {
-                return base.ToString() ?? string.Empty;
-            }
-
-            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter ?? InvariantFormatter;
-            return formatter.Format(format, this, formatProvider) ?? string.Empty;
-        }
 #else
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format string.
-        /// </summary>
-        /// <param name="format">
-        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
-        /// </param>
-        /// <returns>
-        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
-        /// formatted according to the specified format string.
-        /// </returns>
-        /// <remarks>
-        /// The number is formatted with the formatter of <see cref="TelephonyInfo.InvariantTelephony"/>.
-        /// An uninitialized instance returns the name of the type.
-        /// </remarks>
         public string ToString(string format)
+#endif
         {
             return FormatCore(format, null);
         }
@@ -319,11 +245,13 @@ namespace DataStandardizer.Communication.E164
         /// The number in the full general format (<c>G</c>), or the name of the type for an uninitialized instance.
         /// </returns>
         /// <remarks>
-        /// The number is formatted with the <see cref="ICustomFormatter"/> that <paramref name="formatProvider"/> supplies.
-        /// When it is <c>null</c> or supplies none, such as a <see cref="CultureInfo"/>, the formatter of
-        /// <see cref="TelephonyInfo.InvariantTelephony"/> is used.
+        /// <paramref name="formatProvider"/> is used as <see cref="ToString(string, IFormatProvider)"/> describes.
         /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(IFormatProvider? formatProvider)
+#else
         public string ToString(IFormatProvider formatProvider)
+#endif
         {
             return FormatCore("G", formatProvider);
         }
@@ -342,26 +270,52 @@ namespace DataStandardizer.Communication.E164
         /// The number formatted according to <paramref name="format"/>, or the name of the type for an uninitialized instance.
         /// </returns>
         /// <remarks>
-        /// The number is formatted with the <see cref="ICustomFormatter"/> that <paramref name="formatProvider"/> supplies.
-        /// When it is <c>null</c> or supplies none, such as a <see cref="CultureInfo"/>, the formatter of
-        /// <see cref="TelephonyInfo.InvariantTelephony"/> is used.
+        /// <para>
+        /// When <paramref name="formatProvider"/> supplies an <see cref="ICustomFormatter"/>, that formatter formats the number,
+        /// and an empty string is returned if it returns <c>null</c>. When it supplies only an
+        /// <see cref="ItuE164InternationalNumberFormatInfo"/>, the number is formatted with the formatter of
+        /// <see cref="TelephonyInfo.InvariantTelephony"/> and the patterns of that format information.
+        /// </para>
+        /// <para>
+        /// When <paramref name="formatProvider"/> is <c>null</c>, or supplies neither, such as a <see cref="CultureInfo"/>,
+        /// the number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, so the result doesn't depend on the
+        /// culture of the current thread.
+        /// </para>
         /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(string? format, IFormatProvider? formatProvider)
+#else
         public string ToString(string format, IFormatProvider formatProvider)
+#endif
         {
             return FormatCore(format, formatProvider);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        private string FormatCore(string? format, IFormatProvider? formatProvider)
+#else
         private string FormatCore(string format, IFormatProvider formatProvider)
+#endif
         {
             if (_numberStructure == null)
             {
                 return base.ToString() ?? string.Empty;
             }
 
-            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter ?? InvariantFormatter;
-            return formatter.Format(format, this, formatProvider) ?? string.Empty;
+            // A provider that supplies a formatter or E.164 format information is used as it stands. Any other provider,
+            // such as a CultureInfo, carries nothing for an E.164 number, so the invariant telephony is used instead of
+            // letting the formatter take its patterns from the culture of the current thread.
+            var useProvider = formatProvider != null
+                              && (formatProvider.GetFormat(typeof(ICustomFormatter)) is ICustomFormatter
+                                  || formatProvider.GetFormat(typeof(ItuE164InternationalNumberFormatInfo)) is ItuE164InternationalNumberFormatInfo)
+                ? formatProvider
+                : TelephonyInfo.InvariantTelephony;
+            var formatter = useProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter
+                            ?? TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+
+            // A formatter of the caller's own may return null; the result is then empty.
+            return formatter?.Format(format, this, useProvider) ?? string.Empty;
         }
-#endif
 
         #endregion
 
