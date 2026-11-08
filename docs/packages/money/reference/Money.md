@@ -72,8 +72,8 @@ never equal and have no order: `Equals`, `==` and `!=` treat them as not equal,
 | `Parse(string s, MoneyStyles styles, IFormatProvider? provider)` | `Money` | Permits only the specified elements. |
 | `ParseExact(string s, string format, IFormatProvider? provider)` | `Money` | Requires `s` to be in the given format. |
 | `ParseExact(string s, string[] formats, IFormatProvider? provider, MoneyStyles styles)` | `Money` | Requires `s` to be in one of the given formats. |
-| `ToString()` | `string` | The amount alone. |
-| `ToString(IFormatProvider? provider)` | `string` | |
+| `ToString()` | `string` | The amount alone, with the rounding the value carries. The same as `ToString(null, null)`. |
+| `ToString(IFormatProvider? provider)` | `string` | The same as `ToString(null, provider)`. |
 | `ToString(string? format)` | `string` | |
 | `ToString(string? format, IFormatProvider? formatProvider)` | `string` | `IFormattable` implementation (a normal public method). |
 | `TryParse(string? s, out Money result)` | `bool` | Returns `false` instead of throwing on failure. |

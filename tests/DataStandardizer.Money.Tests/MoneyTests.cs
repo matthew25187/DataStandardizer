@@ -39,6 +39,9 @@ namespace DataStandardizer.Money.Tests
         // ISO 4217 List One gives the US Dollar two minor units.
         private const int UsDollarMinorUnits = 2;
 
+        // An amount midway between two US Dollar amounts of two minor units, so that the rounding method decides the result.
+        private const decimal MidpointAmount = 1.005m;
+
         private const string FundCodeIsNotCurrencyReason = "ISO 4217 lists {0} as a funds code, not a currency";
 
         // Funds codes from ISO 4217 List One.
@@ -1176,6 +1179,78 @@ namespace DataStandardizer.Money.Tests
             // assert
             testResult.Should().BeFalse(ArgumentIsNotMoneyValueReason);
         }
+
+        #endregion
+
+        #region Test: ToString_GeneralForm
+
+        [Theory]
+        [MemberData(nameof(GeneralFormToStringTestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_ValueWithRoundingPrecision_FormatsTheRoundedAmount(Func<Money, string> testToString)
+        {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+            var testSubject = Money.Create(MidpointAmount, Iso4217CurrencyCurrent.USD, UsDollarMinorUnits);
+
+            // act
+            var testResult = testToString(testSubject);
+
+            // assert
+            testResult.Should().Be("1.00", "the amount is rounded to the precision of the value, to even by default, as decimal rounds");
+        }
+
+        [Theory]
+        [MemberData(nameof(GeneralFormToStringTestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_ValueWithRoundingPrecisionAndMethod_FormatsTheRoundedAmount(Func<Money, string> testToString)
+        {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+            var testSubject = Money.Create(MidpointAmount, Iso4217CurrencyCurrent.USD, UsDollarMinorUnits, MidpointRounding.AwayFromZero);
+
+            // act
+            var testResult = testToString(testSubject);
+
+            // assert
+            testResult.Should().Be("1.01", "the amount is rounded to the precision of the value, by the rounding method of the value");
+        }
+
+        [Theory]
+        [MemberData(nameof(GeneralFormToStringTestCases), DisableDiscoveryEnumeration = true)]
+        public void ToString_ValueWithoutRounding_FormatsTheAmountAsItStands(Func<Money, string> testToString)
+        {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+            var testSubject = Money.Create(MidpointAmount, Iso4217CurrencyCurrent.USD);
+
+            // act
+            var testResult = testToString(testSubject);
+
+            // assert
+            testResult.Should().Be("1.005", NoRoundingReason);
+        }
+
+        [Fact]
+        public void ToString_DefaultInstance_ReturnsZero()
+        {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+            var testSubject = default(Money);
+
+            // act
+            var testResult = testSubject.ToString();
+
+            // assert
+            testResult.Should().Be("0", "a default instance has a zero amount and no rounding");
+        }
+
+        // Each way of rendering a value in the general form, without a format string.
+        public static TheoryData<Func<Money, string>> GeneralFormToStringTestCases => new()
+        {
+            value => value.ToString(),
+            value => value.ToString(CultureInfo.InvariantCulture),
+            value => value.ToString(null, CultureInfo.InvariantCulture),
+            value => $"{value}"
+        };
 
         #endregion
     }

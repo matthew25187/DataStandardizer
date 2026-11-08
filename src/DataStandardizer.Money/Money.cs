@@ -976,24 +976,35 @@ namespace DataStandardizer.Money
             return Parse(s, MoneyStyles.Currency, provider ?? CultureInfo.CurrentCulture);
         }
 
+        /// <summary>
+        /// Converts the value of this instance to its equivalent string representation, in the general format.
+        /// </summary>
+        /// <returns>The string representation of the value of this instance, as <see cref="ToString(string, IFormatProvider)"/> gives it for a <c>null</c> format and provider.</returns>
+        /// <remarks>
+        /// The rounded amount is formatted, as <c>(decimal)value</c> gives it, so that any rounding the value
+        /// carries is honoured.
+        /// </remarks>
         public override string ToString()
         {
-            return _amount.ToString();
+            return ToString(null, null);
         }
 
         /// <summary>
-        /// Converts the numeric value of this instance to its equivalent string representation using the specified culture-specific format information.
+        /// Converts the value of this instance to its equivalent string representation, in the general format, using the specified culture-specific format information.
         /// </summary>
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific formatting information.</param>
-        /// <returns>The string representation of the value of this instance as specified by <paramref name="provider"/>.</returns>
+        /// <returns>The string representation of the value of this instance, as <see cref="ToString(string, IFormatProvider)"/> gives it for a <c>null</c> format and <paramref name="provider"/>.</returns>
+        /// <remarks>
+        /// The rounded amount is formatted, as <c>(decimal)value</c> gives it, so that any rounding the value
+        /// carries is honoured.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(IFormatProvider? provider)
 #else
         public string ToString(IFormatProvider provider)
 #endif
         {
-            // ReSharper disable once PossiblyImpureMethodCallOnReadonlyVariable
-            return _amount.ToString(provider);
+            return ToString(null, provider);
         }
 
         /// <summary>
