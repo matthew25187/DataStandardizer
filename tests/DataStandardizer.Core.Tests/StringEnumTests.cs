@@ -17,6 +17,10 @@ namespace DataStandardizer.Core.Tests
         private const string EmptyOrWhiteSpaceValueMessage = "value is either an empty string or only contains white space.*";
         // Like Enum.Parse, whose ArgumentException for a value it doesn't find has no parameter name.
         private const string NotFoundMessage = "Requested value '*' was not found.";
+        // The message for ZeroName, which names the value as given, white space and all, as Enum.Parse does.
+        private const string ZeroNotFoundMessage = "Requested value 'Zero' was not found.";
+        private const string PaddedZeroNotFoundMessage = "Requested value ' Zero ' was not found.";
+        private const string PaddedZeroName = " Zero ";
         private const string OtherStringEnumValueMessage = "The value is of the string enumeration *, not of *.";
         private const string NeitherStringEnumNorStringIsDefinedMessage = "value is neither a string enumeration value nor a string.";
         private const string NeitherStringEnumNorStringMessage = "value is neither a string enumeration value nor a string.*";
@@ -1361,6 +1365,17 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
+        [MemberData(nameof(ParseOverloadsWithUndefinedName))]
+        public void ParseOverloads_WithUndefinedName_ThrowsArgumentExceptionWithMessageNamingTheValue(Action parse, string expectedMessage)
+        {
+            // act
+            var testAction = parse;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(expectedMessage).Which.ParamName.Should().BeNull();
+        }
+
+        [Theory]
         [MemberData(nameof(ParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput))]
         public void ParseOverloads_OnEnumWithNamesDifferingOnlyByCaseWithUnmatchedInput_ThrowsArgumentException(Action parse)
         {
@@ -1503,6 +1518,18 @@ namespace DataStandardizer.Core.Tests
                 value => StringEnum.Parse<CaseVariantNameEnum>(value),
                 value => StringEnum.Parse<CaseVariantNameEnum>(value, false),
             }, CaseVariantNameEnumCaseSensitiveCases);
+
+        public static TheoryData<Action, string> ParseOverloadsWithUndefinedName => new TheoryData<Action, string>
+        {
+            { () => StringEnum.Parse(typeof(SimpleEnum), ZeroName), ZeroNotFoundMessage },
+            { () => StringEnum.Parse(typeof(SimpleEnum), ZeroName, true), ZeroNotFoundMessage },
+            { () => StringEnum.Parse<SimpleEnum>(ZeroName), ZeroNotFoundMessage },
+            { () => StringEnum.Parse<SimpleEnum>(ZeroName, true), ZeroNotFoundMessage },
+            { () => StringEnum.Parse(typeof(SimpleEnum), PaddedZeroName), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse(typeof(SimpleEnum), PaddedZeroName, true), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse<SimpleEnum>(PaddedZeroName), PaddedZeroNotFoundMessage },
+            { () => StringEnum.Parse<SimpleEnum>(PaddedZeroName, true), PaddedZeroNotFoundMessage },
+        };
 
         public static TheoryData<Action> ParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput => new TheoryData<Action>
         {
@@ -1757,6 +1784,8 @@ namespace DataStandardizer.Core.Tests
                 // A value of the enumeration is checked by its value.
                 yield return new object[] { UnorderedEnum.Alpha, true };
                 yield return new object[] { (UnorderedEnum)UndefinedUnorderedEnumValue, false };
+                // Zulu is a member's name, not a value, so a value of the enumeration made from it isn't defined.
+                yield return new object[] { (UnorderedEnum)nameof(UnorderedEnum.Zulu), false };
                 yield return new object[] { default(UnorderedEnum), false };
                 // A string is compared with the names and the values, as IsDefined(Type, string) compares it.
                 yield return new object[] { nameof(UnorderedEnum.Zulu), true };
@@ -1777,6 +1806,8 @@ namespace DataStandardizer.Core.Tests
                 yield return new object[] { UnorderedEnum.Alias, true };
                 yield return new object[] { UnorderedEnum.Bravo, true };
                 yield return new object[] { (UnorderedEnum)UndefinedUnorderedEnumValue, false };
+                // Zulu is a member's name, not a value, so a value of the enumeration made from it isn't defined.
+                yield return new object[] { (UnorderedEnum)nameof(UnorderedEnum.Zulu), false };
                 yield return new object[] { default(UnorderedEnum), false };
             }
 
