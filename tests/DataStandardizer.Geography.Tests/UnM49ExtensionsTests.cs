@@ -1310,4 +1310,74 @@ public class UnM49ExtensionsTests
     }
 
     #endregion
+
+    #region Test: language code in any case
+
+    // The ISO 639-1 and ISO 639-2 codes for English in lower, upper and mixed case, which RFC 5646 §2.1.1 makes equivalent.
+    private static readonly string[] EnglishCodesInAnyCase = { "en", "EN", "En", "eng", "ENG", "eNg" };
+
+    // "spa", the ISO 639-2 code for Spanish, with its "s" replaced by U+017F LATIN SMALL LETTER LONG S, whose upper case is "S": not an
+    // ISO 639 code, as those are made of the ASCII letters a-z (RFC 5646 §2.1).
+    private const string SpanishCodeWithLongS = "\x017Fpa";
+
+    // UN M49 names of the levels above Zambia.
+    private const string SubSaharanAfricaNameEnglish = "Sub-Saharan Africa";
+    private const string EasternAfricaNameEnglish = "Eastern Africa";
+
+    [Theory]
+    [MemberData(nameof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator.TestCases), MemberType = typeof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator))]
+    public void NameLookup_LanguageCodeInAnyCase_ReturnsName(string name, Func<string, string?> lookup, string languageCode, string expectedResult)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class NameLookup_LanguageCodeInAnyCase_TestCaseGenerator
+    {
+        public static TheoryData<string, Func<string, string?>, string, string> TestCases
+        {
+            get
+            {
+                // Each name lookup, with Zambia's name at its level, for each case of the English codes.
+                var lookups = new (string Name, Func<string, string?> Lookup, string ExpectedResult)[]
+                {
+                    (nameof(UnM49Extensions.GetGlobalName), languageCode => UnM49AreaByAlpha2CountryCode.ZM.GetGlobalName(languageCode), WorldNameEnglish),
+                    (nameof(UnM49Extensions.GetRegionName), languageCode => UnM49AreaByAlpha3CountryCode.ZMB.GetRegionName(languageCode), AfricaNameEnglish),
+                    (nameof(UnM49Extensions.GetSubRegionName), languageCode => UnM49Area._894.GetSubRegionName(languageCode), SubSaharanAfricaNameEnglish),
+                    (nameof(UnM49Extensions.GetIntermediateRegionName), languageCode => UnM49AreaByAlpha2CountryCode.ZM.GetIntermediateRegionName(languageCode), EasternAfricaNameEnglish),
+                    (nameof(UnM49Extensions.GetCountryOrAreaName), languageCode => UnM49AreaByAlpha3CountryCode.ZMB.GetCountryOrAreaName(languageCode), ZambiaNameEnglish),
+                    (nameof(UnM49Extensions.GetName), languageCode => UnM49Area._894.GetName(languageCode), ZambiaNameEnglish),
+                };
+
+                var testCases = new TheoryData<string, Func<string, string?>, string, string>();
+                foreach (var (name, lookup, expectedResult) in lookups)
+                {
+                    foreach (var languageCode in EnglishCodesInAnyCase)
+                    {
+                        testCases.Add($"{name}({languageCode})", lookup, languageCode, expectedResult);
+                    }
+                }
+
+                return testCases;
+            }
+        }
+    }
+
+    [Fact]
+    public void GetName_LanguageCodeWithNonAsciiLetter_ReturnsNull()
+    {
+        // act
+        var testResult = UnM49Area._894.GetName(SpanishCodeWithLongS);
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
 }

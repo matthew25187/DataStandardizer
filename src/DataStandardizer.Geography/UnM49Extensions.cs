@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 #if NETSTANDARD
@@ -95,7 +96,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the global code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Global name for the <see cref="UnM49AreaByAlpha2CountryCode"/> code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetGlobalName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
@@ -116,7 +117,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the global code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Global name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetGlobalName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
@@ -137,7 +138,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the global code related to a <see cref="UnM49Area"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Global name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetGlobalName(this UnM49Area m49Code, string languageCode)
@@ -203,7 +204,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
@@ -224,7 +225,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
@@ -245,7 +246,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the region code related to a <see cref="UnM49Area"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetRegionName(this UnM49Area m49Code, string languageCode)
@@ -311,7 +312,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the sub-region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Sub-region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
@@ -332,7 +333,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the sub-region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Sub-region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
@@ -353,7 +354,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the sub-region code related to a <see cref="UnM49Area"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Sub-region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubRegionName(this UnM49Area m49Code, string languageCode)
@@ -419,7 +420,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the intermediate region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Intermediate region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIntermediateRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
@@ -440,7 +441,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the intermediate region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Intermediate region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIntermediateRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
@@ -461,7 +462,7 @@ namespace DataStandardizer.Geography
         /// Get the name for the intermediate region code related to a <see cref="UnM49Area"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Intermediate region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIntermediateRegionName(this UnM49Area m49Code, string languageCode)
@@ -482,7 +483,7 @@ namespace DataStandardizer.Geography
         /// Gets the name for the M49 code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Country or area name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCountryOrAreaName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
@@ -503,7 +504,7 @@ namespace DataStandardizer.Geography
         /// Gets the name for the M49 code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Country or area name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCountryOrAreaName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
@@ -524,7 +525,7 @@ namespace DataStandardizer.Geography
         /// Gets the name for the M49 code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Country or area name for the M49 code, if found; otherwise <c>null</c>.</returns>
         /// <remarks>Returns <c>null</c> where the code identifies the world, a region, a sub-region or an intermediate region rather than a country or area.</remarks>
 #if NETCOREAPP3_0_OR_GREATER
@@ -546,7 +547,7 @@ namespace DataStandardizer.Geography
         /// Gets the name for the M49 code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Name for the M49 code, if found; otherwise <c>null</c>.</returns>
         /// <remarks>Equivalent to <see cref="GetCountryOrAreaName(UnM49AreaByAlpha2CountryCode, string)"/>, as every code in this enumeration identifies a country or area.</remarks>
 #if NETCOREAPP3_0_OR_GREATER
@@ -568,7 +569,7 @@ namespace DataStandardizer.Geography
         /// Gets the name for the M49 code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Name for the M49 code, if found; otherwise <c>null</c>.</returns>
         /// <remarks>Equivalent to <see cref="GetCountryOrAreaName(UnM49AreaByAlpha3CountryCode, string)"/>, as every code in this enumeration identifies a country or area.</remarks>
 #if NETCOREAPP3_0_OR_GREATER
@@ -590,7 +591,7 @@ namespace DataStandardizer.Geography
         /// Gets the name of the area identified by the M49 code, at whatever level of the M49 hierarchy that area occupies.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
-        /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
+        /// <param name="languageCode">ISO 639-1 or ISO 639-2/T language code for the language of the name, such as <c>en</c> or <c>eng</c>, matched without regard to case (RFC 5646 §2.1.1). A bibliographic ISO 639-2/B code, such as <c>fre</c>, is not matched, and a <c>null</c> code gives <c>null</c>.</param>
         /// <returns>Name of the area for the M49 code, if found; otherwise <c>null</c>.</returns>
         /// <remarks>
         /// A <see cref="UnM49Area"/> code may identify the world, a region, a sub-region, an intermediate region or a
@@ -827,6 +828,56 @@ namespace DataStandardizer.Geography
 
         #region Private Methods
 
+        /// <summary>
+        /// The languages in which UN M49 gives names: the six official languages of the United Nations.
+        /// </summary>
+        private enum UnM49Language
+        {
+            None,
+            English,
+            Chinese,
+            Russian,
+            French,
+            Spanish,
+            Arabic,
+        }
+
+        /// <summary>
+        /// The ISO 639-1 and ISO 639-2/T codes of the languages in which UN M49 gives names.
+        /// </summary>
+        private static readonly KeyValuePair<string, UnM49Language>[] LanguageCodes =
+        {
+            new KeyValuePair<string, UnM49Language>("en", UnM49Language.English),
+            new KeyValuePair<string, UnM49Language>("eng", UnM49Language.English),
+            new KeyValuePair<string, UnM49Language>("zh", UnM49Language.Chinese),
+            new KeyValuePair<string, UnM49Language>("zho", UnM49Language.Chinese),
+            new KeyValuePair<string, UnM49Language>("ru", UnM49Language.Russian),
+            new KeyValuePair<string, UnM49Language>("rus", UnM49Language.Russian),
+            new KeyValuePair<string, UnM49Language>("fr", UnM49Language.French),
+            new KeyValuePair<string, UnM49Language>("fra", UnM49Language.French),
+            new KeyValuePair<string, UnM49Language>("es", UnM49Language.Spanish),
+            new KeyValuePair<string, UnM49Language>("spa", UnM49Language.Spanish),
+            new KeyValuePair<string, UnM49Language>("ar", UnM49Language.Arabic),
+            new KeyValuePair<string, UnM49Language>("ara", UnM49Language.Arabic),
+        };
+
+        /// <summary>
+        /// Get the language of the names for an ISO 639-1 or ISO 639-2/T language code, without regard to case.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        private static UnM49Language DoGetLanguage(string? languageCode)
+#else
+        private static UnM49Language DoGetLanguage(string languageCode)
+#endif
+        {
+            foreach (var languageCodeEntry in LanguageCodes)
+            {
+                if (Iso639LanguageCode.Matches(languageCode, languageCodeEntry.Key)) return languageCodeEntry.Value;
+            }
+
+            return UnM49Language.None;
+        }
+
 #if NETCOREAPP3_0_OR_GREATER
         private static UnM49AreaCodeAttribute? DoGetCodeAttribute<T>(T m49Code)
 #else
@@ -849,25 +900,19 @@ namespace DataStandardizer.Geography
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
             var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
-            switch (languageCode)
+            switch (DoGetLanguage(languageCode))
             {
-                case "en":
-                case "eng":
+                case UnM49Language.English:
                     return codeAttribute?.EnglishCountryOrAreaName;
-                case "zh":
-                case "zho":
+                case UnM49Language.Chinese:
                     return codeAttribute?.ChineseCountryOrAreaName;
-                case "ru":
-                case "rus":
+                case UnM49Language.Russian:
                     return codeAttribute?.RussianCountryOrAreaName;
-                case "fr":
-                case "fra":
+                case UnM49Language.French:
                     return codeAttribute?.FrenchCountryOrAreaName;
-                case "es":
-                case "spa":
+                case UnM49Language.Spanish:
                     return codeAttribute?.SpanishCountryOrAreaName;
-                case "ar":
-                case "ara":
+                case UnM49Language.Arabic:
                     return codeAttribute?.ArabicCountryOrAreaName;
             }
 
@@ -891,25 +936,19 @@ namespace DataStandardizer.Geography
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
             var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
-            switch (languageCode)
+            switch (DoGetLanguage(languageCode))
             {
-                case "en":
-                case "eng":
+                case UnM49Language.English:
                     return codeAttribute?.EnglishGlobalName;
-                case "zh":
-                case "zho":
+                case UnM49Language.Chinese:
                     return codeAttribute?.ChineseGlobalName;
-                case "ru":
-                case "rus":
+                case UnM49Language.Russian:
                     return codeAttribute?.RussianGlobalName;
-                case "fr":
-                case "fra":
+                case UnM49Language.French:
                     return codeAttribute?.FrenchGlobalName;
-                case "es":
-                case "spa":
+                case UnM49Language.Spanish:
                     return codeAttribute?.SpanishGlobalName;
-                case "ar":
-                case "ara":
+                case UnM49Language.Arabic:
                     return codeAttribute?.ArabicGlobalName;
             }
 
@@ -933,25 +972,19 @@ namespace DataStandardizer.Geography
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
             var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
-            switch (languageCode)
+            switch (DoGetLanguage(languageCode))
             {
-                case "en":
-                case "eng":
+                case UnM49Language.English:
                     return codeAttribute?.EnglishIntermediateRegionName;
-                case "zh":
-                case "zho":
+                case UnM49Language.Chinese:
                     return codeAttribute?.ChineseIntermediateRegionName;
-                case "ru":
-                case "rus":
+                case UnM49Language.Russian:
                     return codeAttribute?.RussianIntermediateRegionName;
-                case "fr":
-                case "fra":
+                case UnM49Language.French:
                     return codeAttribute?.FrenchIntermediateRegionName;
-                case "es":
-                case "spa":
+                case UnM49Language.Spanish:
                     return codeAttribute?.SpanishIntermediateRegionName;
-                case "ar":
-                case "ara":
+                case UnM49Language.Arabic:
                     return codeAttribute?.ArabicIntermediateRegionName;
             }
 
@@ -1071,25 +1104,19 @@ namespace DataStandardizer.Geography
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
             var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
-            switch (languageCode)
+            switch (DoGetLanguage(languageCode))
             {
-                case "en":
-                case "eng":
+                case UnM49Language.English:
                     return codeAttribute?.EnglishRegionName;
-                case "zh":
-                case "zho":
+                case UnM49Language.Chinese:
                     return codeAttribute?.ChineseRegionName;
-                case "ru":
-                case "rus":
+                case UnM49Language.Russian:
                     return codeAttribute?.RussianRegionName;
-                case "fr":
-                case "fra":
+                case UnM49Language.French:
                     return codeAttribute?.FrenchRegionName;
-                case "es":
-                case "spa":
+                case UnM49Language.Spanish:
                     return codeAttribute?.SpanishRegionName;
-                case "ar":
-                case "ara":
+                case UnM49Language.Arabic:
                     return codeAttribute?.ArabicRegionName;
             }
 
@@ -1113,25 +1140,19 @@ namespace DataStandardizer.Geography
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
             var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
-            switch (languageCode)
+            switch (DoGetLanguage(languageCode))
             {
-                case "en":
-                case "eng":
+                case UnM49Language.English:
                     return codeAttribute?.EnglishSubRegionName;
-                case "zh":
-                case "zho":
+                case UnM49Language.Chinese:
                     return codeAttribute?.ChineseSubRegionName;
-                case "ru":
-                case "rus":
+                case UnM49Language.Russian:
                     return codeAttribute?.RussianSubRegionName;
-                case "fr":
-                case "fra":
+                case UnM49Language.French:
                     return codeAttribute?.FrenchSubRegionName;
-                case "es":
-                case "spa":
+                case UnM49Language.Spanish:
                     return codeAttribute?.SpanishSubRegionName;
-                case "ar":
-                case "ara":
+                case UnM49Language.Arabic:
                     return codeAttribute?.ArabicSubRegionName;
             }
 

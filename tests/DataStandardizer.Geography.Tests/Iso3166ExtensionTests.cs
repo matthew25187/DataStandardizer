@@ -564,4 +564,70 @@ public class Iso3166ExtensionTests
     }
 
     #endregion
+
+    #region Test: language code in any case
+
+    // The ISO 639-1 and ISO 639-2 codes for English and Spanish in lower, upper and mixed case, which RFC 5646 §2.1.1 makes equivalent.
+    private static readonly string[] EnglishCodesInAnyCase = { "en", "EN", "En", "eng", "ENG", "eNg" };
+    private static readonly string[] SpanishCodesInAnyCase = { "es", "ES", "eS", "spa", "SPA", "SpA" };
+
+    // "spa", the ISO 639-2 code for Spanish, with its "s" replaced by U+017F LATIN SMALL LETTER LONG S, whose upper case is "S": not an
+    // ISO 639 code, as those are made of the ASCII letters a-z (RFC 5646 §2.1).
+    private const string SpanishCodeWithLongS = "\x017Fpa";
+
+    [Theory]
+    [MemberData(nameof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator.TestCases), MemberType = typeof(NameLookup_LanguageCodeInAnyCase_TestCaseGenerator))]
+    public void NameLookup_LanguageCodeInAnyCase_ReturnsName(string name, Func<string, string?> lookup, string languageCode, string expectedResult)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class NameLookup_LanguageCodeInAnyCase_TestCaseGenerator
+    {
+        public static TheoryData<string, Func<string, string?>, string, string> TestCases
+        {
+            get
+            {
+                // Each name lookup, with a name it gives in English or Spanish, for each case of the codes for that language.
+                var lookups = new (string Name, Func<string, string?> Lookup, string[] LanguageCodes, string ExpectedResult)[]
+                {
+                    (nameof(Iso3166Extensions.GetNativeName), languageCode => Iso3166Part1Alpha2Country.DE.GetNativeName(languageCode, Iso3166CountryName.Short), EnglishCodesInAnyCase, GermanyShortNameEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionCategoryName), languageCode => Iso3166Part2Subdivision.CY._02.GetSubdivisionCategoryName(languageCode), EnglishCodesInAnyCase, CyprusDistrictCategoryNameEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionCategoryNamePlural), languageCode => Iso3166Part2Subdivision.FR._NOR.GetSubdivisionCategoryNamePlural(languageCode), EnglishCodesInAnyCase, FranceMetropolitanRegionCategoryNamePluralEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionNativeName), languageCode => Iso3166Part2Subdivision.CA._NT.GetSubdivisionNativeName(languageCode), EnglishCodesInAnyCase, NorthwestTerritoriesNameEnglish),
+                    (nameof(Iso3166Extensions.GetSubdivisionNativeNameLocalVariant), languageCode => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(languageCode), SpanishCodesInAnyCase, LibertadorGeneralBernardoOHigginsLocalVariantSpanish),
+                };
+
+                var testCases = new TheoryData<string, Func<string, string?>, string, string>();
+                foreach (var (name, lookup, languageCodes, expectedResult) in lookups)
+                {
+                    foreach (var languageCode in languageCodes)
+                    {
+                        testCases.Add($"{name}({languageCode})", lookup, languageCode, expectedResult);
+                    }
+                }
+
+                return testCases;
+            }
+        }
+    }
+
+    [Fact]
+    public void GetSubdivisionNativeNameLocalVariant_LanguageCodeWithNonAsciiLetter_ReturnsNull()
+    {
+        // act
+        var testResult = Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(SpanishCodeWithLongS);
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
 }
