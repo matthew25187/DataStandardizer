@@ -28,10 +28,10 @@ namespace DataStandardizer.Communication.E164
             var countryCodePattern = string.Join("|", validCountryCodes.Select(code => $"{code:000}"));
 
             // Compose expressions for parsing a number.
-            return string.Concat(@"^(?=(?:\D*\d){4,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*" : string.Empty,
-                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}?" : string.Empty, "[", PatternWhiteSpaceCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
+            // The Global Subscriber Number quantifier allows the 12 digits that follow the three-digit Country Code.
+            return string.Concat(ComposePatternStart(4, numberStyles), "(?<", NumberPart.CountryCode, ">",
                 countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){0,", MaximumDigitCount - 4, "})",
-                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*" : string.Empty, "$");
+                ComposePatternEnd(numberStyles));
         }
 #if NETCOREAPP3_0_OR_GREATER
         internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForGlobalServices? result)

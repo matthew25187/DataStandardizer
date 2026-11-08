@@ -17,7 +17,8 @@ namespace DataStandardizer.Communication.E164
         }
 
         protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass + @"\p{Pd}\p{Po}";
-        protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\p{Cc}";
+        // White space: the space separators (Unicode category Zs) and the white-space controls U+0009 to U+000D.
+        protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\t\n\v\f\r";
 
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
         private static readonly object ParseExpressionsLock = new object();
@@ -55,22 +56,7 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(subscriberNumberMinimumDigitCount), subscriberNumberMinimumDigitCount, $"Subscriber Number Minimum Digits must be a whole number not more than {MaximumDigitCount}.");
             }
 
-            var patternBuilder = new StringBuilder(string.Concat(@"^(?=(?:\D*\d){4,", MaximumDigitCount, @"}\D*$)"));
-
-            // Allow leading white space.
-            if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite))
-            {
-                patternBuilder.Append($"[{PatternWhiteSpaceCharacterClass}]*");
-            }
-
-            // Add international prefix.
-            if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol))
-            {
-                patternBuilder.Append($@"\{InternationalPrefixSymbol}?");
-            }
-
-            // Add separation.
-            patternBuilder.Append(string.Concat("[", PatternWhiteSpaceCharacterClass, "]*"));
+            var patternBuilder = new StringBuilder(ComposePatternStart(4, numberStyles));
 
             // Add Country Code/Identification Code combinations.
             var countryCodePatterns = new List<string>();
@@ -85,21 +71,51 @@ namespace DataStandardizer.Communication.E164
             // Add separation.
             patternBuilder.Append(string.Concat("[", PatternSeparatorCharacterClass, "]*"));
 
-            // Add Subscriber Number field.
+            // Add Subscriber Number field. The quantifier only keeps the field from running away; the
+            // digit-count lookahead at the start of the pattern enforces the limit on the whole number.
             if (identificationCodeLookup.Count > 0)
             {
                 patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){", subscriberNumberMinimumDigitCount, ",", MaximumDigitCount - 1, "})"));
             }
 
-            // Allow trailing white space.
-            if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite))
+            patternBuilder.Append(ComposePatternEnd(numberStyles));
+
+            return patternBuilder.ToString();
+        }
+
+        /// <summary>
+        /// Composes the start of a parse pattern: the anchor, a lookahead that requires
+        /// <paramref name="minimumDigitCount"/> to <see cref="MaximumDigitCount"/> digits in the whole input
+        /// (ITU-T E.164 §6.1), and the leading white space and international prefix symbol that
+        /// <paramref name="numberStyles"/> allows.
+        /// </summary>
+        protected static string ComposePatternStart(int minimumDigitCount, ItuE164InternationalNumberStyles numberStyles)
+        {
+            var patternBuilder = new StringBuilder(string.Concat(@"^(?=(?:\D*\d){", minimumDigitCount, ",", MaximumDigitCount, @"}\D*\z)"));
+
+            // Allow leading white space.
+            if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite))
             {
                 patternBuilder.Append($"[{PatternWhiteSpaceCharacterClass}]*");
             }
 
-            patternBuilder.Append("$");
+            // Allow an international prefix symbol, which white space may separate from the Country Code.
+            if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol))
+            {
+                patternBuilder.Append($@"(?:\{InternationalPrefixSymbol}[{PatternWhiteSpaceCharacterClass}]*)?");
+            }
 
             return patternBuilder.ToString();
+        }
+
+        /// <summary>
+        /// Composes the end of a parse pattern: the trailing white space that <paramref name="numberStyles"/>
+        /// allows, and the anchor at the end of the input.
+        /// </summary>
+        protected static string ComposePatternEnd(ItuE164InternationalNumberStyles numberStyles)
+        {
+            // \z, not $, which would also match before a final line feed.
+            return numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? $@"[{PatternWhiteSpaceCharacterClass}]*\z" : @"\z";
         }
 
         protected static Regex GetParseExpression(Type discriminatorType, ItuE164InternationalNumberStyles numberStyles, Func<ItuE164InternationalNumberStyles, string> getParsePattern)

@@ -58,6 +58,12 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TooLongGeographicAreaNumber = "2111234567890123";
         private const string TooLongGlobalServiceNumber = "8001234567890123";
 
+        // Fifteen digits, the most that ITU-T E.164 §6.1 allows, after the same Country Codes.
+        private const string FifteenDigitGeographicAreaNumberText = "211123456789012";
+        private const ulong FifteenDigitGeographicAreaNumber = 211123456789012L;
+        private const string FifteenDigitGlobalServiceNumberText = "800123456789012";
+        private const ulong FifteenDigitGlobalServiceNumber = 800123456789012L;
+
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
         {
             { "38831565550100", 38831565550100L },
@@ -1279,9 +1285,93 @@ namespace DataStandardizer.Communication.Tests.E164
         [Theory]
         [InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.None),
          InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData(TooLongGeographicAreaNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite),
          InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.None),
-         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite)]
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData(TooLongGlobalServiceNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite)]
         public void TryParse_SixteenDigitsWithoutInternationalPrefixSymbolStyle_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(TooLongGeographicAreaNumber, "The input string '2111234567890123' was not in a correct format."),
+         InlineData(TooLongGlobalServiceNumber, "The input string '8001234567890123' was not in a correct format.")]
+        public void Parse_SixteenDigitsWithNoneStyle_ThrowsFormatException(string testNumber, string expectedMessage)
+        {
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.None);
+
+            // assert
+            testAction.Should()
+                .Throw<FormatException>()
+                .WithMessage(expectedMessage);
+        }
+
+        [Theory]
+        [InlineData(FifteenDigitGeographicAreaNumberText, FifteenDigitGeographicAreaNumber),
+         InlineData(FifteenDigitGlobalServiceNumberText, FifteenDigitGlobalServiceNumber)]
+        public void TryParse_FifteenDigitsWithNoneStyle_ReturnsNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.None, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData(" 211123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData("\t211123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData(" 211123456789012", ItuE164InternationalNumberStyles.InternationalNumber),
+         InlineData(" 211123456789012", ItuE164InternationalNumberStyles.AllowTrailingWhite),
+         InlineData(" 800123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData(" 8831101234567", ItuE164InternationalNumberStyles.None),
+         InlineData(" 8831101234567", ItuE164InternationalNumberStyles.InternationalNumber),
+         InlineData("211123456789012 ", ItuE164InternationalNumberStyles.None),
+         InlineData("211123456789012\n", ItuE164InternationalNumberStyles.None),
+         InlineData("211123456789012\n", ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData("8831101234567\n", ItuE164InternationalNumberStyles.None)]
+        public void TryParse_WhiteSpaceWithoutWhiteSpaceStyle_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(" 211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGeographicAreaNumber),
+         InlineData("\x000B211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGeographicAreaNumber),
+         InlineData("+ 211123456789012", ItuE164InternationalNumberStyles.InternationalNumber, FifteenDigitGeographicAreaNumber),
+         InlineData("211123456789012\n", ItuE164InternationalNumberStyles.AllowTrailingWhite, FifteenDigitGeographicAreaNumber),
+         InlineData(" 800123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGlobalServiceNumber),
+         InlineData(" 8831101234567", ItuE164InternationalNumberStyles.AllowLeadingWhite, NetworkNumber),
+         InlineData("+ 8831101234567", ItuE164InternationalNumberStyles.InternationalNumber, NetworkNumber)]
+        public void TryParse_WhiteSpaceWithWhiteSpaceStyle_ReturnsNumber(string testNumber, ItuE164InternationalNumberStyles numberStyles, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("\x0000211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData("\x001B211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite),
+         InlineData("211123456789012\x0000", ItuE164InternationalNumberStyles.AllowTrailingWhite),
+         InlineData("+\x0000211123456789012", ItuE164InternationalNumberStyles.InternationalNumber),
+         InlineData("211\x0000123456789012", ItuE164InternationalNumberStyles.None),
+         InlineData("\x00008831101234567", ItuE164InternationalNumberStyles.AllowLeadingWhite)]
+        public void TryParse_ControlCharacterThatIsNotWhiteSpace_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
         {
             // act
             var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
