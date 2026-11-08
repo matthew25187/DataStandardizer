@@ -215,7 +215,8 @@ namespace DataStandardizer.Communication.E164
         /// using the specified format string.
         /// </summary>
         /// <param name="format">
-        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
+        /// A format string that specifies the format to use. If <c>null</c>, empty or white space, the default format, <c>G</c>, is used.
+        /// The format strings are those that <see cref="ToString(string, IFormatProvider)"/> describes.
         /// </param>
         /// <returns>
         /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
@@ -261,7 +262,7 @@ namespace DataStandardizer.Communication.E164
         /// using the specified format string and format provider.
         /// </summary>
         /// <param name="format">
-        /// A format string that specifies the format to use.
+        /// A format string that specifies the format to use. If <c>null</c>, empty or white space, the default format, <c>G</c>, is used.
         /// </param>
         /// <param name="formatProvider">
         /// An object that provides formatting information, such as a <see cref="TelephonyInfo"/>, or <c>null</c>.
@@ -280,6 +281,14 @@ namespace DataStandardizer.Communication.E164
         /// When <paramref name="formatProvider"/> is <c>null</c>, or supplies neither, such as a <see cref="CultureInfo"/>,
         /// the number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, so the result doesn't depend on the
         /// culture of the current thread.
+        /// </para>
+        /// <para>
+        /// A standard format is exactly one of these letters: <c>g</c>, the general format with no separators; <c>G</c>, the
+        /// general format with a space between the fields; <c>i</c>, the short international pattern; and <c>I</c>, the long
+        /// international pattern. Any other format, including a longer one that begins with one of those letters, is a custom
+        /// pattern, in which <c>+</c> is the international prefix symbol, each <c>c</c> a digit of the country code, each
+        /// <c>i</c> a digit of the identification code, each <c>s</c> a digit of the subscriber number, and any other character
+        /// is copied as it stands.
         /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER

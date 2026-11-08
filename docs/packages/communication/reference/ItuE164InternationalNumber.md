@@ -33,6 +33,28 @@ country/code value and `ArgumentOutOfRangeException` when a supplied field is to
 long for the remaining digit budget. `Parse`/`TryParse` try each kind in turn and
 identify the number's kind automatically; the caller does not specify it.
 
+### Format strings
+
+A standard format string is exactly one of these letters:
+
+| Format | Output |
+| --- | --- |
+| `g` | General format with no separators, such as `+443071234567`. |
+| `G` | General format with a space between the fields, such as `+44 3071234567`. This is the default. |
+| `i` | The short international pattern of the format provider. |
+| `I` | The long international pattern of the format provider. |
+
+A `null`, empty or white-space format is `G`. Any other format, including a longer
+one that begins with one of those letters, is a custom pattern. In a custom
+pattern, `+` is the international prefix symbol, each `c` is a digit of the
+country code, each `i` is a digit of the identification code, each `s` is a digit
+of the subscriber number, and any other character is copied as it stands. For
+example, `iii-ccc` formats the network number `8831101234567` as `110-883`.
+
+A format provider that supplies its own `ICustomFormatter` formats the number
+itself. A `null` provider, or one such as a `CultureInfo` that supplies no E.164
+formatting, is replaced by `TelephonyInfo.InvariantTelephony`.
+
 ## Properties
 
 | Property | Signature | Notes |
@@ -74,6 +96,8 @@ interface; reading it on a number of a different kind throws
 | `CreateNumberForTrial(ulong number)` | `ItuE164InternationalNumber` | Static factory. Whole-number overload. |
 | `CreateNumberForTrial(ItuE164AssignedCountryCodesForTrials countryCode, ItuE164AssignedTrialIdentificationCodesForTrials trialIdentificationCode, ItuE164SubscriberNumber? subscriberNumber)` | `ItuE164InternationalNumber` | Static factory. Component overload (subscriber number optional). |
 | `Equals(ItuE164InternationalNumber other)` | `bool` | Compares the underlying numbers. |
+| `Equals(object? obj)` | `bool` | Override. `true` when `obj` is an `ItuE164InternationalNumber` with the same number. |
+| `GetHashCode()` | `int` | Override. Derived from the number; `0` for an uninitialised value. |
 | `IsNumberForGeographicArea()` | `bool` | Kind test. |
 | `IsNumberForGlobalService()` | `bool` | Kind test. |
 | `IsNumberForGroupOfCountries()` | `bool` | Kind test. |
@@ -83,7 +107,7 @@ interface; reading it on a number of a different kind throws
 | `Parse(string s, ItuE164InternationalNumberStyles numberStyles)` | `ItuE164InternationalNumber` | Static. As above, with permitted styles. |
 | `ToString()` | `string` | Override. Uses the invariant "G" format. |
 | `ToString(IFormatProvider? formatProvider)` | `string` | Pass a `TelephonyInfo` to format for a culture/region. |
-| `ToString(string? format)` | `string` | |
+| `ToString(string? format)` | `string` | See [Format strings](#format-strings). |
 | `ToString(string? format, IFormatProvider? formatProvider)` | `string` | `IFormattable` implementation (a normal public method). |
 | `TryParse(string s, out ItuE164InternationalNumber result)` | `bool` | Static. Returns `false` instead of throwing. |
 | `TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)` | `bool` | Static. As above, with permitted styles. |
@@ -92,6 +116,8 @@ interface; reading it on a number of a different kind throws
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
+| Equality | `operator ==(ItuE164InternationalNumber left, ItuE164InternationalNumber right)` | Same result as `Equals`. |
+| Inequality | `operator !=(ItuE164InternationalNumber left, ItuE164InternationalNumber right)` | Negation of `==`. |
 | Explicit | `explicit operator ulong(ItuE164InternationalNumber)` | Unwraps to the whole number. Throws `InvalidCastException` if the value is uninitialised. |
 
 ## Applies to
