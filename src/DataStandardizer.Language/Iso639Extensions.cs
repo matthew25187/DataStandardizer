@@ -366,6 +366,12 @@ namespace DataStandardizer.Language
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 1 Alpha-2 code related to this language code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// The value comes from the ISO 639-3 code table, which can give a Part 1 code that ISO 639-1 has withdrawn and
+        /// that <see cref="Iso639Part1Language"/> therefore doesn't define. For example, <see cref="Iso639Part3Language.hbs"/>
+        /// (Serbo-Croatian) returns <c>sh</c>, which ISO 639-1 withdrew in 2000, so it can't be converted to an
+        /// <see cref="Iso639Part1Language"/> member.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetPart1Code(this Iso639Part3Language languageCode)
 #else

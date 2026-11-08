@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using DataStandardizer.Core;
 using FluentAssertions;
 
 namespace DataStandardizer.Language.Tests;
@@ -58,11 +59,19 @@ public class Iso639ExtensionTests
     // ISO 639-3 mri: ISO 639-1 code of Māori.
     private const string MaoriPart1Code = "mi";
 
+    // ISO 639-3 hbs (Serbo-Croatian): ISO 639-1 code from the ISO 639-3 code table. ISO 639-1 withdrew sh in 2000
+    // (ISO 639-2 Registration Authority, https://www.loc.gov/standards/iso639-2/php/code_changes.php), so
+    // Iso639Part1Language doesn't define it.
+    private const string SerboCroatianWithdrawnPart1Code = "sh";
+
     // ISO 639-1 mi (ISO 639-3 mri): ISO 639-2/B code of Māori.
     private const string MaoriPart2BCode = "mao";
 
     // ISO 639-1 mi (ISO 639-3 mri): ISO 639-2/T code of Māori.
     private const string MaoriPart2TCode = "mri";
+
+    // The withdrawn ISO 639-1 codes that the ISO 639-3 code table still gives as a Part 1 code.
+    private static readonly string[] WithdrawnPart1Codes = { SerboCroatianWithdrawnPart1Code };
 
     // ISO 639-3 hun: print name.
     private const string HungarianPrintName = "Hungarian";
@@ -597,8 +606,67 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.mri, MaoriPart1Code }; }
+            get
+            {
+                yield return new object[] { Iso639Part3Language.mri, MaoriPart1Code };
+                yield return new object[] { Iso639Part3Language.hbs, SerboCroatianWithdrawnPart1Code };
+            }
         }
+    }
+
+    #endregion
+
+    #region Test: IsDefined_OnPart1CodeOfIso639Part3Language
+
+    [Theory]
+    [MemberData(nameof(IsDefined_OnPart1CodeOfIso639Part3Language_TestCaseGenerator.TestCases), MemberType = typeof(IsDefined_OnPart1CodeOfIso639Part3Language_TestCaseGenerator))]
+    public void IsDefined_OnPart1CodeOfIso639Part3Language_ReturnsTrue(string part1Code)
+    {
+        // act
+        var testResult = StringEnum.IsDefined<Iso639Part1Language>(part1Code);
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    private class IsDefined_OnPart1CodeOfIso639Part3Language_TestCaseGenerator
+    {
+        // Each Part 1 code that an ISO 639-3 language gives, other than the withdrawn ones.
+        public static TheoryData<string> TestCases
+        {
+            get
+            {
+                var testCases = new TheoryData<string>();
+                foreach (var part1Code in StringEnum.GetValues<Iso639Part3Language>().Select(code => code.GetPart1Code()).OfType<string>().Distinct())
+                {
+                    if (!WithdrawnPart1Codes.Contains(part1Code))
+                    {
+                        testCases.Add(part1Code);
+                    }
+                }
+                return testCases;
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: IsDefined_OnWithdrawnPart1Code
+
+    [Theory]
+    [MemberData(nameof(IsDefined_OnWithdrawnPart1Code_TestCaseGenerator.TestCases), MemberType = typeof(IsDefined_OnWithdrawnPart1Code_TestCaseGenerator))]
+    public void IsDefined_OnWithdrawnPart1Code_ReturnsFalse(string part1Code)
+    {
+        // act
+        var testResult = StringEnum.IsDefined<Iso639Part1Language>(part1Code);
+
+        // assert
+        testResult.Should().BeFalse();
+    }
+
+    private class IsDefined_OnWithdrawnPart1Code_TestCaseGenerator
+    {
+        public static TheoryData<string> TestCases => new(WithdrawnPart1Codes);
     }
 
     #endregion
