@@ -158,6 +158,13 @@ namespace DataStandardizer.Money
 
                 if (CurrencySymbols.TryGetUnambiguousCurrency(symbol, out var unambiguousCurrency))
                 {
+                    // A symbol can stand for a code that a Money value cannot carry, such as the generic
+                    // currency sign for XXX, so it is held to the same test as a currency code.
+                    if (!Money.IsCurrencyCodeValidForMoneyValue(unambiguousCurrency))
+                    {
+                        return false;
+                    }
+
                     value = withoutSymbol;
                     currencyCode = unambiguousCurrency;
                     hasCurrency = true;
@@ -183,7 +190,7 @@ namespace DataStandardizer.Money
 
                 foreach (var candidate in candidates)
                 {
-                    if (candidate != cultureCurrency)
+                    if (candidate != cultureCurrency || !Money.IsCurrencyCodeValidForMoneyValue(candidate))
                     {
                         continue;
                     }

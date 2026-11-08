@@ -18,6 +18,10 @@ public class MoneyParsingTests
 
     private const decimal TestAmount = 1234.50m;
     private const string NzdCurrencyCodeValue = "NZD1,234.50";
+
+    // The generic currency sign U+00A4, which CLDR gives as the symbol of XXX, followed by the amount 5.
+    // The escape is written with four digits so that the 5 is not read as part of it.
+    private const string GenericCurrencySignValue = "\x00A45";
     private const string NzdStandardSymbolValue = "NZ$1,234.50";
     private const string AmbiguousDollarValue = "$100";
 
@@ -120,6 +124,32 @@ public class MoneyParsingTests
         // assert
         testResult.Should().BeTrue();
         result.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.NZD, "NZ$ is matched in preference to $");
+    }
+
+    [Fact]
+    public void TryParse_InputContainsGenericCurrencySign_ReturnsFalse()
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
+        // act
+        var testResult = Money.TryParse(GenericCurrencySignValue, out _);
+
+        // assert
+        testResult.Should().BeFalse("the generic currency sign denotes XXX, which is not a currency a Money value can carry");
+    }
+
+    [Fact]
+    public void Parse_InputContainsGenericCurrencySign_ThrowsFormatException()
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
+        // act
+        Action testAction = () => Money.Parse(GenericCurrencySignValue);
+
+        // assert
+        testAction.Should().Throw<FormatException>();
     }
 
     #endregion
