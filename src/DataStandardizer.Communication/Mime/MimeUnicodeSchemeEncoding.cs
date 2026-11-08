@@ -249,7 +249,14 @@ namespace DataStandardizer.Communication.Mime
             {
                 CheckRange(bytes, byteIndex, byteCount);
 
-                if (_inner != null) return _inner.GetChars(bytes, byteIndex, byteCount, chars, charIndex, flush);
+                if (_inner != null)
+                {
+                    var innerCharCount = _inner.GetChars(bytes, byteIndex, byteCount, chars, charIndex, flush);
+
+                    // A flush ends the message, so the next one starts again by looking for a byte order mark.
+                    if (flush) _inner = null;
+                    return innerCharCount;
+                }
 
                 var combined = Combine(bytes, byteIndex, byteCount);
                 if (combined.Length < _pending.Length && !flush)
