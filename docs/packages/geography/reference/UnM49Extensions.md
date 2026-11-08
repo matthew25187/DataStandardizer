@@ -56,8 +56,8 @@ extension methods.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `GetM49Codes(Type enumType)` | `ushort[]` | All M49 codes (global, region, sub-region, intermediate, and area) for an M49 area enum type. Throws `ArgumentNullException` if `enumType` is `null`; `ArgumentException` if it is not an enum. |
-| `GetM49Codes<T>()` *(where `T : struct, Enum`)* | `ushort[]` | Generic form of `GetM49Codes`. |
+| `GetM49Codes(Type enumType)` | `ushort[]` | All M49 codes (global, region, sub-region, intermediate, and area) for a UN M49 enum type. Throws `ArgumentNullException` if `enumType` is `null`; `ArgumentException` if it is not an enum, its underlying type is not `ushort`, or it has no members or a member without `UnM49AreaCodeAttribute`. |
+| `GetM49Codes<T>()` *(where `T : struct, Enum`)* | `ushort[]` | Generic form of `GetM49Codes`. Throws `ArgumentException` if the underlying type of `T` is not `ushort`, or `T` has no members or a member without `UnM49AreaCodeAttribute`. |
 
 ### Extension
 

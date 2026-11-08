@@ -413,12 +413,11 @@ public class UnM49ExtensionsTests
         testResult.Should().BeEquivalentTo(expectedResult);
     }
 
-    // Iso3166CountryName is an enumeration whose underlying type is int, not ushort.
     [Fact]
     public void GetM49Codes_WithIntBackedEnum_ThrowsArgumentException()
     {
         // act
-        Action testAction = () => UnM49Extensions.GetM49Codes(typeof(Iso3166CountryName));
+        Action testAction = () => UnM49Extensions.GetM49Codes(typeof(IntBackedEnum));
 
         // assert
         testAction.Should().Throw<ArgumentException>().WithParameterName(GetM49CodesEnumTypeParameterName);
@@ -428,10 +427,53 @@ public class UnM49ExtensionsTests
     public void GetM49Codes_WithIntBackedEnumTypeArgument_ThrowsArgumentException()
     {
         // act
-        Action testAction = () => UnM49Extensions.GetM49Codes<Iso3166CountryName>();
+        Action testAction = () => UnM49Extensions.GetM49Codes<IntBackedEnum>();
 
         // assert
         testAction.Should().Throw<ArgumentException>().WithParameterName(GetM49CodesEnumTypeParameterName);
+    }
+
+    [Theory]
+    [InlineData(typeof(UshortBackedEnumWithoutM49Codes)), InlineData(typeof(UshortBackedEnumWithMemberWithoutM49Code)), InlineData(typeof(UshortBackedEnumWithoutMembers))]
+    public void GetM49Codes_WithUshortBackedEnumThatIsNotUnM49_ThrowsArgumentException(Type enumType)
+    {
+        // act
+        Action testAction = () => UnM49Extensions.GetM49Codes(enumType);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName(GetM49CodesEnumTypeParameterName);
+    }
+
+    [Fact]
+    public void GetM49Codes_WithUshortBackedEnumTypeArgumentThatIsNotUnM49_ThrowsArgumentException()
+    {
+        // act
+        Action testAction = () => UnM49Extensions.GetM49Codes<UshortBackedEnumWithoutM49Codes>();
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName(GetM49CodesEnumTypeParameterName);
+    }
+
+    // Enumerations that aren't UN M49 enumerations.
+    private enum IntBackedEnum
+    {
+        Value,
+    }
+
+    private enum UshortBackedEnumWithoutM49Codes : ushort
+    {
+        Value,
+    }
+
+    private enum UshortBackedEnumWithMemberWithoutM49Code : ushort
+    {
+        [UnM49AreaCode(WorldM49Code)]
+        World = WorldM49Code,
+        Value,
+    }
+
+    private enum UshortBackedEnumWithoutMembers : ushort
+    {
     }
 
     #endregion
