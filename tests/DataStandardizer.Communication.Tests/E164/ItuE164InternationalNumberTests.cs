@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using DataStandardizer.Communication.E164;
@@ -19,6 +20,20 @@ namespace DataStandardizer.Communication.Tests.E164
         private const ulong GreatBritainNumber = 443071234567L;
         private const ulong OtherGreatBritainNumber = 445071234567L;
         private const string GreatBritainNumberText = "443071234567";
+
+        // GreatBritainNumber in the full general format, "G", and the format string itself.
+        private const string GreatBritainNumberInGeneralFormat = "+44 3071234567";
+        private const string FullGeneralFormat = "G";
+
+        // What ToString returns for an uninitialized instance: the full name of the type.
+        private const string TypeFullName = "DataStandardizer.Communication.E164.ItuE164InternationalNumber";
+
+        // Format providers that supply no ICustomFormatter.
+        public static TheoryData<IFormatProvider> ProvidersWithoutCustomFormatter => new TheoryData<IFormatProvider>
+        {
+            null,
+            CultureInfo.InvariantCulture
+        };
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
         private const ulong GlobalSubscriberNumber = 8001234567L;
@@ -398,6 +413,87 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // assert
             testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(ProvidersWithoutCustomFormatter))]
+        public void ToString_FormatAndProviderWithoutCustomFormatter_ReturnsFormattedNumber(IFormatProvider formatProvider)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(FullGeneralFormat, formatProvider);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Theory]
+        [MemberData(nameof(ProvidersWithoutCustomFormatter))]
+        public void ToString_ProviderWithoutCustomFormatter_ReturnsFormattedNumber(IFormatProvider formatProvider)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString(formatProvider);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Fact]
+        public void ToString_NoArguments_ReturnsFormattedNumber()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = testSubject.ToString();
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Fact]
+        public void ToString_CompositeFormatWithFormatStringAndInvariantCulture_ReturnsFormattedNumber()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = string.Format(CultureInfo.InvariantCulture, "{0:G}", testSubject);
+
+            // assert
+            testResult.Should().Be(GreatBritainNumberInGeneralFormat);
+        }
+
+        [Theory]
+        [MemberData(nameof(ProvidersWithoutCustomFormatter))]
+        public void ToString_InstanceIsNotInitializedAndProviderWithoutCustomFormatter_ReturnsTypeName(IFormatProvider formatProvider)
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject.ToString(FullGeneralFormat, formatProvider);
+
+            // assert
+            testResult.Should().Be(TypeFullName);
+        }
+
+        [Fact]
+        public void ToString_InstanceIsNotInitializedAndTelephonyInfo_ReturnsTypeName()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumber();
+
+            // act
+            var testResult = testSubject.ToString(FullGeneralFormat, TelephonyInfo.InvariantTelephony);
+
+            // assert
+            testResult.Should().Be(TypeFullName);
         }
 
         [Fact]
