@@ -57,6 +57,9 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TooLongNumber = "9911012345678901";
         private const string NotANumber = "Not A Number";
 
+        // 800 is a Country Code for a global service, not a geographic area.
+        private const ulong GlobalServiceCountryCodeNumber = 800123;
+
         // Sixteen digits, one more than ITU-T E.164 §6.1 allows, after a Country Code for a geographic area (211) and for a global service (800).
         private const string TooLongGeographicAreaNumber = "2111234567890123";
         private const string TooLongGlobalServiceNumber = "8001234567890123";
@@ -694,11 +697,11 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().BeFalse();
         }
 
-        [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [Fact]
         public void IsNumberForGroupOfCountries_InternationalNumberForGroupsOfCountries_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(GroupOfCountriesNumber);
+            var testSubject = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(GroupOfCountriesNumber));
 
             // act
             var testResult = testSubject.IsNumberForGroupOfCountries();
@@ -746,11 +749,11 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().BeFalse();
         }
 
-        [Fact(Skip = NumberForTrialsSkipMessage)]
+        [Fact]
         public void IsNumberForTrial_InternationalNumberForTrials_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(TrialNumber);
+            var testSubject = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(TrialNumber));
 
             // act
             var testResult = testSubject.IsNumberForTrial();
@@ -1064,8 +1067,7 @@ namespace DataStandardizer.Communication.Tests.E164
         // Calls to the ulong factories with numbers whose digits don't divide into the fields of the structure the factory creates.
         public static TheoryData<Action> UlongFactoryCallsWithInvalidNumber => new TheoryData<Action>
         {
-            // 800 is a Country Code for a global service, not a geographic area.
-            () => ItuE164InternationalNumber.CreateNumberForGeographicArea(800123),
+            () => ItuE164InternationalNumber.CreateNumberForGeographicArea(GlobalServiceCountryCodeNumber),
             // The Country Code 1 alone, without a National Significant Number.
             () => ItuE164InternationalNumber.CreateNumberForGeographicArea(1),
             // 226 is a Country Code for a geographic area, not a global service.
@@ -1103,7 +1105,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGeographicArea_CountryCodeNotForGeographicArea_ThrowsArgumentExceptionNamingNumber()
         {
             // arrange
-            const ulong testNumber = 800123;
+            const ulong testNumber = GlobalServiceCountryCodeNumber;
 
             // act
             Action testAction = () => ItuE164InternationalNumber.CreateNumberForGeographicArea(testNumber);

@@ -8,9 +8,8 @@ namespace DataStandardizer.Communication.Tests.E164
     {
         // The format strings of ItuE164InternationalNumberFormatter: general, general with separators, and the short and long international
         // number patterns of the format provider.
-        // No Group Identification Code or Trial Identification Code is assigned, so no such number can be created.
-        private const string NumberForGroupsOfCountriesSkipMessage = "There is currently no available Group Identification Code.";
-        private const string NumberForTrialsSkipMessage = "There is currently no available Trial Identification Code.";
+        // No Group Identification Code or Trial Identification Code is assigned, so the factories reject numbers for a
+        // group of countries or a trial; the tests for those numbers build them from their structures instead.
 
         private const string GeneralFormat = "g";
         private const string GeneralFormatWithSeparators = "G";
@@ -311,13 +310,13 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [Theory]
         [InlineData(38835550100L, GeneralFormat, "+38835550100"),
          InlineData(38835550101L, GeneralFormatWithSeparators, "+388 3 5550101")]
         public void Format_InternationalNumberForGroupOfCountriesWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -328,13 +327,13 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [Theory]
         [InlineData(GroupOfCountriesNumber0102, CountryIdentificationAndSubscriberPattern, "+38835550102"),
          InlineData(GroupOfCountriesNumber0102, SpacedCountryIdentificationAndSubscriberPattern, "+ 38835550102")]
         public void Format_InternationalNumberForGroupOfCountriesWithShortInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { ShortInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -347,7 +346,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [Theory]
         [InlineData(GroupOfCountriesNumber0103, CountryThenIdentificationAndSubscriberPattern, "+388 35550103"),
          InlineData(GroupOfCountriesNumber0103, SpacedCountryThenIdentificationAndSubscriberPattern, "+ 388 35550103"),
          InlineData(GroupOfCountriesNumber0104, CountryThenIdentificationThenSubscriberPattern, "+388 3 5550104"),
@@ -355,7 +354,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForGroupOfCountriesWithLongInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -368,7 +367,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [Theory]
         [InlineData(GroupOfCountriesNumber0105, CountryIdentificationAndSubscriberPattern, "+38835550105"),
          InlineData(GroupOfCountriesNumber0105, SpacedCountryIdentificationAndSubscriberPattern, "+ 38835550105"),
          InlineData(GroupOfCountriesNumber0106, CountryThenIdentificationAndSubscriberPattern, "+388 35550106"),
@@ -380,7 +379,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForGroupOfCountriesWithCustomFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForGroupsOfCountries(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -391,7 +390,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [Theory]
         [InlineData(TrialNumberWithoutSubscriber, GeneralFormat, TrialNumberWithoutSubscriberFormatted),
          InlineData(99115550100L, GeneralFormat, "+99115550100"),
          InlineData(TrialNumberWithoutSubscriber, GeneralFormatWithSeparators, TrialNumberWithoutSubscriberWithSeparator),
@@ -399,7 +398,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithGeneralFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
@@ -410,7 +409,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [Theory]
         [InlineData(TrialNumberWithoutSubscriber, CountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberFormatted),
          InlineData(TrialNumberWithoutSubscriber, SpacedCountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberSpaced),
          InlineData(TrialNumber0102, CountryIdentificationAndSubscriberPattern, "+99115550102"),
@@ -418,7 +417,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithShortInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { ShortInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -431,7 +430,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [Theory]
         [InlineData(TrialNumberWithoutSubscriber, CountryThenIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberWithSeparator),
          InlineData(TrialNumberWithoutSubscriber, SpacedCountryThenIdentificationAndSubscriberPattern, "+ 991 1"),
          InlineData(TrialNumber0103, CountryThenIdentificationAndSubscriberPattern, "+991 15550103"),
@@ -439,7 +438,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithLongInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
             var formatInfo = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = internationalFormat };
             var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
 
@@ -452,7 +451,7 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().Be(expectedResult);
         }
 
-        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [Theory]
         [InlineData(TrialNumberWithoutSubscriber, CountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberFormatted),
          InlineData(TrialNumberWithoutSubscriber, SpacedCountryIdentificationAndSubscriberPattern, TrialNumberWithoutSubscriberSpaced),
          InlineData(TrialNumber0104, CountryThenIdentificationAndSubscriberPattern, "+991 15550104"),
@@ -464,7 +463,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void Format_InternationalNumberForTrialWithCustomFormat_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
         {
             // arrange
-            var testNumber = ItuE164InternationalNumber.CreateNumberForTrial(testValue);
+            var testNumber = new ItuE164InternationalNumber(new ItuE164InternationalNumberStructureForTrials(testValue));
 
             var testSubject = new ItuE164InternationalNumberFormatter();
 
