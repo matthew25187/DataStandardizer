@@ -40,9 +40,10 @@ registry that breaks the record rules of RFC 5646 §3.1.2: the first record
 isn't the `File-Date` record, there's a second `File-Date` record, the
 `File-Date` record has another field, a tag or subtag record has no
 `Description` or `Added` field, or a field other than `Description`,
-`Comments` and `Prefix` appears twice in a record. Fields that RFC 5646
-doesn't define are kept in `Fields`, and these rules ignore them, as §3.1.2
-asks. Pass a loaded registry
+`Comments` and `Prefix` appears twice in a record. In a tag or subtag record,
+fields that RFC 5646 doesn't define are kept in `Fields`, and these rules
+ignore them, as §3.1.2 asks. The `File-Date` record has the `File-Date` field
+alone. Pass a loaded registry
 to the [Bcp47LanguageTag](Bcp47LanguageTag.md) `Create` / `TryCreate` overloads, or
 to the builder's `WithLanguageSubtagRegistry` step, to validate against it.
 

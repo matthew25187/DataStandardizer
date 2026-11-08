@@ -22,7 +22,8 @@ namespace DataStandardizer.LanguageTag.Registry
     /// or more than one of the File-Date, Subtag and Tag fields, or has no Type that RFC 5646 §3.1.3 defines for its kind of record. It also throws for
     /// a record that breaks the rules of RFC 5646 §3.1.2: a first record that is not the File-Date record, a second File-Date record, a File-Date record
     /// with another field, a tag or subtag record with no Description or Added field, and a field other than Description, Comments and Prefix that
-    /// appears twice in a record. Fields that RFC 5646 doesn't define are kept, and these rules ignore them, as §3.1.2 asks.
+    /// appears twice in a record. Fields that RFC 5646 doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks;
+    /// the File-Date record has the File-Date field alone.
     /// <para>
     /// A full-date in the year 0000, which RFC 3339 allows, also throws, as <see cref="DateTime"/> starts at the year 0001.
     /// </para>
@@ -35,8 +36,10 @@ namespace DataStandardizer.LanguageTag.Registry
 
         private readonly List<KeyValuePair<string, string>> _fields = new List<KeyValuePair<string, string>>();
 
-        // the names of the fields of the record being read that RFC 5646 defines, with or without a value, for the rules of §3.1.2
-        private readonly List<string> _definedFieldNames = new List<string>();
+        // the fields of the record being read, with or without a value, for the rules of §3.1.2: how many there are, and a flag for each field seen
+        // that may appear only once
+        private int _recordFieldCount;
+        private int _singleFieldFlags;
 
         private int _recordCount;
 
@@ -49,7 +52,7 @@ namespace DataStandardizer.LanguageTag.Registry
         private bool _fieldEndsWithSpace;
         private bool _isAtEnd;
 
-        // the first File-Date, Added and Deprecated of the record being read, parsed once, for the record to take
+        // the File-Date, Added and Deprecated of the record being read, each of which appears at most once, parsed once for the record to take
         private DateTime? _fileDate;
         private DateTime? _added;
         private DateTime? _deprecated;
@@ -220,16 +223,19 @@ namespace DataStandardizer.LanguageTag.Registry
             // the field body ends with CHARS, so a space before the line break is allowed only where a folded line follows (ref. RFC 5646 §3.1.1)
             if (_fieldEndsWithSpace) throw CreateException("The {1} field ends with a space at line {0} (ref. RFC 5646 §3.1.1).", _fieldLineNumber, _fieldName);
 
-            if (IsDefinedField(_fieldName))
+            // field-names other than Description, Comments and Prefix occur at most once per record (ref. RFC 5646 §3.1.2); fields that RFC 5646 doesn't
+            // define have no flag, as §3.1.2 asks that they be ignored
+            _recordFieldCount++;
+            var singleFieldFlag = GetSingleFieldFlag(_fieldName);
+            if (singleFieldFlag != 0)
             {
-                // field-names other than Description, Comments and Prefix occur at most once per record (ref. RFC 5646 §3.1.2)
-                if (!IsRepeatableField(_fieldName) && _definedFieldNames.Contains(_fieldName))
+                if ((_singleFieldFlags & singleFieldFlag) != 0)
                 {
                     throw CreateException(
                         "The {1} field at line {0} is the second in its record, which may have only one (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
                 }
 
-                _definedFieldNames.Add(_fieldName);
+                _singleFieldFlags |= singleFieldFlag;
             }
 
             var fieldBody = _foldedFieldBody?.Length > 0 ? _foldedFieldBody.ToString() : _fieldBody;
@@ -275,12 +281,13 @@ namespace DataStandardizer.LanguageTag.Registry
             var fileDate = _fileDate;
             var added = _added;
             var deprecated = _deprecated;
-            var definedFieldCount = _definedFieldNames.Count;
+            var recordFieldCount = _recordFieldCount;
             var isFirstRecord = _recordCount == 0;
             _recordCount++;
             _recordLineNumber = 0;
             _fields.Clear();
-            _definedFieldNames.Clear();
+            _recordFieldCount = 0;
+            _singleFieldFlags = 0;
             _fileDate = null;
             _added = null;
             _deprecated = null;
@@ -298,7 +305,8 @@ namespace DataStandardizer.LanguageTag.Registry
                     "The record at line {0} is a second File-Date record, which occurs only once, as the first record (ref. RFC 5646 §3.1.2).", recordLineNumber);
             }
 
-            if (isFileDate && definedFieldCount > 1)
+            // the File-Date record "contains a single field", so a field that RFC 5646 doesn't define is not ignored there (ref. RFC 5646 §3.1.2)
+            if (isFileDate && recordFieldCount > 1)
             {
                 throw CreateException("The File-Date record at line {0} has a field other than File-Date (ref. RFC 5646 §3.1.2).", recordLineNumber);
             }
@@ -385,7 +393,8 @@ namespace DataStandardizer.LanguageTag.Registry
         }
 
         /// <summary>
-        /// Gets whether a field tells a record's kind or type, so that it needs a value.
+        /// Gets whether a field needs a value: the fields that tell a record's kind or type, the Description and Added fields every tag and subtag record
+        /// has, and the dates (ref. RFC 5646 §3.1.2).
         /// </summary>
         private static bool IsValueRequired(string fieldName)
         {
@@ -395,20 +404,24 @@ namespace DataStandardizer.LanguageTag.Registry
         }
 
         /// <summary>
-        /// Gets whether RFC 5646 §3.1.2 defines a field, whose name <see cref="GetFieldName"/> then returns as the constant in <see cref="FieldName"/>.
+        /// Gets the flag of a field that RFC 5646 §3.1.2 defines and that may appear only once per record, or 0 for any other field: Description, Comments
+        /// and Prefix, which may repeat, and a field that RFC 5646 doesn't define.
         /// </summary>
-        private static bool IsDefinedField(string fieldName)
+        private static int GetSingleFieldFlag(string fieldName)
         {
-            return IsValueRequired(fieldName) || IsRepeatableField(fieldName) || ReferenceEquals(fieldName, FieldName.PreferredValue) ||
-                ReferenceEquals(fieldName, FieldName.SuppressScript) || ReferenceEquals(fieldName, FieldName.Macrolanguage) || ReferenceEquals(fieldName, FieldName.Scope);
-        }
+            // GetFieldName returns each name that RFC 5646 defines as the constant in FieldName
+            if (ReferenceEquals(fieldName, FieldName.FileDate)) return 1 << 0;
+            if (ReferenceEquals(fieldName, FieldName.Type)) return 1 << 1;
+            if (ReferenceEquals(fieldName, FieldName.Subtag)) return 1 << 2;
+            if (ReferenceEquals(fieldName, FieldName.Tag)) return 1 << 3;
+            if (ReferenceEquals(fieldName, FieldName.Added)) return 1 << 4;
+            if (ReferenceEquals(fieldName, FieldName.Deprecated)) return 1 << 5;
+            if (ReferenceEquals(fieldName, FieldName.PreferredValue)) return 1 << 6;
+            if (ReferenceEquals(fieldName, FieldName.SuppressScript)) return 1 << 7;
+            if (ReferenceEquals(fieldName, FieldName.Macrolanguage)) return 1 << 8;
+            if (ReferenceEquals(fieldName, FieldName.Scope)) return 1 << 9;
 
-        /// <summary>
-        /// Gets whether a field may appear more than once in a record: Description, Comments and Prefix (ref. RFC 5646 §3.1.2).
-        /// </summary>
-        private static bool IsRepeatableField(string fieldName)
-        {
-            return ReferenceEquals(fieldName, FieldName.Description) || ReferenceEquals(fieldName, FieldName.Comments) || ReferenceEquals(fieldName, FieldName.Prefix);
+            return 0;
         }
 
 #if NETCOREAPP3_0_OR_GREATER

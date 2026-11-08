@@ -435,7 +435,8 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         /// <summary>
-        /// A stream with a complete record ahead of the registry content, positioned after that record, so reading from the start of the stream would add one record.
+        /// A stream with a complete tag record ahead of the registry content, positioned after that record, so reading from the start of the stream would fail,
+        /// as the first record is not the File-Date record.
         /// </summary>
         private static MemoryStream CreatePositionedRegistryStream(string registryContent)
         {
@@ -1077,16 +1078,16 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenFieldsThatRfcDoesNotDefineRepeatOrAreInFileDateRecord_ReadsThem(string loaderName, Func<string, Task<SubtagRegistry>> load)
+        public async Task CreateFromContent_WhenFieldThatRfcDoesNotDefineRepeatsInSubtagRecord_ReadsEveryOccurrence(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "File-Date: 2025-01-01\nFuture-Field: one\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\nFuture-Field: two\nFuture-Field: three";
+            const string content = "File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16\nFuture-Field: two\nFuture-Field: three";
 
             // act
             var testResult = await load(content);
 
             // assert
-            testResult.Count.Should().Be(2, "{0} ignores fields that RFC 5646 §3.1.2 doesn't define when it checks the record rules", loaderName);
+            testResult.Count.Should().Be(2, "{0} ignores fields that RFC 5646 §3.1.2 doesn't define when it checks the rules of a subtag record", loaderName);
             testResult.Languages.Should().ContainSingle().Which.Fields.Should().Equal(
                 new KeyValuePair<string, string>(TypeFieldName, LanguageType),
                 new KeyValuePair<string, string>("Subtag", "aa"),
@@ -1196,6 +1197,8 @@ namespace DataStandardizer.LanguageTag.Tests
             ("File-Date: 2025-01-01\n%%\nFile-Date: 2025-01-02",
                 "The record at line 3 is a second File-Date record, which occurs only once, as the first record (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\nComments: Test\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
+                "The File-Date record at line 1 has a field other than File-Date (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\nFuture-Field: Test\n%%\nType: language\nSubtag: aa\nDescription: Afar\nAdded: 2005-10-16",
                 "The File-Date record at line 1 has a field other than File-Date (ref. RFC 5646 §3.1.2)."),
             // every tag and subtag record has a Description and an Added field
             ("File-Date: 2025-01-01\n%%\nType: language\nSubtag: aa\nAdded: 2005-10-16",
