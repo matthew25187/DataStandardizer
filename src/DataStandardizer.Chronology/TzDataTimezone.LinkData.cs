@@ -19,13 +19,13 @@ namespace DataStandardizer.Chronology
     {
         
         /// <summary>
-        /// The links that have no timezone field, which are the deprecated names of canonical timezones.
+        /// The links that have no timezone field: the deprecated names of backward, and links of etcetera such as GMT.
         /// </summary>
         private static class LinkData
         {
             
             /// <summary>
-            /// The name of each deprecated link, with the identifier of the canonical timezone it refers to.
+            /// The name of each link that has no timezone field, such as a deprecated name of backward or GMT of etcetera, with the identifier of the canonical timezone it refers to.
             /// </summary>
             internal static readonly System.Collections.Generic.KeyValuePair<string, string>[] DeprecatedLinks = new System.Collections.Generic.KeyValuePair<string, string>[] {
                     new System.Collections.Generic.KeyValuePair<string, string>("Africa/Asmera", "Africa/Nairobi"),
@@ -107,6 +107,10 @@ namespace DataStandardizer.Chronology
                     new System.Collections.Generic.KeyValuePair<string, string>("EST", "America/Panama"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Egypt", "Africa/Cairo"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Eire", "Europe/Dublin"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/GMT+0", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/GMT-0", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/GMT0", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/Greenwich", "Etc/GMT"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Etc/UCT", "Etc/UTC"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Etc/Universal", "Etc/UTC"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Etc/Zulu", "Etc/UTC"),
@@ -118,6 +122,11 @@ namespace DataStandardizer.Chronology
                     new System.Collections.Generic.KeyValuePair<string, string>("Europe/Zaporozhye", "Europe/Kyiv"),
                     new System.Collections.Generic.KeyValuePair<string, string>("GB", "Europe/London"),
                     new System.Collections.Generic.KeyValuePair<string, string>("GB-Eire", "Europe/London"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("GMT", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("GMT+0", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("GMT-0", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("GMT0", "Etc/GMT"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Greenwich", "Etc/GMT"),
                     new System.Collections.Generic.KeyValuePair<string, string>("HST", "Pacific/Honolulu"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Hongkong", "Asia/Hong_Kong"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Iceland", "Africa/Abidjan"),
