@@ -21,8 +21,10 @@ public sealed class Iso3166SubdivisionNameAttribute : Iso3166LanguageAttributeBa
 
 ## Remarks
 
-Applied to each subdivision field, once per language (`AllowMultiple = true`); its
-constructor is `internal`. The identifying language is carried by the
+Applied to each subdivision field once for each name (`AllowMultiple = true`); its
+constructor is `internal`. A subdivision usually has one name in a language, but
+ISO 3166-2 can give it several in one language, each in a different
+`RomanizationSystem`. The identifying language is carried by the
 [Iso3166LanguageAttributeBase](Iso3166LanguageAttributeBase.md) base. You normally
 read these names through the [Iso3166Extensions](Iso3166Extensions.md)
 `GetSubdivisionNativeName` accessors.

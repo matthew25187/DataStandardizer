@@ -55,23 +55,6 @@ namespace DataStandardizer.LanguageTag.Registry
         }
 
         /// <summary>
-        /// Parse a registry date, in the <c>yyyy-MM-dd</c> form of the RFC 3339 full-date (ref. RFC 5646 §3.1.1).
-        /// </summary>
-        /// <returns>The date, or <see langword="null"/> when the value is not a date in that form.</returns>
-#if NETCOREAPP3_0_OR_GREATER
-        internal static DateTime? ParseDate(string value)
-#else
-        internal static DateTime? ParseDate([DisallowNull] string value)
-#endif
-        {
-            if (value.Length != 10 || value[4] != '-' || value[7] != '-') return null;
-            if (!TryParseDigits(value, 0, 4, out var year) || !TryParseDigits(value, 5, 2, out var month) || !TryParseDigits(value, 8, 2, out var day)) return null;
-            if (year < 1 || month < 1 || month > 12 || day < 1 || day > DateTime.DaysInMonth(year, month)) return null;
-
-            return new DateTime(year, month, day);
-        }
-
-        /// <summary>
         /// Gets a read-only view of the bodies of a field that may appear more than once, creating it if it doesn't exist yet.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
@@ -120,20 +103,6 @@ namespace DataStandardizer.LanguageTag.Registry
             }
 
             return values;
-        }
-
-        private static bool TryParseDigits(string value, int start, int length, out int number)
-        {
-            number = 0;
-            for (var index = start; index < start + length; index++)
-            {
-                var digit = value[index] - '0';
-                if (digit < 0 || digit > 9) return false;
-
-                number = number * 10 + digit;
-            }
-
-            return true;
         }
     }
 }

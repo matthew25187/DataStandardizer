@@ -31,10 +31,10 @@ same list is returned after that. A record without the field returns an empty
 list. Where a field that may appear only once appears more than once, the
 first is used.
 
-`Added` and `Deprecated` are read from the `yyyy-MM-dd` form of RFC 3339
-(RFC 5646 §3.1.1). A date that isn't in that form reads as if the field were
-absent: `Added` is the default `DateTime` and `Deprecated` is `null`. The field's
-text is still in `Fields`.
+`Added` and `Deprecated` are read from the `yyyy-MM-dd` full-date of RFC 3339
+(RFC 5646 §3.1.1). A registry with a date in any other form fails to load with a
+`FormatException`. `Deprecated` is `null` when the record has no `Deprecated`
+field.
 
 ## Properties
 

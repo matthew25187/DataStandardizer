@@ -13,18 +13,17 @@ namespace DataStandardizer.LanguageTag.Registry
     public sealed class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
     {
 #if NETCOREAPP3_0_OR_GREATER
-        internal SubtagRegistryFileDateRecord(KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryFileDateRecord(KeyValuePair<string, string>[] fields, DateTime fileDate)
 #else
-        internal SubtagRegistryFileDateRecord([DisallowNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryFileDateRecord([DisallowNull] KeyValuePair<string, string>[] fields, DateTime fileDate)
 #endif
             : base(fields)
         {
-            var fileDate = GetFirstValue(fields, FieldName.FileDate);
-            FileDate = (fileDate is null ? null : ParseDate(fileDate)) ?? default(DateTime);
+            FileDate = fileDate;
         }
 
         /// <summary>
-        /// Gets the File-Date field value, or the default <see cref="DateTime"/> when it is not a date in the <c>yyyy-MM-dd</c> form.
+        /// Gets the File-Date field value.
         /// </summary>
         public DateTime FileDate { get; }
     }
