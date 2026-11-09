@@ -81,8 +81,29 @@ Describe 'PackageRegistry' {
                 "$args" -like '*--repo owner/repo *' -and
                 "$args" -like '*--signer-workflow owner/repo/.github/workflows/build-and-publish.yml *' -and
                 "$args" -like '*--predicate-type https://slsa.dev/provenance/v1 *' -and
-                "$args" -like '*--deny-self-hosted-runners *'
+                "$args" -like '*--deny-self-hosted-runners *' -and
+                "$args" -notlike '*--source-ref *'
             }
+        }
+
+        It 'requires the build to have run on master or develop' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 0; '{}' }
+            Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' | Out-Null
+            Should -Invoke -ModuleName PackageRegistry gh -Times 1 -ParameterFilter { "$args" -like '*--source-ref refs/heads/master*' }
+        }
+
+        It 'accepts a build on develop when the build was not on master' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 0; '{}' }
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: verifying with issuer "sigstore.dev": no matching attestations' } -ParameterFilter { "$args" -like '*--source-ref refs/heads/master*' }
+            $path = Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo'
+            $path | Should -Be "$script:PackagePath.sigstore.json"
+        }
+
+        It 'throws for a build that ran on neither master nor develop' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 0; '{}' }
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: no attestations found' } -ParameterFilter { "$args" -like '*--source-ref *' }
+            { Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing } | Should -Throw '*is not from a build of refs/heads/master or refs/heads/develop*'
+            Test-Path -LiteralPath "$script:PackagePath.sigstore.json" | Should -BeFalse
         }
 
         It 'throws for a package with no attestation' {
