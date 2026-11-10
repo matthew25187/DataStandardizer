@@ -23,6 +23,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         // A journal document with CafeSummary that declares UTF-8, and one with a document type definition that declares an entity.
         private static readonly string CafeDocumentDeclaringUtf8 = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + JournalDocument(CafeSummary);
+        private static readonly string DocumentWithMalformedEntity = JournalDocument("<summary><text>a&b</text></summary>");
         private static readonly string DocumentWithEntity = "<!DOCTYPE icalendar [<!ENTITY e \"x\">]>" + JournalDocument("<summary><text>&e;</text></summary>");
         private const string Cafe = "Caf\xE9";
         private const string ValueParameter = "VALUE";
@@ -522,6 +523,20 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             using (var reader = new XcalReader(new StringReader(IcalendarStart + VcalendarStart)))
+            {
+                // act
+                Action testAction = () => reader.ReadCalendar();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().WithInnerException<XmlException>();
+            }
+        }
+
+        [Fact]
+        public void ReadCalendar_MalformedEntityInText_WrapsXmlException()
+        {
+            // arrange
+            using (var reader = new XcalReader(new StringReader(DocumentWithMalformedEntity)))
             {
                 // act
                 Action testAction = () => reader.ReadCalendar();

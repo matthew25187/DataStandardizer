@@ -64,6 +64,20 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
         // RfcFixtures.Rfc5545Event with a VERSION that includes 2.0.
+        // The most levels of components the reader accepts, counting the VCALENDAR as the first.  RFC 5545 §3.6 allows three, so a limit this
+        // high refuses nothing the RFC allows.
+        private const int MaxComponentDepth = 64;
+
+        private const string BeginExtension = "BEGIN:X-A";
+        private const string EndExtension = "END:X-A";
+
+        public static TheoryData<string> ComponentsNestedToLimit() => new TheoryData<string> { NestedCalendar(MaxComponentDepth - 1) };
+
+        public static TheoryData<string> ComponentsNestedPastLimit() => new TheoryData<string> { NestedCalendar(MaxComponentDepth) };
+
+        private static string NestedCalendar(int nestedComponents) =>
+            Calendar(Enumerable.Repeat(BeginExtension, nestedComponents).Concat(Enumerable.Repeat(EndExtension, nestedComponents)).ToArray());
+
         public static TheoryData<string, string> VersionsIncluding2()
         {
             var data = new TheoryData<string, string>();
@@ -504,6 +518,28 @@ namespace DataStandardizer.File.iCal.Tests
             var exception = testAction.Should().Throw<IcalFileException>().Which;
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidComponentNesting);
             exception.Message.Should().Be("A STANDARD component cannot be nested in a VEVENT component.");
+        }
+
+        [Theory]
+        [MemberData(nameof(ComponentsNestedToLimit), DisableDiscoveryEnumeration = true)]
+        public void ReadCalendars_ComponentsNestedToTheLimit_ReadsTheCalendar(string text)
+        {
+            // act
+            var testResult = ReadCalendars(text);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
+        [Theory]
+        [MemberData(nameof(ComponentsNestedPastLimit), DisableDiscoveryEnumeration = true)]
+        public void ReadCalendars_ComponentsNestedPastTheLimit_Throws(string text)
+        {
+            // act
+            Action testAction = () => ReadCalendars(text);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("Components are nested more than 64 levels deep*");
         }
 
         [Fact]

@@ -18,6 +18,8 @@ namespace DataStandardizer.File.iCal.Tests
         private const string March7Start = "DTSTART:20260307T090000Z";
         private const string NewYorkMarch2Start = "DTSTART;TZID=America/New_York:20260302T090000";
         private const string NewYorkMarch7Start = "DTSTART;TZID=America/New_York:20260307T090000";
+        // About 58,000 years: far past the range of dates, and enough days to overflow the tick count of a 64-bit integer.
+        private const string DurationOfManyThousandYears = "DURATION:P21350000D";
         private const string NewYorkMarch7NoonStart = "DTSTART;TZID=America/New_York:20260307T120000";
         private const string AllDayMarch1Start = "DTSTART;VALUE=DATE:20260301";
         private const string AllDayMarch2Start = "DTSTART;VALUE=DATE:20260302";
@@ -252,6 +254,20 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal(March8NoonLocal);
             testResult.Select(occurrence => occurrence.EndUtc.ToString()).Should().Equal("20260308T160000Z");
+        }
+
+        [Fact]
+        public void GetOccurrences_NominalDurationBeyondTheRangeOfDates_Throws()
+        {
+            // arrange
+            var calendar = Read(Event(NewYorkMarch7NoonStart, DurationOfManyThousandYears));
+            var testEvent = calendar.Events.Single();
+
+            // act
+            Action testAction = () => testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>().WithMessage("An occurrence falls outside the range of dates*");
         }
 
         [Fact]
