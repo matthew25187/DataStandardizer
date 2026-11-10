@@ -1,0 +1,4 @@
+A Group(Some people)
+     :Chris Jones <c@(Chris's host.)public.example>,
+         joe@example.org,
+  John <jdoe@one.test> (my dear friend); (the end of the group)

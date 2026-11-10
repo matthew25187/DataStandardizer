@@ -1,0 +1,30 @@
+MIME-Version: 1.0
+Content-Location: http://example.org/a/b/
+Content-Type: multipart/related; boundary=rel; type="text/html"
+
+--rel
+Content-Type: text/html
+Content-Location: page.html
+
+ROOT
+--rel
+Content-Type: image/png
+Content-Location: ../img/x.png
+
+IMG
+--rel
+Content-Type: text/plain
+Content-Location: data?id=1
+
+DATA
+--rel
+Content-Type: text/html
+Content-Location: sec.html
+
+SEC
+--rel
+Content-Type: text/plain
+Content-Location: a%2eb
+
+ESCAPED
+--rel--

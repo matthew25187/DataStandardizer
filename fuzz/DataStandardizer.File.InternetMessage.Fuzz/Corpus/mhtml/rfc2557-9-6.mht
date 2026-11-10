@@ -1,0 +1,58 @@
+From: foo1@bar.net
+To: foo2@bar.net
+Subject: A simple example
+Mime-Version: 1.0
+Content-Type: multipart/related; boundary="boundary-example-1";
+          type="text/html"
+
+--boundary-example-1
+Content-Type: text/html;charset="US-ASCII"
+Content-ID: <foo3@foo1.bar.net>
+
+outer root
+--boundary-example-1
+Content-Location:
+         http://www.ietf.cnri.reston.va.us/images/ietflogo.gif
+Content-Type: IMAGE/GIF
+Content-Transfer-Encoding: BASE64
+
+R0lGODlh
+--boundary-example-1
+Content-Location:
+     http://www.ietf.cnri.reston.va.us/more-info
+Content-Type: multipart/related; boundary="boundary-example-2";
+           type="text/html"
+
+--boundary-example-2
+Content-Type: text/html;charset="US-ASCII"
+Content-ID: <foo4@foo1.bar.net>
+
+more info
+--boundary-example-2
+Content-Location: http://www.ietf.cnri.reston.va.us/images/ietflogo2e.gif
+Content-Type: IMAGE/GIF
+Content-Transfer-Encoding: BASE64
+
+R0lGODlh
+--boundary-example-2--
+
+--boundary-example-1
+Content-Location:
+           http://www.ietf.cnri.reston.va.us/even-more-info
+Content-Type: multipart/related; boundary="boundary-example-3";
+           type="text/html"
+
+--boundary-example-3
+Content-Type: text/html;charset="US-ASCII"
+Content-ID: <4@foo.bar.net>
+
+even more info
+--boundary-example-3
+Content-Location: http://www.ietf.cnri.reston.va.us/images/ietflogo2d.gif
+Content-Type: IMAGE/GIF
+Content-Transfer-Encoding: BASE64
+
+R0lGODlh
+--boundary-example-3--
+
+--boundary-example-1--

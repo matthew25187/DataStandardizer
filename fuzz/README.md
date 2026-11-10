@@ -9,9 +9,17 @@
 | | `content-line` | `IcalContentLineReader` | `Corpus/content-line` |
 | | `jcal` | `JcalReader` | `Corpus/jcal` |
 | | `xcal` | `XcalReader` | `Corpus/xcal` |
+| `DataStandardizer.File.InternetMessage.Fuzz` | `message` | `ImfReader`, then the message's typed fields, `Validate` and the decoded content of each entity | `Corpus/message` |
+| | `entity` | `ImfEntityReader`, through multipart and `message/rfc822` nesting | `Corpus/entity` |
+| | `mbox` | `MboxReader`, with each variant, as messages and as entity events | `Corpus/mbox` |
+| | `emlx` | `EmlxReader`, with a part resolver | `Corpus/emlx` |
+| | `mhtml` | `MhtmlReader`, with and without a base URI | `Corpus/mhtml` |
+| | `fields` | The typed field parsers, `ImfHeaderField.FromRaw`, `MimeMediaType.TryParse` with RFC 2231 parameters, and the RFC 2047 encoded-word decoder | `Corpus/fields` |
 | `DataStandardizer.LanguageTag.Fuzz` | (only one) | `Bcp47LanguageTag.TryParse`, string and span overloads | `Corpus` |
 
 Each harness treats only the exceptions that the API documents as expected. Anything else, a hang or a crash, is a finding. The seeds come from the test data of the same package.
+
+The `DataStandardizer.File.InternetMessage.Fuzz` harnesses read each input under the default options and again with every accommodation in `ImfOptions` turned on, so that they also reach the code that runs past a problem the defaults reject.
 
 These projects aren't packed, and `fuzz/` is outside `src/` and `tests/`, so a change here never versions or publishes a package. CI builds them when it builds their package, through its `.slnf`, but never runs them. It doesn't build a package for a change that is only in `fuzz/`, so build the project locally before opening a PR for one.
 

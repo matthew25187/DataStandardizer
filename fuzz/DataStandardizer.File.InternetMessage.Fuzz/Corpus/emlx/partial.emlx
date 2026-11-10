@@ -1,0 +1,34 @@
+289
+Date: Thu, 1 Jan 2026 00:00:00 +0000
+From: a@b.test
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=b
+
+--b
+Content-Type: text/plain
+
+hi
+--b
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+X-Apple-Content-Length: 4
+Content-Disposition: attachment
+
+
+--b--
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>date-last-viewed</key>
+	<integer>1767225660</integer>
+	<key>date-received</key>
+	<integer>1767225600</integer>
+	<key>flags</key>
+	<integer>8590133253</integer>
+	<key>remote-id</key>
+	<string>42</string>
+	<key>subject</key>
+	<string>Hello &amp; welcome</string>
+</dict>
+</plist>
