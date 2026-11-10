@@ -548,7 +548,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptCaretEncodingInAllVersions_DecodesCarets(string text)
         {
             // arrange
-            var options = new VcardOptions { AcceptCaretEncodingInAllVersions = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptCaretEncodingInAllVersions = true };
             using (var reader = CreateReader(text, options))
             {
                 // act
@@ -865,7 +865,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptBareLineFeed_ReadsLines()
         {
             // arrange
-            var options = new VcardOptions { AcceptBareLineFeed = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptBareLineFeed = true };
             using (var reader = CreateReader("A:1\n 2\nB:2\n", options))
             {
                 // act
@@ -910,7 +910,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptMissingFinalLineBreak_ReadsLine()
         {
             // arrange
-            var options = new VcardOptions { AcceptMissingFinalLineBreak = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptMissingFinalLineBreak = true };
             using (var reader = CreateReader("A:1", options))
             {
                 // act
@@ -977,7 +977,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void MaxLineLength_Default_IsNull()
         {
             // arrange
-            var options = new VcardOptions();
+            var options = new VcardOptions { MaxLineLength = null };
 
             // act
             var testResult = options.MaxLineLength;
@@ -1163,7 +1163,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_Utf8ByteOrderMarkWithUtf8EncodingWithPreamble_Throws()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.UTF8 };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 };
             using (var reader = CreateStreamReader(Utf8ByteOrderMarkLine, options))
             {
                 // act
@@ -1178,7 +1178,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_Utf16ByteOrderMarkWithUtf16Encoding_Throws()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.Unicode };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.Unicode };
             using (var reader = CreateStreamReader(Utf16ByteOrderMarkLine, options))
             {
                 // act
@@ -1193,7 +1193,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptByteOrderMarkWithUtf8EncodingWithPreamble_SkipsIt()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.UTF8, AcceptByteOrderMark = true };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8, AcceptByteOrderMark = true };
             using (var reader = CreateStreamReader(Utf8ByteOrderMarkLine, options))
             {
                 // act
@@ -1208,7 +1208,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptByteOrderMarkWithUtf16Encoding_SkipsIt()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.Unicode, AcceptByteOrderMark = true };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.Unicode, AcceptByteOrderMark = true };
             using (var reader = CreateStreamReader(Utf16ByteOrderMarkLine, options))
             {
                 // act
@@ -1237,7 +1237,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptByteOrderMarkFromStream_SkipsIt()
         {
             // arrange
-            var options = new VcardOptions { AcceptByteOrderMark = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptByteOrderMark = true };
             using (var reader = CreateStreamReader(Utf8ByteOrderMarkLine, options))
             {
                 // act
@@ -1252,7 +1252,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_AcceptByteOrderMarkFromTextReader_SkipsIt()
         {
             // arrange
-            var options = new VcardOptions { AcceptByteOrderMark = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptByteOrderMark = true };
             using (var reader = CreateReader(ByteOrderMarkCharacterLine, options))
             {
                 // act
@@ -1267,7 +1267,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_ChosenEncoding_DecodesWithIt()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Latin1 };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Latin1 };
             using (var reader = CreateStreamReader(InvalidUtf8Line, options))
             {
                 // act
@@ -1282,7 +1282,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_ChosenReplacingUtf8Encoding_ReplacesInvalidData()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.UTF8 };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 };
             using (var reader = CreateStreamReader(InvalidUtf8Line, options))
             {
                 // act
@@ -1297,7 +1297,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Constructor_TextReaderWithEncoding_Throws()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.UTF8 };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 };
             var textReader = new StringReader(LineA);
 
             // act

@@ -37,7 +37,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public const string Version30 = nameof(Version30);
 
-        private static readonly VcardOptions AcceptUnescapedCommas = new VcardOptions { AcceptUnescapedCommasInUris = true };
+        private static readonly VcardOptions AcceptUnescapedCommas = new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true };
 
         private static readonly Dictionary<string, (string Text, VcardOptions Options)> Cards = new Dictionary<string, (string Text, VcardOptions Options)>
         {

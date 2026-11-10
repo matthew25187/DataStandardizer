@@ -58,7 +58,7 @@ namespace DataStandardizer.File.vCard.IntegrationTests
         {
             // arrange
             CodePageProvider.Register();
-            var options = new VcardOptions { Encoding = Encoding.GetEncoding("iso-8859-1") };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.GetEncoding("iso-8859-1") };
             using (var reader = new VcardContentLineReader(new MemoryStream(RawShiftJisCard), options))
             {
                 var line = reader.ReadLines().Last();

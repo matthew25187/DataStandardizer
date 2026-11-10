@@ -366,7 +366,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_AllowLossyVersionConversionInVersion30Card_WritesWithoutCarets(string value, string expected)
         {
             // arrange
-            var options = new VcardOptions { AllowLossyVersionConversion = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowLossyVersionConversion = true };
             var lines = new[] { Begin, Version30, LineWithParameter(value) };
 
             // act
@@ -380,7 +380,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_AllowLossyVersionConversionInVersion40Card_StillCaretEncodes()
         {
             // arrange
-            var options = new VcardOptions { AllowLossyVersionConversion = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowLossyVersionConversion = true };
             var lines = new[] { Begin, Version40, LineWithParameter("a\"b\nc^") };
 
             // act
@@ -394,7 +394,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_AcceptCaretEncodingInAllVersionsInVersion30Card_StillThrows()
         {
             // arrange
-            using (var writer = new VcardContentLineWriter(new StringWriter(), new VcardOptions { AcceptCaretEncodingInAllVersions = true }))
+            using (var writer = new VcardContentLineWriter(new StringWriter(), new VcardOptions { MaxLineLength = null, AcceptCaretEncodingInAllVersions = true }))
             {
                 writer.WriteLines(new[] { Begin, Version30 });
 
@@ -588,7 +588,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         private static string WriteAll(params VcardContentLine[] lines)
         {
-            return WriteAll(new VcardOptions(), lines);
+            return WriteAll(new VcardOptions { MaxLineLength = null }, lines);
         }
 
         private static string WriteAll(VcardOptions options, params VcardContentLine[] lines)

@@ -225,7 +225,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_ValueNotInXcardFormWithInvalidValuesAllowed_KeepsTheValue(string xml, string expected)
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = ReadLastXcardProperty(xml, options);
@@ -443,7 +443,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var latin1 = Encoding.GetEncoding(Latin1CodePage);
             var bytes = latin1.GetBytes("<vcards xmlns=\"urn:ietf:params:xml:ns:vcard-4.0\"><vcard><fn><text>\x00E9</text></fn></vcard></vcards>");
-            var options = new VcardOptions { Encoding = latin1 };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = latin1 };
             using (var reader = new XcardReader(new MemoryStream(bytes), options))
             {
                 // act
@@ -459,9 +459,9 @@ namespace DataStandardizer.File.vCard.Tests
             () => new XcardReader((Stream)null),
             () => new XcardReader(new MemoryStream(), null),
             () => new XcardReader((TextReader)null),
-            () => new XcardReader(new StringReader(string.Empty), new VcardOptions { Encoding = Encoding.UTF8 }),
+            () => new XcardReader(new StringReader(string.Empty), new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 }),
             () => new XcardReader((XmlReader)null),
-            () => new XcardReader(XmlReader.Create(new StringReader(string.Empty)), new VcardOptions { Encoding = Encoding.UTF8 }),
+            () => new XcardReader(XmlReader.Create(new StringReader(string.Empty)), new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 }),
             () => new XcardReader(new WriteOnlyStream()),
         };
 

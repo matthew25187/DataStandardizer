@@ -275,7 +275,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_RuleBroken_ReportsIt(string property, VcardDiagnosticKind expected)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Validate();
@@ -373,7 +373,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // ref. RFC 8605 §2.1: 'At least one "mailto", "http", or "https" URI value MUST be provided.'
-            var options = new VcardOptions { AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("CONTACT-URI:ftp://example.com/"), options);
 
             // act
@@ -402,7 +402,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // ref. RFC 8605 §2.1: "If multiple CONTACT-URI properties are used, the vCard PREF parameter MUST be used to describe the most preferred property".
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("CONTACT-URI:mailto:a@example.com", "CONTACT-URI:https://example.com/"), options);
 
             // act
@@ -417,7 +417,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // ref. RFC 8605 §2.1: the requirement is of a URI value, and this is text, which the property doesn't allow.
-            var options = new VcardOptions { AllowInvalidValues = true, AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true, AllowMissingRequiredProperties = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("CONTACT-URI;VALUE=text:https://example.com/"), options);
 
             // act
@@ -434,7 +434,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // ref. RFC 6474 §2.3 and RFC 6350 §6.2.5: CALSCALE only with a date or date-time, and =54 is the T of the time T1200.
-            var options = new VcardOptions { AcceptLegacySyntax = true, AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
 
             // act
@@ -525,7 +525,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Member_NoValidParameter_IsNull(string property, Func<VcardCard, object> member)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = member(card);
@@ -773,7 +773,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetOrderedByIndex_IndexNotValid_CountsAsAbsent()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("INTEREST;INDEX=0:a", "INTEREST;INDEX=1:b"), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("INTEREST;INDEX=0:a", "INTEREST;INDEX=1:b"), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Interests.GetOrderedByIndex();
@@ -803,7 +803,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_OrgUriWithOption_IsAnOrganizationDirectory(string property)
         {
             // arrange
-            var options = new VcardOptions { AcceptOrgUriProperty = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptOrgUriProperty = true };
 
             // act
             var testResult = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
@@ -818,7 +818,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_OrgUriReadWithOption_WritesTheRegisteredName()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("item.ORG-URI;INDEX=1:urn:a"), new VcardOptions { AcceptOrgUriProperty = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("item.ORG-URI;INDEX=1:urn:a"), new VcardOptions { MaxLineLength = null, AcceptOrgUriProperty = true });
 
             // act
             var testResult = VcardCardTestData.Write(card);
@@ -832,7 +832,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("ORG-URI:not a uri");
-            var options = new VcardOptions { AcceptOrgUriProperty = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptOrgUriProperty = true };
 
             // act
             Action testAction = () => VcardCardTestData.Read(text, options);
@@ -846,7 +846,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             const long LineOfProperty = 4;
-            var options = new VcardOptions { AcceptOrgUriProperty = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptOrgUriProperty = true };
 
             // act
             var testResult = VcardCardTestData.Read(VcardCardTestData.Card("ORG-URI:urn:a"), options);

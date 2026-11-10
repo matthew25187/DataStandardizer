@@ -25,7 +25,7 @@ namespace DataStandardizer.File.vCard.Tests
         // A name no resolver knows.
         private const string UnknownCharsetName = "X-UNKNOWN-CHARSET";
 
-        private static readonly VcardOptions AcceptLegacy = new VcardOptions { AcceptLegacySyntax = true };
+        private static readonly VcardOptions AcceptLegacy = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
 
         // "NOTE;ENCODING=8BIT;CHARSET=ISO-8859-1:caf", E9 and a line break.
         private static readonly byte[] RawLatin1Line = Concat(Encoding.ASCII.GetBytes("NOTE;ENCODING=8BIT;CHARSET=ISO-8859-1:caf"), new byte[] { 0xE9, 0x0D, 0x0A });
@@ -159,7 +159,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_UnknownCharsetWithFallback_DecodesItAsLatin1()
         {
             // arrange
-            var options = new VcardOptions { AllowUnknownCharsetAsLatin1 = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowUnknownCharsetAsLatin1 = true };
             var subject = ReadVersion21Line("NOTE;QUOTED-PRINTABLE;CHARSET=" + UnknownCharsetName + ":" + Latin1QuotedPrintable, options);
 
             // act
@@ -174,7 +174,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_KnownCharsetWithFallback_SaysItDidNotUseIt()
         {
             // arrange
-            var options = new VcardOptions { AllowUnknownCharsetAsLatin1 = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowUnknownCharsetAsLatin1 = true };
             var subject = ReadVersion21Line("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-8:" + Utf8QuotedPrintable, options);
 
             // act
@@ -189,7 +189,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_ViewOfUnknownCharsetWithFallback_SaysItUsedIt()
         {
             // arrange
-            var options = new VcardOptions { AcceptLegacySyntax = true, AllowUnknownCharsetAsLatin1 = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true, AllowUnknownCharsetAsLatin1 = true };
             using (var reader = CreateReader(Crlf("NOTE;QUOTED-PRINTABLE;CHARSET=" + UnknownCharsetName + ":" + Latin1QuotedPrintable), options))
             {
                 reader.ReadContentLine();
@@ -207,7 +207,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_CharsetFromCallersResolver_UsesIt()
         {
             // arrange
-            var options = new VcardOptions { CharsetResolver = new SingleCharsetResolver(UnknownCharsetName, Latin1) };
+            var options = new VcardOptions { MaxLineLength = null, CharsetResolver = new SingleCharsetResolver(UnknownCharsetName, Latin1) };
             var subject = ReadVersion21Line("NOTE;QUOTED-PRINTABLE;CHARSET=" + UnknownCharsetName + ":" + Latin1QuotedPrintable, options);
 
             // act
@@ -221,7 +221,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_BuiltInCharsetWithCallersResolver_IsNotAskedOfIt()
         {
             // arrange
-            var options = new VcardOptions { CharsetResolver = new SingleCharsetResolver("UTF-8", Latin1) };
+            var options = new VcardOptions { MaxLineLength = null, CharsetResolver = new SingleCharsetResolver("UTF-8", Latin1) };
             var subject = ReadVersion21Line("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-8:" + Utf8QuotedPrintable, options);
 
             // act
@@ -236,7 +236,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // E9 00 is U+00E9 in UTF-16 LE.
-            var options = new VcardOptions { CharsetResolver = new SingleCharsetResolver(UnknownCharsetName, Encoding.Unicode) };
+            var options = new VcardOptions { MaxLineLength = null, CharsetResolver = new SingleCharsetResolver(UnknownCharsetName, Encoding.Unicode) };
             var subject = ReadVersion21Line("NOTE;QUOTED-PRINTABLE;CHARSET=" + UnknownCharsetName + ":=E9=00", options);
 
             // act
@@ -349,7 +349,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_EightBitValueWithoutEncodingWithOption_DecodesItByItsCharset()
         {
             // arrange
-            var subject = ReadVersion21Line("NOTE;CHARSET=UTF-8:" + Cafe, new VcardOptions { AcceptEightBitWithoutEncoding = true });
+            var subject = ReadVersion21Line("NOTE;CHARSET=UTF-8:" + Cafe, new VcardOptions { MaxLineLength = null, AcceptEightBitWithoutEncoding = true });
 
             // act
             var testResult = subject.GetDecodedText();
@@ -402,7 +402,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // The default encoding of a stream is strict UTF-8, which can't read E9 here.
-            var options = new VcardOptions();
+            var options = new VcardOptions { MaxLineLength = null };
 
             // act
             Action testAction = () => ReadStreamLine(RawLatin1Line, options);
@@ -415,7 +415,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_RawLatin1ValueReadByteTransparently_GivesTheText()
         {
             // arrange
-            var subject = ReadStreamLine(RawLatin1Line, new VcardOptions { Encoding = Latin1 });
+            var subject = ReadStreamLine(RawLatin1Line, new VcardOptions { MaxLineLength = null, Encoding = Latin1 });
 
             // act
             var testResult = subject.GetDecodedText();
@@ -428,7 +428,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedText_RawUtf8ValueReadByteTransparently_RedecodesIt()
         {
             // arrange
-            var subject = ReadStreamLine(RawUtf8Line, new VcardOptions { Encoding = Latin1 });
+            var subject = ReadStreamLine(RawUtf8Line, new VcardOptions { MaxLineLength = null, Encoding = Latin1 });
 
             // act
             var testResult = subject.GetDecodedText();
@@ -442,7 +442,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // C3 A9 in a UTF-8 stream is one character, but in ISO-8859-1 it is two.
-            var subject = ReadStreamLine(RawUtf8LineNamedLatin1, new VcardOptions());
+            var subject = ReadStreamLine(RawUtf8LineNamedLatin1, new VcardOptions { MaxLineLength = null });
 
             // act
             var testResult = subject.GetDecodedText();

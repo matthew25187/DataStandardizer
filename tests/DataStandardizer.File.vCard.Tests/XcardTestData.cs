@@ -146,7 +146,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public static List<VcardCard> ReadXcard(string xml, VcardOptions options = null)
         {
-            using (var reader = new XcardReader(new StringReader(xml), options ?? new VcardOptions()))
+            using (var reader = new XcardReader(new StringReader(xml), options ?? new VcardOptions { MaxLineLength = null }))
             {
                 return reader.ReadCards().ToList();
             }
@@ -158,7 +158,7 @@ namespace DataStandardizer.File.vCard.Tests
         public static string WriteXcard(IEnumerable<VcardCard> cards, VcardOptions options = null)
         {
             var output = new MemoryStream();
-            using (var writer = new XcardWriter(output, options ?? new VcardOptions()))
+            using (var writer = new XcardWriter(output, options ?? new VcardOptions { MaxLineLength = null }))
             {
                 writer.WriteCards(cards);
             }

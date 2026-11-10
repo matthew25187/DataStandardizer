@@ -139,7 +139,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public static List<VcardCard> ReadJcard(string json, VcardOptions options = null)
         {
-            using (var reader = new JcardReader(new MemoryStream(Encoding.UTF8.GetBytes(json)), options ?? new VcardOptions()))
+            using (var reader = new JcardReader(new MemoryStream(Encoding.UTF8.GetBytes(json)), options ?? new VcardOptions { MaxLineLength = null }))
             {
                 return reader.ReadCards().ToList();
             }
@@ -151,7 +151,7 @@ namespace DataStandardizer.File.vCard.Tests
         public static string WriteJcard(IEnumerable<VcardCard> cards, VcardOptions options = null)
         {
             var output = new MemoryStream();
-            using (var writer = new JcardWriter(output, options ?? new VcardOptions()))
+            using (var writer = new JcardWriter(output, options ?? new VcardOptions { MaxLineLength = null }))
             {
                 writer.WriteCards(cards);
             }
@@ -172,7 +172,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public static List<VcardCard> ReadVcards(string text, VcardOptions options = null)
         {
-            using (var reader = new VcardReader(new StringReader(text), options ?? new VcardOptions()))
+            using (var reader = new VcardReader(new StringReader(text), options ?? new VcardOptions { MaxLineLength = null }))
             {
                 return reader.ReadCards().ToList();
             }
@@ -184,7 +184,7 @@ namespace DataStandardizer.File.vCard.Tests
         public static string WriteVcards(IEnumerable<VcardCard> cards, VcardOptions options = null)
         {
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, options ?? new VcardOptions()))
+            using (var writer = new VcardWriter(output, options ?? new VcardOptions { MaxLineLength = null }))
             {
                 writer.WriteCards(cards);
             }

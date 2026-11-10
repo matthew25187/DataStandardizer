@@ -59,12 +59,12 @@ namespace DataStandardizer.File.vCard.Tests
 
         public static VcardContentLineReader CreateReader(string text, VcardOptions options = null, int bufferSize = DefaultBufferSize)
         {
-            return new VcardContentLineReader(new StringReader(text), options ?? new VcardOptions(), bufferSize);
+            return new VcardContentLineReader(new StringReader(text), options ?? new VcardOptions { MaxLineLength = null }, bufferSize);
         }
 
         public static VcardContentLineReader CreateStreamReader(byte[] data, VcardOptions options = null, int streamBufferSize = DefaultBufferSize, int bufferSize = DefaultBufferSize)
         {
-            return new VcardContentLineReader(new MemoryStream(data), options ?? new VcardOptions(), streamBufferSize, bufferSize);
+            return new VcardContentLineReader(new MemoryStream(data), options ?? new VcardOptions { MaxLineLength = null }, streamBufferSize, bufferSize);
         }
 
         public static List<VcardContentLine> ReadAll(VcardContentLineReader reader)

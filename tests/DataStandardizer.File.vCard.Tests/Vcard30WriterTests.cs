@@ -15,7 +15,7 @@ namespace DataStandardizer.File.vCard.Tests
         private const string MinimalVersion40Name = "N:Doe;Jane;;;";
 
         // Each of the data below is read from a card of vCard 4.0, with this so that it gets as far as the conversion.
-        private static readonly VcardOptions AcceptEverything = new VcardOptions { AllowInvalidValues = true, AllowCardinalityViolations = true };
+        private static readonly VcardOptions AcceptEverything = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true, AllowCardinalityViolations = true };
 
         public static TheoryData<string, string> LosslessRoundTripData()
         {
@@ -288,7 +288,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var card = VcardCardTestData.Read(VcardCardTestData.Card(MinimalVersion40Name, line), AcceptEverything);
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, new VcardOptions { WriteVersion = VcardVersion.V3_0 }))
+            using (var writer = new VcardWriter(output, new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V3_0 }))
             {
                 // act
                 Action testAction = () => writer.WriteCard(card);
@@ -429,7 +429,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var card = VcardCardTestData.NewCard();
-            using (var writer = new VcardWriter(new StringWriter(), new VcardOptions { WriteVersion = VcardVersion.V3_0 }))
+            using (var writer = new VcardWriter(new StringWriter(), new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V3_0 }))
             {
                 // act
                 Action testAction = () => writer.WriteCard(card);
@@ -447,7 +447,7 @@ namespace DataStandardizer.File.vCard.Tests
             var output = new StringWriter();
 
             // act
-            using (var writer = new VcardWriter(output, new VcardOptions { WriteVersion = VcardVersion.V3_0 }))
+            using (var writer = new VcardWriter(output, new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V3_0 }))
             {
                 writer.WriteCard(card);
             }
@@ -492,7 +492,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             const VcardVersion NotAVersion = (VcardVersion)3;
-            var options = new VcardOptions { WriteVersion = NotAVersion };
+            var options = new VcardOptions { MaxLineLength = null, WriteVersion = NotAVersion };
 
             // act
             Action testAction = () => new VcardWriter(new StringWriter(), options);
@@ -556,7 +556,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var card = VcardCardTestData.Read(VcardCardTestData.Card(MinimalVersion40Name, "KIND:group", "TEL;PREF=1:+1"));
-            var options = new VcardOptions { AllowLossyVersionConversion = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowLossyVersionConversion = true };
 
             // act
             var testResult = VcardVersionConverter.Convert(card, VcardVersion.V3_0, options);

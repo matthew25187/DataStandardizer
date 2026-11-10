@@ -288,7 +288,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_BareCommaInUriWithOption_FindsNoProblem(string property)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { AcceptUnescapedCommasInUris = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true });
 
             // act
             var testResult = card.Validate();
@@ -301,7 +301,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_BareCommaWithOption_GivesTheTypedValue()
         {
             // arrange
-            var options = new VcardOptions { AcceptUnescapedCommasInUris = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true };
 
             // act
             var testResult = VcardCardTestData.Read(VcardCardTestData.Card("GEO:geo:1,2"), options);
@@ -314,7 +314,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_BareCommaReadWithOption_WritesItEscaped()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("GEO:geo:1,2"), new VcardOptions { AcceptUnescapedCommasInUris = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("GEO:geo:1,2"), new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true });
 
             // act
             var testResult = VcardCardTestData.Write(card);
@@ -331,7 +331,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_OptionOnOtherValues_LeavesThemAsTheyAre(string property, string expected)
         {
             // arrange
-            var options = new VcardOptions { AcceptUnescapedCommasInUris = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true };
 
             // act
             var testResult = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
@@ -345,7 +345,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("NOTE:a,b");
-            var options = new VcardOptions { AcceptUnescapedCommasInUris = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true };
 
             // act
             Action testAction = () => VcardCardTestData.Read(text, options);
@@ -362,7 +362,7 @@ namespace DataStandardizer.File.vCard.Tests
             card.Properties.Add(new VcardContentLine(VcardPropertyNames.Geo, "geo:1,2"));
 
             // act
-            Action testAction = () => VcardCardTestData.Write(card, new VcardOptions { AcceptUnescapedCommasInUris = true });
+            Action testAction = () => VcardCardTestData.Write(card, new VcardOptions { MaxLineLength = null, AcceptUnescapedCommasInUris = true });
 
             // assert
             testAction.Should().Throw<VcardFileException>();

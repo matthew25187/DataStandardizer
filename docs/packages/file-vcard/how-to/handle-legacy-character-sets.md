@@ -110,7 +110,7 @@ using DataStandardizer.Communication.Mime;
 using DataStandardizer.File.vCard;
 
 MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Iso88591, out var latin1);
-var options = new VcardOptions { Encoding = latin1 };
+var options = new VcardOptions { MaxLineLength = null, Encoding = latin1 };
 ```
 
 `GetDecodedText` then gets the octets back and decodes them by the line's `CHARSET`. `Value`,

@@ -67,7 +67,7 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task ReadLinesAsync_Rfc6350ExampleFromAsyncOnlyTextReader_GivesItsLines(int bufferSize)
         {
             // arrange
-            var reader = new VcardContentLineReader(new AsyncOnlyTextReader(Rfc6350Examples.Example, CharactersPerRead), new VcardOptions(), bufferSize);
+            var reader = new VcardContentLineReader(new AsyncOnlyTextReader(Rfc6350Examples.Example, CharactersPerRead), new VcardOptions { MaxLineLength = null }, bufferSize);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -84,7 +84,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var data = Encoding.UTF8.GetBytes(Rfc6350Examples.Example);
-            var reader = new VcardContentLineReader(new AsyncOnlyStream(data), new VcardOptions(), SmallStreamBufferSize, bufferSize);
+            var reader = new VcardContentLineReader(new AsyncOnlyStream(data), new VcardOptions { MaxLineLength = null }, SmallStreamBufferSize, bufferSize);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -100,7 +100,7 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task ReadContentLineAsync_Rfc6350Example_ViewAgreesWithReadLine(int bufferSize)
         {
             // arrange
-            var reader = new VcardContentLineReader(new AsyncOnlyTextReader(Rfc6350Examples.Example, CharactersPerRead), new VcardOptions(), bufferSize);
+            var reader = new VcardContentLineReader(new AsyncOnlyTextReader(Rfc6350Examples.Example, CharactersPerRead), new VcardOptions { MaxLineLength = null }, bufferSize);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -116,7 +116,7 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task ReadLineAsync_FoldInsideUtf8SequenceFromAsyncOnlyStream_RestoresCharacter(int bufferSize)
         {
             // arrange
-            var reader = new VcardContentLineReader(new AsyncOnlyStream(FoldInsideEuroSign), new VcardOptions(), SmallStreamBufferSize, bufferSize);
+            var reader = new VcardContentLineReader(new AsyncOnlyStream(FoldInsideEuroSign), new VcardOptions { MaxLineLength = null }, SmallStreamBufferSize, bufferSize);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act

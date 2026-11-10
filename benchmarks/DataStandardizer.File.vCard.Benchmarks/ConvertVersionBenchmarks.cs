@@ -14,7 +14,7 @@ public class ConvertVersionBenchmarks
 {
     private List<VcardCard> _cards = [];
     private List<FolkerKinzelCard> _folkerKinzelCards = [];
-    private VcardOptions _options = new();
+    private VcardOptions _options = new() { MaxLineLength = null };
     private MemoryStream _output = new();
 
     [Params(VcardVersion.V3_0, VcardVersion.V2_1)]
@@ -31,7 +31,7 @@ public class ConvertVersionBenchmarks
         }
 
         _folkerKinzelCards = Vcf.Deserialize(new MemoryStream(vcf, writable: false), null, leaveStreamOpen: false).ToList();
-        _options = new VcardOptions { WriteVersion = Version, AllowLossyVersionConversion = true };
+        _options = new VcardOptions { MaxLineLength = null, WriteVersion = Version, AllowLossyVersionConversion = true };
 
         // Pre-size the output so buffer growth is not part of the measurement.
         _output = new MemoryStream(vcf.Length * 2);

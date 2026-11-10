@@ -31,7 +31,7 @@ namespace DataStandardizer.File.vCard.Tests
         private const string TwoMinimalXcards =
             "<vcards xmlns=\"urn:ietf:params:xml:ns:vcard-4.0\"><vcard><fn><text>A</text></fn></vcard><vcard><fn><text>A</text></fn></vcard></vcards>";
 
-        private static readonly VcardOptions InvalidValuesAllowed = new VcardOptions { AllowInvalidValues = true };
+        private static readonly VcardOptions InvalidValuesAllowed = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
         public static TheoryData<string, string> Properties() => Wrap(new[]
         {
@@ -169,7 +169,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var cards = ReadVcards(MinimalVcard);
-            var options = new VcardOptions { LineBreak = "\n" };
+            var options = new VcardOptions { MaxLineLength = null, LineBreak = "\n" };
 
             // act
             var testResult = WriteXcard(cards, options);
@@ -342,11 +342,11 @@ namespace DataStandardizer.File.vCard.Tests
             () => new XcardWriter((Stream)null),
             () => new XcardWriter(new MemoryStream(), null),
             () => new XcardWriter(new MemoryStream(new byte[0], false)),
-            () => new XcardWriter(new MemoryStream(), new VcardOptions { LineBreak = "\r" }),
+            () => new XcardWriter(new MemoryStream(), new VcardOptions { MaxLineLength = null, LineBreak = "\r" }),
             () => new XcardWriter((TextWriter)null),
-            () => new XcardWriter(new StringWriter(), new VcardOptions { Encoding = Encoding.UTF8 }),
+            () => new XcardWriter(new StringWriter(), new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 }),
             () => new XcardWriter((XmlWriter)null),
-            () => new XcardWriter(XmlWriter.Create(new StringWriter()), new VcardOptions { Encoding = Encoding.UTF8 }),
+            () => new XcardWriter(XmlWriter.Create(new StringWriter()), new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 }),
         };
 
         [Theory]

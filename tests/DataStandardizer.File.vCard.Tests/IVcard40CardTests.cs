@@ -217,7 +217,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Getter_ThroughTheInterface_GivesTheCommonValue(string property, Func<IVcard40Card, object> member, object expected)
         {
             // arrange
-            var options = new VcardOptions { AllowCardinalityViolations = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
             var version40 = card.AsVersion40();
 

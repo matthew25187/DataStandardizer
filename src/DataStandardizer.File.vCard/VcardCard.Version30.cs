@@ -178,8 +178,8 @@ namespace DataStandardizer.File.vCard
         {
             var mapping = VcardVersionMapping.For(version, nameof(version));
             var diagnostics = new List<VcardDiagnostic>();
-            var lines = mapping.FromCanonical(this, new VcardOptions(), diagnostics);
-            mapping.Validate(lines, this, new VcardOptions(), 0, diagnostics);
+            var lines = mapping.FromCanonical(this, new VcardOptions { MaxLineLength = null }, diagnostics);
+            mapping.Validate(lines, this, new VcardOptions { MaxLineLength = null }, 0, diagnostics);
             return new ReadOnlyCollection<VcardDiagnostic>(diagnostics);
         }
 

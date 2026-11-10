@@ -142,7 +142,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_OutlookExportUnderAcceptLegacySyntax_DecodesIntoCanonicalForm()
         {
             // arrange
-            var options = new VcardOptions { AcceptLegacySyntax = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
 
             // act
             var testResult = VcardCardTestData.Read(OutlookExport, options);
@@ -157,7 +157,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_OutlookExportUnderAcceptLegacySyntax_WritesNoLegacyForms()
         {
             // arrange
-            var card = VcardCardTestData.Read(OutlookExport, new VcardOptions { AcceptLegacySyntax = true });
+            var card = VcardCardTestData.Read(OutlookExport, new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true });
 
             // act
             var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0);

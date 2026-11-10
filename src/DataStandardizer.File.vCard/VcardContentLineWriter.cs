@@ -110,7 +110,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="vcardStream">The stream.  It is left open when the writer is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardStream"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="vcardStream"/> does not support writing.</exception>
-        public VcardContentLineWriter(Stream vcardStream) : this(vcardStream, new VcardOptions())
+        public VcardContentLineWriter(Stream vcardStream) : this(vcardStream, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -134,7 +134,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="vcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardFilePath"/> is <c>null</c>.</exception>
-        public VcardContentLineWriter(string vcardFilePath) : this(vcardFilePath, new VcardOptions())
+        public VcardContentLineWriter(string vcardFilePath) : this(vcardFilePath, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -156,7 +156,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="writer">The text writer.  It is neither flushed nor closed when the writer is disposed; call <see cref="Flush"/> first.</param>
         /// <exception cref="ArgumentNullException"><paramref name="writer"/> is <c>null</c>.</exception>
-        public VcardContentLineWriter(TextWriter writer) : this(writer, new VcardOptions())
+        public VcardContentLineWriter(TextWriter writer) : this(writer, new VcardOptions { MaxLineLength = null })
         {
         }
 

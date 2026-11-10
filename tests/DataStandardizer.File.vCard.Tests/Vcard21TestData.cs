@@ -41,6 +41,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             var options = new VcardOptions
             {
+                MaxLineLength = null,
                 WriteVersion = VcardVersion.V2_1,
                 AllowLossyVersionConversion = allowLossy,
                 AllowMissingRequiredProperties = allowMissingRequired,

@@ -351,7 +351,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_PropertyNameOfALaterVersionWithAllowInvalidValues_KeepsIt()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var text = Vcard21TestData.Card("NICKNAME:Jim");
 
             // act
@@ -379,7 +379,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_CardWithNoNameWithAllowMissingRequiredProperties_IsRead()
         {
             // arrange
-            var options = new VcardOptions { AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
             var text = Vcard21TestData.BareCard("FN:Jane Doe");
 
             // act
@@ -406,7 +406,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_EightBitWithAcceptEightBitWithoutEncoding_DecodesIt()
         {
             // arrange
-            var options = new VcardOptions { AcceptEightBitWithoutEncoding = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptEightBitWithoutEncoding = true };
             var text = Vcard21TestData.Card("NOTE;CHARSET=UTF-8:Caf\x00E9");
 
             // act

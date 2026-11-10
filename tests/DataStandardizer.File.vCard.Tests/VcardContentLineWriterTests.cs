@@ -477,7 +477,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_TabFoldWhitespace_StartsContinuationLinesWithTab()
         {
             // arrange
-            var options = new VcardOptions { FoldWhitespace = '\t' };
+            var options = new VcardOptions { MaxLineLength = null, FoldWhitespace = '\t' };
 
             // act
             var testResult = WriteAll(options, new VcardContentLine("X", HundredAs));
@@ -490,7 +490,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_BareLineFeed_EndsAndFoldsLinesWithLineFeed()
         {
             // arrange
-            var options = new VcardOptions { LineBreak = "\n" };
+            var options = new VcardOptions { MaxLineLength = null, LineBreak = "\n" };
 
             // act
             var testResult = WriteAll(options, new VcardContentLine("X", HundredAs), new VcardContentLine("Y", "1"));
@@ -503,9 +503,9 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadLine_WrittenWithBareLineFeedAndAccepted_IsTheLineWritten()
         {
             // arrange
-            var options = new VcardOptions { LineBreak = "\n" };
+            var options = new VcardOptions { MaxLineLength = null, LineBreak = "\n" };
             var line = new VcardContentLine(ContactUri, RepeatedMultiOctetValue);
-            using (var reader = CreateReader(WriteAll(options, line), new VcardOptions { AcceptBareLineFeed = true }))
+            using (var reader = CreateReader(WriteAll(options, line), new VcardOptions { MaxLineLength = null, AcceptBareLineFeed = true }))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -520,7 +520,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_CustomFoldLength_FoldsAtThatLength()
         {
             // arrange
-            var options = new VcardOptions { FoldLength = 10 };
+            var options = new VcardOptions { MaxLineLength = null, FoldLength = 10 };
 
             // act
             var testResult = WriteAll(options, new VcardContentLine(Related, "abcdefghijkl"));
@@ -533,7 +533,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLine_MinimumFoldLength_PutsOneCharacterOnEachLineThatCannotHoldMore()
         {
             // arrange
-            var options = new VcardOptions { FoldLength = 4 };
+            var options = new VcardOptions { MaxLineLength = null, FoldLength = 4 };
 
             // act
             var testResult = WriteAll(options, new VcardContentLine("X", "😀😀ab€"));
@@ -578,19 +578,19 @@ namespace DataStandardizer.File.vCard.Tests
         {
             var options = new List<(string, VcardOptions, string)>
             {
-                ("FoldLength = 3", new VcardOptions { FoldLength = 3 }, "fold length"),
-                ("FoldLength = 0", new VcardOptions { FoldLength = 0 }, "fold length"),
-                ("FoldLength = -1", new VcardOptions { FoldLength = -1 }, "fold length"),
-                ("FoldWhitespace = x", new VcardOptions { FoldWhitespace = 'x' }, "fold white space"),
-                ("FoldWhitespace = LF", new VcardOptions { FoldWhitespace = '\n' }, "fold white space"),
-                ("FoldWhitespace = CR", new VcardOptions { FoldWhitespace = '\r' }, "fold white space"),
-                ("FoldWhitespace = no-break space", new VcardOptions { FoldWhitespace = '\xA0' }, "fold white space"),
-                ("LineBreak = CR", new VcardOptions { LineBreak = "\r" }, "line break"),
-                ("LineBreak empty", new VcardOptions { LineBreak = "" }, "line break"),
-                ("LineBreak = LF CR", new VcardOptions { LineBreak = "\n\r" }, "line break"),
-                ("LineBreak = CRLF CRLF", new VcardOptions { LineBreak = "\r\n\r\n" }, "line break"),
-                ("LineBreak = space LF", new VcardOptions { LineBreak = " \n" }, "line break"),
-                ("LineBreak null", new VcardOptions { LineBreak = null }, "line break"),
+                ("FoldLength = 3", new VcardOptions { MaxLineLength = null, FoldLength = 3 }, "fold length"),
+                ("FoldLength = 0", new VcardOptions { MaxLineLength = null, FoldLength = 0 }, "fold length"),
+                ("FoldLength = -1", new VcardOptions { MaxLineLength = null, FoldLength = -1 }, "fold length"),
+                ("FoldWhitespace = x", new VcardOptions { MaxLineLength = null, FoldWhitespace = 'x' }, "fold white space"),
+                ("FoldWhitespace = LF", new VcardOptions { MaxLineLength = null, FoldWhitespace = '\n' }, "fold white space"),
+                ("FoldWhitespace = CR", new VcardOptions { MaxLineLength = null, FoldWhitespace = '\r' }, "fold white space"),
+                ("FoldWhitespace = no-break space", new VcardOptions { MaxLineLength = null, FoldWhitespace = '\xA0' }, "fold white space"),
+                ("LineBreak = CR", new VcardOptions { MaxLineLength = null, LineBreak = "\r" }, "line break"),
+                ("LineBreak empty", new VcardOptions { MaxLineLength = null, LineBreak = "" }, "line break"),
+                ("LineBreak = LF CR", new VcardOptions { MaxLineLength = null, LineBreak = "\n\r" }, "line break"),
+                ("LineBreak = CRLF CRLF", new VcardOptions { MaxLineLength = null, LineBreak = "\r\n\r\n" }, "line break"),
+                ("LineBreak = space LF", new VcardOptions { MaxLineLength = null, LineBreak = " \n" }, "line break"),
+                ("LineBreak null", new VcardOptions { MaxLineLength = null, LineBreak = null }, "line break"),
             };
             var constructors = new Func<VcardOptions, VcardContentLineWriter>[]
             {
@@ -630,7 +630,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Constructor_ValidOptions_DoNotThrow()
         {
             // arrange
-            var options = new VcardOptions { FoldLength = 4, FoldWhitespace = '\t', LineBreak = "\n" };
+            var options = new VcardOptions { MaxLineLength = null, FoldLength = 4, FoldWhitespace = '\t', LineBreak = "\n" };
 
             // act
             Action testAction = () => new VcardContentLineWriter(new StringWriter(), options).Dispose();
@@ -643,7 +643,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Constructor_DefaultOptions_FollowRfc6350()
         {
             // act
-            var testResult = new VcardOptions();
+            var testResult = new VcardOptions { MaxLineLength = null };
 
             // assert
             testResult.FoldLength.Should().Be(75);
@@ -656,7 +656,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Constructor_TextWriterWithEncoding_Throws()
         {
             // act
-            Action testAction = () => new VcardContentLineWriter(new StringWriter(), new VcardOptions { Encoding = Encoding.UTF8 });
+            Action testAction = () => new VcardContentLineWriter(new StringWriter(), new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 });
 
             // assert
             testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("options");
@@ -724,7 +724,7 @@ namespace DataStandardizer.File.vCard.Tests
                 var expected = encoding.GetBytes("RELATED:Caf\xE9\r\n");
 
                 // act
-                using (var writer = new VcardContentLineWriter(stream, new VcardOptions { Encoding = encoding }))
+                using (var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null, Encoding = encoding }))
                 {
                     writer.WriteLine(new VcardContentLine(Related, "Caf\xE9"));
                 }
@@ -1040,7 +1040,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         private static string WriteAll(params VcardContentLine[] lines)
         {
-            return WriteAll(new VcardOptions(), lines);
+            return WriteAll(new VcardOptions { MaxLineLength = null }, lines);
         }
 
         private static string WriteAll(VcardOptions options, params VcardContentLine[] lines)

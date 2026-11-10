@@ -81,7 +81,7 @@ namespace DataStandardizer.File.vCard.IntegrationTests
         public void ReadLine_FileWithByteOrderMarkAndAcceptByteOrderMark_ReadsLine()
         {
             // arrange
-            var options = new VcardOptions { AcceptByteOrderMark = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptByteOrderMark = true };
             using (var file = TemporaryFile.Create(ByteOrderMarkLine))
             using (var reader = new VcardContentLineReader(file.Path, options))
             {

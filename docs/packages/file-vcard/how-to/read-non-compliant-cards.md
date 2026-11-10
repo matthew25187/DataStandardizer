@@ -326,7 +326,7 @@ throws nothing. Use it to see what a card read with accommodations still breaks,
 to check a card you built in code before you write it:
 
 ```csharp
-var options = new VcardOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true };
+var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true, AllowInvalidValues = true };
 using var reader = new VcardReader("contacts.vcf", options);
 foreach (var card in reader.ReadCards())
 {

@@ -100,7 +100,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="xcardStream">The stream.  It is left open when the writer is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="xcardStream"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="xcardStream"/> does not support writing.</exception>
-        public XcardWriter(Stream xcardStream) : this(xcardStream, new VcardOptions())
+        public XcardWriter(Stream xcardStream) : this(xcardStream, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -123,7 +123,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="xcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="xcardFilePath"/> is <c>null</c>.</exception>
-        public XcardWriter(string xcardFilePath) : this(xcardFilePath, new VcardOptions())
+        public XcardWriter(string xcardFilePath) : this(xcardFilePath, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -144,7 +144,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="writer">The text writer.  It is not closed when the writer is disposed, but what has been written is flushed to it.</param>
         /// <exception cref="ArgumentNullException"><paramref name="writer"/> is <c>null</c>.</exception>
-        public XcardWriter(TextWriter writer) : this(writer, new VcardOptions())
+        public XcardWriter(TextWriter writer) : this(writer, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -171,7 +171,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="writer">The XML writer.  It is neither flushed nor closed when the writer is disposed.  For the asynchronous members, its
         /// <see cref="XmlWriterSettings.Async"/> setting must be <c>true</c>.</param>
         /// <exception cref="ArgumentNullException"><paramref name="writer"/> is <c>null</c>.</exception>
-        public XcardWriter(XmlWriter writer) : this(writer, new VcardOptions())
+        public XcardWriter(XmlWriter writer) : this(writer, new VcardOptions { MaxLineLength = null })
         {
         }
 

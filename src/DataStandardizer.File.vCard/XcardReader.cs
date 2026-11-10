@@ -119,7 +119,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="xcardStream">The stream.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="xcardStream"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="xcardStream"/> does not support reading.</exception>
-        public XcardReader(Stream xcardStream) : this(xcardStream, new VcardOptions())
+        public XcardReader(Stream xcardStream) : this(xcardStream, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -141,7 +141,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="xcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="xcardFilePath"/> is <c>null</c>.</exception>
-        public XcardReader(string xcardFilePath) : this(xcardFilePath, new VcardOptions())
+        public XcardReader(string xcardFilePath) : this(xcardFilePath, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -164,7 +164,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="reader">The text reader.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> is <c>null</c>.</exception>
-        public XcardReader(TextReader reader) : this(reader, new VcardOptions())
+        public XcardReader(TextReader reader) : this(reader, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -196,7 +196,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="reader">The XML reader.  It is left open when the reader is disposed.  For the asynchronous members, its <see cref="XmlReaderSettings.Async"/> setting must be
         /// <c>true</c>.</param>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> is <c>null</c>.</exception>
-        public XcardReader(XmlReader reader) : this(reader, new VcardOptions())
+        public XcardReader(XmlReader reader) : this(reader, new VcardOptions { MaxLineLength = null })
         {
         }
 

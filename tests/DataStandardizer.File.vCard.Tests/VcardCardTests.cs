@@ -407,7 +407,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Clear_InstancesWithAnInvalidValue_RemovesThemToo()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("URL:http://example.com/", "URL:not a uri"), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("URL:http://example.com/", "URL:not a uri"), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             card.Urls.Clear();

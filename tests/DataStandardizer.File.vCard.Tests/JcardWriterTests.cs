@@ -169,7 +169,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_CardBreakingRfc6350WithTheOptionThatAcceptsIt_IsWritten()
         {
             // arrange
-            var options = new VcardOptions { AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
 
             // act
             var testResult = WriteJcard(new VcardCard(), options);
@@ -182,7 +182,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_InvalidDateAllowed_WritesItAsAStringOfItsType()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var cards = ReadVcards("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nBDAY:circa 1800\r\nEND:VCARD\r\n", options);
 
             // act
@@ -196,7 +196,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_TextWithAnEscapeThatIsNotValidAllowed_WritesItAsUnknown()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = new VcardCard();
             card.Properties.Add(new VcardContentLine("FN", "A"));
             card.Properties.Add(new VcardContentLine("NOTE", "a\\qb"));
@@ -231,7 +231,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_LineJcardCannotHold_ThrowsWithNoDiagnosticKind(VcardContentLine line)
         {
             // arrange: the options let the card past the conformance check, whose exceptions have a diagnostic kind.
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = new VcardCard();
             card.Properties.Add(new VcardContentLine("FN", "A"));
             card.Properties.Add(line);
@@ -281,7 +281,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Constructor_EncodingThatIsNotUtf8_Throws()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.Unicode };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.Unicode };
 
             // act
             Action testAction = () => new JcardWriter(new MemoryStream(), options);

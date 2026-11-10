@@ -94,6 +94,7 @@ The same options apply to reading and writing:
 ```csharp
 var options = new VcardOptions
 {
+    MaxLineLength = null,
     AcceptByteOrderMark = true,
     AllowMissingRequiredProperties = true
 };

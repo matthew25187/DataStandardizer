@@ -199,7 +199,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_RuleBrokenWithTheOptIn_ReportsIt(string property, VcardDiagnosticKind expected)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Validate();
@@ -265,7 +265,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_RuleOfSeveralPropertiesBroken_ReportsAnInvalidParameter(string[] properties)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(properties), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(properties), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Validate();
@@ -294,7 +294,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_OnlyRelatedPropertyUnparseable_ReportsOnlyItsValue(string related, string phonetic)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(related, phonetic), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(related, phonetic), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Validate();
@@ -309,7 +309,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var card = VcardCardTestData.Read(
                 VcardCardTestData.Card("ADR;ALTID=1:a", "ADR;ALTID=1:;;b;;;;", "ADR;ALTID=1;PHONETIC=ipa:;;c;d;;;"),
-                new VcardOptions { AllowInvalidValues = true });
+                new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Validate();
@@ -452,7 +452,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Member_OfAnExtensionThatIsNotValid_IsNull(string property, Func<VcardCard, object> member)
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
 
             // act
@@ -479,7 +479,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Phonetic_EachSystem_GivesItsMember(string property, VcardPhoneticSystem expected)
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
 
             // act
@@ -521,7 +521,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Name_OnlyAPhoneticProperty_GivesIt()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("N;ALTID=1;PHONETIC=ipa:a;;;;"), options);
 
             // act
@@ -562,7 +562,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDuplicatePropertyIds_InvalidValues_LeavesThemOut()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("NOTE;PROP-ID=a.b:c", "NOTE;PROP-ID=a.b:d"), options);
 
             // act
@@ -576,7 +576,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GrammaticalGenders_ValueThatIsNotAToken_LeavesItOut()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("GRAMGENDER:a b", "GRAMGENDER;LANGUAGE=de:common"), options);
 
             // act
@@ -590,7 +590,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Birthday_FirstWithAPhoneticItDoesNotAllow_GivesTheFirst()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true, AllowCardinalityViolations = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true, AllowCardinalityViolations = true };
             var card = VcardCardTestData.Read(VcardCardTestData.Card("BDAY;PHONETIC=ipa:19960415", "BDAY:19970101"), options);
 
             // act
@@ -1203,7 +1203,7 @@ namespace DataStandardizer.File.vCard.Tests
             var text = VcardCardTestData.Card("ADR;ALTID=1:;;a;;;;", "ADR;ALTID=1;PHONETIC=x-a:;;b;;;;");
 
             // act
-            var testResult = VcardCardTestData.Read(text, new VcardOptions { AllowInvalidValues = true });
+            var testResult = VcardCardTestData.Read(text, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // assert
             testResult.Addresses[1].Line.GetParameter(VcardParameterNames.Phonetic).Values.Single().Should().Be("x-a");

@@ -40,8 +40,8 @@ namespace DataStandardizer.File.vCard.Tests
         private const string SoftBreakDescription = "3/3 LABEL;ENCODING=QUOTED-PRINTABLE:" + SoftBreakValue;
         private const string Base64Description = "3/3 SOUND;TYPE=WAVE;ENCODING=BASE64:" + Base64Value;
 
-        private static readonly VcardOptions AcceptLegacy = new VcardOptions { AcceptLegacySyntax = true };
-        private static readonly VcardOptions Rfc6350Folds = new VcardOptions { AcceptRfc6350FoldsInVersion21 = true };
+        private static readonly VcardOptions AcceptLegacy = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
+        private static readonly VcardOptions Rfc6350Folds = new VcardOptions { MaxLineLength = null, AcceptRfc6350FoldsInVersion21 = true };
 
         // A line of 20 characters, then 21 more soft line breaks, one more than a limit of 20 allows.
         private static readonly string ManySoftLineBreaks = Crlf(BeginCard, Version21, "A;QUOTED-PRINTABLE:=",
