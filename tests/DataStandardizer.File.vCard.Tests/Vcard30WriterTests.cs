@@ -514,6 +514,49 @@ namespace DataStandardizer.File.vCard.Tests
             VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.Lossy, VcardDiagnosticKind.MissingRequiredProperty);
         }
 
+        // An address whose LABEL parameter holds U+007F, a control character that a text value of vCard 3.0 can't hold.  Only xCard and jCard can bring it into a card,
+        // as a vCard text reader rejects it in a parameter value.
+        private const string XcardWithLabelHoldingControlCharacter = "<vcards xmlns=\"urn:ietf:params:xml:ns:vcard-4.0\"><vcard><fn><text>A</text></fn><n><surname>A</surname><given/><additional/><prefix/><suffix/></n><adr><parameters><label><text>a\x007Fb</text></label></parameters><pobox/><ext/><street>1 First St</street><locality/><region/><code/><country/></adr></vcard></vcards>";
+
+        [Fact]
+        public void Validate_Version30CardWithLabelHoldingAControlCharacter_ReportsItAsLossyWithoutThrowing()
+        {
+            // arrange
+            var card = XcardTestData.ReadXcard(XcardWithLabelHoldingControlCharacter).Single();
+
+            // act
+            var testResult = card.Validate(VcardVersion.V3_0);
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.Lossy);
+        }
+
+        [Fact]
+        public void WriteCard_Version30CardWithLabelHoldingAControlCharacterAndLossAllowed_WritesTheAddressWithoutTheLabel()
+        {
+            // arrange
+            var card = XcardTestData.ReadXcard(XcardWithLabelHoldingControlCharacter).Single();
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard("FN:A", "N:A;;;;", "ADR:;;1 First St;;;;"));
+        }
+
+        [Fact]
+        public void WriteCard_Version30CardWithLabelHoldingAControlCharacterAndNoLossAllowed_ThrowsVcardFileException()
+        {
+            // arrange
+            var card = XcardTestData.ReadXcard(XcardWithLabelHoldingControlCharacter).Single();
+
+            // act
+            Action testAction = () => Vcard30TestData.Write(card, VcardVersion.V3_0);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>();
+        }
+
         [Fact]
         public void Analyze_CardOfVersion30ForVersion40_ReportsWhatStaysAsAPropertyOf40ThatIsUndefined()
         {
