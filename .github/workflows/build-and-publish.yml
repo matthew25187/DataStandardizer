@@ -147,13 +147,14 @@ jobs:
         id: versions
         env:
           VARIABLES_JSON: ${{ toJSON(vars) }}
+          VARIABLE_PREFIX: ${{ inputs.variable-prefix }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           $InformationPreference = 'Continue'
           $VerbosePreference = '${{ inputs.verbose && 'Continue' || 'SilentlyContinue' }}'
           $snapshot = Join-Path $env:RUNNER_TEMP 'vars.json'
           Set-Content -LiteralPath $snapshot -Value $env:VARIABLES_JSON
-          ./build/scripts/ResolveVersionNumbers.ps1 -VariablesFile $snapshot -VariablePrefix '${{ inputs.variable-prefix }}' `
+          ./build/scripts/ResolveVersionNumbers.ps1 -VariablesFile $snapshot -VariablePrefix $env:VARIABLE_PREFIX `
             -AllowMissingCurrentPackage -TraceLevel ${{ inputs.trace-level }}
 
   # Versions for a run that publishes: read fresh, and the next versions reserved so a concurrent run can't take them.
@@ -187,6 +188,7 @@ jobs:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           GITHUB_TOKEN: ${{ github.token }}
           PUBLISH_SET: ${{ needs.detect-changes.outputs.publish-set }}
+          VARIABLE_PREFIX: ${{ inputs.variable-prefix }}
         run: |
           $InformationPreference = 'Continue'
           $VerbosePreference = '${{ inputs.verbose && 'Continue' || 'SilentlyContinue' }}'
@@ -196,7 +198,7 @@ jobs:
           # only warn when the current package is missing.  A real run must find it.
           $allowMissing = '${{ inputs.dry-run }}' -eq 'true'
           ./build/scripts/ResolveVersionNumbers.ps1 -PublishSet $env:PUBLISH_SET -Reserve:$reserve -AllowMissingCurrentPackage:$allowMissing `
-            -VariablePrefix '${{ inputs.variable-prefix }}' -TraceLevel ${{ inputs.trace-level }}
+            -VariablePrefix $env:VARIABLE_PREFIX -TraceLevel ${{ inputs.trace-level }}
 
   build:
     name: Build (${{ matrix.package }}, ${{ matrix.configuration }})
@@ -469,6 +471,7 @@ jobs:
           VERSIONS: ${{ needs.reserve.outputs.versions }}
           RESERVED: ${{ needs.reserve.outputs.reserved }}
           DRY_RUN: ${{ inputs.dry-run }}
+          VARIABLE_PREFIX: ${{ inputs.variable-prefix }}
           BUILD_RESULT: ${{ needs.build.result }}
           TEST_RESULT: ${{ needs.test.result }}
           PUBLISH_RESULT: ${{ needs.publish-github.result }}
@@ -480,4 +483,4 @@ jobs:
             $result = ($env:BUILD_RESULT -eq 'success' -and $env:TEST_RESULT -in 'success', 'skipped') ? 'success' : 'failure'
           }
           ./build/scripts/FinalizeVersionNumbers.ps1 -PublishResult $result -EncodedPackageVersions $env:VERSIONS `
-            -EncodedReserved $env:RESERVED -VariablePrefix '${{ inputs.variable-prefix }}' -TraceLevel ${{ inputs.trace-level }}
+            -EncodedReserved $env:RESERVED -VariablePrefix $env:VARIABLE_PREFIX -TraceLevel ${{ inputs.trace-level }}

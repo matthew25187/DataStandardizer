@@ -106,6 +106,10 @@ function Save-BuildProvenance {
 
     .PARAMETER AllowMissing
     Return $null, rather than throw, for a package with no attestation.  An attestation that fails to verify still throws.
+
+    .PARAMETER SourceRef
+    The refs the attested build may have run on.  The attestation must come from a build of one of them, so a package built
+    from a feature branch doesn't pass as genuine.  A release is built on master and a preview on develop.
     #>
     [OutputType([string])]
     param (
@@ -116,7 +120,10 @@ function Save-BuildProvenance {
         [string]    $Repository,
 
         [Parameter()]
-        [switch]    $AllowMissing
+        [switch]    $AllowMissing,
+
+        [Parameter()]
+        [string[]]  $SourceRef = @('refs/heads/master', 'refs/heads/develop')
     )
 
     # The signer is the reusable workflow that holds the attest job, not ci.yml or release.yml, which call it.
@@ -131,6 +138,22 @@ function Save-BuildProvenance {
             return $null
         }
         throw "The build provenance of $(Split-Path $PackagePath -Leaf) did not verify: $message"
+    }
+
+    # The check above shows the repository's build workflow signed it, but not which branch it ran on.  This check never
+    # tolerates a missing attestation: a verification that finds none for the ref is a failure, not an absence.
+    $onAllowedRef = $false
+    foreach ($ref in $SourceRef) {
+        [void](gh attestation verify $PackagePath --repo $Repository --signer-workflow "$Repository/.github/workflows/build-and-publish.yml" `
+                --predicate-type 'https://slsa.dev/provenance/v1' --deny-self-hosted-runners --source-ref $ref 2>&1)
+        if (-not $LASTEXITCODE) {
+            $onAllowedRef = $true
+            break
+        }
+    }
+    if (-not $onAllowedRef) {
+        $global:LASTEXITCODE = 0
+        throw "The build provenance of $(Split-Path $PackagePath -Leaf) is not from a build of $($SourceRef -join ' or ')."
     }
 
     $provenancePath = "$PackagePath.sigstore.json"
