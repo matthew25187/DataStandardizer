@@ -129,10 +129,12 @@ namespace DataStandardizer.File.iCal.Tests
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarsAsync(new[] { CreateLongCalendar() }, cancellationToken: token);
             }),
+            // The sequence doesn't yield, so that the writer reaches its target before the operation returns, as the target needs for its failure to
+            // be held back until then.
             ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence", YieldingFailureTimings, (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
-                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCalendar() }), cancellationToken: token);
+                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Completed(new[] { CreateLongCalendar() }), cancellationToken: token);
             }),
             ("XcalWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
             {
@@ -141,6 +143,18 @@ namespace DataStandardizer.File.iCal.Tests
             }),
         };
 
+
+        // The operation, with the failures of the target that yield held back until the operation has returned its task, so that the writer is
+        // always given a task that has not completed.  Whether a yielding task has completed by then depends on the thread pool.
+        private static Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Deferring(
+            Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create)
+        {
+            return (createException, timing, onFailure) =>
+            {
+                var run = create(createException, timing, onFailure);
+                return token => DeferredFailures.Run(() => run(token));
+            };
+        }
 
         // Each operation, with each way the target can report a failure, each OperationCanceledException it can fail with while the caller's
         // token isn't canceled, and the exception the task then faults with.  A canceled task carries no exception of its own, so awaiting it
@@ -160,7 +174,7 @@ namespace DataStandardizer.File.iCal.Tests
                     foreach (var (exceptionName, createException) in exceptions)
                     {
                         var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
-                        data.Add(name + ", " + timing + ", " + exceptionName, create, timing, createException, expectedType);
+                        data.Add(name + ", " + timing + ", " + exceptionName, Deferring(create), timing, createException, expectedType);
                     }
                 }
             }
@@ -176,7 +190,7 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 foreach (var timing in timings)
                 {
-                    data.Add(name + ", " + timing, create, timing);
+                    data.Add(name + ", " + timing, Deferring(create), timing);
                 }
             }
 

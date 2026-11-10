@@ -456,7 +456,7 @@ namespace DataStandardizer.File.iCal.Tests
                 case FailureTiming.AsCanceledTask:
                     return Task.FromCanceled<TResult>(new CancellationToken(true));
                 default:
-                    return FailAfterYieldingAsync<TResult>(createException);
+                    return DeferredFailures.TryDefer<TResult>(createException) ?? FailAfterYieldingAsync<TResult>(createException);
             }
         }
 
@@ -464,6 +464,88 @@ namespace DataStandardizer.File.iCal.Tests
         {
             await Task.Yield();
             throw createException();
+        }
+    }
+
+    /// <summary>
+    /// Holds back the failures that <see cref="FailureTiming.AfterYielding"/> reports during an operation until the operation has returned its
+    /// task, so that the code under test is always given a task that has not completed.  Whether a task that yields has completed by the time
+    /// it is returned depends on the thread pool, and some code, such as the XML writer of .NET Framework, treats a write of a text writer that
+    /// has already failed as though it had succeeded.
+    /// </summary>
+    internal sealed class DeferredFailures
+    {
+        private static readonly AsyncLocal<DeferredFailures> Current = new AsyncLocal<DeferredFailures>();
+
+        private readonly object _lock = new object();
+        private readonly List<TaskCompletionSource<bool>> _gates = new List<TaskCompletionSource<bool>>();
+        private bool _isReleased;
+
+        /// <summary>
+        /// Runs an operation, and then completes the failures that it was given as tasks that had not completed.
+        /// </summary>
+        /// <param name="operation">The operation, which returns its task as soon as it has to wait.</param>
+        /// <returns>The task of the operation.</returns>
+        public static Task Run(Func<Task> operation)
+        {
+            var deferred = new DeferredFailures();
+            Current.Value = deferred;
+            try
+            {
+                return operation();
+            }
+            finally
+            {
+                Current.Value = null;
+                deferred.Release();
+            }
+        }
+
+        /// <summary>
+        /// Gives a task that fails as a yielding task does, but only once the operation that is running has returned.
+        /// </summary>
+        /// <returns>The task, or <c>null</c> when no operation is running, or it has returned already.</returns>
+        public static Task<TResult> TryDefer<TResult>(Func<Exception> createException)
+        {
+            var deferred = Current.Value;
+            return deferred == null ? null : deferred.Defer<TResult>(createException);
+        }
+
+        private Task<TResult> Defer<TResult>(Func<Exception> createException)
+        {
+            var gate = new TaskCompletionSource<bool>();
+            lock (_lock)
+            {
+                if (_isReleased) return null;
+
+                _gates.Add(gate);
+            }
+
+            return FailAfterGateAsync<TResult>(gate.Task, createException);
+        }
+
+        // An async method, so that its task ends as the async method builder ends it: canceled, with the exception, for an
+        // OperationCanceledException, and faulted for any other exception.  It continues on the thread that opens the gate.
+        private static async Task<TResult> FailAfterGateAsync<TResult>(Task gate, Func<Exception> createException)
+        {
+            await gate.ConfigureAwait(false);
+            throw createException();
+        }
+
+        private void Release()
+        {
+            TaskCompletionSource<bool>[] gates;
+            lock (_lock)
+            {
+                _isReleased = true;
+                gates = _gates.ToArray();
+                _gates.Clear();
+            }
+
+            foreach (var gate in gates)
+            {
+                gate.SetResult(true);
+            }
         }
     }
 
