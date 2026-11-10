@@ -43,7 +43,9 @@ namespace DataStandardizer.File.iCal
 
             // ref. RFC 5545§3.8.3.1: a TZID that starts with a solidus is globally unique, which vendors give by prefixing a path to the TZ
             // Database name.  Each trailing part of the path is tried, longest first.
-            for (var index = timeZoneId.IndexOf('/', 1); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
+            // A part longer than an identifier can be isn't tried, so a long run of solidi costs no copying of its parts.
+            var firstIndex = Math.Max(1, timeZoneId.Length - MaxIdentifierLength - 1);
+            for (var index = timeZoneId.IndexOf('/', firstIndex); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
             {
                 if (TryFindSystemTimeZone(timeZoneId.Substring(index + 1), findTimeZone, out timeZone)) return true;
             }

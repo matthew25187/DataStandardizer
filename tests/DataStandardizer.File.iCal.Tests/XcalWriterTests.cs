@@ -14,6 +14,8 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class XcalWriterTests
     {
+        // U+FFFF, which XML 1.0 doesn't allow in a document (Extensible Markup Language 1.0 section 2.2, Char).
+        private const char NotACharacter = '\xFFFF';
         private const string PropertiesElement = "properties";
         private const string ParametersElement = "parameters";
         private const string VcalendarElement = "vcalendar";
@@ -307,6 +309,21 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testAction.Should().Throw<IcalFileException>().WithMessage("*must start with a letter*");
+            }
+        }
+
+        [Fact]
+        public void WriteCalendar_ValueWithCharacterNotValidInXml_Throws()
+        {
+            // arrange
+            var calendar = CreateCalendarWithProperty("X-TEST", "a" + NotACharacter + "b");
+            using (var writer = new XcalWriter(new StringWriter()))
+            {
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
             }
         }
 
