@@ -59,7 +59,9 @@ namespace DataStandardizer.File.vCard
         {
             var nestedOptions = new VcardOptions
             {
-                MaxLineLength = options.MaxLineLength,
+                // The text is inside a line that the reader has already limited, so none of its lines can be longer, and a writer, which ignores the limit,
+                // reads it too, to check it.  Either way a limit here could only reject a card that the outer line's limit accepted.
+                MaxLineLength = null,
                 AcceptBareLineFeed = true,
                 AcceptLegacySyntax = options.AcceptLegacySyntax,
                 AcceptMissingFinalLineBreak = options.AcceptMissingFinalLineBreak,

@@ -30,6 +30,9 @@ namespace DataStandardizer.File.vCard.Tests
 
         private const int MaxNestingLevels = 8;
 
+        // Shorter than any line of the nested card.
+        private const int ShortLineLimit = 10;
+
         private static readonly VcardOptions AcceptRfc2426Example = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true, AcceptLegacySyntax = true };
 
         [Fact]
@@ -220,6 +223,20 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.FormattedNames.Single().Value.Should().Be("a");
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAFiniteMaxLineLength_WritesTheCard()
+        {
+            // arrange: the limit applies to reading, so a writer ignores it, and so does the check of the nested card.
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(ValidAgent));
+            var options = new VcardOptions { MaxLineLength = ShortLineLimit, WriteVersion = VcardVersion.V3_0 };
+
+            // act
+            Action testAction = () => VcardCardTestData.Write(card, options);
+
+            // assert
+            testAction.Should().NotThrow();
         }
 
         [Fact]

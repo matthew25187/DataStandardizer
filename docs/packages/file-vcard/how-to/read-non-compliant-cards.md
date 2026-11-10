@@ -278,7 +278,6 @@ Turn on each option you need:
 ```csharp
 var options = new VcardOptions
 {
-    MaxLineLength = null,
     AcceptBareLineFeed = true,
     AcceptByteOrderMark = true,
     AcceptUnescapedCommasInUris = true,
