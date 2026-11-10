@@ -1603,5 +1603,136 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldIndex(2);
             }
         }
+
+        [Fact]
+        public void WriteLine_HeaderNameWithLineBreakAndEmbeddedLineBreakSet_WritesTheNameAsTheReaderWillGiveItBack()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(HeaderFieldName1, "One\r\nTwo");
+            var options = new CsvFileOptions { EmbeddedLineBreak = "<br>" };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("\"One<br>Two\"\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderNameWithLineBreakAndEmbeddedLineBreakSet_StillOrdersRecordFieldsByTheName()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(HeaderFieldName1, "One\r\nTwo");
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add("One\r\nTwo", TextValue);
+            var options = new CsvFileOptions { EmbeddedLineBreak = "<br>" };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().EndWith(TextValue + "\r\n");
+            }
+        }
+
+        public static TheoryData<string, string, string> ValuesHoldingPartOfTheTerminator => new TheoryData<string, string, string>
+        {
+            { "|", "a|b", "\"a|b\"|" },
+            { "||", "a||b", "\"a||b\"||" },
+            { "||", "x|", "\"x|\"||" },
+            { "||", "|x", "\"|x\"||" }
+        };
+
+        [Theory]
+        [MemberData(nameof(ValuesHoldingPartOfTheTerminator))]
+        public void WriteLine_RecordValueHoldingPartOfACustomTerminator_QuotesTheValue(string terminator, string value, string expected)
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, value);
+            var options = new CsvFileOptions { TerminatorLineBreak = terminator };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(expected);
+            }
+        }
+
+        // "1.5.5" is a number where the period groups digits, as in German, and not where it is the decimal separator, as in the invariant culture.
+        private const string NumberOnlyWhereThePeriodGroups = "1.5.5";
+
+        [Fact]
+        public void WriteLine_AutoQuotingWithCultureOption_DecidesWhichValuesAreNumbersWithThatCulture()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, NumberOnlyWhereThePeriodGroups);
+            var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Auto, Culture = new CultureInfo("de-DE") };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(NumberOnlyWhereThePeriodGroups + "\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_AutoQuotingWithNoCultureOption_IgnoresTheCurrentCulture()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, NumberOnlyWhereThePeriodGroups);
+            var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Auto };
+            var buffer = new StringBuilder();
+            using (new CurrentCultureScope(new CultureInfo("de-DE")))
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("\"" + NumberOnlyWhereThePeriodGroups + "\"\r\n");
+            }
+        }
+
+        [Fact]
+        public void Constructor_TextWriterWithNullOptions_ThrowsArgumentNullException()
+        {
+            // arrange
+            using (var stringWriter = new StringWriter())
+            {
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(stringWriter, null);
+
+                // assert
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
+            }
+        }
     }
 }
