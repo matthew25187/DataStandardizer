@@ -23,6 +23,9 @@ namespace DataStandardizer.File.iCal.Tests
 
         // A journal document with CafeSummary that declares UTF-8, and one with a document type definition that declares an entity.
         private static readonly string CafeDocumentDeclaringUtf8 = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + JournalDocument(CafeSummary);
+        // An XML declaration whose encoding name is garbled, which makes the XmlReader of some runtimes throw an ArgumentException.
+        private static readonly string DeclarationWithGarbledEncoding =
+            "<?xml version=\"1.0b enc" + new string('û', 90) + "odingtf-8\"?>xml v#ersy";
         private static readonly string DocumentWithMalformedEntity = JournalDocument("<summary><text>a&b</text></summary>");
         private static readonly string DocumentWithEntity = "<!DOCTYPE icalendar [<!ENTITY e \"x\">]>" + JournalDocument("<summary><text>&e;</text></summary>");
         private const string Cafe = "Caf\xE9";
@@ -543,6 +546,21 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testAction.Should().Throw<IcalFileException>().WithInnerException<XmlException>();
+            }
+        }
+
+        [Fact]
+        public void ReadCalendar_DeclarationWithGarbledEncoding_Throws()
+        {
+            // arrange: found by fuzzing.  The declaration's garbled name makes .NET's XmlReader throw an ArgumentException of its own.
+            var bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(DeclarationWithGarbledEncoding);
+            using (var reader = new XcalReader(new MemoryStream(bytes)))
+            {
+                // act
+                Action testAction = () => reader.ReadCalendar();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
             }
         }
 
