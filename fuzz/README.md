@@ -15,15 +15,15 @@
 | | `emlx` | `EmlxReader`, with a part resolver | `Corpus/emlx` |
 | | `mhtml` | `MhtmlReader`, with and without a base URI | `Corpus/mhtml` |
 | | `fields` | The typed field parsers, `ImfHeaderField.FromRaw`, `MimeMediaType.TryParse` with RFC 2231 parameters, and the RFC 2047 encoded-word decoder | `Corpus/fields` |
-| `DataStandardizer.File.vCard.Fuzz` | `vcard` | `VcardReader`, for vCard 4.0, 3.0 and 2.1, then every typed member of each card it reads | `Corpus/vcard` |
-| | `content-line` | `VcardContentLineReader`, and each part of every line it reads | `Corpus/content-line` |
-| | `jcard` | `JcardReader`, then every typed member of each card it reads | `Corpus/jcard` |
-| | `xcard` | `XcardReader`, then every typed member of each card it reads | `Corpus/xcard` |
+| `DataStandardizer.File.vCard.Fuzz` | `vcard` | `VcardReader`, for vCard 4.0, 3.0 and 2.1, then `Validate`, the lookups by name and every typed member of each card it reads | `Corpus/vcard` |
+| | `content-line` | `VcardContentLineReader`, and each part of every line it reads, from the view and from its copy | `Corpus/content-line` |
+| | `jcard` | `JcardReader`, then `Validate`, the lookups by name and every typed member of each card it reads | `Corpus/jcard` |
+| | `xcard` | `XcardReader`, then `Validate`, the lookups by name and every typed member of each card it reads | `Corpus/xcard` |
 | `DataStandardizer.LanguageTag.Fuzz` | (only one) | `Bcp47LanguageTag.TryParse`, string and span overloads | `Corpus` |
 
 Each harness treats only the exceptions that the API documents as expected. Anything else, a hang or a crash, is a finding. The seeds come from the test data of the same package.
 
-The `DataStandardizer.File.InternetMessage.Fuzz` harnesses read each input under the default options and again with every accommodation in `ImfOptions` turned on, so that they also reach the code that runs past a problem the defaults reject. The `DataStandardizer.File.vCard.Fuzz` harnesses do the same with every accommodation in `VcardOptions` that a reader honours.
+The `DataStandardizer.File.InternetMessage.Fuzz` harnesses read each input under the default options and again with every accommodation in `ImfOptions` turned on, so that they also reach the code that runs past a problem the defaults reject. The `DataStandardizer.File.vCard.Fuzz` harnesses do the same with every accommodation in `VcardOptions` that a reader honours, and a third time with only the conformance accommodations, since the lexical ones change what reaches them.
 
 These projects aren't packed, and `fuzz/` is outside `src/` and `tests/`, so a change here never versions or publishes a package. CI builds them when it builds their package, through its `.slnf`, but never runs them. It doesn't build a package for a change that is only in `fuzz/`, so build the project locally before opening a PR for one.
 
