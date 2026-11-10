@@ -732,43 +732,43 @@ namespace DataStandardizer.Communication.Mime
             parameters = NoParameters;
             if (rawParameters is null) return true;
 
-            // Each parameter takes the place of the first of its forms.
-            var list = new List<MimeParameter>();
-            var isJoined = new bool[rawParameters.Count];
-            for (var index = 0; index < rawParameters.Count; index++)
+            // Each parameter takes the place of the first of its forms.  The forms are grouped in one pass, since a value can have many parameters.
+            var groups = new List<ParameterForms>();
+            var groupsByName = new Dictionary<string, ParameterForms>(StringComparer.OrdinalIgnoreCase);
+            foreach (var form in rawParameters)
             {
-                if (isJoined[index]) continue;
-
-                var name = rawParameters[index].Name;
-                var plainIndex = -1;
-                var forms = default(List<MimeExtendedParameter.RawParameter>);
-                for (var formIndex = index; formIndex < rawParameters.Count; formIndex++)
+                if (!groupsByName.ContainsKey(form.Name))
                 {
-                    var form = rawParameters[formIndex];
-                    if (!string.Equals(form.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
-
-                    isJoined[formIndex] = true;
-                    if (form.IsRfc2231)
-                    {
-                        if (forms is null) forms = new List<MimeExtendedParameter.RawParameter>();
-                        forms.Add(form);
-                    }
-                    else
-                    {
-                        // ref. RFC 6838 §4.3: it is an error for a specific parameter to be specified more than once.
-                        if (plainIndex >= 0) return false;
-
-                        plainIndex = formIndex;
-                    }
+                    var newGroup = new ParameterForms(form.Name);
+                    groupsByName.Add(form.Name, newGroup);
+                    groups.Add(newGroup);
                 }
 
+                var group = groupsByName[form.Name];
+                if (form.IsRfc2231)
+                {
+                    group.Forms.Add(form);
+                }
+                else
+                {
+                    // ref. RFC 6838 §4.3: it is an error for a specific parameter to be specified more than once.
+                    if (group.HasPlain) return false;
+
+                    group.HasPlain = true;
+                    group.PlainValue = form.Value;
+                }
+            }
+
+            var list = new List<MimeParameter>(groups.Count);
+            foreach (var group in groups)
+            {
                 // ref. RFC 2231 §4: the RFC 2231 form is used in preference to a plain one, which is there for readers that don't know it.
                 MimeParameter parameter;
-                if (forms is null)
+                if (group.Forms.Count == 0)
                 {
-                    parameter = MimeParameter.CreateUnchecked(name, rawParameters[plainIndex].Value, null, null);
+                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue, null, null);
                 }
-                else if (!MimeExtendedParameter.TryJoin(forms, options, charsetResolver, out parameter))
+                else if (!MimeExtendedParameter.TryJoin(group.Forms, options, charsetResolver, out parameter))
                 {
                     return false;
                 }
@@ -778,6 +778,22 @@ namespace DataStandardizer.Communication.Mime
 
             parameters = new ReadOnlyCollection<MimeParameter>(list);
             return true;
+        }
+
+        /// <summary>
+        /// The forms of one parameter, which can be given in a plain form and in the sections of an RFC 2231 form.
+        /// </summary>
+        private sealed class ParameterForms
+        {
+            public ParameterForms(string name)
+            {
+                Name = name;
+            }
+
+            public string Name { get; }
+            public bool HasPlain { get; set; }
+            public string PlainValue { get; set; } = string.Empty;
+            public List<MimeExtendedParameter.RawParameter> Forms { get; } = new List<MimeExtendedParameter.RawParameter>();
         }
 
         private static ReadOnlySpan<char> ReadToken(ReadOnlySpan<char> value, ref int position)
