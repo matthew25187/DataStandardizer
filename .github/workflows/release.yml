@@ -65,7 +65,8 @@ jobs:
     with:
       release: true
       publish: ${{ vars.VERSION_STATE_CLIENT_ID != '' }}
-      dry-run: ${{ inputs.dry-run == true || vars.DS_PUBLISH_ENABLED != 'true' }}
+      # Only master releases.  Dispatched from another branch it still builds and tests, but as a dry run: no packages, no tags.
+      dry-run: ${{ inputs.dry-run == true || github.ref != 'refs/heads/master' || vars.DS_PUBLISH_ENABLED != 'true' }}
       variable-prefix: ${{ inputs.variable-prefix || (vars.DS_PUBLISH_ENABLED != 'true' && 'SHADOW_' || '') }}
       force-publication: ${{ inputs.force-publication || '' }}
       override-changed-packages: ${{ inputs.override-changed-packages || '' }}
@@ -81,4 +82,4 @@ jobs:
       contents: read
       packages: write
     with:
-      what-if: ${{ vars.DS_PUBLISH_ENABLED != 'true' }}
+      what-if: ${{ github.ref != 'refs/heads/master' || vars.DS_PUBLISH_ENABLED != 'true' }}

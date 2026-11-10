@@ -51,6 +51,8 @@ env:
 jobs:
   validate:
     name: Validate
+    # Packages are promoted from develop or master only.  Elsewhere the workflow can only check (dry-run).
+    if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || inputs.dry-run }}
     runs-on: ubuntu-24.04
     permissions:
       attestations: read

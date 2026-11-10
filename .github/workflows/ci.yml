@@ -78,7 +78,8 @@ jobs:
     with:
       release: false
       publish: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || inputs.force-publication != '') && vars.VERSION_STATE_CLIENT_ID != '' }}
-      dry-run: ${{ inputs.dry-run == true || vars.DS_PUBLISH_ENABLED != 'true' }}
+      # Only develop publishes.  A run on any other branch, forced or not, is a dry run: no packages, no tags.
+      dry-run: ${{ inputs.dry-run == true || github.ref != 'refs/heads/develop' || vars.DS_PUBLISH_ENABLED != 'true' }}
       variable-prefix: ${{ inputs.variable-prefix || (vars.DS_PUBLISH_ENABLED != 'true' && 'SHADOW_' || '') }}
       force-publication: ${{ inputs.force-publication || '' }}
       override-changed-packages: ${{ inputs.override-changed-packages || '' }}

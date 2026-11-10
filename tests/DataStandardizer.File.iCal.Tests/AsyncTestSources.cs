@@ -261,44 +261,63 @@ namespace DataStandardizer.File.iCal.Tests
         /// <param name="onEnumerate">Called with the token given to <c>GetAsyncEnumerator</c>.</param>
         public static IAsyncEnumerable<T> Yielding<T>(IEnumerable<T> items, Action<CancellationToken> onEnumerate = null)
         {
-            return new YieldingAsyncEnumerable<T>(items, onEnumerate);
+            return new AsyncEnumerable<T>(items, onEnumerate, true);
         }
 
-        private sealed class YieldingAsyncEnumerable<T> : IAsyncEnumerable<T>
+        /// <summary>
+        /// Gives the items as an asynchronous sequence whose every step completes before it returns, so that a consumer is never suspended by
+        /// it.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        public static IAsyncEnumerable<T> Completed<T>(IEnumerable<T> items)
+        {
+            return new AsyncEnumerable<T>(items, null, false);
+        }
+
+        private sealed class AsyncEnumerable<T> : IAsyncEnumerable<T>
         {
             private readonly IEnumerable<T> _items;
             private readonly Action<CancellationToken> _onEnumerate;
+            private readonly bool _yields;
 
-            public YieldingAsyncEnumerable(IEnumerable<T> items, Action<CancellationToken> onEnumerate)
+            public AsyncEnumerable(IEnumerable<T> items, Action<CancellationToken> onEnumerate, bool yields)
             {
                 _items = items;
                 _onEnumerate = onEnumerate;
+                _yields = yields;
             }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
                 _onEnumerate?.Invoke(cancellationToken);
-                return new Enumerator(_items.GetEnumerator());
+                return new Enumerator(_items.GetEnumerator(), _yields);
             }
 
             private sealed class Enumerator : IAsyncEnumerator<T>
             {
                 private readonly IEnumerator<T> _items;
+                private readonly bool _yields;
 
-                public Enumerator(IEnumerator<T> items)
+                public Enumerator(IEnumerator<T> items, bool yields)
                 {
                     _items = items;
+                    _yields = yields;
                 }
 
                 public T Current => _items.Current;
 
-                public async ValueTask<bool> MoveNextAsync()
+                public ValueTask<bool> MoveNextAsync()
                 {
                     if (!_items.MoveNext())
                     {
-                        return false;
+                        return new ValueTask<bool>(false);
                     }
 
+                    return _yields ? YieldAsync() : new ValueTask<bool>(true);
+                }
+
+                private static async ValueTask<bool> YieldAsync()
+                {
                     await Task.Yield();
                     return true;
                 }
