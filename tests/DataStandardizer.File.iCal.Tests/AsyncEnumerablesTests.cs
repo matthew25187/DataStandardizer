@@ -12,7 +12,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const int Item = 7;
 
         [Fact]
-        public void Completed_MoveNextAsyncWithAnItem_CompletesBeforeItReturns()
+        public async Task Completed_MoveNextAsyncWithAnItem_CompletesBeforeItReturns()
         {
             // arrange
             var enumerator = AsyncEnumerables.Completed(new[] { Item }).GetAsyncEnumerator();
@@ -22,12 +22,12 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.IsCompleted.Should().BeTrue();
-            testResult.Result.Should().BeTrue();
+            (await testResult).Should().BeTrue();
             enumerator.Current.Should().Be(Item);
         }
 
         [Fact]
-        public void Completed_MoveNextAsyncAtTheEnd_CompletesWithFalse()
+        public async Task Completed_MoveNextAsyncAtTheEnd_CompletesWithFalse()
         {
             // arrange
             var enumerator = AsyncEnumerables.Completed(new int[0]).GetAsyncEnumerator();
@@ -37,7 +37,7 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.IsCompleted.Should().BeTrue();
-            testResult.Result.Should().BeFalse();
+            (await testResult).Should().BeFalse();
         }
 
         [Fact]
