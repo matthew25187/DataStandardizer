@@ -1,0 +1,16 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//Mac OS X 10.15.7//EN
+N:Doe;Jane;;;
+FN:Jane Doe
+ORG:Example Inc.;
+EMAIL;type=INTERNET;type=HOME;type=pref:jane@example.com
+TEL;type=CELL;type=VOICE;type=pref:+1 555 555 0100
+item1.ADR;type=HOME;type=pref:;;1 Main St;Town;CA;90210;USA
+item1.X-ABADR:us
+item2.X-ABLabel:_$!<Other>!$_
+BDAY:1980-05-01
+PHOTO;ENCODING=b;TYPE=JPEG:AQID
+X-ABShowAs:COMPANY
+REV:2020-01-02T03:04:05Z
+END:VCARD

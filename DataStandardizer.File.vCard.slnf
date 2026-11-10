@@ -5,6 +5,7 @@
       "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "src\\DataStandardizer.File.ContentLine.Shared\\DataStandardizer.File.ContentLine.Shared.shproj",
       "benchmarks\\DataStandardizer.File.vCard.Benchmarks\\DataStandardizer.File.vCard.Benchmarks.csproj",
+      "fuzz\\DataStandardizer.File.vCard.Fuzz\\DataStandardizer.File.vCard.Fuzz.csproj",
       "src\\DataStandardizer.Communication\\DataStandardizer.Communication.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.vCard\\DataStandardizer.File.vCard.csproj",
