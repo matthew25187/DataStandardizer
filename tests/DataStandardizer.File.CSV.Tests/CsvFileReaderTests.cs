@@ -1688,5 +1688,20 @@ namespace DataStandardizer.File.CSV.Tests
                     .IsOptional();
             }
         }
+
+        [Fact]
+        public void Constructor_TextReaderWithNullOptions_ThrowsArgumentNullException()
+        {
+            // arrange
+            using (var stringReader = new StringReader(string.Empty))
+            {
+
+                // act
+                Action testAction = () => _ = new CsvFileReader<CsvFileRecordLine>(stringReader, null);
+
+                // assert
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+            }
+        }
     }
 }

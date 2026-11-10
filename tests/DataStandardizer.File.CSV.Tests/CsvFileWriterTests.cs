@@ -1603,5 +1603,60 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldIndex(2);
             }
         }
+
+        [Fact]
+        public void WriteLine_HeaderNameWithLineBreakAndEmbeddedLineBreakSet_QuotesTheName()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(HeaderFieldName1, "One\r\nTwo");
+            var options = new CsvFileOptions { EmbeddedLineBreak = "<br>" };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("\"One\r\nTwo\"\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderNameContainingTheTerminatorAndNoOtherSpecialCharacter_QuotesTheName()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(HeaderFieldName1, "One|Two");
+            var options = new CsvFileOptions { TerminatorLineBreak = "|" };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("\"One|Two\"|");
+            }
+        }
+
+        [Fact]
+        public void Constructor_TextWriterWithNullOptions_ThrowsArgumentNullException()
+        {
+            // arrange
+            using (var stringWriter = new StringWriter())
+            {
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(stringWriter, null);
+
+                // assert
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
+            }
+        }
     }
 }

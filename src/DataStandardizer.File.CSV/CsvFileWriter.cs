@@ -58,6 +58,7 @@ namespace DataStandardizer.File.CSV
         [MaybeNull] private char[] _quoteSearchCharacters;
 #endif
         private char _quoteSearchDelimiter;
+        private string _quoteSearchTerminator = string.Empty;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
         private char[] _fieldValueCharacters = NoCharacters;
 #endif
@@ -127,7 +128,7 @@ namespace DataStandardizer.File.CSV
 
         public CsvFileWriter(TextWriter writer, CsvFileOptions options) : this(writer)
         {
-            _options = options;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
 
             if (_options.Encoding != null)
             {
@@ -492,10 +493,13 @@ namespace DataStandardizer.File.CSV
                     quotingRequired = true;
                     break;
                 case CsvFieldQuoteHandling.Auto:
+                    // The culture that formats the values, so that the output doesn't depend on the machine's culture.
+                    var culture = options.Culture ?? CultureInfo.InvariantCulture;
                     // A value that RFC 4180 requires to be quoted is quoted even when it reads as a number, such as 1,000 with a comma delimiter.
                     // ref. RFC 4180§2¶6
                     quotingRequired = ContainsCharacterRequiringQuotes(rawFieldValue, options)
-                                      || (!string.IsNullOrWhiteSpace(rawFieldValue) && !long.TryParse(rawFieldValue, out _) && !decimal.TryParse(rawFieldValue, out _));
+                                      || (!string.IsNullOrWhiteSpace(rawFieldValue) && !long.TryParse(rawFieldValue, NumberStyles.Integer, culture, out _)
+                                          && !decimal.TryParse(rawFieldValue, NumberStyles.Number, culture, out _));
                     break;
                 case CsvFieldQuoteHandling.Required:
                     // ref. RFC 4180§2¶6
@@ -522,12 +526,15 @@ namespace DataStandardizer.File.CSV
 
             // The search characters are built once, and again only if the options they come from change.
             var fieldDelimiter = options.FieldDelimiterCharacter;
+            var terminator = options.TerminatorLineBreak ?? string.Empty;
 #if NET8_0_OR_GREATER
-            if (_quoteSearchValues is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak))
+            if (_quoteSearchValues is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak)
+                || !string.Equals(_quoteSearchTerminator, terminator))
             {
-                _quoteSearchValues = SearchValues.Create(GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak));
+                _quoteSearchValues = SearchValues.Create(GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak, terminator));
                 _quoteSearchDelimiter = fieldDelimiter;
                 _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
+                _quoteSearchTerminator = terminator;
             }
 
             var fieldValue = rawFieldValue.AsSpan();
@@ -536,11 +543,13 @@ namespace DataStandardizer.File.CSV
                 return false;
             }
 #else
-            if (_quoteSearchCharacters is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak))
+            if (_quoteSearchCharacters is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak)
+                || !string.Equals(_quoteSearchTerminator, terminator))
             {
-                _quoteSearchCharacters = GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak);
+                _quoteSearchCharacters = GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak, terminator);
                 _quoteSearchDelimiter = fieldDelimiter;
                 _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
+                _quoteSearchTerminator = terminator;
             }
 
             var fieldValue = rawFieldValue.AsSpan();
@@ -550,27 +559,36 @@ namespace DataStandardizer.File.CSV
             }
 #endif
 
-            if (embeddedLineBreak is null)
-            {
-                return true;
-            }
-
-            // The hit may be only part of the embedded line break sequence, so confirm it.
-            return fieldValue.IndexOf('"') >= 0 || fieldValue.IndexOf(fieldDelimiter) >= 0 || fieldValue.IndexOf(embeddedLineBreak.AsSpan()) >= 0;
+            // The hit may be only part of the embedded line break sequence or of the terminator, so confirm it.  A line break, quote or delimiter
+            // always requires quoting, even when an embedded line break sequence replaces the line breaks of record values, since a header name has
+            // no such replacement.
+            // ref. RFC 4180§2¶6
+            return fieldValue.IndexOfAny(RequiredQuoteCharacters(fieldDelimiter)) >= 0
+                || (embeddedLineBreak != null && fieldValue.IndexOf(embeddedLineBreak.AsSpan()) >= 0)
+                || (terminator.Length > 0 && fieldValue.IndexOf(terminator.AsSpan()) >= 0);
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, string? embeddedLineBreak)
+        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, string? embeddedLineBreak, string terminator)
 #else
-        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, [AllowNull] string embeddedLineBreak)
+        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, [AllowNull] string embeddedLineBreak, string terminator)
 #endif
         {
-            var lineBreakCharacters = embeddedLineBreak ?? "\r\n";
-            var searchCharacters = new char[lineBreakCharacters.Length + 2];
-            lineBreakCharacters.CopyTo(0, searchCharacters, 0, lineBreakCharacters.Length);
-            searchCharacters[lineBreakCharacters.Length] = '"';
-            searchCharacters[lineBreakCharacters.Length + 1] = fieldDelimiter;
+            var embedded = embeddedLineBreak ?? string.Empty;
+            var searchCharacters = new char[embedded.Length + terminator.Length + 4];
+            embedded.CopyTo(0, searchCharacters, 0, embedded.Length);
+            terminator.CopyTo(0, searchCharacters, embedded.Length, terminator.Length);
+            var next = embedded.Length + terminator.Length;
+            searchCharacters[next] = '\r';
+            searchCharacters[next + 1] = '\n';
+            searchCharacters[next + 2] = '"';
+            searchCharacters[next + 3] = fieldDelimiter;
             return searchCharacters;
+        }
+
+        private static char[] RequiredQuoteCharacters(char fieldDelimiter)
+        {
+            return new[] { '\r', '\n', '"', fieldDelimiter };
         }
 
         private string[] GetFieldValueBuffer(int fieldCount)

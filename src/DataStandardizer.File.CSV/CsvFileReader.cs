@@ -146,7 +146,7 @@ namespace DataStandardizer.File.CSV
 
         public CsvFileReader(TextReader reader, CsvFileOptions options) : this(reader)
         {
-            _options = options;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
 
             if (_options.Encoding != null)
             {
