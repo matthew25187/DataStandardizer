@@ -1162,5 +1162,35 @@ namespace DataStandardizer.Communication.Tests.Mime
                 return true;
             }
         }
+
+        // A parameter in RFC 2231 form, then one that is given twice.  The result is false, but the first parameter is joined first.
+        private const string Rfc2231ParameterThenDuplicate = "text/plain;a*=utf-8''x;b=1;b=2";
+
+        [Fact]
+        public void TryParse_DuplicateParameterAfterOneInRfc2231Form_JoinsTheFirstBeforeFailing()
+        {
+            // arrange
+            var resolver = new CountingCharsetResolver();
+
+            // act
+            var testResult = MimeMediaType.TryParse(Rfc2231ParameterThenDuplicate, MimeMediaTypeParseOptions.None, resolver, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+            resolver.Lookups.Should().Be(1);
+        }
+
+        // Resolves every character set as UTF-8, and counts the lookups.
+        private sealed class CountingCharsetResolver : IMimeCharsetResolver
+        {
+            public int Lookups { get; private set; }
+
+            public bool TryGetEncoding(MimeCharset charset, out Encoding encoding)
+            {
+                Lookups++;
+                encoding = Encoding.UTF8;
+                return true;
+            }
+        }
     }
 }

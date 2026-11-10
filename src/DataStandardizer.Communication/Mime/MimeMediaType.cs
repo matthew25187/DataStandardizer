@@ -564,10 +564,27 @@ namespace DataStandardizer.Communication.Mime
             if (_parameters.Count != other._parameters.Count) return false;
 
             // Names are unique, so each parameter has at most one counterpart.
+            if (_parameters.Count <= MaxParametersToSearch)
+            {
+                foreach (var parameter in _parameters)
+                {
+                    var index = IndexOfParameter(other._parameters, parameter.Name);
+                    if (index < 0 || !parameter.Equals(other._parameters[index])) return false;
+                }
+
+                return true;
+            }
+
+            var otherIndexes = new Dictionary<string, int>(other._parameters.Count, StringComparer.OrdinalIgnoreCase);
+            for (var index = 0; index < other._parameters.Count; index++)
+            {
+                otherIndexes[other._parameters[index].Name] = index;
+            }
+
             foreach (var parameter in _parameters)
             {
-                var index = IndexOfParameter(other._parameters, parameter.Name);
-                if (index < 0 || !parameter.Equals(other._parameters[index])) return false;
+                int otherIndex;
+                if (!otherIndexes.TryGetValue(parameter.Name, out otherIndex) || !parameter.Equals(other._parameters[otherIndex])) return false;
             }
 
             return true;
@@ -734,39 +751,46 @@ namespace DataStandardizer.Communication.Mime
 
             // Each parameter takes the place of the first of its forms.  The forms are grouped in one pass, since a value can have many parameters.
             var groups = new List<ParameterForms>();
-            var groupsByName = new Dictionary<string, ParameterForms>(StringComparer.OrdinalIgnoreCase);
+            var groupIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var form in rawParameters)
             {
-                if (!groupsByName.ContainsKey(form.Name))
+                int groupIndex;
+                if (!groupIndexes.TryGetValue(form.Name, out groupIndex))
                 {
-                    var newGroup = new ParameterForms(form.Name);
-                    groupsByName.Add(form.Name, newGroup);
-                    groups.Add(newGroup);
+                    groupIndex = groups.Count;
+                    groupIndexes.Add(form.Name, groupIndex);
+                    groups.Add(new ParameterForms(form.Name));
                 }
 
-                var group = groupsByName[form.Name];
+                var group = groups[groupIndex];
                 if (form.IsRfc2231)
                 {
+                    if (group.Forms is null) group.Forms = new List<MimeExtendedParameter.RawParameter>();
                     group.Forms.Add(form);
+                }
+                else if (group.PlainValue is null)
+                {
+                    group.PlainValue = form.Value;
                 }
                 else
                 {
-                    // ref. RFC 6838 §4.3: it is an error for a specific parameter to be specified more than once.
-                    if (group.HasPlain) return false;
-
-                    group.HasPlain = true;
-                    group.PlainValue = form.Value;
+                    // ref. RFC 6838 §4.3: it is an error for a specific parameter to be specified more than once.  It is acted on when the
+                    // parameter's turn comes below, so that the parameters before it are joined first, as they always were.
+                    group.HasDuplicatePlain = true;
                 }
             }
 
             var list = new List<MimeParameter>(groups.Count);
             foreach (var group in groups)
             {
+                if (group.HasDuplicatePlain) return false;
+
                 // ref. RFC 2231 §4: the RFC 2231 form is used in preference to a plain one, which is there for readers that don't know it.
+
                 MimeParameter parameter;
-                if (group.Forms.Count == 0)
+                if (group.Forms is null)
                 {
-                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue, null, null);
+                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue ?? string.Empty, null, null);
                 }
                 else if (!MimeExtendedParameter.TryJoin(group.Forms, options, charsetResolver, out parameter))
                 {
@@ -791,9 +815,26 @@ namespace DataStandardizer.Communication.Mime
             }
 
             public string Name { get; }
-            public bool HasPlain { get; set; }
-            public string PlainValue { get; set; } = string.Empty;
-            public List<MimeExtendedParameter.RawParameter> Forms { get; } = new List<MimeExtendedParameter.RawParameter>();
+
+            /// <summary>
+            /// Gets or sets the value of the plain form, or <c>null</c> if there is none.
+            /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+            public string? PlainValue { get; set; }
+#else
+            public string PlainValue { get; set; }
+#endif
+
+            public bool HasDuplicatePlain { get; set; }
+
+            /// <summary>
+            /// Gets or sets the RFC 2231 forms, or <c>null</c> if there are none.
+            /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+            public List<MimeExtendedParameter.RawParameter>? Forms { get; set; }
+#else
+            public List<MimeExtendedParameter.RawParameter> Forms { get; set; }
+#endif
         }
 
         private static ReadOnlySpan<char> ReadToken(ReadOnlySpan<char> value, ref int position)
@@ -814,6 +855,11 @@ namespace DataStandardizer.Communication.Mime
                 position++;
             }
         }
+
+        /// <summary>
+        /// The most parameters that are found by searching a list, which costs less than a set does for the few that a media type usually has.
+        /// </summary>
+        private const int MaxParametersToSearch = 16;
 
         private static int IndexOfParameter(IReadOnlyList<MimeParameter> parameters, string name)
         {
@@ -843,10 +889,13 @@ namespace DataStandardizer.Communication.Mime
             if (parameters is null) throw new ArgumentNullException(nameof(parameters));
 
             var list = new List<MimeParameter>(parameters);
+            var names = list.Count > MaxParametersToSearch ? new HashSet<string>(StringComparer.OrdinalIgnoreCase) : null;
             for (var index = 0; index < list.Count; index++)
             {
                 if (!list[index].IsInitialized) throw new ArgumentException("A parameter is not initialised.", nameof(parameters));
-                if (IndexOfParameter(list, list[index].Name) < index) throw new ArgumentException("More than one parameter has the same name.", nameof(parameters));
+
+                var isDuplicate = names is null ? IndexOfParameter(list, list[index].Name) < index : !names.Add(list[index].Name);
+                if (isDuplicate) throw new ArgumentException("More than one parameter has the same name.", nameof(parameters));
             }
 
             return list.Count == 0 ? NoParameters : new ReadOnlyCollection<MimeParameter>(list);
