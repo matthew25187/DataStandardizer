@@ -28,7 +28,7 @@ namespace DataStandardizer.File.iCal
             // Database name.  Each trailing part of the path is tried, longest first.
             if (timeZoneId.Length == 0 || timeZoneId[0] != '/') return false;
 
-            for (var index = timeZoneId.IndexOf('/', 1); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
+            for (var index = GetFirstTrailingPartSeparator(timeZoneId); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
             {
                 if (TzDataTimezone.TryParse(timeZoneId.Substring(index + 1), out timezone)) return true;
             }

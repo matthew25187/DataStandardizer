@@ -388,11 +388,13 @@ namespace DataStandardizer.File.iCal.Tests
             xml.ToString().Should().Be(Example1StartBeforeFirstValue);
         }
 
-        [Fact]
-        public void WriteCalendar_CharacterXmlCannotHold_Throws()
+        [Theory]
+        [InlineData("a\x0001b")]
+        [InlineData("a\xFFFFb")]
+        public void WriteCalendar_CharacterXmlCannotHold_Throws(string value)
         {
             // arrange
-            var calendar = CreateCalendarWithProperty("X-BAD", "a\x0001b");
+            var calendar = CreateCalendarWithProperty("X-BAD", value);
             using (var writer = new XcalWriter(new StringWriter()))
             {
                 // act

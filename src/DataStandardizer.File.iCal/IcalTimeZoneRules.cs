@@ -21,6 +21,23 @@ namespace DataStandardizer.File.iCal
     /// </remarks>
     public abstract class IcalTimeZoneRules
     {
+        /// <summary>
+        /// The longest time zone identifier that is looked up.  It is the longest that the system's time zone files can be named, which is longer
+        /// than any name in the TZ Database, so for that source it only bounds the work.
+        /// </summary>
+        internal const int MaxIdentifierLength = 255;
+
+        /// <summary>
+        /// Gets the index of the first solidus in a time zone identifier that starts with one after which the rest is no longer than
+        /// <see cref="MaxIdentifierLength"/>, or -1 if there is none.  The parts of such an identifier after each solidus are the candidates for an
+        /// identifier that a vendor prefix such as <c>/mozilla.org/20050126_1/</c> was put in front of, so a longer part isn't tried, or copied.
+        /// </summary>
+        /// <param name="timeZoneId">The time zone identifier, which is not empty.</param>
+        internal static int GetFirstTrailingPartSeparator(string timeZoneId)
+        {
+            return timeZoneId.IndexOf('/', Math.Max(1, timeZoneId.Length - MaxIdentifierLength - 1));
+        }
+
         private const string InstantOutOfRangeMessage = "The instant falls outside the range of DateTime.";
 
         /// <summary>
