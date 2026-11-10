@@ -54,7 +54,8 @@ namespace DataStandardizer.File.CSV
         private ExceptionDispatchInfo? _headerFailure;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
-        private List<KeyValuePair<string, int>>? _invalidFieldValues;
+        private List<KeyValuePair<int, int>>? _invalidFieldValues;
+        private Dictionary<int, string>? _invalidRawFieldValues;
         private readonly TextReader _reader = null!;
 #else
         [MaybeNull] private CsvContext _context;
@@ -62,7 +63,8 @@ namespace DataStandardizer.File.CSV
         [MaybeNull] private ExceptionDispatchInfo _headerFailure;
         [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
         [MaybeNull] private CsvFileHeaderLine _headerLine;
-        [MaybeNull] private List<KeyValuePair<string, int>> _invalidFieldValues;
+        [MaybeNull] private List<KeyValuePair<int, int>> _invalidFieldValues;
+        [MaybeNull] private Dictionary<int, string> _invalidRawFieldValues;
         [NotNull] private readonly TextReader _reader;
 #endif
 #if NET8_0_OR_GREATER
@@ -78,6 +80,8 @@ namespace DataStandardizer.File.CSV
         private bool _endOfStream;
         private int _expectedFieldCount;
         private readonly StringBuilder _fieldValueBuilder = new StringBuilder();
+        private int _fieldValueBuilderWhiteSpaceLength;
+        private bool _fieldValueBuilderHasNonWhiteSpace;
         private int _fieldValueStart;
         private bool _headerLineIgnored;
         private readonly bool _isInternalReader;
@@ -608,6 +612,7 @@ namespace DataStandardizer.File.CSV
         {
             fieldValues.Clear();
             _invalidFieldValues?.Clear();
+            _invalidRawFieldValues?.Clear();
 
             var fieldDelimiter = _options.FieldDelimiterCharacter;
             var terminator = _options.TerminatorLineBreak;
@@ -620,7 +625,7 @@ namespace DataStandardizer.File.CSV
             var unquotedStopCharacters = GetUnquotedStopCharacters(fieldDelimiter, terminatorStart);
 #endif
 
-            _fieldValueBuilder.Clear();
+            ClearFieldValueBuilder();
             _fieldValueStart = _bufferPosition;
 
             // A final record without a terminator is returned, but an empty remainder of the stream is not.
@@ -739,7 +744,7 @@ namespace DataStandardizer.File.CSV
                     // ref. RFC 4180§2¶5
                     if (!IsPendingFieldValueWhiteSpace())
                     {
-                        AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
+                        AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                         isInvalidValue = true;
                     }
 
@@ -765,16 +770,19 @@ namespace DataStandardizer.File.CSV
                 // ref. RFC 4180§2¶5
                 if (quotedValue && !char.IsWhiteSpace(character))
                 {
-                    AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
+                    AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                     isInvalidValue = true;
                 }
             }
 
-            if (_invalidFieldValues != null)
+            if (_invalidFieldValues != null && _invalidRawFieldValues != null)
             {
                 foreach (var invalidFieldValue in _invalidFieldValues)
                 {
-                    HandleInvalidFieldValue(invalidFieldValue.Key, invalidFieldValue.Value);
+                    // The raw value at a violation is the start of the whole raw value, which only grows.  Taking it here, one at a time, keeps the
+                    // record's memory linear in its length, however many violations there are.
+                    var rawFieldValue = _invalidRawFieldValues[invalidFieldValue.Key].Substring(0, invalidFieldValue.Value);
+                    HandleInvalidFieldValue(rawFieldValue, invalidFieldValue.Key);
                 }
             }
 
@@ -801,7 +809,13 @@ namespace DataStandardizer.File.CSV
         {
             if (isInvalidValue)
             {
-                _fieldValueBuilder.Clear();
+                // The raw value is kept for reporting, and the value in the record is empty.
+                if (_invalidRawFieldValues is null)
+                {
+                    _invalidRawFieldValues = new Dictionary<int, string>();
+                }
+
+                _invalidRawFieldValues[fieldValues.Count] = TakeFieldValue();
                 fieldValues.Add(string.Empty);
                 return;
             }
@@ -809,14 +823,24 @@ namespace DataStandardizer.File.CSV
             fieldValues.Add(TakeFieldValue());
         }
 
-        private void AddInvalidFieldValue(string rawFieldValue, int fieldIndex)
+        /// <summary>
+        /// Records a violation in a field, as the length of the field's raw value at the point of it.
+        /// </summary>
+        private void AddInvalidFieldValue(int rawFieldValueLength, int fieldIndex)
         {
             if (_invalidFieldValues is null)
             {
-                _invalidFieldValues = new List<KeyValuePair<string, int>>();
+                _invalidFieldValues = new List<KeyValuePair<int, int>>();
             }
 
-            _invalidFieldValues.Add(new KeyValuePair<string, int>(rawFieldValue, fieldIndex));
+            _invalidFieldValues.Add(new KeyValuePair<int, int>(fieldIndex, rawFieldValueLength));
+        }
+
+        private void ClearFieldValueBuilder()
+        {
+            _fieldValueBuilder.Clear();
+            _fieldValueBuilderWhiteSpaceLength = 0;
+            _fieldValueBuilderHasNonWhiteSpace = false;
         }
 
         /// <summary>
@@ -925,10 +949,19 @@ namespace DataStandardizer.File.CSV
 
         private bool IsPendingFieldValueWhiteSpace()
         {
-            for (int index = 0; index < _fieldValueBuilder.Length; index++)
+            // The builder only grows until it is cleared, so what an earlier check found is kept, and each character is checked once.
+            if (_fieldValueBuilderHasNonWhiteSpace) return false;
+
+            for (int index = _fieldValueBuilderWhiteSpaceLength; index < _fieldValueBuilder.Length; index++)
             {
-                if (!char.IsWhiteSpace(_fieldValueBuilder[index])) return false;
+                if (!char.IsWhiteSpace(_fieldValueBuilder[index]))
+                {
+                    _fieldValueBuilderHasNonWhiteSpace = true;
+                    return false;
+                }
             }
+
+            _fieldValueBuilderWhiteSpaceLength = _fieldValueBuilder.Length;
 
             var buffer = _buffer;
             for (int index = _fieldValueStart; index < _bufferPosition; index++)
@@ -954,12 +987,11 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the field value read so far without consuming it.
+        /// Gets the length of the field value read so far.
         /// </summary>
-        private string PeekFieldValue()
+        private int GetPendingFieldValueLength()
         {
-            var pendingValue = new string(_buffer, _fieldValueStart, _bufferPosition - _fieldValueStart);
-            return _fieldValueBuilder.Length == 0 ? pendingValue : _fieldValueBuilder + pendingValue;
+            return _fieldValueBuilder.Length + _bufferPosition - _fieldValueStart;
         }
 
         /// <summary>
@@ -974,7 +1006,7 @@ namespace DataStandardizer.File.CSV
             }
 
             var fieldValue = _fieldValueBuilder.Append(_buffer, _fieldValueStart, length).ToString();
-            _fieldValueBuilder.Clear();
+            ClearFieldValueBuilder();
             return fieldValue;
         }
 

@@ -12,6 +12,50 @@ public class CsvFileReaderTests
     // "1,2,3" in ASCII.
     private static readonly byte[] NumbersFileContent = [0x31, 0x2C, 0x32, 0x2C, 0x33];
 
+    // The number of characters after the closing quote that made the reader allocate about 765 MiB when it recorded a copy of the value so far for each.
+    private const int CharactersAfterClosingQuote = 20_000;
+
+    // Many times more than the reader allocates for that input now, and far less than it allocated then.
+    private const long AllocationLimit = 8L * 1024 * 1024;
+
+    // A quoted value, then characters that RFC 4180 §2 doesn't allow after the closing quote.
+    public static TheoryData<string> QuotedValuesFollowedByManyCharacters()
+    {
+        return new TheoryData<string> { "\"a\"" + new string('b', CharactersAfterClosingQuote) };
+    }
+
+    [Theory]
+    [MemberData(nameof(QuotedValuesFollowedByManyCharacters))]
+    public void ReadLine_ManyCharactersAfterClosingQuote_ThrowsCsvFileException(string input)
+    {
+        // arrange
+        using var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(input));
+
+        // act
+        Action testAction = () => csvReader.ReadLine();
+
+        // assert
+        testAction.Should().Throw<CsvFileException>();
+    }
+
+    [Theory]
+    [MemberData(nameof(QuotedValuesFollowedByManyCharacters))]
+    public void ReadLine_ManyCharactersAfterClosingQuote_DoesNotAllocateMuchMemory(string input)
+    {
+        // arrange
+        Func<Action> prepare = () =>
+        {
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(input));
+            return () => ReaderActions.ReadLineIgnoringFailure(csvReader);
+        };
+
+        // act
+        var testResult = AllocationMeter.MeasureAllocatedBytes(prepare);
+
+        // assert
+        testResult.Should().BeLessThan(AllocationLimit);
+    }
+
     [Fact]
     public void Dispose_ReaderConstructedFromFilePath_ClosesFile()
     {
