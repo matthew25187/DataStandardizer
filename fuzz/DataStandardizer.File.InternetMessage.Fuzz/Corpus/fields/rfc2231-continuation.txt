@@ -1,0 +1,3 @@
+message/external-body; access-type=URL;
+ URL*0="ftp://";
+ URL*1="cs.utk.edu/pub/moore/bulk-mailer/bulk-mailer.tar"

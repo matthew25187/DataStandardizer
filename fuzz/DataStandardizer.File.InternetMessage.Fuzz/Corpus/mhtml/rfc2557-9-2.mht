@@ -1,0 +1,20 @@
+From: foo1@bar.net
+To: foo2@bar.net
+Subject: A simple example
+Mime-Version: 1.0
+Content-Type: multipart/related; boundary="boundary-example";
+        type="text/html"; start="<foo3@foo1.bar.net>"
+
+--boundary-example
+Content-Type: text/html;charset="US-ASCII"
+Content-ID: <foo3@foo1.bar.net>
+
+<IMG SRC="http://www.ietf.cnri.reston.va.us/images/ietflogo.gif" ALT="IETF logo">
+--boundary-example
+Content-Location:
+   http://www.ietf.cnri.reston.va.us/images/ietflogo.gif
+Content-Type: IMAGE/GIF
+Content-Transfer-Encoding: BASE64
+
+R0lGODlh
+--boundary-example--
