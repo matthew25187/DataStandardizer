@@ -14,8 +14,6 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class XcalWriterTests
     {
-        // U+FFFF, which XML 1.0 doesn't allow in a document (Extensible Markup Language 1.0 section 2.2, Char).
-        private const char NotACharacter = '\xFFFF';
         private const string PropertiesElement = "properties";
         private const string ParametersElement = "parameters";
         private const string VcalendarElement = "vcalendar";
@@ -313,21 +311,6 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void WriteCalendar_ValueWithCharacterNotValidInXml_Throws()
-        {
-            // arrange
-            var calendar = CreateCalendarWithProperty("X-TEST", "a" + NotACharacter + "b");
-            using (var writer = new XcalWriter(new StringWriter()))
-            {
-                // act
-                Action testAction = () => writer.WriteCalendar(calendar);
-
-                // assert
-                testAction.Should().Throw<IcalFileException>();
-            }
-        }
-
-        [Fact]
         public void Dispose_AfterNameNotValidInXml_HasWrittenNothing()
         {
             // arrange
@@ -405,11 +388,13 @@ namespace DataStandardizer.File.iCal.Tests
             xml.ToString().Should().Be(Example1StartBeforeFirstValue);
         }
 
-        [Fact]
-        public void WriteCalendar_CharacterXmlCannotHold_Throws()
+        [Theory]
+        [InlineData("a\x0001b")]
+        [InlineData("a\xFFFFb")]
+        public void WriteCalendar_CharacterXmlCannotHold_Throws(string value)
         {
             // arrange
-            var calendar = CreateCalendarWithProperty("X-BAD", "a\x0001b");
+            var calendar = CreateCalendarWithProperty("X-BAD", value);
             using (var writer = new XcalWriter(new StringWriter()))
             {
                 // act

@@ -16,8 +16,6 @@ namespace DataStandardizer.File.iCal
             _timezone = timezone;
         }
 
-        private const int MaxIdentifierLength = 255;
-
         /// <summary>
         /// Finds the TZ Database zone for a time zone identifier: the identifier itself, or, for one that starts with a solidus, the part after
         /// a vendor prefix such as <c>/mozilla.org/20050126_1/</c>.
@@ -30,9 +28,7 @@ namespace DataStandardizer.File.iCal
             // Database name.  Each trailing part of the path is tried, longest first.
             if (timeZoneId.Length == 0 || timeZoneId[0] != '/') return false;
 
-            // A part longer than an identifier can be isn't tried, so a long run of solidi costs no copying of its parts.
-            var firstIndex = Math.Max(1, timeZoneId.Length - MaxIdentifierLength - 1);
-            for (var index = timeZoneId.IndexOf('/', firstIndex); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
+            for (var index = GetFirstTrailingPartSeparator(timeZoneId); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
             {
                 if (TzDataTimezone.TryParse(timeZoneId.Substring(index + 1), out timezone)) return true;
             }

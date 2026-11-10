@@ -66,6 +66,8 @@ namespace DataStandardizer.File.iCal.Tests
         private const int InstantsInAnyOrderSeed = 263;
         private const int MinutesIn500Years = 500 * 365 * 24 * 60;
         private const string NextResolver = "next";
+        private const int MaxIdentifierLength = IcalTimeZoneRules.MaxIdentifierLength;
+        private const int LongPrefixLength = 300;
 
         // FakeSystemTimeZones.EasternId behind a vendor prefix of the kind RFC 5545 §3.8.3.1 describes, as Mozilla writes it, and the
         // trailing part of it that the system resolver tries first.
@@ -1698,6 +1700,59 @@ namespace DataStandardizer.File.iCal.Tests
                 rules = null;
                 return _inner != null && _inner.TryResolve(timeZoneId, calendar, out rules);
             }
+        }
+
+        // A part after a solidus that is as long as an identifier can be, and one character longer, behind a vendor prefix.
+        public static TheoryData<string, bool> VendorPrefixedIdsAtTheLengthLimit => new TheoryData<string, bool>
+        {
+            { "/mozilla.org/" + new string('a', MaxIdentifierLength), true },
+            { "/mozilla.org/" + new string('a', MaxIdentifierLength + 1), false }
+        };
+
+        [Theory]
+        [MemberData(nameof(VendorPrefixedIdsAtTheLengthLimit))]
+        public void TryFindTimeZone_VendorPrefixedIdAtTheLengthLimit_TriesPartsNoLongerThanTheLimit(string timeZoneId, bool expected)
+        {
+            // arrange
+            Func<string, TimeZoneInfo> findAnyName = name => TimeZoneInfo.Utc;
+
+            // act
+            var testResult = IcalSystemTimeZoneRules.TryFindTimeZone(timeZoneId, findAnyName, out _);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        // New_York behind a prefix longer than any identifier, and behind a long run of solidi.
+        public static TheoryData<string> LongPrefixedTzDataIds => new TheoryData<string>
+        {
+            { "/" + new string('a', LongPrefixLength) + "/America/New_York" },
+            { new string('/', LongPrefixLength) + "America/New_York" }
+        };
+
+        [Theory]
+        [MemberData(nameof(LongPrefixedTzDataIds))]
+        public void Resolve_TzDataNameBehindALongPrefix_Resolves(string timeZoneId)
+        {
+            // act
+            var testResult = IcalTimeZoneResolver.TzData.Resolve(timeZoneId, null);
+
+            // assert
+            testResult.Should().NotBeNull();
+        }
+
+        [Theory]
+        [MemberData(nameof(LongPrefixedTzDataIds))]
+        public void TryFindTimeZone_NameBehindALongPrefix_FindsIt(string timeZoneId)
+        {
+            // arrange
+            Func<string, TimeZoneInfo> findAnyName = name => TimeZoneInfo.Utc;
+
+            // act
+            var testResult = IcalSystemTimeZoneRules.TryFindTimeZone(timeZoneId, findAnyName, out _);
+
+            // assert
+            testResult.Should().BeTrue();
         }
     }
 }

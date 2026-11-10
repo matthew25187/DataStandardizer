@@ -15,8 +15,6 @@ namespace DataStandardizer.File.iCal
     /// </remarks>
     internal sealed class IcalSystemTimeZoneRules : IcalTimeZoneRules
     {
-        private const int MaxIdentifierLength = 255;
-
         private readonly TimeZoneInfo _timeZone;
 
         internal IcalSystemTimeZoneRules(string timeZoneId, TimeZoneInfo timeZone) : base(timeZoneId)
@@ -43,9 +41,7 @@ namespace DataStandardizer.File.iCal
 
             // ref. RFC 5545§3.8.3.1: a TZID that starts with a solidus is globally unique, which vendors give by prefixing a path to the TZ
             // Database name.  Each trailing part of the path is tried, longest first.
-            // A part longer than an identifier can be isn't tried, so a long run of solidi costs no copying of its parts.
-            var firstIndex = Math.Max(1, timeZoneId.Length - MaxIdentifierLength - 1);
-            for (var index = timeZoneId.IndexOf('/', firstIndex); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
+            for (var index = GetFirstTrailingPartSeparator(timeZoneId); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
             {
                 if (TryFindSystemTimeZone(timeZoneId.Substring(index + 1), findTimeZone, out timeZone)) return true;
             }
