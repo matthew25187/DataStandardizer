@@ -12,6 +12,26 @@ public class CsvFileReaderTests
     // "1,2,3" in ASCII.
     private static readonly byte[] NumbersFileContent = [0x31, 0x2C, 0x32, 0x2C, 0x33];
 
+    // A quoted value, then characters that RFC 4180 2 doesn't allow after the closing quote.  Each one used to record a copy of the value so far, so
+    // that the input of this length needed hundreds of MiB.
+    private static readonly string QuotedValueThenManyCharacters = "\"a\"" + new string('b', 20000);
+    private const long AllocationLimit = 8L * 1024 * 1024;
+
+    [Fact]
+    public void ReadLine_ManyCharactersAfterClosingQuoteWithoutBadValueHandler_ThrowsWithoutAllocatingMuchMemory()
+    {
+        // arrange
+        using var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(QuotedValueThenManyCharacters));
+        Action testAction = () => csvReader.ReadLine();
+
+        // act
+        var allocated = AllocationMeter.BytesAllocatedBy(testAction, out var exception);
+
+        // assert
+        exception.Should().BeOfType<CsvFileException>();
+        allocated.Should().BeLessThan(AllocationLimit);
+    }
+
     [Fact]
     public void Dispose_ReaderConstructedFromFilePath_ClosesFile()
     {

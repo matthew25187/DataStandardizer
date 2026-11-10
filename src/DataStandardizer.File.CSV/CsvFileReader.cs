@@ -737,7 +737,9 @@ namespace DataStandardizer.File.CSV
 
                     // If the field value is not whitespace, the current quote character would be embedded without quoting and thus invalid.
                     // ref. RFC 4180§2¶5
-                    if (!IsPendingFieldValueWhiteSpace())
+                    // Without a bad value handler the first violation is the only one that matters, since it throws, so a record that has one isn't
+                    // checked for more.
+                    if (!HasReportedViolation() && !IsPendingFieldValueWhiteSpace())
                     {
                         AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
                         isInvalidValue = true;
@@ -763,7 +765,7 @@ namespace DataStandardizer.File.CSV
 
                 // Check for non-whitespace outside a quoted value.
                 // ref. RFC 4180§2¶5
-                if (quotedValue && !char.IsWhiteSpace(character))
+                if (quotedValue && !HasReportedViolation() && !char.IsWhiteSpace(character))
                 {
                     AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
                     isInvalidValue = true;
@@ -807,6 +809,19 @@ namespace DataStandardizer.File.CSV
             }
 
             fieldValues.Add(TakeFieldValue());
+        }
+
+        /// <summary>
+        /// Gets whether the record already has a violation, and no more are to be recorded.
+        /// </summary>
+        /// <remarks>
+        /// With a bad value handler, each violation is reported to it, so more are recorded.  Without one, the first violation throws once the record
+        /// is read, so recording the rest would only cost memory and time: a quoted value followed by a long run of characters would otherwise
+        /// record a copy of the whole value for each of them.
+        /// </remarks>
+        private bool HasReportedViolation()
+        {
+            return !(_options.BadValueHandler is CsvFieldBadValue<TRecordLine>) && _invalidFieldValues != null && _invalidFieldValues.Count > 0;
         }
 
         private void AddInvalidFieldValue(string rawFieldValue, int fieldIndex)
