@@ -1,28 +1,37 @@
+using System;
+
 namespace DataStandardizer.File.CSV.IntegrationTests;
 
 /// <summary>
-/// Measures the memory that an operation allocates on the calling thread.
+/// Measures how many bytes an action allocates on the managed heap.
 /// </summary>
+/// <remarks>
+/// Its own tests are in <see cref="AllocationMeterTests"/>. An allocation test makes one call to <see cref="MeasureAllocatedBytes"/>.
+/// </remarks>
 internal static class AllocationMeter
 {
     /// <summary>
-    /// Runs the action and gives the bytes it allocated.
+    /// Run an action once, so that the one-off work of compiling it and filling the caches it uses is not counted, then run it again and
+    /// return the number of bytes the second run allocated on the current thread.
     /// </summary>
-    /// <param name="action">The action.</param>
-    /// <param name="exception">The exception that the action threw, or <c>null</c> if it didn't throw.</param>
-    public static long BytesAllocatedBy(Action action, out Exception? exception)
+    internal static long MeasureAllocatedBytes(Action action)
     {
-        exception = null;
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        try
-        {
-            action();
-        }
-        catch (Exception caught)
-        {
-            exception = caught;
-        }
+        action();
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        action();
+        return GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+    }
 
-        return GC.GetAllocatedBytesForCurrentThread() - before;
+    /// <summary>
+    /// Prepare an action and run it once, so that the one-off work of compiling it and filling the caches it uses is not counted, then
+    /// prepare it again and return the number of bytes that running it, but not preparing it, allocated on the current thread.
+    /// </summary>
+    internal static long MeasureAllocatedBytes(Func<Action> prepare)
+    {
+        prepare()();
+        var action = prepare();
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        action();
+        return GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     }
 }
