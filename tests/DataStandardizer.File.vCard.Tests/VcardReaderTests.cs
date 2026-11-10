@@ -37,7 +37,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             const int ExamplePropertyCount = 16;
-            var options = new VcardOptions();
+            var options = new VcardOptions { MaxLineLength = null };
 
             // act
             var testResult = VcardCardTestData.Read(Rfc6350Examples.ExampleWithEscapedComma, options);
@@ -78,7 +78,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_AnyBufferSize_GivesTheSameLines(int bufferSize)
         {
             // arrange
-            using (var reader = new VcardReader(new StringReader(Rfc6350Examples.ExampleWithEscapedComma), new VcardOptions(), bufferSize))
+            using (var reader = new VcardReader(new StringReader(Rfc6350Examples.ExampleWithEscapedComma), new VcardOptions { MaxLineLength = null }, bufferSize))
             {
                 // act
                 var testResult = reader.ReadCard();
@@ -491,7 +491,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "item.VERSION:4.0", "FN:Jane Doe", "END:VCARD");
-            using (var reader = new VcardReader(new StringReader(text), new VcardOptions { AllowCardinalityViolations = true }))
+            using (var reader = new VcardReader(new StringReader(text), new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true }))
             {
                 // act
                 Action testAction = () => reader.ReadCard();
@@ -520,7 +520,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("CLIENTPIDMAP;ENCODING=QUOTED-PRINTABLE:1=3Burn=3Aa", "EMAIL;PID=1.1:a@example.com");
-            var options = new VcardOptions { AcceptLegacySyntax = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -534,7 +534,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("ORG;SORT-AS=\"Acme,Research\";ENCODING=QUOTED-PRINTABLE:Acme=3BResearch");
-            var options = new VcardOptions { AcceptLegacySyntax = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -548,7 +548,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("XML:not an element");
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -564,7 +564,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var text = VcardCardTestData.Stream(VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=x-test:a"), VcardCardTestData.Card());
             var resolver = new VcardCardTestData.CallbackCharsetResolver { OnResolve = () => throw new ArithmeticException() };
-            var options = new VcardOptions { AcceptLegacySyntax = true, CharsetResolver = resolver };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true, CharsetResolver = resolver };
             using (var reader = new VcardReader(new StringReader(text), options))
             {
                 VcardCardTestData.ReadPastResolverFailure(reader);
@@ -582,7 +582,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var resolver = new VcardCardTestData.CallbackCharsetResolver();
-            var options = new VcardOptions { AcceptLegacySyntax = true, CharsetResolver = resolver };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true, CharsetResolver = resolver };
             var reader = new VcardReader(new StringReader(VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=x-test:a")), options);
             resolver.OnResolve = reader.Dispose;
 
@@ -614,73 +614,73 @@ namespace DataStandardizer.File.vCard.Tests
                 {
                     "VERSION after FN",
                     VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "VERSION:4.0", "END:VCARD"),
-                    new VcardOptions { AllowVersionNotFirst = true },
+                    new VcardOptions { MaxLineLength = null, AllowVersionNotFirst = true },
                     VcardDiagnosticKind.InvalidStructure
                 },
                 {
                     "no VERSION",
                     VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "END:VCARD"),
-                    new VcardOptions { AllowMissingRequiredProperties = true },
+                    new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true },
                     VcardDiagnosticKind.MissingRequiredProperty
                 },
                 {
                     "no FN",
                     VcardCardTestData.BareCard("NOTE:a"),
-                    new VcardOptions { AllowMissingRequiredProperties = true },
+                    new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true },
                     VcardDiagnosticKind.MissingRequiredProperty
                 },
                 {
                     "two VERSIONs",
                     VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "VERSION:4.0", "FN:Jane Doe", "END:VCARD"),
-                    new VcardOptions { AllowCardinalityViolations = true },
+                    new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true },
                     VcardDiagnosticKind.CardinalityViolation
                 },
                 {
                     "two BDAYs",
                     VcardCardTestData.Card("BDAY:19960415", "BDAY:19960416"),
-                    new VcardOptions { AllowCardinalityViolations = true },
+                    new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true },
                     VcardDiagnosticKind.CardinalityViolation
                 },
                 {
                     "MEMBER without KIND:group",
                     VcardCardTestData.Card("MEMBER:mailto:subscriber1@example.com"),
-                    new VcardOptions { AllowCardinalityViolations = true },
+                    new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true },
                     VcardDiagnosticKind.CardinalityViolation
                 },
                 {
                     "a value that isn't a timestamp",
                     VcardCardTestData.Card("REV:2024-05-01T00:00:00Z"),
-                    new VcardOptions { AllowInvalidValues = true },
+                    new VcardOptions { MaxLineLength = null, AllowInvalidValues = true },
                     VcardDiagnosticKind.InvalidValue
                 },
                 {
                     "a VALUE the property doesn't allow",
                     VcardCardTestData.Card("URL;VALUE=text:example"),
-                    new VcardOptions { AllowInvalidValues = true },
+                    new VcardOptions { MaxLineLength = null, AllowInvalidValues = true },
                     VcardDiagnosticKind.InvalidValue
                 },
                 {
                     "PREF out of range",
                     VcardCardTestData.Card("TEL;PREF=101:1"),
-                    new VcardOptions { AllowInvalidValues = true },
+                    new VcardOptions { MaxLineLength = null, AllowInvalidValues = true },
                     VcardDiagnosticKind.InvalidParameter
                 },
                 {
                     "PID on a property with one instance",
                     VcardCardTestData.Card("UID;PID=1:urn:uuid:03a0e51f-d1aa-4385-8a53-e29025acd8af"),
-                    new VcardOptions { AllowInvalidValues = true },
+                    new VcardOptions { MaxLineLength = null, AllowInvalidValues = true },
                     VcardDiagnosticKind.InvalidParameter
                 },
                 {
                     "ENCODING in a 4.0 card",
                     VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE:a"),
-                    new VcardOptions { AcceptLegacySyntax = true },
+                    new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true },
                     VcardDiagnosticKind.LegacySyntax
                 },
                 {
                     "CHARSET in a 4.0 card",
                     VcardCardTestData.Card("NOTE;CHARSET=UTF-8:a"),
-                    new VcardOptions { AcceptLegacySyntax = true },
+                    new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true },
                     VcardDiagnosticKind.LegacySyntax
                 }
             };
@@ -726,7 +726,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("TEL;HOME;VOICE:1");
-            var options = new VcardOptions { AcceptLegacySyntax = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -740,7 +740,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE:caf=C3=A9");
-            var options = new VcardOptions { AcceptLegacySyntax = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -769,7 +769,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "END:VCARD");
-            var options = new VcardOptions { AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -783,7 +783,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = VcardCardTestData.Card("REV:2024-05-01T00:00:00Z");
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);
@@ -884,7 +884,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "ORG:Example\\, Inc.;",
                 "CATEGORIES:myContacts",
                 "REV:2024-05-01T00:00:00Z");
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options);

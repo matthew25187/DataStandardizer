@@ -346,7 +346,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_SortStringWithNoName_GoesOnTheOrganization()
         {
             // arrange
-            var options = new VcardOptions { AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
             var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "ORG:Acme", "SORT-STRING:Acme");
 
             // act
@@ -473,12 +473,12 @@ namespace DataStandardizer.File.vCard.Tests
         {
             return new TheoryData<string[], VcardOptions>
             {
-                { new[] { Vcard30TestData.FormattedName }, new VcardOptions { AllowMissingRequiredProperties = true } },
-                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE:a,b" }, new VcardOptions { AllowInvalidValues = true } },
-                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "URL;TYPE=work:http://example.com" }, new VcardOptions { AllowInvalidValues = true } },
-                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;LANGUAGE=es-419:a" }, new VcardOptions { AllowInvalidValues = true } },
-                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;ENCODING=QUOTED-PRINTABLE:a" }, new VcardOptions { AcceptLegacySyntax = true } },
-                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;CHARSET=UTF-8:a" }, new VcardOptions { AcceptLegacySyntax = true } }
+                { new[] { Vcard30TestData.FormattedName }, new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true } },
+                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE:a,b" }, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "URL;TYPE=work:http://example.com" }, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;LANGUAGE=es-419:a" }, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;ENCODING=QUOTED-PRINTABLE:a" }, new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true } },
+                { new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;CHARSET=UTF-8:a" }, new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true } }
             };
         }
 
@@ -526,7 +526,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_QuotedPrintableUnderAcceptLegacySyntax_IsDecodedIntoCanonicalForm()
         {
             // arrange
-            var options = new VcardOptions { AcceptLegacySyntax = true };
+            var options = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
             var text = Vcard30TestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:caf=C3=A9");
 
             // act

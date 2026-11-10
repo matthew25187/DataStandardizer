@@ -157,7 +157,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_NestedCardWithNoVersion_ReadsItAsVersion21UnderAllowMissingRequiredProperties()
         {
             // arrange
-            var options = new VcardOptions { AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
             var text = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "N:Friday;Fred", "TEL;WORK:1", "END:VCARD");
 
             // act
@@ -337,7 +337,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD");
 
             // act
-            Action testAction = () => VcardCardTestData.Read(text, new VcardOptions { AllowMissingRequiredProperties = true });
+            Action testAction = () => VcardCardTestData.Read(text, new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true });
 
             // assert
             testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);

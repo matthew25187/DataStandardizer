@@ -130,7 +130,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="vcardStream">The stream.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardStream"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="vcardStream"/> does not support reading.</exception>
-        public VcardContentLineReader(Stream vcardStream) : this(vcardStream, new VcardOptions())
+        public VcardContentLineReader(Stream vcardStream) : this(vcardStream, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -153,7 +153,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="vcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardFilePath"/> is <c>null</c>.</exception>
-        public VcardContentLineReader(string vcardFilePath) : this(vcardFilePath, new VcardOptions())
+        public VcardContentLineReader(string vcardFilePath) : this(vcardFilePath, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -174,7 +174,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="reader">The text reader.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> is <c>null</c>.</exception>
-        public VcardContentLineReader(TextReader reader) : this(reader, new VcardOptions())
+        public VcardContentLineReader(TextReader reader) : this(reader, new VcardOptions { MaxLineLength = null })
         {
         }
 

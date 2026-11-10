@@ -342,7 +342,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_BirthdayInBasicFormatAllowed_KeepsTheValueAsItIs()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = ReadLastProperty(BirthdayInBasicFormat, options);
@@ -398,14 +398,14 @@ namespace DataStandardizer.File.vCard.Tests
 
         public static TheoryData<string, VcardOptions> BreaksRfc6350WithTheOptionThatAcceptsIt() => new TheoryData<string, VcardOptions>
         {
-            { NoFormattedName, new VcardOptions { AllowMissingRequiredProperties = true } },
-            { NoVersion, new VcardOptions { AllowMissingRequiredProperties = true } },
-            { VersionNotFirst, new VcardOptions { AllowVersionNotFirst = true } },
-            { InvalidBirthday, new VcardOptions { AllowInvalidValues = true } },
-            { BirthdayAsDate, new VcardOptions { AllowInvalidValues = true } },
-            { BirthdayInBasicFormat, new VcardOptions { AllowInvalidValues = true } },
-            { IntegerAsString, new VcardOptions { AllowInvalidValues = true } },
-            { TwoKinds, new VcardOptions { AllowCardinalityViolations = true } },
+            { NoFormattedName, new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true } },
+            { NoVersion, new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true } },
+            { VersionNotFirst, new VcardOptions { MaxLineLength = null, AllowVersionNotFirst = true } },
+            { InvalidBirthday, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+            { BirthdayAsDate, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+            { BirthdayInBasicFormat, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+            { IntegerAsString, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
+            { TwoKinds, new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true } },
         };
 
         [Theory]
@@ -423,7 +423,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_InvalidValueAllowed_KeepsTheValueAsItIs()
         {
             // arrange
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = ReadLastProperty(InvalidBirthday, options);
@@ -497,7 +497,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Constructor_EncodingThatIsNotUtf8_Throws()
         {
             // arrange
-            var options = new VcardOptions { Encoding = Encoding.Unicode };
+            var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.Unicode };
 
             // act
             Action testAction = () => new JcardReader(new MemoryStream(), options);

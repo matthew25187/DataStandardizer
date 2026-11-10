@@ -109,7 +109,7 @@ namespace DataStandardizer.File.vCard.IntegrationTests
             var content = Encoding.UTF8.GetBytes(MinimalJcard);
             using (var file = TemporaryFile.Create(content))
             {
-                var options = new VcardOptions { Encoding = Encoding.Unicode };
+                var options = new VcardOptions { MaxLineLength = null, Encoding = Encoding.Unicode };
 
                 // act
                 Action testAction = () => new JcardWriter(file.Path, options);

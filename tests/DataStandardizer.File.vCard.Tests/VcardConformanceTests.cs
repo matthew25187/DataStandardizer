@@ -143,7 +143,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_RuleBroken_ReportsIt(string property, VcardDiagnosticKind expected)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { AllowInvalidValues = true, AllowCardinalityViolations = true, AcceptLegacySyntax = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true, AllowCardinalityViolations = true, AcceptLegacySyntax = true });
 
             // act
             var testResult = card.Validate();
@@ -166,7 +166,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Validate_TwoOfAPropertyWithOneInstance_ReportsCardinalityViolation(string property)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card(property, property), new VcardOptions { AllowCardinalityViolations = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property, property), new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true });
 
             // act
             var testResult = card.Validate();
@@ -271,7 +271,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             // ref. RFC 6350 §5.4: "while this one would not [be legal]", two instances of N.
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("N;ALTID=1;LANGUAGE=ja:a;b;;;", "N:Yamada;Taro;;;"), new VcardOptions { AllowCardinalityViolations = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("N;ALTID=1;LANGUAGE=ja:a;b;;;", "N:Yamada;Taro;;;"), new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true });
 
             // act
             var testResult = card.Validate();
@@ -300,7 +300,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             const long LineOfFirstProblem = 3;
             const long LineOfSecondProblem = 4;
-            var options = new VcardOptions { AllowInvalidValues = true, AllowCardinalityViolations = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true, AllowCardinalityViolations = true };
             var card = VcardCardTestData.Read(VcardCardTestData.BareCard("URL:not a uri", "MEMBER:urn:a", "FN:Jane Doe"), options);
 
             // act
@@ -315,7 +315,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             const string Group = "item";
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("item.URL:not a uri"), new VcardOptions { AllowInvalidValues = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("item.URL:not a uri"), new VcardOptions { MaxLineLength = null, AllowInvalidValues = true });
 
             // act
             var testResult = card.Validate();

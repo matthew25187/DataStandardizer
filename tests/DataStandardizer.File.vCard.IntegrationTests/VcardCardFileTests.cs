@@ -29,7 +29,7 @@ namespace DataStandardizer.File.vCard.IntegrationTests
             using (var file = TemporaryFile.Create(MinimalCard))
             {
                 const VcardVersion NotAVersion = (VcardVersion)3;
-                var options = new VcardOptions { WriteVersion = NotAVersion };
+                var options = new VcardOptions { MaxLineLength = null, WriteVersion = NotAVersion };
 
                 // act
                 Action testAction = () => new VcardWriter(file.Path, options);
@@ -115,7 +115,7 @@ namespace DataStandardizer.File.vCard.IntegrationTests
             {
                 var card = new VcardCard();
                 card.FormattedNames.Add(FormattedName);
-                var writer = new VcardWriter(file.Path, new VcardOptions());
+                var writer = new VcardWriter(file.Path, new VcardOptions { MaxLineLength = null });
 
                 // act
                 await writer.WriteCardAsync(card);

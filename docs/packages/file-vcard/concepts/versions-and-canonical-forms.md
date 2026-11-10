@@ -77,7 +77,7 @@ foreach (var item in VcardVersionConverter.Analyze(card, VcardVersion.V3_0))
     Console.WriteLine(item);
 }
 
-var copy = VcardVersionConverter.Convert(card, VcardVersion.V3_0, new VcardOptions { AllowLossyVersionConversion = true });
+var copy = VcardVersionConverter.Convert(card, VcardVersion.V3_0, new VcardOptions { MaxLineLength = null, AllowLossyVersionConversion = true });
 ```
 
 vCard 3.0 requires `N` as well as `FN` (RFC 2426 §5), and vCard 4.0 doesn't. So a card with no `N` throws with `MissingRequiredProperty` when it is written as vCard 3.0, unless `AllowMissingRequiredProperties` is set. No name is made up from `FN`.

@@ -45,7 +45,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the decoder for a line that was not read from a source.
         /// </summary>
-        internal static VcardValueDecoder Default { get; } = new VcardValueDecoder(new VcardOptions());
+        internal static VcardValueDecoder Default { get; } = new VcardValueDecoder(new VcardOptions { MaxLineLength = null });
 
         private readonly bool _acceptEightBitWithoutEncoding;
         private readonly bool _acceptLegacySyntax;

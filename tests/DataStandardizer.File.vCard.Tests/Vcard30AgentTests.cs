@@ -30,7 +30,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         private const int MaxNestingLevels = 8;
 
-        private static readonly VcardOptions AcceptRfc2426Example = new VcardOptions { AllowMissingRequiredProperties = true, AcceptLegacySyntax = true };
+        private static readonly VcardOptions AcceptRfc2426Example = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true, AcceptLegacySyntax = true };
 
         [Fact]
         public void ReadCard_EscapedNestedCard_ReadsIntoANestedCard()
@@ -106,7 +106,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var text = Vcard30TestData.Card(AgentWithInvalidValue);
-            var options = new VcardOptions { AllowInvalidValues = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
             // act
             var testResult = VcardCardTestData.Read(text, options).Agents;

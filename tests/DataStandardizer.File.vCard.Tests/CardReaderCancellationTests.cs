@@ -46,7 +46,7 @@ namespace DataStandardizer.File.vCard.Tests
             }),
             ("XcardReader over a stream, with an encoding", FailureTimings, (createException, timing, onFailure) =>
             {
-                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure }, new VcardOptions { Encoding = Encoding.UTF8 });
+                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure }, new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 });
                 return token => reader.ReadCardAsync(token).AsTask();
             }),
         };
@@ -76,7 +76,7 @@ namespace DataStandardizer.File.vCard.Tests
             }),
             ("XcardReader over a stream, with an encoding", FailureTimings, (createException, timing, onFailure) =>
             {
-                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure }, new VcardOptions { Encoding = Encoding.UTF8 });
+                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure }, new VcardOptions { MaxLineLength = null, Encoding = Encoding.UTF8 });
                 return token => reader.ReadCardsAsync(token).GetAsyncEnumerator().MoveNextAsync().AsTask();
             }),
         };

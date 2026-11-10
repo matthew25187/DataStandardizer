@@ -102,7 +102,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="jcardStream">The stream.  It is left open when the writer is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="jcardStream"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="jcardStream"/> does not support writing.</exception>
-        public JcardWriter(Stream jcardStream) : this(jcardStream, new VcardOptions())
+        public JcardWriter(Stream jcardStream) : this(jcardStream, new VcardOptions { MaxLineLength = null })
         {
         }
 
@@ -124,7 +124,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="jcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="jcardFilePath"/> is <c>null</c>.</exception>
-        public JcardWriter(string jcardFilePath) : this(jcardFilePath, new VcardOptions())
+        public JcardWriter(string jcardFilePath) : this(jcardFilePath, new VcardOptions { MaxLineLength = null })
         {
         }
 

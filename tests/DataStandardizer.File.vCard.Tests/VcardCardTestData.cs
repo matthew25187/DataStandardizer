@@ -73,7 +73,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public static VcardCard Read(string text, VcardOptions options = null)
         {
-            using (var reader = new VcardReader(new StringReader(text), options ?? new VcardOptions()))
+            using (var reader = new VcardReader(new StringReader(text), options ?? new VcardOptions { MaxLineLength = null }))
             {
                 return reader.ReadCard();
             }
@@ -157,7 +157,7 @@ namespace DataStandardizer.File.vCard.Tests
         public static string Write(VcardCard card, VcardOptions options = null)
         {
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, options ?? new VcardOptions()))
+            using (var writer = new VcardWriter(output, options ?? new VcardOptions { MaxLineLength = null }))
             {
                 writer.WriteCard(card);
             }

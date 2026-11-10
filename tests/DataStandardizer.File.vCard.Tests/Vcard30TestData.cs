@@ -114,7 +114,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public static string Write(VcardCard card, VcardVersion version, bool allowLossy = false, bool allowMissingRequired = false)
         {
-            var options = new VcardOptions { WriteVersion = version, FoldLength = NoFolding, AllowLossyVersionConversion = allowLossy, AllowMissingRequiredProperties = allowMissingRequired };
+            var options = new VcardOptions { MaxLineLength = null, WriteVersion = version, FoldLength = NoFolding, AllowLossyVersionConversion = allowLossy, AllowMissingRequiredProperties = allowMissingRequired };
             var output = new StringWriter();
             using (var writer = new VcardWriter(output, options))
             {

@@ -20,7 +20,7 @@ default.
 ```csharp
 using DataStandardizer.File.vCard;
 
-var options = new VcardOptions { WriteVersion = VcardVersion.V3_0 };
+var options = new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V3_0 };
 using var reader = new VcardReader("version40.vcf");
 using var writer = new VcardWriter("version30.vcf", options);
 writer.WriteCards(reader.ReadCards());
@@ -61,6 +61,7 @@ To write the card anyway, leaving out what the version can't hold, set
 ```csharp
 var options = new VcardOptions
 {
+    MaxLineLength = null,
     WriteVersion = VcardVersion.V3_0,
     AllowLossyVersionConversion = true
 };

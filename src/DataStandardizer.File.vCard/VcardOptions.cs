@@ -482,12 +482,17 @@ namespace DataStandardizer.File.vCard
         /// Gets the maximum length, in characters, of a logical (unfolded) content line, not counting its line break.
         /// </summary>
         /// <remarks>
-        /// RFC 6350 sets no limit, so the default is <c>null</c>, meaning no limit.  The reader keeps each logical line in memory, so setting a
-        /// limit is recommended when reading untrusted data.  A longer line causes a <see cref="VcardFileException"/>, and so does a line with more
+        /// RFC 6350 sets no limit, so <c>null</c> means no limit.  The reader keeps each logical line in memory, so a line of any length is held
+        /// whole; set a limit when reading untrusted data.  On .NET 10 and later the property is <c>required</c>, so that each caller chooses a limit, or
+        /// <c>null</c> deliberately; on earlier targets it can't be required, and an unset value is <c>null</c>.  The overloads that take no options use <c>null</c>.  A longer line causes a <see cref="VcardFileException"/>, and so does a line with more
         /// folds than this, since the reader also keeps track of where each fold was.  It is checked as each line is read, so the <c>=</c> of a quoted-printable soft line
         /// break counts until it is removed.  Ignored by a writer.
         /// </remarks>
+#if NET7_0_OR_GREATER
+        public required int? MaxLineLength
+#else
         public int? MaxLineLength
+#endif
         {
             get;
 #if NET5_0_OR_GREATER

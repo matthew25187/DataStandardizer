@@ -52,7 +52,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var card = VcardCardTestData.Read(Vcard21TestData.Card("TEL;PREF;CELL:+1", "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", "END:VCARD"));
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, new VcardOptions { WriteVersion = VcardVersion.V2_1 }))
+            using (var writer = new VcardWriter(output, new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V2_1 }))
             {
                 // act
                 await writer.WriteCardAsync(card);
@@ -68,7 +68,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var card = VcardCardTestData.Read(Vcard30TestData.Card("TEL;TYPE=pref:+1"));
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, new VcardOptions { WriteVersion = VcardVersion.V3_0 }))
+            using (var writer = new VcardWriter(output, new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V3_0 }))
             {
                 // act
                 await writer.WriteCardAsync(card);

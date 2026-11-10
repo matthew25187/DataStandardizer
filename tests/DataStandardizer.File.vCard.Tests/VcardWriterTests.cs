@@ -111,7 +111,7 @@ namespace DataStandardizer.File.vCard.Tests
                 {
                     "no FN",
                     card => card.RemoveProperties(VcardPropertyNames.FormattedName),
-                    new VcardOptions { AllowMissingRequiredProperties = true },
+                    new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true },
                     VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "END:VCARD")
                 },
                 {
@@ -121,19 +121,19 @@ namespace DataStandardizer.File.vCard.Tests
                         card.Properties.Add(new VcardContentLine("N", "a;;;;"));
                         card.Properties.Add(new VcardContentLine("N", "b;;;;"));
                     },
-                    new VcardOptions { AllowCardinalityViolations = true },
+                    new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true },
                     VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "N:a;;;;", "N:b;;;;", "END:VCARD")
                 },
                 {
                     "a value that isn't valid",
                     card => card.Properties.Add(new VcardContentLine("URL", "not a uri")),
-                    new VcardOptions { AllowInvalidValues = true },
+                    new VcardOptions { MaxLineLength = null, AllowInvalidValues = true },
                     VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "URL:not a uri", "END:VCARD")
                 },
                 {
                     "a parameter that isn't allowed",
                     card => card.Properties.Add(new VcardContentLine("GENDER", new[] { new VcardContentLineParameter("PREF", "1") }, "M")),
-                    new VcardOptions { AllowInvalidValues = true },
+                    new VcardOptions { MaxLineLength = null, AllowInvalidValues = true },
                     VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "GENDER;PREF=1:M", "END:VCARD")
                 }
             };
@@ -161,8 +161,8 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_LegacySyntaxAndAcceptLegacySyntax_StillThrows()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE:a"), new VcardOptions { AcceptLegacySyntax = true });
-            using (var writer = new VcardWriter(new StringWriter(), new VcardOptions { AcceptLegacySyntax = true }))
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE:a"), new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true });
+            using (var writer = new VcardWriter(new StringWriter(), new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true }))
             {
                 // act
                 Action testAction = () => writer.WriteCard(card);
@@ -183,7 +183,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_DelimiterInProperties_ThrowsWhateverTheOptions(string name)
         {
             // arrange
-            var options = new VcardOptions { AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true };
+            var options = new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true };
             var card = VcardCardTestData.NewCard();
             card.Properties.Add(new VcardContentLine(name, "VCARD"));
             using (var writer = new VcardWriter(new StringWriter(), options))
@@ -268,7 +268,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var card = VcardCardTestData.NewCard();
-            var options = new VcardOptions { LineBreak = "\n" };
+            var options = new VcardOptions { MaxLineLength = null, LineBreak = "\n" };
 
             // act
             var testResult = VcardCardTestData.Write(card, options);

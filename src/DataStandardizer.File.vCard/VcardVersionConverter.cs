@@ -33,7 +33,7 @@ namespace DataStandardizer.File.vCard
 
             var mapping = VcardVersionMapping.For(version, nameof(version));
             var found = new List<VcardDiagnostic>();
-            mapping.FromCanonical(card, new VcardOptions(), found);
+            mapping.FromCanonical(card, new VcardOptions { MaxLineLength = null }, found);
 
             // What a card held by a line lacks isn't data that is lost, and Validate gives it.
             found.RemoveAll(diagnostic => diagnostic.Kind != VcardDiagnosticKind.Lossy);
@@ -56,7 +56,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="VcardFileException"><see cref="Analyze"/> gives a <see cref="VcardDiagnosticKind.Lossy"/> item for the card.</exception>
         public static VcardCard Convert(VcardCard card, VcardVersion version)
         {
-            return Convert(card, version, new VcardOptions());
+            return Convert(card, version, new VcardOptions { MaxLineLength = null });
         }
 
         /// <summary>

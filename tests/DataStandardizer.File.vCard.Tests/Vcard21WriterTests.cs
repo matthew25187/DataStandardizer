@@ -172,7 +172,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_WhatVersion21CanNotHold_ThrowsLossy(string line)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:Doe;Jane;;;", line), new VcardOptions { AllowCardinalityViolations = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:Doe;Jane;;;", line), new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true });
 
             // act
             Action testAction = () => Vcard21TestData.Write(card);
@@ -186,7 +186,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Analyze_WhatVersion21CanNotHold_ListsItAsLossy(string line)
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:Doe;Jane;;;", line), new VcardOptions { AllowCardinalityViolations = true });
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:Doe;Jane;;;", line), new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true });
 
             // act
             var testResult = VcardVersionConverter.Analyze(card, VcardVersion.V2_1);

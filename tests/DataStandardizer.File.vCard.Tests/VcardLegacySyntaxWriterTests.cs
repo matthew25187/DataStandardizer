@@ -69,7 +69,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         private static string Write(params VcardContentLine[] lines)
         {
-            return Write(new VcardOptions(), lines);
+            return Write(new VcardOptions { MaxLineLength = null }, lines);
         }
 
         private static string Write(VcardOptions options, params VcardContentLine[] lines)
@@ -395,7 +395,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteLines_KnownTypesWithNamedTypesOption_WritesThemWithTheirNames()
         {
             // arrange
-            var options = new VcardOptions { WriteNamedTypesInVersion21 = true };
+            var options = new VcardOptions { MaxLineLength = null, WriteNamedTypesInVersion21 = true };
             var line = new VcardContentLine("TEL", new[] { new VcardContentLineParameter("TYPE", "HOME"), new VcardContentLineParameter("TYPE", "VOICE") }, "1");
 
             // act

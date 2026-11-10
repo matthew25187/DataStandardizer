@@ -79,7 +79,7 @@ vCard 3.0 or 2.1 by setting `WriteVersion` on the `VcardWriter`'s options. See
 [Convert between 4.0, 3.0 and 2.1](convert-versions.md).
 
 ```csharp
-var options = new VcardOptions { WriteVersion = VcardVersion.V3_0 };
+var options = new VcardOptions { MaxLineLength = null, WriteVersion = VcardVersion.V3_0 };
 using (var reader = new JcardReader("contacts.json"))
 using (var writer = new VcardWriter("contacts.vcf", options))
 {
@@ -108,7 +108,7 @@ whatever the format. A card that a reader accepts only with an option, such as
 same option:
 
 ```csharp
-var options = new VcardOptions { AllowMissingRequiredProperties = true };
+var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
 using (var reader = new VcardReader("contacts.vcf", options))
 using (var writer = new XcardWriter("contacts.xml", options))
 {

@@ -92,7 +92,7 @@ namespace DataStandardizer.File.vCard.Tests
             var lines = ReadAll(CreateReader(Rfc6350Examples.Example));
             var expected = Encoding.UTF8.GetBytes(Rfc6350Examples.ExampleWritten);
             var stream = new AsyncOnlyWriteStream();
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), streamBufferSize);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null }, streamBufferSize);
 
             // act
             await AsyncDisposal.UsingAsync(writer, async () =>
@@ -111,7 +111,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var lines = ReadAll(CreateReader(Rfc6350Examples.Example));
-            var writer = new VcardContentLineWriter(new AsyncOnlyWriteStream(), new VcardOptions(), streamBufferSize);
+            var writer = new VcardContentLineWriter(new AsyncOnlyWriteStream(), new VcardOptions { MaxLineLength = null }, streamBufferSize);
             await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
@@ -131,7 +131,7 @@ namespace DataStandardizer.File.vCard.Tests
             // arrange
             var lines = new List<VcardContentLine> { new VcardContentLine("X-A", LongValueOfEightyOctets) };
             var stream = new AsyncOnlyWriteStream();
-            var writer = new VcardContentLineWriter(stream, new VcardOptions());
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null });
 
             // act
             await AsyncDisposal.UsingAsync(writer, async () =>
@@ -184,7 +184,7 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task Write_FoldedLinesToTextWriter_FoldsAndEncodesThem(AsyncWriteMode mode)
         {
             // arrange
-            var options = new VcardOptions { FoldLength = 7, FoldWhitespace = '\t', LineBreak = "\n" };
+            var options = new VcardOptions { MaxLineLength = null, FoldLength = 7, FoldWhitespace = '\t', LineBreak = "\n" };
             var lines = new List<VcardContentLine>
             {
                 new VcardContentLine("BEGIN", "VCARD"),
@@ -938,7 +938,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange
             var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null }, StreamBufferSmallerThanALine);
             var wroteThrough = false;
             stream.OnWrite = () => wroteThrough = true;
 
@@ -955,7 +955,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // arrange: the stream's synchronous members throw, so a synchronous flush would escape from the call and not from the task.
             var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null }, StreamBufferSmallerThanALine);
             stream.OnWrite = writer.Dispose;
 
             // act
@@ -1109,7 +1109,7 @@ namespace DataStandardizer.File.vCard.Tests
         private static WriterOperation CreateDisposalDuringWrite(bool completeSynchronously, Func<VcardContentLineWriter, Task> operation)
         {
             var stream = new AsyncOnlyWriteStream(completeSynchronously) { CreateFlushException = () => new OperationCanceledException() };
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null }, StreamBufferSmallerThanALine);
             stream.OnWrite = writer.Dispose;
             return new WriterOperation(writer, () => operation(writer));
         }
@@ -1122,7 +1122,7 @@ namespace DataStandardizer.File.vCard.Tests
                 CreateFlushException = () => new OperationCanceledException(),
                 FirstWriteException = new IOException(DiskFullMessage),
             };
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null }, StreamBufferSmallerThanALine);
             stream.OnWrite = writer.Dispose;
             return new WriterOperation(writer, () => writer.WriteLineAsync(LongLineWrittenThrough).AsTask());
         }
@@ -1133,7 +1133,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             var flushExceptions = new Queue<Exception>(new Exception[] { null, new OperationCanceledException() });
             var stream = new AsyncOnlyWriteStream { CreateFlushException = flushExceptions.Dequeue };
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions { MaxLineLength = null }, StreamBufferSmallerThanALine);
             stream.OnFlush = writer.Dispose;
             return new WriterOperation(writer, () => writer.FlushAsync());
         }
