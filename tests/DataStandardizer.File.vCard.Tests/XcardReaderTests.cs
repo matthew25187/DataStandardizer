@@ -234,6 +234,24 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be(expected);
         }
 
+        // Found by fuzzing.  An XML declaration whose version is followed by sixteen U+00A0 makes the XmlReader of .NET 10 throw an ArgumentException of its own.
+        private const string DeclarationWithGarbledVersion = "<?xml version=\"1.0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\x00A0\" encoding=\"UTF-8\"?><avc>";
+
+        [Fact]
+        public void ReadCard_DeclarationWithGarbledVersion_Throws()
+        {
+            // arrange
+            var bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(DeclarationWithGarbledVersion);
+            using (var reader = new XcardReader(new MemoryStream(bytes)))
+            {
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>();
+            }
+        }
+
         [Fact]
         public void ReadCard_DocumentTypeDefinition_Throws()
         {

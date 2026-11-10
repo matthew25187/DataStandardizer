@@ -337,6 +337,11 @@ namespace DataStandardizer.File.vCard
                     {
                         throw Fault(exception);
                     }
+                    catch (ArgumentException exception)
+                    {
+                        // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
+                        throw Fault(exception);
+                    }
                     catch
                     {
                         _isFaulted = true;
@@ -355,6 +360,11 @@ namespace DataStandardizer.File.vCard
                         }
                         catch (XmlException exception)
                         {
+                            throw Fault(exception);
+                        }
+                        catch (ArgumentException exception)
+                        {
+                            // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
                             throw Fault(exception);
                         }
                         catch
@@ -517,6 +527,11 @@ namespace DataStandardizer.File.vCard
                     {
                         throw Fault(exception);
                     }
+                    catch (ArgumentException exception)
+                    {
+                        // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
+                        throw Fault(exception);
+                    }
                     catch
                     {
                         _isFaulted = true;
@@ -535,6 +550,11 @@ namespace DataStandardizer.File.vCard
                         }
                         catch (XmlException exception)
                         {
+                            throw Fault(exception);
+                        }
+                        catch (ArgumentException exception)
+                        {
+                            // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
                             throw Fault(exception);
                         }
                         catch
@@ -889,6 +909,15 @@ namespace DataStandardizer.File.vCard
             var fileException = new VcardFileException("The data is not well-formed XML: " + exception.Message, exception);
             XcardConverter.AddLocation(fileException, exception.LineNumber, exception.LinePosition);
             return fileException;
+        }
+
+        /// <summary>
+        /// Marks the reader as unable to continue, and builds the exception for XML that an <see cref="XmlReader"/> rejects with an <see cref="ArgumentException"/>.
+        /// </summary>
+        private VcardFileException Fault(ArgumentException exception)
+        {
+            _isFaulted = true;
+            return new VcardFileException("The data is not well-formed XML: " + exception.Message, exception);
         }
 
         /// <summary>
