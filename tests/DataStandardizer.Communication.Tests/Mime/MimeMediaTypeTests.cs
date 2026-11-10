@@ -1255,5 +1255,58 @@ namespace DataStandardizer.Communication.Tests.Mime
             return T.TryParse(value, null, out _);
         }
 #endif
+
+        // More parameters than are searched for in a list, so that they are looked up in a set.
+        private const int ParameterCountOfALargeSet = 20;
+
+        // Pairs of media types with a large set of parameters, and whether they are equal.
+        public static TheoryData<MimeMediaType, MimeMediaType, bool> LargeParameterSets()
+        {
+            var forward = new List<MimeParameter>();
+            var reverse = new List<MimeParameter>();
+            var differentValue = new List<MimeParameter>();
+            for (var index = 0; index < ParameterCountOfALargeSet; index++)
+            {
+                forward.Add(new MimeParameter("p" + index, "v"));
+                reverse.Insert(0, new MimeParameter("P" + index, "v"));
+                differentValue.Add(new MimeParameter("p" + index, index == 0 ? "w" : "v"));
+            }
+
+            return new TheoryData<MimeMediaType, MimeMediaType, bool>
+            {
+                { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, reverse), true },
+                { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, differentValue), false }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(LargeParameterSets))]
+        public void Equals_LargeParameterSets_ComparesByNameWithoutRegardToOrder(MimeMediaType left, MimeMediaType right, bool expected)
+        {
+            // act
+            var testResult = left.Equals(right);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Constructor_LargeParameterSetWithDuplicateNameInOtherCase_ThrowsArgumentException()
+        {
+            // arrange
+            var parameters = new List<MimeParameter>();
+            for (var index = 0; index < ParameterCountOfALargeSet; index++)
+            {
+                parameters.Add(new MimeParameter("p" + index, "v"));
+            }
+
+            parameters.Add(new MimeParameter("P0", "v"));
+
+            // act
+            Action testAction = () => _ = new MimeMediaType(Text, Plain, parameters);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
     }
 }
