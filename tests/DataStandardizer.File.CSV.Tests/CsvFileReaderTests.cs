@@ -17,6 +17,8 @@ namespace DataStandardizer.File.CSV.Tests
     /// </remarks>
     public class CsvFileReaderTests
     {
+        private const string OptionsParameterName = "options";
+
         /// <summary>
         /// Size, in bytes, of the buffer of the <see cref="StreamReader"/> that a reader creates over a stream
         /// (16 KiB).
@@ -1200,7 +1202,7 @@ namespace DataStandardizer.File.CSV.Tests
             Action testAction = () => _ = new CsvFileReader<CsvFileRecordLine>(testFilePath, null);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
         }
 
         [Fact]
@@ -1700,7 +1702,7 @@ namespace DataStandardizer.File.CSV.Tests
                 Action testAction = () => _ = new CsvFileReader<CsvFileRecordLine>(stringReader, null);
 
                 // assert
-                testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
             }
         }
     }
