@@ -515,6 +515,22 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Validate_Version30CardWithLabelHoldingAControlCharacter_ReportsItAsLossyWithoutThrowing()
+        {
+            // arrange
+            // The label holds U+007F, a control character, which a text value of vCard 3.0 can't hold.
+            // Only xCard and jCard can bring it into a card, as a vCard text reader rejects it in a parameter value.
+            const string XcardWithLabelHoldingControlCharacter = "<vcards xmlns=\"urn:ietf:params:xml:ns:vcard-4.0\"><vcard><fn><text>A</text></fn><n><surname>A</surname><given/><additional/><prefix/><suffix/></n><adr><parameters><label><text>a\x007Fb</text></label></parameters><pobox/><ext/><street>1 First St</street><locality/><region/><code/><country/></adr></vcard></vcards>";
+            var card = XcardTestData.ReadXcard(XcardWithLabelHoldingControlCharacter).Single();
+
+            // act
+            var testResult = card.Validate(VcardVersion.V3_0);
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.Lossy);
+        }
+
+        [Fact]
         public void Analyze_CardOfVersion30ForVersion40_ReportsWhatStaysAsAPropertyOf40ThatIsUndefined()
         {
             // arrange

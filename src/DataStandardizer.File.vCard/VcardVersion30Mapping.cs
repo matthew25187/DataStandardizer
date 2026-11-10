@@ -1171,7 +1171,15 @@ namespace DataStandardizer.File.vCard
                     }
                 }
 
-                var text = VcardValue.FormatText(label.Replace("\\n", "\n"), VcardValueFormat.Text, VcardVersion.V3_0);
+                var labelText = label.Replace("\\n", "\n");
+                if (!VcardText.IsValidUnescapedText(labelText.AsSpan()))
+                {
+                    // ref. RFC 2426 §3.2.1: a LABEL is a text value, which can't hold a control character, as a parameter value of vCard 4.0 can.
+                    ReportLoss(address, "a label that holds a control character");
+                    return;
+                }
+
+                var text = VcardValue.FormatText(labelText, VcardValueFormat.Text, VcardVersion.V3_0);
                 _lines.Add(address.With(VcardPropertyNames.PostalLabel, labelParameters.ToArray(), text));
             }
 
