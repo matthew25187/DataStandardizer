@@ -1,6 +1,19 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "dd5754f7021311b50c911052dfe54bfdd8fe127a": {
+      "subject": "VcardOptions.MaxLineLength is a required property on .NET 10 and later (#788)",
+      "notes": []
+    },
+    "15bbcad596e44971409db1a463a03bf12c1ec00b": {
+      "subject": "CsvFileReader no longer needs memory quadratic in the input for a quoted value followed by many characters (#789)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileReader` no longer allocates memory quadratic in the length of the field when a quoted value is followed by many invalid characters"
+        }
+      ]
+    },
     "5b46a0f120d00b8def7695bda204c547c6767085": {
       "subject": "Build AnyCPU only: remove the x86 and x64 build platforms (#127) (#203)",
       "notes": []
