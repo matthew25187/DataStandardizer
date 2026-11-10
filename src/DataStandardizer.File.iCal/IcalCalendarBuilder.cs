@@ -21,7 +21,7 @@ namespace DataStandardizer.File.iCal
         internal const string EndName = "END";
 
         /// <summary>
-        /// The most levels of components a calendar may nest, counting the VCALENDAR as the first.  ref. RFC 5545ง3.6: the grammar allows three
+        /// The most levels of components a calendar may nest, counting the VCALENDAR as the first.  ref. RFC 5545ยง3.6: the grammar allows three
         /// (VCALENDAR, VEVENT or VTODO, and VALARM), so this refuses nothing the RFC allows.  Every pass over the tree, including each
         /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.
         /// </summary>
@@ -129,7 +129,7 @@ namespace DataStandardizer.File.iCal
             {
                 if (_frames.Count >= MaxComponentDepth)
                     throw BuildException(
-                        string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545ง3.6 allows three.",
+                        string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545ยง3.6 allows three.",
                             MaxComponentDepth), line, CurrentPath);
 
                 var parent = _frames[_frames.Count - 1];

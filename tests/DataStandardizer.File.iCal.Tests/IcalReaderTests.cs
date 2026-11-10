@@ -64,7 +64,7 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
         // RfcFixtures.Rfc5545Event with a VERSION that includes 2.0.
-        // The most levels of components the reader accepts, counting the VCALENDAR as the first.  RFC 5545 ง3.6 allows three, so a limit this
+        // The most levels of components the reader accepts, counting the VCALENDAR as the first.  RFC 5545 ยง3.6 allows three, so a limit this
         // high refuses nothing the RFC allows.
         private const int MaxComponentDepth = 64;
 
@@ -539,7 +539,7 @@ namespace DataStandardizer.File.iCal.Tests
             Action testAction = () => ReadCalendars(text);
 
             // assert
-            testAction.Should().Throw<IcalFileException>().WithMessage("Components are nested more than 64 levels deep*");
+            testAction.Should().Throw<IcalFileException>().WithMessage("Components are nested more than 64 levels deep; RFC 5545\x00A73.6 allows three.*");
         }
 
         [Fact]
