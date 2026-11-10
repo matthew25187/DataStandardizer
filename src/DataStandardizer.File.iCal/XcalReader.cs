@@ -309,10 +309,18 @@ namespace DataStandardizer.File.iCal
                 while (true)
                 {
                     bool isNode;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                    string? value = null;
+#else
+                    string value = null;
+#endif
                     try
                     {
                         ThrowIfDisposed();
                         isNode = MoveToNextNode();
+
+                        // The value of a text node may not have been read yet, so reading it can find malformed XML, which is a fault like any other.
+                        if (isNode && IsTextNode(_reader.NodeType)) value = _reader.Value;
                     }
                     catch (XmlException exception)
                     {
@@ -324,7 +332,6 @@ namespace DataStandardizer.File.iCal
                         throw;
                     }
 
-                    var value = isNode && IsTextNode(_reader.NodeType) ? _reader.Value : null;
                     if (AddNode(isNode, value)) return TakeCalendar();
                 }
             }

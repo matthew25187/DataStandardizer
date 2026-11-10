@@ -602,6 +602,11 @@ namespace DataStandardizer.File.iCal
         private Instant AddNominal(Instant start, IcalDuration duration)
         {
             var days = duration.Weeks * 7L + duration.Days;
+
+            // More days than the range of dates holds can't land in it, and their ticks would overflow the arithmetic below.
+            if (days > IcalDate.MaxDayNumber || days < -IcalDate.MaxDayNumber)
+                throw new ArgumentOutOfRangeException(nameof(days), days, "An occurrence falls outside the range of dates, 0001-01-01 to 9999-12-31.");
+
             var exactTicks = duration.Time.Ticks;
             if (start.Value.IsDate) return ToInstant(GetDate(start.Value.Date.DayNumber + days + exactTicks / TicksPerDay));
 
