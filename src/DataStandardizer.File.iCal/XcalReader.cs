@@ -326,6 +326,11 @@ namespace DataStandardizer.File.iCal
                     {
                         throw Fault(exception);
                     }
+                    catch (ArgumentException exception)
+                    {
+                        // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
+                        throw Fault(exception);
+                    }
                     catch
                     {
                         _isFaulted = true;
@@ -484,6 +489,11 @@ namespace DataStandardizer.File.iCal
                     }
                     catch (XmlException exception)
                     {
+                        throw Fault(exception);
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
                         throw Fault(exception);
                     }
                     catch
@@ -673,6 +683,17 @@ namespace DataStandardizer.File.iCal
             var fileException = new IcalFileException("The data is not well-formed XML: " + exception.Message, exception);
             XcalConverter.AddLocation(fileException, exception.LineNumber, exception.LinePosition);
             return fileException;
+        }
+
+        /// <summary>
+        /// Marks the reader as faulted, for an exception that the XML reader threw for data it could not read, and makes the exception to throw.
+        /// </summary>
+        /// <param name="exception">The exception.</param>
+        /// <returns>The exception to throw.</returns>
+        private IcalFileException Fault(ArgumentException exception)
+        {
+            _isFaulted = true;
+            return new IcalFileException("The data is not well-formed XML: " + exception.Message, exception);
         }
 
         /// <summary>
