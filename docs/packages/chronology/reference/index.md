@@ -31,9 +31,8 @@ The public types of **DataStandardizer.Chronology**. All types are in the
 | [DateTimeOffsetExtensions](DateTimeOffsetExtensions.md) | Extension methods expressing a `DateTimeOffset` in a TZ Database time zone. |
 | [SystemTimeExtensions](SystemTimeExtensions.md) | Extension methods converting system-time types to `DateTime`/`DateOnly`/`TimeOnly`. |
 | [TimeOnlyExtensions](TimeOnlyExtensions.md) | Extension methods converting `TimeOnly` to system-time types. |
-| [TzDataExtensions](TzDataExtensions.md) | Extension methods calculating the offsets, transitions and abbreviations of TZ Database time zones, the offsets in effect at a local time, and the deprecated metadata accessors. |
+| [TzDataExtensions](TzDataExtensions.md) | Extension methods calculating the offsets, transitions and abbreviations of TZ Database time zones, and the offsets in effect at a local time. |
 | [TzDataRule](TzDataRule.md) | A TZ Database daylight saving rule (a `Rule` line). |
-| [TzDataTimezoneAttribute](TzDataTimezoneAttribute.md) | Deprecated. Carries the per-zone metadata now exposed by the properties of `TzDataTimezone`. |
 | [TzDataZoneLine](TzDataZoneLine.md) | A period in the offset history of a TZ Database time zone (a line of a `Zone` entry). |
 
 ## Enumerations

@@ -1,5 +1,5 @@
 ﻿#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -47,7 +47,7 @@ internal set;
 #endif
         }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FieldName { get; internal set; }
 #endif
 
@@ -65,7 +65,7 @@ internal set;
 #endif
         }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public CsvFileHeaderLine HeaderLine { get; internal set; }
 #endif
 
@@ -83,7 +83,7 @@ internal set;
 #endif
         }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public TModel Model { get; internal set; }
 #endif
         /// <summary>
@@ -105,7 +105,7 @@ internal set;
 #endif
         }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RawFieldValue { get; internal set; }
 #endif
     }

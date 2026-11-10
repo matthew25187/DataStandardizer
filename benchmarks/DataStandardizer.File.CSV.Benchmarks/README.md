@@ -46,8 +46,9 @@ Except in the `File*` classes, reads come from a `MemoryStream` and writes go to
 |-------|-----------|------------------|
 | `ReadBenchmarks` | `Read_Raw` | `CsvFileReader<CsvFileRecordLine>` with `HeaderHandling = Use` (baseline). |
 | | `Read_Mapped` | `CsvFileReader<PersonLine>` with the imperative `PersonLineMapper` (`Int32Converter`, `DecimalConverter`). |
+| | `Read_Mapped_BuiltInParse` | As `Read_Mapped`, with `PersonLineParsedMapper`, which has no converters, so `Id` and `Amount` use the reader's built-in parse. |
 | | `Read_CsvHelper_Records` | CsvHelper `GetRecords<Person>()`. |
-| | `Read_CsvHelper_Raw` | CsvHelper `Read()` and `GetField(i)` for each field. |
+| | `Read_CsvHelper_Raw` | CsvHelper `Read()` and `GetString(i)` for each field. |
 | `WriteBenchmarks` | `Write_Raw` | `CsvFileWriter<CsvFileRecordLine>` with pre-built string fields (baseline). |
 | | `Write_Mapped` | `CsvFileWriter<PersonLine>` with `PersonLineMapper`. |
 | | `Write_CsvHelper` | CsvHelper `WriteRecords(...)`. |
@@ -57,8 +58,8 @@ Except in the `File*` classes, reads come from a `MemoryStream` and writes go to
 | | `Write_Raw_Stream` | As `Write_Raw`, constructed from a `FileStream` opened by the benchmark with default buffering. |
 | `ModelBenchmarks` | `Model_PropertyGet` | 6 typed property reads per row on a pre-built `List<PersonLine>`. |
 | | `Model_PropertySet` | 6 typed property writes per row on a pre-built `List<PersonLine>`. |
-| | `Model_IndexerGet` | 6 raw `IOrderedDictionary` indexer reads per row on the same lines (baseline for `Model_PropertyGet`). |
-| | `Model_IndexerSet` | 6 raw `IOrderedDictionary` indexer writes per row on the same lines (baseline for `Model_PropertySet`). |
+| | `Model_IndexerGet` | 6 raw `ICsvFileLine` indexer reads per row on the same lines (baseline for `Model_PropertyGet`). |
+| | `Model_IndexerSet` | 6 raw `ICsvFileLine` indexer writes per row on the same lines (baseline for `Model_PropertySet`). |
 
 Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 
@@ -68,6 +69,6 @@ When a performance change is proposed, paste the before and after results into t
 
 1. The BenchmarkDotNet markdown table, from `BenchmarkDotNet.Artifacts/results/*-report-github.md`.
 2. The commit hash that was measured (`git rev-parse --short HEAD`).
-3. The machine summary BenchmarkDotNet prints above the table (OS, CPU, .NET SDK and runtime).
+3. The .NET SDK and runtime versions. Leave out the rest of the summary BenchmarkDotNet prints above the table (the OS and CPU), as these reports are public and it describes your own machine.
 
 Run "before" and "after" on the same machine, one straight after the other, so the numbers can be compared.

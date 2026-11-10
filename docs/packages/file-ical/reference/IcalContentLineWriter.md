@@ -66,15 +66,20 @@ name is valid.
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share their
 state. They flush and close a stream writer or file the writer created itself, and
 return the pooled buffer. After disposal, every member throws `ObjectDisposedException`.
-If an operation is in progress on another thread, it completes with
-`ObjectDisposedException`, and the writer is flushed and released once that operation
-has finished. `DisposeAsync` disposes the writer even if the flush throws.
+If an operation is in progress, whether or not it has to wait, it completes with
+`ObjectDisposedException`, unless it fails for another reason, and the writer is
+flushed and released once that operation has finished. `DisposeAsync` disposes the
+writer even if the flush throws.
 
 **Thread safety and async rules.** A single writer instance is not thread-safe. Only
 one operation may be in progress at a time. Synchronous and asynchronous calls may
 follow one another, but a call made while another is in progress throws
-`InvalidOperationException`. A canceled asynchronous operation leaves the writer
-unable to continue, and later operations throw `InvalidOperationException`. In the bulk
+`InvalidOperationException`. An asynchronous operation is canceled only when the
+token passed to it is canceled. That leaves the writer unable to continue, and later
+operations throw `InvalidOperationException`. An `OperationCanceledException` while
+that token isn't canceled, whether from the underlying text writer, the lines being
+enumerated or the progress callback, is handled as an I/O error: the task faults with
+it, and the writer can continue. In the bulk
 methods, the whole call is one operation, so neither the lines being enumerated nor
 the progress callback may call the writer.
 
@@ -115,26 +120,37 @@ Errors in how the writer is used (`ObjectDisposedException`, `ArgumentNullExcept
 `InvalidOperationException`) are thrown by the call. Errors in the lines
 (`IcalFileException`, and `ArgumentException` for a `null` item), I/O errors, and
 cancellation (`OperationCanceledException`) are thrown by the task. If the writer is
-disposed while an operation is pending, the task throws `ObjectDisposedException`. If
-an operation is canceled, the writer cannot continue.
+disposed while an operation is in progress, whether or not it has to wait, the task
+throws `ObjectDisposedException`, unless the operation fails for another reason.
+
+An operation is canceled when its `cancellationToken` is canceled before the call, or
+when the operation fails with an `OperationCanceledException` while that token is
+canceled, whatever token the exception carries, or if it carries none. The task is then
+canceled, and the writer cannot continue. Any other exception faults the task, even
+while the token is canceled. An `OperationCanceledException` while the token isn't
+canceled faults the task too, as an I/O error does, whether it comes from the
+underlying text writer, the lines being enumerated or the progress callback, and the
+writer can continue. If the writer is released at the end of
+an operation, or by `DisposeAsync`, and the release throws, the task faults with that
+exception, an `OperationCanceledException` included.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `WriteLineAsync(IcalContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer. |
+| `WriteLineAsync(IcalContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer, unless the writer is disposed during the write; it then completes once the writer has been flushed and released. |
 | `WriteLinesAsync(IEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`. |
 | `WriteLinesAsync(IAsyncEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`, for an asynchronous sequence. `cancellationToken` is passed to its enumerator. |
-| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on .NET 8 and later; on .NET Standard it is checked before the flush. |
-| `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released. |
+| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on `net10.0`; on .NET Standard it is checked before the flush. |
+| `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released, or immediately if an operation is in progress. |
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors, the asynchronous methods, and `IAsyncDisposable`
 are available on `netstandard2.0`, `netstandard2.1`, and the .NET targets only; on
 `netstandard1.1` construct the writer from a `Stream` or `TextWriter` and write
 synchronously. The `IAsyncEnumerable<IcalContentLine>` overload of `WriteLinesAsync`
 uses Microsoft.Bcl.AsyncInterfaces on `netstandard2.0`. The nullable reference
-annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

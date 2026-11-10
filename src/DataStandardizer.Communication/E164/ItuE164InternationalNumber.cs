@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.Communication.E164.ItuE164Constants;
 
@@ -28,6 +28,7 @@ namespace DataStandardizer.Communication.E164
             internal const string DigitCountRangeInvalidTemplate = "{0} must be {1} to {2} digits.";
             internal const string FieldNotSupportedTemplate = "This number does not support the {0} field.";
             internal const string FieldValueInvalidTemplate = "'{0}' is not a valid {1}.";
+            internal const string NumberForStructureInvalidTemplate = "'{0}' is not a valid number for {1}.";
         }
 
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
@@ -35,17 +36,84 @@ namespace DataStandardizer.Communication.E164
 #if NETCOREAPP3_0_OR_GREATER
         private readonly IItuE164InternationalNumber? _numberStructure;
 #else
-        [CanBeNull] private readonly IItuE164InternationalNumber _numberStructure;
+        [MaybeNull] private readonly IItuE164InternationalNumber _numberStructure;
 #endif
 
-        private ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)
+        /// <summary>
+        /// Wraps a number structure without checking that its codes are assigned.
+        /// </summary>
+        /// <remarks>
+        /// Internal, not private, as a seam for the unit tests: no Group Identification Code or Trial Identification
+        /// Code is assigned today, so the factories can't create a number for a group of countries or a trial, and the
+        /// tests build one from its structure to cover the members that handle those numbers.
+        /// </remarks>
+        internal ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)
         {
             _numberStructure = numberStructure;
         }
 
+        /// <summary>
+        /// Determines whether this number and <paramref name="other"/> have the same <see cref="Number"/>.
+        /// </summary>
+        /// <param name="other">The number to compare with this number.</param>
+        /// <returns>
+        /// <c>true</c> if both numbers have the same <see cref="Number"/>, or both are uninitialized; otherwise, <c>false</c>.
+        /// </returns>
         public bool Equals(ItuE164InternationalNumber other)
         {
             return _numberStructure?.Number == other._numberStructure?.Number;
+        }
+
+        /// <summary>
+        /// Determines whether <paramref name="obj"/> is an <see cref="ItuE164InternationalNumber"/> with the same
+        /// <see cref="Number"/> as this number.
+        /// </summary>
+        /// <param name="obj">The object to compare with this number.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="obj"/> is an <see cref="ItuE164InternationalNumber"/> that equals this number,
+        /// as <see cref="Equals(ItuE164InternationalNumber)"/> decides; otherwise, <c>false</c>.
+        /// </returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public override bool Equals(object? obj)
+#else
+        public override bool Equals(object obj)
+#endif
+        {
+            return obj is ItuE164InternationalNumber other && Equals(other);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this number, derived from its <see cref="Number"/>.
+        /// </summary>
+        /// <returns>
+        /// A hash code that is the same for any two numbers that <see cref="Equals(ItuE164InternationalNumber)"/> finds equal,
+        /// or 0 for an uninitialized number.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return _numberStructure?.Number.GetHashCode() ?? 0;
+        }
+
+        /// <summary>
+        /// Determines whether two numbers have the same <see cref="Number"/>.
+        /// </summary>
+        /// <param name="left">The first number to compare.</param>
+        /// <param name="right">The second number to compare.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> equals <paramref name="right"/>; otherwise, <c>false</c>.</returns>
+        public static bool operator ==(ItuE164InternationalNumber left, ItuE164InternationalNumber right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Determines whether two numbers have different <see cref="Number"/> values.
+        /// </summary>
+        /// <param name="left">The first number to compare.</param>
+        /// <param name="right">The second number to compare.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> does not equal <paramref name="right"/>; otherwise, <c>false</c>.</returns>
+        public static bool operator !=(ItuE164InternationalNumber left, ItuE164InternationalNumber right)
+        {
+            return !left.Equals(right);
         }
 
         public static explicit operator ulong(ItuE164InternationalNumber value)
@@ -139,103 +207,134 @@ namespace DataStandardizer.Communication.E164
             return _numberStructure is IItuE164InternationalNumberForTrials;
         }
 
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// in the full general format (<c>G</c>).
+        /// </summary>
+        /// <returns>
+        /// The number in the full general format, or the name of the type for an uninitialized instance.
+        /// </returns>
         public override string ToString()
         {
-            var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format("G", this, null) ?? base.ToString() ?? string.Empty;
+            return FormatCore(DefaultFormat, null);
+        }
+
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format string.
+        /// </summary>
+        /// <param name="format">
+        /// A format string that specifies the format to use. If <c>null</c>, empty or white space, the default format, <c>G</c>, is used.
+        /// The format strings are those that <see cref="ToString(string, IFormatProvider)"/> describes.
+        /// </param>
+        /// <returns>
+        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
+        /// formatted according to the specified format string, or the name of the type for an uninitialized instance.
+        /// </returns>
+        /// <remarks>
+        /// The number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, which supplies both the formatter
+        /// and the patterns of the <c>i</c> and <c>I</c> formats, so the result doesn't depend on the culture of the current thread.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(string? format)
+#else
+        public string ToString(string format)
+#endif
+        {
+            return FormatCore(format, null);
+        }
+
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format provider.
+        /// </summary>
+        /// <param name="formatProvider">
+        /// An object that provides formatting information, such as a <see cref="TelephonyInfo"/>, or <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// The number in the full general format (<c>G</c>), or the name of the type for an uninitialized instance.
+        /// </returns>
+        /// <remarks>
+        /// <paramref name="formatProvider"/> is used as <see cref="ToString(string, IFormatProvider)"/> describes.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(IFormatProvider? formatProvider)
+#else
+        public string ToString(IFormatProvider formatProvider)
+#endif
+        {
+            return FormatCore(DefaultFormat, formatProvider);
+        }
+
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format string and format provider.
+        /// </summary>
+        /// <param name="format">
+        /// A format string that specifies the format to use. The built-in formatter uses the default format, <c>G</c>, when it is
+        /// <c>null</c>, empty or white space; a formatter that <paramref name="formatProvider"/> supplies receives it unchanged.
+        /// </param>
+        /// <param name="formatProvider">
+        /// An object that provides formatting information, such as a <see cref="TelephonyInfo"/>, or <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// The number formatted according to <paramref name="format"/>, or the name of the type for an uninitialized instance.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// When <paramref name="formatProvider"/> supplies an <see cref="ICustomFormatter"/>, that formatter formats the number,
+        /// and an empty string is returned if it returns <c>null</c>. When it supplies only an
+        /// <see cref="ItuE164InternationalNumberFormatInfo"/>, the number is formatted with the formatter of
+        /// <see cref="TelephonyInfo.InvariantTelephony"/> and the patterns of that format information.
+        /// </para>
+        /// <para>
+        /// When <paramref name="formatProvider"/> is <c>null</c>, or supplies neither, such as a <see cref="CultureInfo"/>,
+        /// the number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, so the result doesn't depend on the
+        /// culture of the current thread.
+        /// </para>
+        /// <para>
+        /// A standard format is exactly one of these letters: <c>g</c>, the general format with no separators; <c>G</c>, the
+        /// general format with a space between the fields; <c>i</c>, the short international pattern; and <c>I</c>, the long
+        /// international pattern. Any other format, including a longer one that begins with one of those letters, is a custom
+        /// pattern, in which <c>+</c> is the international prefix symbol, each <c>c</c> a digit of the country code, each
+        /// <c>i</c> a digit of the identification code, each <c>s</c> a digit of the subscriber number, and any other character
+        /// is copied as it stands. A format that is only white space is the default format, not a custom pattern.
+        /// </para>
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(string? format, IFormatProvider? formatProvider)
+#else
+        public string ToString(string format, IFormatProvider formatProvider)
+#endif
+        {
+            return FormatCore(format, formatProvider);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format string.
-        /// </summary>
-        /// <param name="format">
-        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
-        /// </param>
-        /// <returns>
-        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
-        /// formatted according to the specified format string.
-        /// </returns>
-        /// <remarks>
-        /// This method uses an <see cref="ICustomFormatter"/> implementation, if available, to format the number.
-        /// If no custom formatter is provided, the default <see cref="object.ToString"/> implementation is used.
-        /// </remarks>
-        public string ToString(string? format)
-        {
-            var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format(format, this, null) ?? base.ToString() ?? string.Empty;
-        }
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format provider.
-        /// </summary>
-        /// <param name="formatProvider">
-        /// An object that provides culture-specific formatting information.
-        /// </param>
-        /// <returns>
-        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance.
-        /// </returns>
-        public string ToString(IFormatProvider? formatProvider)
-        {
-            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format("G", this, formatProvider) ?? base.ToString() ?? string.Empty;
-        }
-
-        public string ToString(string? format, IFormatProvider? formatProvider)
-        {
-            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format(format, this, formatProvider) ?? base.ToString() ?? string.Empty;
-        }
+        private string FormatCore(string? format, IFormatProvider? formatProvider)
 #else
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format string.
-        /// </summary>
-        /// <param name="format">
-        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
-        /// </param>
-        /// <returns>
-        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
-        /// formatted according to the specified format string.
-        /// </returns>
-        /// <remarks>
-        /// This method utilizes a custom formatter, if available, to format the number.
-        /// If no custom formatter is found, the default string representation is returned.
-        /// </remarks>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown if the <see cref="ItuE164InternationalNumber"/> instance is uninitialized.
-        /// </exception>
-        public string ToString(string format)
-        {
-            var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format(format, this, null) ?? base.ToString() ?? string.Empty;
-        }
-
-        /// <summary>
-        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
-        /// using the specified format provider.
-        /// </summary>
-        /// <param name="formatProvider">
-        /// An object that provides culture-specific formatting information. If <c>null</c>, the default formatting
-        /// is applied.
-        /// </param>
-        /// <returns>
-        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance, formatted
-        /// according to the specified <paramref name="formatProvider"/>.
-        /// </returns>
-        public string ToString(IFormatProvider formatProvider)
-        {
-            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format("G", this, formatProvider) ?? base.ToString() ?? string.Empty;
-        }
-
-        public string ToString(string format, IFormatProvider formatProvider)
-        {
-            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format(format, this, formatProvider) ?? base.ToString() ?? string.Empty;
-        }
+        private string FormatCore(string format, IFormatProvider formatProvider)
 #endif
+        {
+            if (_numberStructure == null)
+            {
+                return base.ToString() ?? string.Empty;
+            }
+
+            // A provider that supplies a formatter or E.164 format information is used as it stands. Any other provider,
+            // such as a CultureInfo, carries nothing for an E.164 number, so the invariant telephony is used instead of
+            // letting the formatter take its patterns from the culture of the current thread.
+            var useProvider = formatProvider != null
+                              && (formatProvider.GetFormat(typeof(ICustomFormatter)) is ICustomFormatter
+                                  || formatProvider.GetFormat(typeof(ItuE164InternationalNumberFormatInfo)) is ItuE164InternationalNumberFormatInfo)
+                ? formatProvider
+                : TelephonyInfo.InvariantTelephony;
+            var formatter = useProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter
+                            ?? TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+
+            // A formatter of the caller's own may return null; the result is then empty.
+            return formatter?.Format(format, this, useProvider) ?? string.Empty;
+        }
 
         #endregion
 
@@ -297,6 +396,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code assigned to a geographic area, followed by
+        /// a National Significant Number of at least one digit.
+        /// </exception>
         /// <remarks>
         /// This method validates the provided number to ensure it adheres to the ITU-T E.164 standard
         /// for geographic area numbers. If the validation passes, the number is encapsulated within
@@ -312,7 +415,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForGeographicAreas(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForGeographicAreas.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a geographic area");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -332,8 +441,8 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the provided <paramref name="countryCode"/> is not a valid or defined country code.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the digit count of <paramref name="nationalSignificantNumber"/> exceeds the allowable range
-        /// based on the maximum digit count for the international number.
+        /// Thrown when <paramref name="nationalSignificantNumber"/> has no digits, or more digits than the maximum digit count
+        /// for the international number leaves after the Country Code.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGeographicArea(ItuE164AssignedCountryCodesForGeographicAreas countryCode, ItuE164NationalSignificantNumber nationalSignificantNumber)
         {
@@ -345,11 +454,7 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(countryCode));
             }
 
-            if (nationalSignificantNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "National Significant Number", 1, MaximumDigitCount - countryCodeDigitCount);
-                throw new ArgumentOutOfRangeException(nameof(nationalSignificantNumber), nationalSignificantNumber, message);
-            }
+            ThrowIfDigitCountOutOfRange(nationalSignificantNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount, "National Significant Number", nationalSignificantNumber, nameof(nationalSignificantNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{nationalSignificantNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForGeographicAreas(number);
@@ -368,6 +473,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code assigned to a global service, followed by
+        /// a Global Subscriber Number of 1 to 12 digits.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGlobalService(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -378,7 +487,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForGlobalServices(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForGlobalServices.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a global service");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -398,7 +513,7 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> is not a valid value from <see cref="ItuE164AssignedCountryCodesForGlobalServices"/>.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="globalSubscriberNumber"/> exceeds the maximum allowed digit count of 12.
+        /// Thrown when the <paramref name="globalSubscriberNumber"/> doesn't have 1 to 12 digits.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGlobalService(ItuE164AssignedCountryCodesForGlobalServices countryCode, ItuE164GlobalSubscriberNumber globalSubscriberNumber)
         {
@@ -408,11 +523,8 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(countryCode));
             }
 
-            if (globalSubscriberNumber.DigitCount > 12)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Global Subscriber Number", 1, 12);
-                throw new ArgumentOutOfRangeException(nameof(globalSubscriberNumber), globalSubscriberNumber, message);
-            }
+            var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
+            ThrowIfDigitCountOutOfRange(globalSubscriberNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount, "Global Subscriber Number", globalSubscriberNumber, nameof(globalSubscriberNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{globalSubscriberNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForGlobalServices(number);
@@ -431,6 +543,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code and an Identification Code assigned to a
+        /// network, followed by a Subscriber Number of at least one digit.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForNetwork(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -441,7 +557,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForNetworks(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForNetworks.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a network");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -465,8 +587,8 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> or <paramref name="identificationCode"/> is invalid.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="subscriberNumber"/> exceeds the maximum allowable digit count 
-        /// for the combination of country code and identification code.
+        /// Thrown when the <paramref name="subscriberNumber"/> has no digits, or more digits than the maximum digit count
+        /// for the international number leaves after the Country Code and Identification Code.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForNetwork(ItuE164AssignedCountryCodesForNetworks countryCode, ItuE164AssignedIdentificationCodesForNetworks identificationCode, ItuE164SubscriberNumber subscriberNumber)
         {
@@ -484,11 +606,7 @@ namespace DataStandardizer.Communication.E164
 
             var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
             var identificationCodeDigitCount = $"{(ushort)identificationCode}".Length;
-            if (subscriberNumber.DigitCount > MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount)
-            {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount);
-                throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
-            }
+            ThrowIfDigitCountOutOfRange(subscriberNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount - identificationCodeDigitCount, "Subscriber Number", subscriberNumber, nameof(subscriberNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{(ushort)identificationCode}{subscriberNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForNetworks(number);
@@ -507,6 +625,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code and a Group Identification Code assigned to
+        /// a group of countries, followed by a Subscriber Number of at least one digit.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGroupOfCountries(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -517,7 +639,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForGroupsOfCountries(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForGroupsOfCountries.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a group of countries");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -540,7 +668,7 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> or <paramref name="groupIdentificationCode"/> is invalid.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="subscriberNumber"/> exceeds the maximum allowed digit count.
+        /// Thrown when the <paramref name="subscriberNumber"/> doesn't have 1 to 11 digits.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForGroupOfCountries(ItuE164AssignedCountryCodesForGroupsOfCountries countryCode, ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries groupIdentificationCode,
             ItuE164SubscriberNumber subscriberNumber)
@@ -557,11 +685,9 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(groupIdentificationCode));
             }
 
-            if (subscriberNumber.DigitCount > 11)
-            {
-                var message = string.Format(ErrorMessage.FieldValueInvalidTemplate, subscriberNumber, "Subscriber Number");
-                throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
-            }
+            var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
+            var groupIdentificationCodeDigitCount = $"{(byte)groupIdentificationCode}".Length;
+            ThrowIfDigitCountOutOfRange(subscriberNumber.DigitCount, MaximumDigitCount - countryCodeDigitCount - groupIdentificationCodeDigitCount, "Subscriber Number", subscriberNumber, nameof(subscriberNumber));
 
             var number = ulong.Parse($"{(ushort)countryCode}{(byte)groupIdentificationCode}{subscriberNumber}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForGroupsOfCountries(number);
@@ -580,6 +706,10 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="number"/> exceeds the maximum allowed digit count of 15.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the <paramref name="number"/> does not start with a Country Code and a Trial Identification Code assigned to
+        /// a trial.
+        /// </exception>
         public static ItuE164InternationalNumber CreateNumberForTrial(ulong number)
         {
             var numberDigitCount = number.ToString().Length;
@@ -590,7 +720,13 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentOutOfRangeException(nameof(number), number, message);
             }
 
-            var numberStructure = new ItuE164InternationalNumberStructureForTrials(number);
+            // The number must divide into the fields of its structure, with codes that are assigned.
+            if (!ItuE164InternationalNumberStructureForTrials.TryParse(number.ToString(CultureInfo.InvariantCulture), ItuE164InternationalNumberStyles.None, out var numberStructure) || numberStructure == null)
+            {
+                var message = string.Format(ErrorMessage.NumberForStructureInvalidTemplate, number, "a trial");
+                throw new ArgumentException(message, nameof(number));
+            }
+
             return new ItuE164InternationalNumber(numberStructure);
         }
 
@@ -605,7 +741,8 @@ namespace DataStandardizer.Communication.E164
         /// </param>
         /// <param name="subscriberNumber">
         /// An optional subscriber number, represented by <see cref="ItuE164SubscriberNumber"/>. 
-        /// The digit count must not exceed 11 if provided.
+        /// If provided, it must have from 1 digit to as many as the 15-digit limit leaves after the Country Code and
+        /// Trial Identification Code (11 for a three-digit Country Code and a one-digit Trial Identification Code).
         /// </param>
         /// <returns>
         /// A new instance of <see cref="ItuE164InternationalNumber"/> configured for trials.
@@ -614,7 +751,7 @@ namespace DataStandardizer.Communication.E164
         /// Thrown when the <paramref name="countryCode"/> or <paramref name="trialIdentificationCode"/> is invalid.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the <paramref name="subscriberNumber"/> exceeds the maximum allowed digit count of 11.
+        /// Thrown when the <paramref name="subscriberNumber"/> is given and doesn't have 1 to 11 digits.
         /// </exception>
         public static ItuE164InternationalNumber CreateNumberForTrial(ItuE164AssignedCountryCodesForTrials countryCode, ItuE164AssignedTrialIdentificationCodesForTrials trialIdentificationCode, ItuE164SubscriberNumber? subscriberNumber)
         {
@@ -630,15 +767,26 @@ namespace DataStandardizer.Communication.E164
                 throw new ArgumentException(message, nameof(trialIdentificationCode));
             }
 
-            if (subscriberNumber.HasValue && subscriberNumber.Value.DigitCount > 11)
+            if (subscriberNumber.HasValue)
             {
-                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, "Subscriber Number", 1, 11);
-                throw new ArgumentOutOfRangeException(nameof(subscriberNumber), subscriberNumber, message);
+                var countryCodeDigitCount = $"{(ushort)countryCode}".Length;
+                var trialIdentificationCodeDigitCount = $"{(byte)trialIdentificationCode}".Length;
+                ThrowIfDigitCountOutOfRange(subscriberNumber.Value.DigitCount, MaximumDigitCount - countryCodeDigitCount - trialIdentificationCodeDigitCount, "Subscriber Number", subscriberNumber, nameof(subscriberNumber));
             }
 
             var number = ulong.Parse($"{(ushort)countryCode}{(byte)trialIdentificationCode}{subscriberNumber?.ToString() ?? string.Empty}", NumberStyles, CultureInfo.InvariantCulture);
             var numberStructure = new ItuE164InternationalNumberStructureForTrials(number);
             return new ItuE164InternationalNumber(numberStructure);
+        }
+
+        // Throws when a field of a number has no digits, or more than the digits the number leaves for it.
+        private static void ThrowIfDigitCountOutOfRange(int digitCount, int maximumDigitCount, string fieldName, object fieldValue, string parameterName)
+        {
+            if (digitCount < 1 || digitCount > maximumDigitCount)
+            {
+                var message = string.Format(ErrorMessage.DigitCountRangeInvalidTemplate, fieldName, 1, maximumDigitCount);
+                throw new ArgumentOutOfRangeException(parameterName, fieldValue, message);
+            }
         }
 
         /// <summary>

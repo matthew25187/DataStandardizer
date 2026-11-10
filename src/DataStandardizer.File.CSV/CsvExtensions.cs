@@ -59,6 +59,11 @@ namespace DataStandardizer.File.CSV
         // Declared-property bindings keyed by type, so conversions and mapper creation reflect at most once per type.
         private static readonly ConcurrentDictionary<Type, PropertyBinding[]> PropertyBindingCache = new ConcurrentDictionary<Type, PropertyBinding[]>();
 
+        /// <summary>
+        /// Removes every cached property binding.  Called by <see cref="CsvMapperCache.Clear"/>.
+        /// </summary>
+        internal static void ClearPropertyBindings() => PropertyBindingCache.Clear();
+
         private static PropertyBinding[] GetPropertyBindings(Type type)
         {
             if (PropertyBindingCache.TryGetValue(type, out var propertyBindings))

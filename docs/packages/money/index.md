@@ -1,7 +1,7 @@
 ---
 title: Money
 parent: Packages
-nav_order: 8
+nav_order: 9
 has_children: true
 ---
 
@@ -21,17 +21,20 @@ dotnet add package DataStandardizer.Money
 | --- | --- |
 | **ISO 4217** | Codes for the representation of currencies and funds — current currency & funds codes (Tables A.1–A.2) and historic denominations (Table A.3), each carrying the standard's numeric code and metadata. |
 | **Money type** | A value type combining an amount with an ISO 4217 currency, as described in *Patterns of Enterprise Application Architecture* by Martin Fowler. |
+| **Unicode CLDR** | Currency symbols, in both the standard and narrow forms. ISO 4217 defines no symbols, so they are sourced from the Common Locale Data Repository. |
 
 ## Platform support
 
-Targets .NET Standard 1.0 and 2.0 for use in legacy applications, as well as
-in-support modern .NET runtimes (net8.0 and net10.0).
+Targets .NET Standard 1.1 and 2.0 for use in legacy applications, as well as
+in-support modern .NET runtimes (`net10.0`).
 
 ## How-to guides
 
 - [Use the Money data type](how-to/use-money-datatype.md)
 - [Use currency codes](how-to/use-currency-codes.md)
 - [Access currency metadata](how-to/access-currency-metadata.md)
+- [Format money values](how-to/format-money-values.md)
+- [Parse money values](how-to/parse-money-values.md)
 
 ## Concepts
 

@@ -14,6 +14,8 @@ namespace DataStandardizer.Communication.E164
     /// This class implements the <see cref="ICustomFormatter"/> interface to allow custom formatting of 
     /// ITU E.164 international numbers. It supports multiple formats, including abbreviated, full, short, 
     /// and long international formats, as well as custom formats defined by the user.
+    /// A standard format is exactly one of the letters <c>g</c>, <c>G</c>, <c>i</c> and <c>I</c>; a null, empty or white-space
+    /// format is <c>G</c>; and any other format is a custom pattern.
     /// </remarks>
     internal sealed class ItuE164InternationalNumberFormatter : ICustomFormatter
     {
@@ -106,14 +108,13 @@ namespace DataStandardizer.Communication.E164
 
             // Format argument according to format string.
             string formattedString;
+            // A provider without E.164 format information gets the invariant patterns, never those of the current thread's culture.
             var internationalNumberFormat = formatProvider?.GetFormat(typeof(ItuE164InternationalNumberFormatInfo)) as ItuE164InternationalNumberFormatInfo
-#if NETSTANDARD2_0_OR_GREATER || NET
-                                            ?? TelephonyInfo.CurrentTelephony.ItuE164InternationalNumberFormat;
-#else
                                             ?? TelephonyInfo.InvariantTelephony.ItuE164InternationalNumberFormat;
-#endif
-            var useStandardFormat = !string.IsNullOrWhiteSpace(format) ? format[0].ToString() : string.Empty;
-            switch (useStandardFormat)
+            // A null, empty or white-space format is the default, full general format. A standard format is exactly one of the
+            // letters g, G, i and I; any other format, including a longer one that starts with one of them, is a custom pattern.
+            string useFormat = string.IsNullOrWhiteSpace(format) ? DefaultFormat : format;
+            switch (useFormat)
             {
                 case "g": // abbreviated general format
                 {
@@ -139,7 +140,7 @@ namespace DataStandardizer.Communication.E164
                 default:
                 {
                     // custom format
-                    formattedString = CustomFormatString(format ?? string.Empty, InternationalPrefixSymbol, numberParts);
+                    formattedString = CustomFormatString(useFormat, InternationalPrefixSymbol, numberParts);
                 }
                     break;
             }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>8b0efd27-1fc7-4cbc-95be-f4696d059dff</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>DataStandardizer.File.ContentLine</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineCaretMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineError.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineErrorKind.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineEscaping.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineFoldMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineFormatter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineScanner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineScannerSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IContentLineContinuation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IContentLineData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IContentLineErrorFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utf8FoldRealigningStream.cs" />
+  </ItemGroup>
+</Project>

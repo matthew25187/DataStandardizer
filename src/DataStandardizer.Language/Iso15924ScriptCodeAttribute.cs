@@ -2,7 +2,7 @@
 using System.Globalization;
 using DataStandardizer.Core;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Language
@@ -21,7 +21,7 @@ namespace DataStandardizer.Language
 
         }
 #else
-        internal Iso15924ScriptCodeAttribute([NotNull] string englishName, [NotNull] string frenchName) : base(new[] { englishName }, new[] { frenchName })
+        internal Iso15924ScriptCodeAttribute([DisallowNull] string englishName, [DisallowNull] string frenchName) : base(new[] { englishName }, new[] { frenchName })
         {
         }
 #endif
@@ -29,13 +29,13 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso15924ScriptCodeAttribute(string englishName, string frenchName, string date)
 #else
-        internal Iso15924ScriptCodeAttribute([NotNull] string englishName, [NotNull] string frenchName, [NotNull] string date)
+        internal Iso15924ScriptCodeAttribute([DisallowNull] string englishName, [DisallowNull] string frenchName, [DisallowNull] string date)
 #endif
             : this(englishName, frenchName)
         {
 #if NET6_0_OR_GREATER
-            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var dateValue))
-                throw new System.ArgumentException($"'{date}' is not a valid date.", nameof(date));
+            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
+                throw new ArgumentException($"'{date}' is not a valid date.", nameof(date));
 
             Date = dateValue;
 #else
@@ -49,7 +49,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso15924ScriptCodeAttribute(string englishName, string frenchName, string date, double age)
 #else
-        internal Iso15924ScriptCodeAttribute([NotNull] string englishName, [NotNull] string frenchName, [NotNull] string date, double age)
+        internal Iso15924ScriptCodeAttribute([DisallowNull] string englishName, [DisallowNull] string frenchName, [DisallowNull] string date, double age)
 #endif
             : this(englishName, frenchName, date)
         {
@@ -71,7 +71,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? Alias { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Alias { get; set; }
 #endif
         /// <summary>

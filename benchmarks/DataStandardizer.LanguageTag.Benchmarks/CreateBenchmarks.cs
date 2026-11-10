@@ -8,7 +8,7 @@ namespace DataStandardizer.LanguageTag.Benchmarks;
 [MemoryDiagnoser]
 public class CreateBenchmarks
 {
-    private SubtagRegistry.SubtagRegistry _registry = null!;
+    private SubtagRegistry _registry = null!;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -18,8 +18,8 @@ public class CreateBenchmarks
         // Fail fast if a change to the package makes the fixed inputs mean something else.
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            if (!Bcp47LanguageTag.TryCreate(tag, out _) || !Bcp47LanguageTag.TryCreate(tag, _registry, out _) || !Bcp47LanguageTag.IsWellFormedLanguageTagString(tag)
-                || !Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _) || !Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan()))
+            if (!Bcp47LanguageTag.TryCreate(tag, out _) || !Bcp47LanguageTag.TryCreate(tag, _registry, out _) || !Bcp47LanguageTag.TryCreate(tag, LanguageTagConformance.IsoCodeLists, out _) || !Bcp47LanguageTag.IsWellFormed(tag)
+                || !Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _) || !Bcp47LanguageTag.IsWellFormed(tag.AsSpan()))
             {
                 throw new InvalidOperationException($"Valid tag '{tag}' was rejected.");
             }
@@ -35,12 +35,24 @@ public class CreateBenchmarks
     }
 
     [Benchmark(Baseline = true)]
-    public int Create_Rules()
+    public int Create_WellFormed()
     {
         var length = 0;
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            length += Bcp47LanguageTag.Create(tag).PrimaryLanguageSubtag.Length;
+            length += Bcp47LanguageTag.Create(tag).PrimaryLanguageSubtag?.Length ?? 0;
+        }
+
+        return length;
+    }
+
+    [Benchmark]
+    public int Create_IsoCodeLists()
+    {
+        var length = 0;
+        foreach (var tag in BenchmarkData.ValidTags)
+        {
+            length += Bcp47LanguageTag.Create(tag, LanguageTagConformance.IsoCodeLists).PrimaryLanguageSubtag?.Length ?? 0;
         }
 
         return length;
@@ -52,7 +64,7 @@ public class CreateBenchmarks
         var length = 0;
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            length += Bcp47LanguageTag.Create(tag, _registry).PrimaryLanguageSubtag.Length;
+            length += Bcp47LanguageTag.Create(tag, _registry).PrimaryLanguageSubtag?.Length ?? 0;
         }
 
         return length;
@@ -79,7 +91,7 @@ public class CreateBenchmarks
         var count = 0;
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            if (Bcp47LanguageTag.IsWellFormedLanguageTagString(tag))
+            if (Bcp47LanguageTag.IsWellFormed(tag))
             {
                 count++;
             }
@@ -96,7 +108,7 @@ public class CreateBenchmarks
         {
             if (Bcp47LanguageTag.TryCreate(tag.AsSpan(), out var result))
             {
-                length += result.PrimaryLanguageSubtag.Length;
+                length += result.PrimaryLanguageSubtag?.Length ?? 0;
             }
         }
 
@@ -124,7 +136,7 @@ public class CreateBenchmarks
         var count = 0;
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            if (Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan()))
+            if (Bcp47LanguageTag.IsWellFormed(tag.AsSpan()))
             {
                 count++;
             }

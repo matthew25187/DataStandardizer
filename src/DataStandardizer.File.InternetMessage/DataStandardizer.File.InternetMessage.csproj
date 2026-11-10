@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.1;netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
+
+Provides types supporting the reading and writing of Internet messages, including:
+- RFC 5322 and RFC 6532: a streaming reader of the header fields of a message, with UTF-8 in field bodies
+- RFC 2045 and RFC 2046: a streaming reader of the MIME entities of a message, with multipart bodies, embedded messages and transfer decoding
+- RFC 5322, RFC 6532, RFC 2045 and RFC 2046: streaming writers of header fields and MIME entities, with folding, transfer encoding, multipart boundaries and byte-exact copying of what has not changed
+- RFC 5322, RFC 6532 and RFC 6854: typed addresses, mailboxes, groups, message identifiers and keyword phrases, parsed from the modern and obsolete syntax and written in the modern form where the modern syntax can express them
+- RFC 5322: typed date-times, parsed from the modern and obsolete syntax and written in the modern form, which keep an unknown UTC offset (-0000), a leap second and whether a day of the week was given
+- RFC 2047: encoded words in display names, keyword phrases, comments and unstructured fields, decoded when read and written where text is not US-ASCII
+- RFC 2045, RFC 2183, RFC 2231, RFC 2392 and RFC 3282: the MIME-Version, Content-Type, Content-Transfer-Encoding, Content-ID, Content-Description, Content-Disposition and Content-Language header fields, with cid: URIs
+- RFC 5322 and RFC 6854: a message object model with typed accessors for the origination, destination, identification, informational, resent and trace fields, a reader and writer that keep unchanged fields byte for byte, and the conformance checks of RFC 5322 §3.6
+- RFC 2045, RFC 2046, RFC 2387 and RFC 2392: a MIME entity tree with decoded content, text and HTML bodies, attachments, cid: lookup, a message builder, and a writer that rewrites only what has changed
+- RFC 2557 and RFC 2387: MHTML files, with Content-Location, the root of a multipart/related entity, URLs resolved to their parts, a document builder, and a reader and writer
+- RFC 4155: mbox files in the mboxrd, mboxo, mboxcl and mboxcl2 variants, with a reader that takes one message at a time, so a mailbox of any size can be processed, and a writer
+- Apple Mail EMLX files: a message with its byte count and its property list of metadata, with typed flags and dates, unknown keys kept, partial files with their parts supplied by the caller, and a reader and writer</Description>
+    <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
+    <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532;rfc 6854;mime;rfc 2045;rfc 2046;rfc 2047;rfc 2183;rfc 2231;rfc 2387;rfc 2392;rfc 2557;rfc 3282;mhtml;rfc 4155;mbox;emlx;apple mail</PackageTags>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
+    <ProjectReference Include="..\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -24,7 +24,8 @@ public static class IcalParameterNames
 
 Parameter names are case-insensitive. These constants are in the upper case the RFCs
 use. Use them with `IcalContentLine.GetParameter`, or to create an
-[IcalContentLineParameter](IcalContentLineParameter.md).
+[IcalContentLineParameter](IcalContentLineParameter.md). To read `FMTTYPE` as a
+`MimeMediaType`, use `IcalContentLine.GetFormatType`.
 
 ## Fields
 
@@ -57,7 +58,7 @@ use. Use them with `IcalContentLine.GetParameter`, or to create an
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 ## See also
 

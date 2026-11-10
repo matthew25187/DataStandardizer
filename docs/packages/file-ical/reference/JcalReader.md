@@ -79,7 +79,9 @@ since a jCal document has no content lines; their component path gives the place
 The first problem the options don't accept throws `IcalFileException`, and reading
 can then continue with the next calendar. A value that doesn't follow its type is
 kept as it is, so the check reports it unless `IcalOptions.AllowInvalidValues` is
-set. See [Standards compliance](../concepts/standards-compliance.md).
+set. jCal has no quoting, so a `QuotedParameterValue` problem is never reported; a
+value that `IcalWriter` would have to quote is reported when the calendar is written
+as .ics. See [Standards compliance](../concepts/standards-compliance.md).
 
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share
 their state. They return the pooled buffer and close a file the reader opened. A
@@ -97,6 +99,15 @@ thread at any time.
 `Stream.ReadAsync`, and do no synchronous I/O. A read completes synchronously,
 without allocating a task, while the buffer already holds the whole calendar.
 Cancellation is checked before each block is read.
+
+A read is canceled when its `cancellationToken` is canceled before the call, or when
+the read fails with an `OperationCanceledException` while that token is canceled,
+whatever token the exception carries, or if it carries none. The task is then canceled.
+An `OperationCanceledException` while the token isn't canceled faults the task, as any
+other failure of the stream does. Either one leaves the reader unable to continue. During
+`ReadCalendarsAsync`, awaiting `MoveNextAsync` throws either one, but its task is
+canceled for both on every target, as an async iterator's always is for an
+`OperationCanceledException`, so check the token to tell which it was.
 
 ## Constructors
 
@@ -140,11 +151,11 @@ Cancellation is checked before each block is read.
 
 ## Applies to
 
-Targets `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0` only. jCal needs
-System.Text.Json, so `JcalReader` isn't available on `netstandard1.1`. On .NET 8 and
+Targets `netstandard2.0`, `netstandard2.1`, and `net10.0` only. jCal needs
+System.Text.Json, so `JcalReader` isn't available on `netstandard1.1`. On
 .NET 10, System.Text.Json is part of the framework; on .NET Standard 2.0 and 2.1, the
 package depends on the System.Text.Json NuGet package. The nullable reference
-annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

@@ -38,18 +38,17 @@ attached to the exception's `Data` dictionary.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `FilePath` | `string? FilePath { get; init; }` | The path to the CSV file. `get;` only (internal setter) on `netstandard1.3` / `netstandard2.0` / `netstandard2.1`. |
+| `FilePath` | `string? FilePath { get; init; }` | The path to the CSV file. `get;` only (internal setter) on `netstandard1.1` / `netstandard2.0` / `netstandard2.1`. |
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`FilePath` is `init`-settable on the `net8.0` and `net10.0` builds; on the .NET
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`FilePath` is `init`-settable on the `net10.0` build; on the .NET
 Standard builds it is publicly get-only. Its nullable annotation applies to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 
 - [Read CSV files](../how-to/read-csv-files.md)
 - [Write CSV files](../how-to/write-csv-files.md)
 - [File.CSV API reference](index.md)
-</content>

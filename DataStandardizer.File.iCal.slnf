@@ -2,10 +2,18 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
+      "src\\DataStandardizer.File.ContentLine.Shared\\DataStandardizer.File.ContentLine.Shared.shproj",
       "benchmarks\\DataStandardizer.File.iCal.Benchmarks\\DataStandardizer.File.iCal.Benchmarks.csproj",
+      "fuzz\\DataStandardizer.File.iCal.Fuzz\\DataStandardizer.File.iCal.Fuzz.csproj",
       "src\\DataStandardizer.Chronology\\DataStandardizer.Chronology.csproj",
+      "src\\DataStandardizer.Communication\\DataStandardizer.Communication.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.iCal\\DataStandardizer.File.iCal.csproj",
+      "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
+      "src\\DataStandardizer.Language\\DataStandardizer.Language.csproj",
+      "src\\DataStandardizer.LanguageTag\\DataStandardizer.LanguageTag.csproj",
+      "tests\\DataStandardizer.File.iCal.IntegrationTests\\DataStandardizer.File.iCal.IntegrationTests.csproj",
       "tests\\DataStandardizer.File.iCal.Tests\\DataStandardizer.File.iCal.Tests.csproj"
     ]
   }

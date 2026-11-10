@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Communication.E164
@@ -19,16 +18,7 @@ namespace DataStandardizer.Communication.E164
 
         static ItuE164InternationalNumberStructureForTrials()
         {
-            // Compose patterns for numbers with and without spacing.
-            IdentificationCodeLookup = (
-                    from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForTrials)).Cast<ushort>()
-                    from trialIdentificationCode in Enum.GetValues(typeof(ItuE164AssignedTrialIdentificationCodesForTrials)).Cast<ItuE164AssignedTrialIdentificationCodesForTrials>()
-                    let sharedCodeAttribute = typeof(ItuE164AssignedTrialIdentificationCodesForTrials).GetTypeInfo().DeclaredFields
-                        .Single(field => field.GetValue(null)?.Equals(trialIdentificationCode) ?? false)
-                        .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                    where sharedCodeAttribute.CountryCode == countryCode
-                    select new { CountryCode = countryCode, IdentificationCode = trialIdentificationCode })
-                .ToLookup(kvp => kvp.CountryCode, kvp => (ushort)kvp.IdentificationCode);
+            IdentificationCodeLookup = ComposeIdentificationCodeLookup(typeof(ItuE164AssignedCountryCodesForTrials), typeof(ItuE164AssignedTrialIdentificationCodesForTrials));
         }
 
         internal ItuE164InternationalNumberStructureForTrials(ulong number) : base(number)
@@ -38,7 +28,7 @@ namespace DataStandardizer.Communication.E164
 #if NETCOREAPP3_0_OR_GREATER
         internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForTrials? result)
 #else
-        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForTrials result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [MaybeNullWhen(false)] out ItuE164InternationalNumberStructureForTrials result)
 #endif
         {
             var isParsed = false;

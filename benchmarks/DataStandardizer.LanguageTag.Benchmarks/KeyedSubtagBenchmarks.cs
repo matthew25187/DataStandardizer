@@ -20,5 +20,5 @@ public class KeyedSubtagBenchmarks
     public char? KeyedSubtag_Singleton() => _subtag.Singleton;
 
     [Benchmark]
-    public string[] KeyedSubtag_Subtags() => _subtag.Subtags;
+    public IReadOnlyList<string> KeyedSubtag_Subtags() => _subtag.Subtags;
 }

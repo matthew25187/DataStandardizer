@@ -1,4 +1,4 @@
-﻿using DataStandardizer.LanguageTag.SubtagRegistry;
+﻿using DataStandardizer.LanguageTag.Registry;
 
 namespace DataStandardizer.LanguageTag.Benchmarks;
 
@@ -73,11 +73,11 @@ public static class BenchmarkData
     }
 
     /// <summary>
-    /// Loads the IANA Language Subtag Registry fixture.
+    /// Loads the IANA Language Subtag Registry fixture, which has the line feeds that IANA publishes it with.
     /// </summary>
-    public static SubtagRegistry.SubtagRegistry LoadRegistry()
+    public static SubtagRegistry LoadRegistry()
     {
         using var stream = new MemoryStream(ReadRegistryBytes(), writable: false);
-        return SubtagRegistry.SubtagRegistry.CreateFromStream(stream);
+        return SubtagRegistry.CreateFromStream(stream, SubtagRegistryLoadOptions.AcceptBareLineFeed);
     }
 }

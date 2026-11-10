@@ -1,64 +1,107 @@
 ﻿using System;
-#if NET8_0_OR_GREATER
-using System.Buffers;
-#endif
-using System.Collections.Concurrent;
+using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Globalization;
+using System.Threading;
 using System.IO;
+using System.Linq;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
 {
-    public abstract class CsvFileIoBase<TRecordLine> : CsvFileCacheRepositoryBase where TRecordLine : CsvFileRecordLine
+    /// <summary>
+    /// The shared base of <see cref="CsvFileReader{TRecordLine}"/> and <see cref="CsvFileWriter{TRecordLine}"/>, which holds the mapper registration
+    /// members common to both.
+    /// </summary>
+    /// <typeparam name="TRecordLine">Type of the record lines read or written.</typeparam>
+    /// <remarks>
+    /// The type can't be derived from outside this package.
+    /// </remarks>
+    public abstract class CsvFileIoBase<TRecordLine> where TRecordLine : CsvFileRecordLine
     {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private string? _quoteSearchEmbeddedLineBreak;
-        private ICsvFileMapper? _resolvedMapper;
+        private ICsvFileMapper? _registeredMapper;
+        private IReadOnlyDictionary<Type, ICsvFileMapper>? _registeredMappers;
 #else
-        [CanBeNull] private string _quoteSearchEmbeddedLineBreak;
-        [CanBeNull] private ICsvFileMapper _resolvedMapper;
+        [MaybeNull] private ICsvFileMapper _registeredMapper;
+        [MaybeNull] private IReadOnlyDictionary<Type, ICsvFileMapper> _registeredMappers;
 #endif
-#if NET8_0_OR_GREATER
-        private SearchValues<char>? _quoteSearchValues;
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private char[]? _quoteSearchCharacters;
-#else
-        [CanBeNull] private char[] _quoteSearchCharacters;
-#endif
-        private char _quoteSearchDelimiter;
-        private int _resolvedMapperVersion;
+        private int _mapperVersion;
         private bool _isDisposed;
 
-        protected CsvFileIoBase()
+        private protected CsvFileIoBase()
         {
         }
 
         /// <summary>
-        /// Register a mapper for CSV lines.
+        /// Register a mapper for the record lines this reader or writer reads or writes.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
+        /// <remarks>
+        /// The mapper applies to this reader or writer only, from the next record line it reads or writes.  A reader or writer has at most one
+        /// registered mapper: registering a mapper of another type replaces it, and registering a <typeparamref name="TMapper"/> when one is already
+        /// registered does nothing.
+        /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void RegisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
             ThrowIfDisposed();
 
-            AddImperativeMapper(typeof(TRecordLine), () => new TMapper());
+            if (IsRegistered<TMapper>())
+            {
+                return;
+            }
+
+            _registeredMapper = new TMapper();
+            _mapperVersion++;
         }
 
         /// <summary>
-        /// Unregister a mapper for CSV lines.
+        /// Unregister a mapper from this reader or writer.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
+        /// <remarks>
+        /// If the mapper registered on this reader or writer is a <typeparamref name="TMapper"/>, it is removed, and from the next record line the
+        /// reader or writer maps lines with the <see cref="CsvFieldMappingAttribute"/> attributes on their type, if any.  If no mapper is registered,
+        /// or the registered mapper is of another type, the call does nothing.
+        /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void UnregisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
             ThrowIfDisposed();
 
-            RemoveImperativeMapper(typeof(TRecordLine));
+            if (!IsRegistered<TMapper>())
+            {
+                return;
+            }
+
+            _registeredMapper = null;
+            _mapperVersion++;
+        }
+
+        // The exact type, so a mapper derived from TMapper counts as a different mapper.
+        private bool IsRegistered<TMapper>() => _registeredMapper != null && _registeredMapper.GetType() == typeof(TMapper);
+
+        /// <summary>
+        /// Gets a number that changes whenever a mapper is registered on or unregistered from this reader or writer, so it knows to discard plans built
+        /// from the mapper it resolved.
+        /// </summary>
+        private protected int MapperVersion => _mapperVersion;
+
+        /// <summary>
+        /// Gets a live, read-only view of the mapper registered on this reader or writer, keyed by <typeparamref name="TRecordLine"/>.
+        /// </summary>
+        private protected IReadOnlyDictionary<Type, ICsvFileMapper> RegisteredMappers
+        {
+            get
+            {
+#pragma warning disable IDE0074
+                return _registeredMappers ?? (_registeredMappers = new RegisteredMapperView(this));
+#pragma warning restore IDE0074
+            }
         }
 
         /// <summary>
@@ -79,9 +122,13 @@ namespace DataStandardizer.File.CSV
                 throw new ObjectDisposedException(GetType().Name);
         }
 
-        protected CsvFileException BuildException(string message, IDictionary<string, object> dataItems)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems, Exception? innerException = null)
+#else
+        private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems, [AllowNull] Exception innerException = null)
+#endif
         {
-            var exception = new CsvFileException(message);
+            var exception = innerException is null ? new CsvFileException(message) : new CsvFileException(message, innerException);
             foreach (var dataItem in dataItems)
             {
                 exception.Data.Add(dataItem.Key, dataItem.Value);
@@ -90,226 +137,10 @@ namespace DataStandardizer.File.CSV
             return exception;
         }
 
-        protected bool DoesFieldValueRequireQuoting(string rawFieldValue, CsvFileOptions options)
-        {
-            var quotingRequired = false;
-            switch (options.QuoteHandling)
-            {
-                case CsvFieldQuoteHandling.Always:
-                    quotingRequired = true;
-                    break;
-                case CsvFieldQuoteHandling.Auto:
-                    if (!string.IsNullOrWhiteSpace(rawFieldValue) && !long.TryParse(rawFieldValue, out _) && !decimal.TryParse(rawFieldValue, out _))
-                        quotingRequired = true;
-                    break;
-                case CsvFieldQuoteHandling.Required:
-                    // ref. RFC 4180§2¶6
-                    quotingRequired = ContainsCharacterRequiringQuotes(rawFieldValue, options);
-                    break;
-            }
-
-            return quotingRequired;
-        }
-
         /// <summary>
-        /// Checks a field value for a line break, quote or field delimiter in one scan.
+        /// Replaces each line break in a field value with the <see cref="ICsvFileOptions.EmbeddedLineBreak"/> sequence.
         /// </summary>
-        /// <remarks>
-        /// A line break is a carriage return or line feed, or the <see cref="ICsvFileOptions.EmbeddedLineBreak"/> sequence when one is set.
-        /// </remarks>
-        private bool ContainsCharacterRequiringQuotes(string rawFieldValue, ICsvFileOptions options)
-        {
-            var embeddedLineBreak = options.EmbeddedLineBreak;
-            if (embeddedLineBreak != null && embeddedLineBreak.Length == 0)
-            {
-                return true; // every value contains the empty string
-            }
-
-            // The search characters are built once, and again only if the options they come from change.
-            var fieldDelimiter = options.FieldDelimiterCharacter;
-#if NET8_0_OR_GREATER
-            if (_quoteSearchValues is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak))
-            {
-                _quoteSearchValues = SearchValues.Create(GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak));
-                _quoteSearchDelimiter = fieldDelimiter;
-                _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
-            }
-
-            var fieldValue = rawFieldValue.AsSpan();
-            if (!fieldValue.ContainsAny(_quoteSearchValues))
-            {
-                return false;
-            }
-#else
-            if (_quoteSearchCharacters is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak))
-            {
-                _quoteSearchCharacters = GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak);
-                _quoteSearchDelimiter = fieldDelimiter;
-                _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
-            }
-
-            var fieldValue = rawFieldValue.AsSpan();
-            if (fieldValue.IndexOfAny(_quoteSearchCharacters) < 0)
-            {
-                return false;
-            }
-#endif
-
-            if (embeddedLineBreak is null)
-            {
-                return true;
-            }
-
-            // The hit may be only part of the embedded line break sequence, so confirm it.
-            return fieldValue.IndexOf('"') >= 0 || fieldValue.IndexOf(fieldDelimiter) >= 0 || fieldValue.IndexOf(embeddedLineBreak.AsSpan()) >= 0;
-        }
-
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, string? embeddedLineBreak)
-#else
-        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, [CanBeNull] string embeddedLineBreak)
-#endif
-        {
-            var lineBreakCharacters = embeddedLineBreak ?? "\r\n";
-            var searchCharacters = new char[lineBreakCharacters.Length + 2];
-            lineBreakCharacters.CopyTo(0, searchCharacters, 0, lineBreakCharacters.Length);
-            searchCharacters[lineBreakCharacters.Length] = '"';
-            searchCharacters[lineBreakCharacters.Length + 1] = fieldDelimiter;
-            return searchCharacters;
-        }
-
-#if NET5_0_OR_GREATER
-        protected T? DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-        protected T DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
-#else
-        [CanBeNull]
-        protected T DeserializeCsvLineFieldValue<T>([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-            [CanBeNull] object fieldValue)
-#endif
-        {
-            if (fieldValue is null)
-            {
-                return default; // if there is no field value then there is nothing to deserialize
-            }
-            else if (fieldValue is T deserializedFieldValue)
-            {
-                return deserializedFieldValue; // if the field value is already of the target type then just return it
-            }
-
-            // Deserialize the field value to the field type.
-            var serializedFieldValue = fieldValue as string;
-            if (serializedFieldValue is null)
-            {
-                return default; // if the field value is not a string at this point then it can't be deserialized
-            }
-
-            // Attempt to convert the field value to the target data type.
-#if NET5_0_OR_GREATER
-            T? result = default;
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            T result = default!;
-#else
-            T result = default;
-#endif
-            if (propertyFieldMapping.Value.FromStringConverter != null)
-            {
-                var converter = (CsvFieldConvertFromString<TRecordLine, T>)propertyFieldMapping.Value.FromStringConverter;
-
-                var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
-                var context = new CsvFieldContext<TRecordLine>(options)
-                {
-                    HeaderLine = headerLine,
-                    Model = recordLine,
-                    FieldName = mappedFieldName,
-                    FieldIndex = propertyFieldMapping.Value.FieldIndex
-                };
-                result = converter(context);
-            }
-            else if (propertyFieldMapping.Value.TypeConverterType != null)
-            {
-                var typeConverter = GetTypeConverter(propertyFieldMapping.Value.TypeConverterType);
-                if ((typeConverter?.CanConvertFrom(typeof(string))).GetValueOrDefault())
-                {
-                    result = options.Culture != null
-#if NET5_0_OR_GREATER
-                        ? (T?)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)
-                        : (T?)typeConverter?.ConvertFromInvariantString(serializedFieldValue);
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                        ? (T)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)!
-                        : (T)typeConverter?.ConvertFromInvariantString(serializedFieldValue)!;
-#else
-                        ? (T)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)
-                        : (T)typeConverter?.ConvertFromInvariantString(serializedFieldValue);
-#endif
-                }
-            }
-
-            return result;
-        }
-
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        protected object? GetCsvLineMappedFieldValue(TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping) 
-        #else
-        [CanBeNull]
-        protected object GetCsvLineMappedFieldValue([NotNull] TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
-#endif
-        {
-            ICsvFileLine csvLine = recordLine;
-
-            // Get the lookup key for the field on the CSV line.
-            var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
-            var fieldKey = mappedFieldName;
-            if (!csvLine.Contains(fieldKey) && csvLine.Contains(propertyFieldMapping.Key))
-            {
-                fieldKey = propertyFieldMapping.Key;
-            }
-
-            // Get the mapped field value.
-            var fieldValue = csvLine[fieldKey];
-            if (propertyFieldMapping.Value.ConstantValue != null)
-            {
-                fieldValue = propertyFieldMapping.Value.ConstantValue;
-            }
-            else if (propertyFieldMapping.Value.VariableValueGenerator != null)
-            {
-                fieldValue = FieldValueAccessor.For(propertyFieldMapping.Value.PropertyType).Generate(propertyFieldMapping.Value.VariableValueGenerator);
-            }
-
-            return fieldValue;
-        }
-
-        protected ICsvFileMapper GetMapper(TRecordLine recordLine)
-        {
-            return GetMapper(recordLine, out _);
-        }
-
-        /// <summary>
-        /// Gets the mapper for a record line.
-        /// </summary>
-        /// <param name="recordLine">The record line.</param>
-        /// <param name="isCached"><c>true</c> if the mapper is held in a mapper cache; <c>false</c> if it was created from <paramref name="recordLine"/> and is empty.</param>
-        private protected ICsvFileMapper GetMapper(TRecordLine recordLine, out bool isCached)
-        {
-            // Reuse the mapper this instance last resolved, so the per-line path does not take the cache lock, unless a
-            // mapper has since been registered, unregistered or cleared.
-            var mapperCacheVersion = MapperCacheVersion;
-            var mapper = _resolvedMapper;
-            if (mapper != null && _resolvedMapperVersion == mapperCacheVersion)
-            {
-                isCached = true;
-                return mapper;
-            }
-
-            mapper = GetOrAddMapper(typeof(TRecordLine), recordLine, out isCached);
-            _resolvedMapper = isCached ? mapper : null;
-            _resolvedMapperVersion = mapperCacheVersion;
-
-            return mapper;
-        }
-
-        protected string NormalizeFieldValueLineBreaks(string fieldValue, ICsvFileOptions options)
+        private protected static string NormalizeFieldValueLineBreaks(string fieldValue, ICsvFileOptions options)
         {
             var hasTrailingLineBreak = fieldValue.TrimEnd('\n', '\r').Length < fieldValue.Length;
 
@@ -339,153 +170,305 @@ namespace DataStandardizer.File.CSV
             return fieldValueBuilder.ToString();
         }
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        protected string? SerializeCsvLineFieldValue(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue) 
-        #else
-        [CanBeNull]
-        protected string SerializeCsvLineFieldValue([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-            [CanBeNull] object fieldValue)
-#endif
-        {
-            if (fieldValue is null)
-            {
-                return null; // if there is no field value then there is nothing to serialize
-            }
-            else if (fieldValue is string serializedFieldValue)
-            {
-                return serializedFieldValue; // if the field value is already of the target type then just return it
-            }
-
-            if (string.IsNullOrEmpty(propertyFieldMapping.Key))
-            {
-                return FormatFieldValue(fieldValue, options);
-            }
-
-            var converter = propertyFieldMapping.Value.ToStringConverter as CsvFieldConvertToString<TRecordLine>;
-            var typeConverter = converter is null && propertyFieldMapping.Value.TypeConverterType != null ? GetTypeConverter(propertyFieldMapping.Value.TypeConverterType) : null;
-            return ConvertFieldValueToString(headerLine, recordLine, options, propertyFieldMapping, converter, typeConverter, fieldValue);
-        }
-
         /// <summary>
-        /// Converts a mapped field value that is not already a string: with the mapping's converter if it has one, else its type converter if that can
-        /// convert to a string, else with <see cref="FormatFieldValue"/>.
+        /// Gets the mapper for a record line: the mapper registered on this reader or writer if there is one, else the declarative mapper of the line's
+        /// own type.
         /// </summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private protected string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-            CsvFieldConvertToString<TRecordLine>? converter, TypeConverter? typeConverter, object fieldValue)
-#else
-        [CanBeNull]
-        private protected string ConvertFieldValueToString([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options,
-            KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [CanBeNull] CsvFieldConvertToString<TRecordLine> converter, [CanBeNull] TypeConverter typeConverter, [NotNull] object fieldValue)
-#endif
+        /// <param name="recordLine">The record line.</param>
+        /// <param name="isRegistered"><c>true</c> if the mapper is registered, so applies to a line of any type; <c>false</c> if it only applies to lines of the runtime type of <paramref name="recordLine"/>.</param>
+        private protected ICsvFileMapper GetMapper(TRecordLine recordLine, out bool isRegistered)
         {
-            if (converter != null)
+            var registeredMapper = _registeredMapper;
+            if (registeredMapper != null)
             {
-                var context = new CsvFieldContext<TRecordLine>(options)
-                {
-                    HeaderLine = headerLine,
-                    Model = recordLine,
-                    FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
-                    FieldIndex = propertyFieldMapping.Value.FieldIndex
-                };
-                return converter(context);
+                isRegistered = true;
+                return registeredMapper;
             }
 
-            if (typeConverter != null && typeConverter.CanConvertTo(typeof(string)))
-            {
-                return options.Culture != null
-                    ? typeConverter.ConvertToString(null, options.Culture, fieldValue)
-                    : typeConverter.ConvertToInvariantString(fieldValue);
-            }
-
-            return FormatFieldValue(fieldValue, options);
-        }
-
-        /// <summary>
-        /// Converts a field value to a string, with the <see cref="ICsvFileOptions.Culture"/> if one is set and the value is <see cref="IFormattable"/>.
-        /// </summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private protected static string? FormatFieldValue(object fieldValue, ICsvFileOptions options)
-#else
-        [CanBeNull]
-        private protected static string FormatFieldValue([NotNull] object fieldValue, [NotNull] ICsvFileOptions options)
-#endif
-        {
-            return options.Culture != null && fieldValue is IFormattable formattableFieldValue
-                ? formattableFieldValue.ToString(null, options.Culture)
-                : fieldValue.ToString();
+            isRegistered = false;
+            return CsvMapperCache.GetOrAddDeclarativeMapper(recordLine);
         }
 
         /// <summary>
         /// Calls the generic field value members for a property type known only at run time, without reflection on each call.
         /// </summary>
         /// <remarks>
-        /// One accessor is created per property type and shared by every reader and writer.  Accessors hold no state, so sharing them is thread-safe.
+        /// One accessor is created per property type, held in <see cref="CsvMapperCache"/> and shared by every reader and writer.  Accessors hold no
+        /// state that changes, so sharing them is thread-safe.
         /// </remarks>
         private protected abstract class FieldValueAccessor
         {
-            private static readonly ConcurrentDictionary<Type, FieldValueAccessor> AccessorCache = new ConcurrentDictionary<Type, FieldValueAccessor>();
+            private static readonly Func<Type, object> AccessorFactory = CreateAccessor;
 
             internal static FieldValueAccessor For(Type propertyType)
             {
-                if (AccessorCache.TryGetValue(propertyType, out var accessor))
-                {
-                    return accessor;
-                }
-
-                return AccessorCache.GetOrAdd(propertyType, CreateAccessor);
+                return (FieldValueAccessor)CsvMapperCache.GetOrAddFieldValueAccessor(typeof(TRecordLine), propertyType, AccessorFactory);
             }
 
-            private static FieldValueAccessor CreateAccessor(Type propertyType)
+            private static object CreateAccessor(Type propertyType)
             {
                 var accessorType = typeof(CsvFileIoBase<>.FieldValueAccessor<>).MakeGenericType(typeof(TRecordLine), propertyType);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                return (FieldValueAccessor)Activator.CreateInstance(accessorType)!;
+                return Activator.CreateInstance(accessorType)!;
 #else
-                return (FieldValueAccessor)Activator.CreateInstance(accessorType);
+                return Activator.CreateInstance(accessorType);
 #endif
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal abstract object? Deserialize(CsvFileIoBase<TRecordLine> io, CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                object? fieldValue);
+            /// <summary>
+            /// Converts a mapped field value to the property type.
+            /// </summary>
+            /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
+            /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
+            /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
+            internal abstract bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object? fieldValue, out object? value, out Exception? error);
 
             internal abstract object? Generate(Delegate generator);
 #else
-            [CanBeNull]
-            internal abstract object Deserialize([NotNull] CsvFileIoBase<TRecordLine> io, [CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options,
-                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [CanBeNull] object fieldValue);
+            /// <summary>
+            /// Converts a mapped field value to the property type.
+            /// </summary>
+            /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
+            /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
+            /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
+            internal abstract bool TryDeserialize([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] object fieldValue, [MaybeNull] out object value, [MaybeNull] out Exception error);
 
-            [CanBeNull]
-            internal abstract object Generate([NotNull] Delegate generator);
+            [return: MaybeNull]
+            internal abstract object Generate([DisallowNull] Delegate generator);
 #endif
         }
 
         private sealed class FieldValueAccessor<T> : FieldValueAccessor
         {
+            // Stands for "the type has no parser" in _parser, so that null can mean "not worked out yet".
+            private static readonly object NoParser = new object();
+
+            // The parser for a value with no converter configured, or NoParser.  Worked out the first time it is needed, so that a mapping with a
+            // converter, or a writer, never depends on it.  Parsers hold no state, so if two threads race, each works out an equivalent parser.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal override object? Deserialize(CsvFileIoBase<TRecordLine> io, CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                object? fieldValue)
+            private object? _parser;
+
+            private CsvFieldParser<T>? GetParser()
             {
-                return io.DeserializeCsvLineFieldValue<T>(headerLine, recordLine, options, propertyFieldMapping, fieldValue);
+                var parser = Volatile.Read(ref _parser);
+                if (parser is null)
+                {
+                    parser = (object?)CsvFieldParser.For<T>() ?? NoParser;
+                    Volatile.Write(ref _parser, parser);
+                }
+
+                return parser as CsvFieldParser<T>;
             }
 
+            internal override bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object? fieldValue, out object? value, out Exception? error)
+#else
+            [MaybeNull] private object _parser;
+
+            [return: MaybeNull]
+            private CsvFieldParser<T> GetParser()
+            {
+                var parser = Volatile.Read(ref _parser);
+                if (parser is null)
+                {
+                    parser = (object)CsvFieldParser.For<T>() ?? NoParser;
+                    Volatile.Write(ref _parser, parser);
+                }
+
+                return parser as CsvFieldParser<T>;
+            }
+
+            internal override bool TryDeserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object fieldValue, out object value, out Exception error)
+#endif
+            {
+                error = null;
+
+                // A value that is already of the property type needs no conversion.
+                if (fieldValue is T)
+                {
+                    value = fieldValue;
+                    return true;
+                }
+
+                // Only a string can be converted; there is nothing to convert from anything else.
+                var serializedFieldValue = fieldValue as string;
+                if (serializedFieldValue is null)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                var fieldMapping = propertyFieldMapping.Value;
+                if (fieldMapping.FromStringConverter != null)
+                {
+                    var converter = (CsvFieldConvertFromString<TRecordLine, T>)fieldMapping.FromStringConverter;
+                    var context = new CsvFieldContext<TRecordLine>(options)
+                    {
+                        HeaderLine = headerLine,
+                        Model = recordLine,
+                        FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
+                        FieldIndex = fieldMapping.FieldIndex
+                    };
+                    value = converter(context);
+                    return true;
+                }
+
+                var culture = options.Culture ?? CultureInfo.InvariantCulture;
+                if (fieldMapping.TypeConverterType != null)
+                {
+                    var typeConverter = CsvMapperCache.GetTypeConverter(fieldMapping.TypeConverterType);
+                    if (typeConverter is null || !typeConverter.CanConvertFrom(typeof(string)))
+                    {
+                        value = default(T);
+                        return true;
+                    }
+
+                    try
+                    {
+                        value = typeConverter.ConvertFromString(null, culture, serializedFieldValue);
+                    }
+                    catch (Exception exception)
+                    {
+                        value = null;
+                        error = exception;
+                        return false;
+                    }
+
+                    // A converter that gives a value of another type, or null for a property that can't hold it, has not converted the value.
+                    if (value is T || (value is null && default(T) == null))
+                    {
+                        return true;
+                    }
+
+                    value = null;
+                    return false;
+                }
+
+                // With no converter configured, an empty field is the default value of the property type, and any other value is parsed.
+                if (serializedFieldValue.Length == 0)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                var parser = GetParser();
+                if (parser is null)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                try
+                {
+                    if (parser.TryParse(serializedFieldValue, culture, out var parsedValue))
+                    {
+                        value = parsedValue;
+                        return true;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    error = exception;
+                }
+
+                value = null;
+                return false;
+            }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal override object? Generate(Delegate generator)
             {
                 return ((CsvFieldGenerate<T>)generator)();
             }
 #else
-            internal override object Deserialize(CsvFileIoBase<TRecordLine> io, CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                object fieldValue)
-            {
-                return io.DeserializeCsvLineFieldValue<T>(headerLine, recordLine, options, propertyFieldMapping, fieldValue);
-            }
-
             internal override object Generate(Delegate generator)
             {
                 return ((CsvFieldGenerate<T>)generator)();
             }
 #endif
+        }
+
+        /// <summary>
+        /// Read-only, live view of the mapper registered on a reader or writer.
+        /// </summary>
+        private sealed class RegisteredMapperView : IReadOnlyDictionary<Type, ICsvFileMapper>
+        {
+            private readonly CsvFileIoBase<TRecordLine> _owner;
+
+            internal RegisteredMapperView(CsvFileIoBase<TRecordLine> owner)
+            {
+                _owner = owner;
+            }
+
+            public int Count => Snapshot().Count;
+
+            public ICsvFileMapper this[Type key]
+            {
+                get
+                {
+                    if (TryGetValue(key, out var mapper))
+                    {
+                        return mapper;
+                    }
+
+                    throw new KeyNotFoundException();
+                }
+            }
+
+            public IEnumerable<Type> Keys => Snapshot().Select(entry => entry.Key);
+
+            public IEnumerable<ICsvFileMapper> Values => Snapshot().Select(entry => entry.Value);
+
+            public bool ContainsKey(Type key) => TryGetValue(key, out _);
+
+#if NETCOREAPP3_0_OR_GREATER
+            public bool TryGetValue(Type key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out ICsvFileMapper value)
+#else
+            public bool TryGetValue(Type key, out ICsvFileMapper value)
+#endif
+            {
+                if (key is null)
+                    throw new ArgumentNullException(nameof(key));
+
+                foreach (var entry in Snapshot())
+                {
+                    if (entry.Key == key)
+                    {
+                        value = entry.Value;
+                        return true;
+                    }
+                }
+
+#if NETCOREAPP3_0_OR_GREATER
+                value = null;
+#elif NETSTANDARD2_1_OR_GREATER
+                value = null!;
+#else
+                value = null;
+#endif
+                return false;
+            }
+
+            public IEnumerator<KeyValuePair<Type, ICsvFileMapper>> GetEnumerator() => Snapshot().GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            // The view's one source of entries: the registered mapper, if any, keyed by the record-line type.
+            private List<KeyValuePair<Type, ICsvFileMapper>> Snapshot()
+            {
+                var snapshot = new List<KeyValuePair<Type, ICsvFileMapper>>(1);
+                var registeredMapper = _owner._registeredMapper;
+                if (registeredMapper != null)
+                {
+                    snapshot.Add(new KeyValuePair<Type, ICsvFileMapper>(typeof(TRecordLine), registeredMapper));
+                }
+
+                return snapshot;
+            }
         }
     }
 }

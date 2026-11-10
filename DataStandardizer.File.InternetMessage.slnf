@@ -1,0 +1,18 @@
+{
+  "solution": {
+    "path": "DataStandardizer.sln",
+    "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
+      "benchmarks\\DataStandardizer.File.InternetMessage.Benchmarks\\DataStandardizer.File.InternetMessage.Benchmarks.csproj",
+      "fuzz\\DataStandardizer.File.InternetMessage.Fuzz\\DataStandardizer.File.InternetMessage.Fuzz.csproj",
+      "src\\DataStandardizer.Communication\\DataStandardizer.Communication.csproj",
+      "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
+      "src\\DataStandardizer.File.InternetMessage\\DataStandardizer.File.InternetMessage.csproj",
+      "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
+      "src\\DataStandardizer.Language\\DataStandardizer.Language.csproj",
+      "src\\DataStandardizer.LanguageTag\\DataStandardizer.LanguageTag.csproj",
+      "tests\\DataStandardizer.File.InternetMessage.IntegrationTests\\DataStandardizer.File.InternetMessage.IntegrationTests.csproj",
+      "tests\\DataStandardizer.File.InternetMessage.Tests\\DataStandardizer.File.InternetMessage.Tests.csproj"
+    ]
+  }
+}

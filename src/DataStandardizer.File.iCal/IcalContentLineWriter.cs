@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using DataStandardizer.File.ContentLine;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
 using System.Threading.Tasks;
 #endif
@@ -50,7 +51,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
 
-        private readonly IcalContentLineFormatter _formatter;
+        private readonly ContentLineFormatter _formatter;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
 #endif
@@ -153,7 +154,7 @@ namespace DataStandardizer.File.iCal
             _writer = writer;
             _isInternalWriter = isInternalWriter;
             _ownsOutput = ownsOutput;
-            _formatter = new IcalContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak);
+            _formatter = new ContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak, IcalContentLineErrorFactory.Instance);
         }
 
         /// <summary>
@@ -174,8 +175,8 @@ namespace DataStandardizer.File.iCal
         /// writer is neither flushed nor closed, and a caller-supplied stream is left open.
         /// </summary>
         /// <remarks>
-        /// May be called more than once.  If an operation is in progress, it completes with <see cref="ObjectDisposedException"/>, and the writer
-        /// is flushed and released once that operation has finished.
+        /// May be called more than once.  If an operation is in progress, it completes with <see cref="ObjectDisposedException"/>, unless it fails
+        /// for another reason, and the writer is flushed and released once that operation has finished.
         /// </remarks>
         public void Dispose()
         {
@@ -194,17 +195,18 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
-        /// <see cref="ObjectDisposedException"/>, and the writer is flushed and released once that operation has finished.  The writer is
-        /// disposed even if the flush throws.
+        /// <see cref="ObjectDisposedException"/>, unless it fails for another reason, and the writer is flushed and released once that operation
+        /// has finished.  The writer is disposed even if the flush throws, and the task then faults with the flush's exception, even an
+        /// <see cref="OperationCanceledException"/>.
         /// </remarks>
-        /// <returns>A task that completes once the writer has been flushed and released.</returns>
+        /// <returns>A task that completes once the writer has been flushed and released, or immediately if an operation is in progress.</returns>
         public ValueTask DisposeAsync()
         {
             if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return default(ValueTask);
 
             if (Volatile.Read(ref _isOperationInProgress) == 0 && MarkReleased())
             {
-                return ReleaseAsync();
+                return ReleaseThenCompleteAsync(Task.CompletedTask);
             }
 
             return default(ValueTask);
@@ -319,21 +321,25 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Flushes the underlying text writer asynchronously, whether the writer created it or it was supplied by the caller.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the flush is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The flush is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once the text writer has been flushed.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the flush is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
         /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// flush failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does, and the writer can
+        /// continue.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the I/O, and cancellation, go to the task.
             ThrowIfDisposed();
             BeginOperation();
-            return FlushCoreAsync(cancellationToken);
+            return UnwrapOutcome(FlushCoreAsync(cancellationToken));
         }
 
         /// <summary>
@@ -341,11 +347,12 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// The task completes synchronously when the underlying text writer takes the line without waiting, as a <see cref="StreamWriter"/> does
-        /// while the line fits its buffer.
+        /// while the line fits its buffer, unless the writer is disposed during the write; the task then completes once the writer has been
+        /// flushed and released.
         /// </remarks>
         /// <param name="line">The line.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once the line has been handed to the underlying text writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
@@ -355,7 +362,11 @@ namespace DataStandardizer.File.iCal
         /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
         /// <exception cref="IcalFileException">By the task: the line cannot be written: a name is not valid, or a parameter value or the value
         /// holds a character that is not allowed.  Nothing has been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does, and the writer can
+        /// continue.</exception>
         public ValueTask WriteLineAsync(IcalContentLine line, CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the line or the I/O, and cancellation, go to the task.
@@ -364,48 +375,53 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(line));
 
             BeginOperation();
-            var isPending = false;
+            ValueTask write;
             try
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     _isCanceled = true;
-                    return new ValueTask(Task.FromCanceled(cancellationToken));
+                    write = new ValueTask(Task.FromCanceled(cancellationToken));
                 }
-
-                ValueTask write;
-                try
+                else
                 {
                     write = WriteLineCoreAsync(line, cancellationToken);
+                    if (write.IsCanceled || (write.IsFaulted && cancellationToken.IsCancellationRequested))
+                    {
+                        // The text writer's task failed without waiting, in a way that the caller's token may decide otherwise: a canceled task
+                        // faults unless the token is canceled, and a fault with an OperationCanceledException is a cancellation if it is.  Take its
+                        // exception, so that it is decided as one thrown by the call.  Any other failed task is returned as it is.
+                        write.GetAwaiter().GetResult();
+                    }
                 }
-                catch (OperationCanceledException exception)
-                {
-                    // Thrown by the call when the text writer, or the netstandard2.0 check before the write, sees the cancellation first.
-                    _isCanceled = true;
-                    return new ValueTask(exception.CancellationToken.IsCancellationRequested
-                        ? Task.FromCanceled(exception.CancellationToken)
-                        : Task.FromException(exception));
-                }
-                catch (Exception exception)
-                {
-                    return new ValueTask(Task.FromException(exception));
-                }
-
-                if (write.IsCompletedSuccessfully)
-                {
-                    return default(ValueTask);
-                }
-
-                isPending = true;
-                return CompleteOperationAsync(write);
             }
-            finally
+            catch (Exception exception)
             {
-                if (!isPending && EndOperation())
-                {
-                    Release();
-                }
+                // Thrown by the call, as for a line that can't be written, which writing continues past.
+                write = new ValueTask(FailOperation(exception, cancellationToken));
             }
+
+            if (!write.IsCompleted)
+            {
+                return CompleteOperationAsync(write, cancellationToken);
+            }
+
+            if (!write.IsCompletedSuccessfully)
+            {
+                return EndOperation() ? ReleaseThenCompleteAsync(write.AsTask()) : write;
+            }
+
+            // Read before the operation ends, as WriteLine and CompleteOperationAsync check, so that a Dispose that began during the write is
+            // reported whichever call releases the writer.
+            var isDisposed = Volatile.Read(ref _isDisposed) != 0;
+            var mustRelease = EndOperation();
+            if (isDisposed)
+            {
+                var disposed = Task.FromException(new ObjectDisposedException(GetType().Name));
+                return mustRelease ? ReleaseThenCompleteAsync(disposed) : new ValueTask(disposed);
+            }
+
+            return mustRelease ? ReleaseThenCompleteAsync(Task.CompletedTask) : default(ValueTask);
         }
 
         /// <summary>
@@ -417,8 +433,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="lines">The lines.</param>
         /// <param name="progress">Receives the progress after each line has been handed to the underlying text writer, synchronously on the
         /// writing thread; or <c>null</c>.  An exception it throws ends the call; the line it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every line has been handed to the underlying text writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
@@ -429,7 +445,11 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentException">By the task: <paramref name="lines"/> contains <c>null</c>.  The lines before it have been
         /// written.</exception>
         /// <exception cref="IcalFileException">By the task: a line cannot be written.  The lines before it have been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying text writer,
+        /// <paramref name="lines"/> or <paramref name="progress"/>, and the writer can continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteLinesAsync(IEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null,
 #else
@@ -442,7 +462,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(lines));
 
             BeginOperation();
-            return WriteLinesCoreAsync(lines, progress, cancellationToken);
+            return UnwrapOutcome(WriteLinesCoreAsync(lines, progress, cancellationToken));
         }
 
         /// <summary>
@@ -454,8 +474,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="lines">The lines.  <paramref name="cancellationToken"/> is passed to their enumerator.</param>
         /// <param name="progress">Receives the progress after each line has been handed to the underlying text writer, synchronously on the
         /// writing thread; or <c>null</c>.  An exception it throws ends the call; the line it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every line has been handed to the underlying text writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
@@ -466,7 +486,11 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentException">By the task: <paramref name="lines"/> contains <c>null</c>.  The lines before it have been
         /// written.</exception>
         /// <exception cref="IcalFileException">By the task: a line cannot be written.  The lines before it have been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying text writer,
+        /// <paramref name="lines"/> or <paramref name="progress"/>, and the writer can continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteLinesAsync(IAsyncEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null,
 #else
@@ -479,7 +503,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(lines));
 
             BeginOperation();
-            return WriteAsyncLinesCoreAsync(lines, progress, cancellationToken);
+            return UnwrapOutcome(WriteAsyncLinesCoreAsync(lines, progress, cancellationToken));
         }
 #endif
 
@@ -488,7 +512,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private void WriteLineCore(IcalContentLine line)
         {
-            var length = _formatter.Format(line, _linesWritten + 1);
+            var length = _formatter.Format(new IcalContentLineData(line), _linesWritten + 1);
             _writer.Write(_formatter.Buffer, 0, length);
             _linesWritten++;
         }
@@ -505,7 +529,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         private ValueTask WriteLineCoreAsync(IcalContentLine line, CancellationToken cancellationToken)
         {
-            var length = _formatter.Format(line, _linesWritten + 1);
+            var length = _formatter.Format(new IcalContentLineData(line), _linesWritten + 1);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
             var write = _writer.WriteAsync(new ReadOnlyMemory<char>(_formatter.Buffer, 0, length), cancellationToken);
 #else
@@ -534,29 +558,106 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Continues <see cref="WriteLineAsync"/> once the write has to wait, and ends the operation.
         /// </summary>
-        private async ValueTask CompleteOperationAsync(ValueTask write)
+        private ValueTask CompleteOperationAsync(ValueTask write, CancellationToken cancellationToken)
         {
+            return new ValueTask(UnwrapOutcome(CompleteOperationCoreAsync(write, cancellationToken)));
+        }
+
+        private async ValueTask<Task> CompleteOperationCoreAsync(ValueTask write, CancellationToken cancellationToken)
+        {
+            Task outcome;
             try
             {
                 await write.ConfigureAwait(false);
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
-        private async Task FlushCoreAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// Decides how an asynchronous operation that threw <paramref name="exception"/> completes, and returns a task that completes that way.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// An <see cref="OperationCanceledException"/> is a cancellation only if the caller's <paramref name="cancellationToken"/> is canceled,
+        /// whatever token the exception carries.  The task is then canceled, and the writer cannot continue.  Any other exception, including an
+        /// <see cref="OperationCanceledException"/> while the caller's token isn't canceled, faults the task, and the writer can continue.
+        /// </para>
+        /// <para>
+        /// An async method can't be used to report the outcome, since it cancels its task for any <see cref="OperationCanceledException"/>.  The
+        /// operations return the task this method returns, through <see cref="UnwrapOutcome"/> where they have to wait.
+        /// </para>
+        /// </remarks>
+        private Task FailOperation(Exception exception, CancellationToken cancellationToken)
         {
+            if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
+            {
+                _isCanceled = true;
+                return Task.FromCanceled(cancellationToken);
+            }
+
+            return Task.FromException(exception);
+        }
+
+        /// <summary>
+        /// Ends an asynchronous operation that completes as <paramref name="outcome"/>.  If the writer was disposed during the operation, releases
+        /// it first.
+        /// </summary>
+        /// <returns><paramref name="outcome"/>, or a task faulted with the release's exception if the release fails.</returns>
+        private ValueTask<Task> EndOperationAsync(Task outcome)
+        {
+            return EndOperation() ? ReleaseThenReportAsync(outcome) : new ValueTask<Task>(outcome);
+        }
+
+        /// <summary>
+        /// Releases the writer, then completes as <paramref name="outcome"/>, or faults with the release's exception if the release fails.
+        /// </summary>
+        private ValueTask ReleaseThenCompleteAsync(Task outcome)
+        {
+            return new ValueTask(UnwrapOutcome(ReleaseThenReportAsync(outcome)));
+        }
+
+        /// <summary>
+        /// Returns the task that an operation's outcome completes as.  An outcome that is already known costs nothing more; only one that has to
+        /// wait is unwrapped.
+        /// </summary>
+        private static Task UnwrapOutcome(ValueTask<Task> outcome)
+        {
+            return outcome.IsCompletedSuccessfully ? outcome.Result : outcome.AsTask().Unwrap();
+        }
+
+        /// <summary>
+        /// Releases the writer, then returns <paramref name="outcome"/>, or a task faulted with the release's exception if the release fails.
+        /// </summary>
+        /// <remarks>
+        /// The release takes no cancellation token, so an <see cref="OperationCanceledException"/> from it faults the task, as any other
+        /// exception does.
+        /// </remarks>
+        private async ValueTask<Task> ReleaseThenReportAsync(Task outcome)
+        {
+            try
+            {
+                await ReleaseAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                // The release failure is reported; observe the operation's, so that it isn't reported as unobserved.
+                _ = outcome.Exception;
+                return Task.FromException(exception);
+            }
+
+            return outcome;
+        }
+
+        private async ValueTask<Task> FlushCoreAsync(CancellationToken cancellationToken)
+        {
+            Task outcome;
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -567,22 +668,17 @@ namespace DataStandardizer.File.iCal
                 await _writer.FlushAsync().ConfigureAwait(false);
 #endif
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
-        private async Task WriteLinesCoreAsync(IEnumerable<IcalContentLine> lines,
+        private async ValueTask<Task> WriteLinesCoreAsync(IEnumerable<IcalContentLine> lines,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<IcalWriteProgress>? progress,
 #else
@@ -590,8 +686,11 @@ namespace DataStandardizer.File.iCal
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
+                // Check here as well, so that a canceled token cancels the call when there are no lines, as it does for an asynchronous sequence.
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var line in lines)
                 {
                     ThrowIfDisposed();
@@ -601,22 +700,17 @@ namespace DataStandardizer.File.iCal
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
-        private async Task WriteAsyncLinesCoreAsync(IAsyncEnumerable<IcalContentLine> lines,
+        private async ValueTask<Task> WriteAsyncLinesCoreAsync(IAsyncEnumerable<IcalContentLine> lines,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<IcalWriteProgress>? progress,
 #else
@@ -624,6 +718,7 @@ namespace DataStandardizer.File.iCal
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 var enumerator = lines.GetAsyncEnumerator(cancellationToken);
@@ -647,19 +742,14 @@ namespace DataStandardizer.File.iCal
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
         /// <summary>

@@ -31,14 +31,12 @@ namespace DataStandardizer.Chronology
         /// (January 1, 1970, 00:00:00 UTC) for the specified date.
         /// </returns>
         /// <remarks>
-        /// This method calculates the Julian Day Number (JDN) for the given date and converts it to Unix time 
-        /// by subtracting the JDN of the Unix epoch and multiplying by the number of seconds in a day.
+        /// This method calculates the Julian Day Number (JDN) for the given date and converts it to Unix time
+        /// by subtracting the JDN of the day of the Unix epoch and multiplying by the number of seconds in a day.
         /// </remarks>
         public static UnixTime ToUnixTime(this DateOnly date)
         {
-            var jdn = JulianDayNumberHelper.ConvertGregorianCalendarDateToJdn(date.Year, date.Month, date.Day) +
-                      JulianDayNumberHelper.ConvertTimeOfDayToJdn(0, 0, 0);
-            var unixTime = (long)((jdn - 2440587.5m) * 86400);
+            var unixTime = JulianDayNumberHelper.ConvertGregorianCalendarDateTimeToUnixTime(date.Year, date.Month, date.Day, 0, 0, 0);
             return new UnixTime(unixTime);
         }
     }

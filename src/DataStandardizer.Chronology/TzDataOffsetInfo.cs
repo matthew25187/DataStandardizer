@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -13,7 +13,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private readonly string? _abbreviation;
 #else
-        [CanBeNull]
+        [MaybeNull]
         private readonly string _abbreviation;
 #endif
 
@@ -22,7 +22,7 @@ namespace DataStandardizer.Chronology
             TimeSpan daylightSavings,
             bool isDaylightSavingTime,
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             string abbreviation,
             DateTime? validFromUtc,

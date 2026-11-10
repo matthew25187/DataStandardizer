@@ -1,6 +1,6 @@
 ﻿using System;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -36,7 +36,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public object? ConstantValue { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public object ConstantValue { get; set; }
 #endif
         /// <summary>
@@ -50,7 +50,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? FieldName { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string FieldName { get; }
 #endif
 

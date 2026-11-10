@@ -53,7 +53,7 @@ empty array, for the `*Names` methods) when it is unavailable.
 | `GetMacrolanguageCode()` | `Iso639Part3Language` | `string?` | Related macrolanguage code, or `null` when absent. |
 | `GetPart1Code()` | `Iso639Part2BLanguage` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. |
 | `GetPart1Code()` | `Iso639Part2TLanguage` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. |
-| `GetPart1Code()` | `Iso639Part3Language` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. |
+| `GetPart1Code()` | `Iso639Part3Language` | `string?` | Related ISO 639 Part 1 code, or `null` when absent. The value comes from the ISO 639-3 code table, which can give a code that ISO 639-1 has withdrawn and that isn't a defined `Iso639Part1Language` member (`StringEnum.IsDefined` returns `false`, and `StringEnum.Parse` throws): `hbs` (Serbo-Croatian) returns `sh`, withdrawn from ISO 639-1 in 2000. |
 | `GetPart2BCode()` | `Iso639Part1Language` | `string?` | Related ISO 639 Part 2B code, or `null` when absent. |
 | `GetPart2BCode()` | `Iso639Part3Language` | `string?` | Related ISO 639 Part 2B code, or `null` when absent. |
 | `GetPart2TCode()` | `Iso639Part1Language` | `string?` | Related ISO 639 Part 2T code, or `null` when absent. |
@@ -62,11 +62,12 @@ empty array, for the `*Names` methods) when it is unavailable.
 | `GetScope()` | `Iso639Part3Language` | `Iso639LanguageScope?` | Scope, or `null` when absent. |
 
 On the `netstandard1.0` and `netstandard2.0` targets the `string?` return types are
-plain `string` annotated with JetBrains `[CanBeNull]`.
+plain `string` annotated with `[return: MaybeNull]` from `System.Diagnostics.CodeAnalysis`.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

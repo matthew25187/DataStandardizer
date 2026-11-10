@@ -13,7 +13,7 @@ packages, grounded in the documented behaviour of the packages.
 
 A few APIs are available only on some target frameworks. For example, the `Money`
 struct in **DataStandardizer.Money** implements `IConvertible` on .NET Standard
-1.3+ and modern .NET but not on the `netstandard1.0` build, and
+1.3+ and modern .NET but not on the `netstandard1.1` build, and
 `Iso3166Part2Subdivision` in **DataStandardizer.Geography** behaves the same way.
 
 If a member you expect is missing, check the **"Applies to"** note on the relevant
@@ -31,6 +31,17 @@ Choose the enum that matches the code set you need — current codes for live
 currencies, historic codes for superseded ones. See
 [Use currency codes](../packages/money/how-to/use-currency-codes.md) for
 examples of both.
+
+## Reading or writing CSV files is slower than I expect
+
+**DataStandardizer.File.CSV** is fastest when it creates its own stream reader or
+writer (construct it from a file path or a `Stream`), when one reader or writer
+handles a whole file, and when mappers are registered once rather than around
+each file. Memory grows with a file's size only if you keep the lines the reader
+returns.
+
+See [Performance](../packages/file-csv/how-to/performance.md) for the details
+and for the package's measured results.
 
 ## A package won't resolve behind a proxy
 

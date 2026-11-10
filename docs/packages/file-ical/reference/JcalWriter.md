@@ -56,6 +56,9 @@ the JSON value of its type, converted from the text form of RFC 5545 (RFC 7265 Â
 - A value that isn't valid for its type, which `IcalOptions.AllowInvalidValues` lets
   a calendar hold, is written as it is with the `unknown` type, keeping any `VALUE`
   parameter.
+- A parameter value read in double quotes with `IcalOptions.AllowQuotedParameterValues`,
+  or one with a `:`, `;` or `,` that the .ics writer would have to quote, is written like
+  any other, since jCal has no quoting, so this writer doesn't need the option.
 - The calendar's `VERSION` is always written as 2.0, in the place of the calendar's
   own `VERSION`, or first if it has none.
 
@@ -79,6 +82,12 @@ a name isn't a valid iCalendar name, a property has two parameters of the same n
 error the writer can go on to the next calendar, and a calendar already held is
 kept.
 
+A write to the stream that fails, or a flush of it, leaves what reached it unknown,
+so the writer can't continue: later calls throw `InvalidOperationException`, and
+disposal writes nothing more to the stream. The failed call throws the stream's
+exception, or its task faults with it, except that an `OperationCanceledException`
+cancels the task when the caller's token is canceled.
+
 **Allocation.** Each calendar is encoded in full with `Utf8JsonWriter` into pooled
 blocks of bytes before any of it is written to the stream.
 
@@ -98,9 +107,15 @@ enumerated nor the progress callback may call the writer.
 
 **Asynchronous writes.** The asynchronous members write each encoded calendar with
 `Stream.WriteAsync`, and do no synchronous I/O. Cancellation is checked before each
-calendar is written, so a canceled write never leaves part of a calendar. A canceled
-operation leaves the writer unable to continue: later calls throw
-`InvalidOperationException`.
+calendar is written, so a canceled write never leaves part of a calendar. An asynchronous operation is canceled only when the token passed to it is canceled.
+That leaves the writer unable to continue, and later calls throw
+`InvalidOperationException`. An `OperationCanceledException` while that token isn't
+canceled, whether from the stream, the calendars being enumerated or the
+progress callback, is handled as an I/O error: the task faults with it. The writer
+can then continue, unless it came from a write to the stream or a flush of it.
+If the document is ended at the end of an operation, because the writer was disposed
+during it, or by `DisposeAsync`, and that throws, the task faults with the exception,
+an `OperationCanceledException` included.
 
 **Progress.** `WriteCalendars` and `WriteCalendarsAsync` report an
 [IcalWriteProgress](IcalWriteProgress.md) after each calendar has been written or
@@ -132,15 +147,15 @@ calendar it was reporting has been written.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Flush()` | `void` | Flushes the stream. A first calendar that is still held isn't written. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another operation is in progress or an earlier one was canceled. |
-| `WriteCalendar(IcalCalendar calendar)` | `void` | Writes a calendar, or holds it if it is the first. Throws `ArgumentNullException` if `calendar` is `null`; `IcalFileException` if the calendar breaks a rule the options don't accept or can't be written in jCal, in which case nothing has been written; `ObjectDisposedException` after disposal; or `InvalidOperationException` if another operation is in progress or an earlier one was canceled. |
+| `Flush()` | `void` | Flushes the stream. A first calendar that is still held isn't written. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write to the stream or a flush of it failed. |
+| `WriteCalendar(IcalCalendar calendar)` | `void` | Writes a calendar, or holds it if it is the first. Throws `ArgumentNullException` if `calendar` is `null`; `IcalFileException` if the calendar breaks a rule the options don't accept or can't be written in jCal, in which case nothing has been written; `ObjectDisposedException` after disposal; or `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write to the stream or a flush of it failed. |
 | `WriteCalendars(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null)` | `void` | Writes each calendar in turn. Throws `ArgumentNullException` if `calendars` is `null`, or `ArgumentException` if it contains `null`. Throws `IcalFileException` as `WriteCalendar` does; the calendars before the one at fault have been written. Throws `ObjectDisposedException` if the writer is disposed before or during the call, or `InvalidOperationException` as `WriteCalendar` does. |
 
 ### Asynchronous writing
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | Flushes the stream asynchronously. A first calendar that is still held isn't written. This call throws `ObjectDisposedException` after disposal, and `InvalidOperationException` if another operation is in progress or an earlier one was canceled. The task throws `OperationCanceledException` if canceled. |
+| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | Flushes the stream asynchronously. A first calendar that is still held isn't written. This call throws `ObjectDisposedException` after disposal, and `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write to the stream or a flush of it failed. The task throws `OperationCanceledException` if canceled. |
 | `WriteCalendarAsync(IcalCalendar calendar, CancellationToken cancellationToken = default)` | `ValueTask` | Writes a calendar, or holds it if it is the first. This call throws `ArgumentNullException` if `calendar` is `null`, and `ObjectDisposedException` or `InvalidOperationException` as `FlushAsync` does. The task throws `IcalFileException` as `WriteCalendar` does, `OperationCanceledException` if canceled, or `ObjectDisposedException` if the writer is disposed during the write. |
 | `WriteCalendarsAsync(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | Writes each calendar in turn. This call throws `ArgumentNullException` if `calendars` is `null`, and `ObjectDisposedException` or `InvalidOperationException` as `FlushAsync` does. The task throws `ArgumentException` if `calendars` contains `null`, `IcalFileException` as `WriteCalendars` does, or `OperationCanceledException` if canceled. |
 | `WriteCalendarsAsync(IAsyncEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As the `IEnumerable` overload. `cancellationToken` is also passed to the calendars' enumerator. |
@@ -154,11 +169,11 @@ calendar it was reporting has been written.
 
 ## Applies to
 
-Targets `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0` only. jCal needs
-System.Text.Json, so `JcalWriter` isn't available on `netstandard1.1`. On .NET 8 and
+Targets `netstandard2.0`, `netstandard2.1`, and `net10.0` only. jCal needs
+System.Text.Json, so `JcalWriter` isn't available on `netstandard1.1`. On
 .NET 10, System.Text.Json is part of the framework; on .NET Standard 2.0 and 2.1, the
 package depends on the System.Text.Json NuGet package. The nullable reference
-annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

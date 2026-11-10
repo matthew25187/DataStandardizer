@@ -13,10 +13,7 @@ Namespace: `DataStandardizer.Chronology`
 
 Extension methods on [TzDataTimezone](TzDataTimezone.md) that calculate the
 offset from universal time, daylight saving time, transitions and abbreviations
-of a time zone at an instant, from its zone lines. Also holds the deprecated
-metadata accessors, which read the
-[TzDataTimezoneAttribute](TzDataTimezoneAttribute.md) attached to its static
-fields.
+of a time zone at an instant, from its zone lines.
 
 ```csharp
 public static class TzDataExtensions
@@ -37,8 +34,8 @@ takes a `DateTimeOffset`.
 - `GetOffsetInfosForLocal` is the exception: its `DateTime` argument is a time
   on the local clock of the time zone, and must be of kind `Unspecified`. One of
   kind `Utc` or `Local` throws `ArgumentException`.
-- Every method throws `InvalidOperationException` for `default(TzDataTimezone)`
-  and for an instance whose identifier is not that of a known time zone.
+- `default(TzDataTimezone)` is `Etc/UTC`: an offset of 0, no daylight saving
+  time, the abbreviation `UTC` and no transitions.
 
 The calculations follow the TZ Database's reference compiler, `zic`. Rules that
 continue indefinitely are applied to any future year. Leap seconds are ignored.
@@ -54,20 +51,6 @@ line in effect as `zic` formats them. Many are numeric, such as `+04`. Long and
 localized names such as "Eastern Standard Time" come from the Unicode CLDR and
 are not available.
 
-### Deprecated metadata accessors
-
-`GetComment`, `GetIsoCountryCodes`, `GetLatitude` and `GetLongitude` are
-deprecated: each is marked `[Obsolete]` and will be removed in version 2.0. Use
-the `Comment`, `IsoCountryCodes`, `Latitude` and `Longitude` properties of
-[TzDataTimezone](TzDataTimezone.md) instead. See
-[Access time zone metadata](../how-to/access-timezone-metadata.md#migrating-from-the-deprecated-apis).
-
-Each deprecated accessor locates the time zone's declaring field, reads its
-`TzDataTimezoneAttribute`, and returns the requested metadata, or a default
-(`null`, `0` or an empty array) for an unknown time zone. On `net8.0`/`net10.0`
-`GetComment` returns `string?`; on the .NET Standard targets it returns `string`
-annotated `[CanBeNull]`.
-
 ## Methods
 
 ### Extension
@@ -82,17 +65,13 @@ overload that takes a `DateTimeOffset` in place of each `DateTime`, for example
 | `GetDaylightAbbreviation(DateTime utc)` | `TzDataTimezone` | `string?` | The daylight saving time abbreviation for the zone line and year in effect at the instant, for example `EDT` or `BST`, or `null` if no daylight saving time is observed in the year. Returns `string` (`[CanBeNull]`) on the .NET Standard targets. |
 | `GetDaylightSavings(DateTime utc)` | `TzDataTimezone` | `TimeSpan` | The amount added to the standard offset at the instant. May be negative, as for Europe/Dublin in winter. |
 | `GetOffsetInfo(DateTime utc)` | `TzDataTimezone` | [`TzDataOffsetInfo`](TzDataOffsetInfo.md) | The offset, its parts and abbreviation at the instant, with the period over which they are in effect. |
-| `GetOffsetInfosForLocal(DateTime local)` | `TzDataTimezone` | `IReadOnlyList<`[`TzDataOffsetInfo`](TzDataOffsetInfo.md)`>` | The reverse of `GetOffsetInfo`: every offset in effect at a time on the local clock, in chronological order. Returns none where the time falls in a gap, one normally, and two where it falls in an overlap. `local` must be of kind `Unspecified`. To place a local time with a policy for gaps and overlaps, use [`DateTimeExtensions.ToDateTimeOffset`](DateTimeExtensions.md). |
+| `GetOffsetInfosForLocal(DateTime local)` | `TzDataTimezone` | `IReadOnlyList<`[`TzDataOffsetInfo`](TzDataOffsetInfo.md)`>` | The reverse of `GetOffsetInfo`: every offset in effect at a time on the local clock, in chronological order. Returns none where the time falls in a gap, one normally, and two where it falls in an overlap. An offset whose instant would fall outside the range of `DateTime` is left out, so near either end of that range an empty result can mean that rather than a gap; `ToDateTimeOffset` tells the two apart. `local` must be of kind `Unspecified`. To place a local time with a policy for gaps and overlaps, use [`DateTimeExtensions.ToDateTimeOffset`](DateTimeExtensions.md). |
 | `GetStandardAbbreviation(DateTime utc)` | `TzDataTimezone` | `string` | The standard time abbreviation for the zone line and year in effect at the instant, for example `EST` or `GMT`. |
 | `GetStandardOffset(DateTime utc)` | `TzDataTimezone` | `TimeSpan` | The offset of standard time from universal time at the instant, excluding daylight saving. |
 | `GetTransitions(DateTime fromUtc, DateTime toUtc)` | `TzDataTimezone` | `IEnumerable<`[`TzDataTransition`](TzDataTransition.md)`>` | The changes of offset from `fromUtc`, inclusive, to `toUtc`, exclusive, in chronological order. A transition is reported where the offset, the standard offset, daylight saving time or the abbreviation changes. Throws `ArgumentOutOfRangeException` if `toUtc` precedes `fromUtc`. The arguments are checked when the method is called, not when the result is enumerated. |
 | `GetUtcOffset(DateTime utc)` | `TzDataTimezone` | `TimeSpan` | The total offset from universal time at the instant, including daylight saving. |
 | `GetZoneLine(DateTime utc)` | `TzDataTimezone` | [`TzDataZoneLine`](TzDataZoneLine.md) | The zone line in effect at the instant. |
 | `IsDaylightSavingTime(DateTime utc)` | `TzDataTimezone` | `bool` | `true` if daylight saving time is in effect at the instant; otherwise, `false`. |
-| `GetComment()` | `TzDataTimezone` | `string?` | **Deprecated** — use `TzDataTimezone.Comment`. Timezone comment, or `null` if unavailable. Returns `string` (`[CanBeNull]`) on the .NET Standard targets. |
-| `GetIsoCountryCodes()` | `TzDataTimezone` | `string[]` | **Deprecated** — use `TzDataTimezone.IsoCountryCodes`. ISO 3166-1 Alpha-2 codes for the countries the zone covers (empty if none). |
-| `GetLatitude()` | `TzDataTimezone` | `double` | **Deprecated** — use `TzDataTimezone.Latitude`. Latitude of the zone's principal location (`0` if unavailable). |
-| `GetLongitude()` | `TzDataTimezone` | `double` | **Deprecated** — use `TzDataTimezone.Longitude`. Longitude of the zone's principal location (`0` if unavailable). |
 
 ### Standard and daylight abbreviations
 
@@ -110,7 +89,7 @@ the zone line in effect at the instant:
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 
@@ -123,5 +102,4 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [DateTimeExtensions](DateTimeExtensions.md)
 - [DateTimeOffsetExtensions](DateTimeOffsetExtensions.md)
 - [TzDataZoneLine](TzDataZoneLine.md)
-- [TzDataTimezoneAttribute](TzDataTimezoneAttribute.md)
 - [Chronology API reference](index.md)

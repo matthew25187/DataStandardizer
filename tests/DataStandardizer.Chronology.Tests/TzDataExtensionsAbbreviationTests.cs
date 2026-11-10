@@ -1,6 +1,5 @@
-using System.Globalization;
-using System.Reflection;
 using FluentAssertions;
+using static DataStandardizer.Chronology.Tests.TzAbbreviations;
 
 namespace DataStandardizer.Chronology.Tests;
 
@@ -9,114 +8,245 @@ namespace DataStandardizer.Chronology.Tests;
 /// </remarks>
 public class TzDataExtensionsAbbreviationTests
 {
-    private static IEnumerable<TzDataTimezone> GetTimezoneFields(Type hostType)
-    {
-        var fields = hostType.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(field => field.FieldType == typeof(TzDataTimezone))
-            .Select(field => (TzDataTimezone)field.GetValue(null)!);
-        var nestedFields = hostType.GetNestedTypes(BindingFlags.Public)
-            .SelectMany(GetTimezoneFields);
+    // Instants away from any transition, in the northern winter and summer of 2025.
+    private static readonly DateTime MidJanuary2025 = new(2025, 1, 15, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime MidJuly2025 = new(2025, 7, 15, 12, 0, 0, DateTimeKind.Utc);
 
-        return fields.Concat(nestedFields);
-    }
+    // An offset that none of the timezones tested has, so that only the instant of a DateTimeOffset can give the abbreviations.
+    private static readonly TimeSpan UnrelatedOffset = new(-9, -30, 0);
 
-    private static DateTime ParseUtc(string value) => DateTime.ParseExact(value, "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
+    // The timezone and instant, with the abbreviation in force, the standard time abbreviation and the daylight saving time abbreviation.
+    private static readonly (TzDataTimezone Timezone, DateTime Instant, string Abbreviation, string StandardAbbreviation, string? DaylightAbbreviation)[] AbbreviationCases =
+    [
+        // America/New_York: the US rules, in winter and in summer.
+        (TzDataTimezone.America.New_York, MidJanuary2025, Est, Est, Edt),
+        (TzDataTimezone.America.New_York, MidJuly2025, Edt, Est, Edt),
+        // Europe/London: the EU rules, with the GMT/BST format.
+        (TzDataTimezone.Europe.London, MidJanuary2025, Gmt, Gmt, Bst),
+        (TzDataTimezone.Europe.London, MidJuly2025, Bst, Gmt, Bst),
+        // Australia/Sydney: the southern summer is daylight saving time.
+        (TzDataTimezone.Australia.Sydney, MidJanuary2025, Aedt, Aest, Aedt),
+        (TzDataTimezone.Australia.Sydney, MidJuly2025, Aest, Aest, Aedt),
+        // Europe/Dublin: negative daylight saving, so that winter time is daylight saving time.
+        (TzDataTimezone.Europe.Dublin, MidJanuary2025, Gmt, Ist, Gmt),
+        (TzDataTimezone.Europe.Dublin, MidJuly2025, Ist, Ist, Gmt),
+        // Numeric abbreviations, with and without minutes, and a named abbreviation for a half-hour offset.
+        (TzDataTimezone.Asia.Dubai, MidJuly2025, Plus04, Plus04, null),
+        (TzDataTimezone.Asia.Kathmandu, MidJuly2025, Plus0545, Plus0545, null),
+        (TzDataTimezone.Asia.Kolkata, MidJuly2025, Ist, Ist, null),
+        // Australia/Lord_Howe: a numeric abbreviation with 30 minutes of daylight saving.
+        (TzDataTimezone.Australia.Lord_Howe, MidJuly2025, Plus1030, Plus1030, Plus11),
+        // Asia/Tokyo: no daylight saving time since 1951.
+        (TzDataTimezone.Asia.Tokyo, MidJuly2025, Jst, Jst, null),
+        // America/New_York: local mean time, before standard time.
+        (TzDataTimezone.America.New_York, new DateTime(1880, 7, 15, 12, 0, 0, DateTimeKind.Utc), Lmt, Lmt, null),
+        // America/New_York: war time from February 1942, in force all year in 1943 and 1944, then peace time in 1945.
+        (TzDataTimezone.America.New_York, new DateTime(1942, 1, 15, 12, 0, 0, DateTimeKind.Utc), Est, Est, Ewt),
+        (TzDataTimezone.America.New_York, new DateTime(1943, 1, 15, 12, 0, 0, DateTimeKind.Utc), Ewt, Est, Ewt),
+        (TzDataTimezone.America.New_York, new DateTime(1945, 9, 15, 12, 0, 0, DateTimeKind.Utc), Ept, Est, Ept),
+        (TzDataTimezone.America.New_York, new DateTime(1946, 1, 15, 12, 0, 0, DateTimeKind.Utc), Est, Est, Edt),
+        // Europe/London: British Standard Time, +1 as standard time all year from 1968 to 1971.
+        (TzDataTimezone.Europe.London, new DateTime(1970, 1, 15, 12, 0, 0, DateTimeKind.Utc), Bst, Bst, null),
+        // Europe/London: before the first rule, standard time takes the letter of the first standard time rule.
+        (TzDataTimezone.Europe.London, new DateTime(1900, 1, 15, 12, 0, 0, DateTimeKind.Utc), Gmt, Gmt, null),
+        // Europe/Moscow: the standard time rule of October 1921 takes effect when the zone line ends, so it belongs to the next line.
+        (TzDataTimezone.Europe.Moscow, new DateTime(1921, 1, 15, 12, 0, 0, DateTimeKind.Utc), Msk, Msk, Msd),
+        // America/Argentina/Jujuy: a zone line that saves a fixed hour.
+        (TzDataTimezone.America.Argentina.Jujuy, new DateTime(1991, 1, 15, 12, 0, 0, DateTimeKind.Utc), Minus03, Minus04, Minus03),
+    ];
 
-    public static IEnumerable<object?[]> Abbreviation_TestCases
+    // Instants across the whole range of DateTime, for every timezone.
+    private static readonly DateTime[] WholeRangeInstants =
+    [
+        DateTime.MinValue,
+        new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        new DateTime(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc),
+        DateTime.MaxValue,
+    ];
+
+    public static TheoryData<TzDataTimezone, DateTime, string> Abbreviation_TestCases
     {
         get
         {
-            // America/New_York: the US rules, in winter and in summer.
-            yield return new object?[] { "America/New_York", "2025-01-15T12:00:00", "EST", "EST", "EDT" };
-            yield return new object?[] { "America/New_York", "2025-07-15T12:00:00", "EDT", "EST", "EDT" };
-            // Europe/London: the EU rules, with the GMT/BST format.
-            yield return new object?[] { "Europe/London", "2025-01-15T12:00:00", "GMT", "GMT", "BST" };
-            yield return new object?[] { "Europe/London", "2025-07-15T12:00:00", "BST", "GMT", "BST" };
-            // Australia/Sydney: the southern summer is daylight saving time.
-            yield return new object?[] { "Australia/Sydney", "2025-01-15T12:00:00", "AEDT", "AEST", "AEDT" };
-            yield return new object?[] { "Australia/Sydney", "2025-07-15T12:00:00", "AEST", "AEST", "AEDT" };
-            // Europe/Dublin: negative daylight saving, so that winter time is daylight saving time.
-            yield return new object?[] { "Europe/Dublin", "2025-01-15T12:00:00", "GMT", "IST", "GMT" };
-            yield return new object?[] { "Europe/Dublin", "2025-07-15T12:00:00", "IST", "IST", "GMT" };
-            // Numeric abbreviations, with and without minutes, and a named abbreviation for a half-hour offset.
-            yield return new object?[] { "Asia/Dubai", "2025-07-15T12:00:00", "+04", "+04", null };
-            yield return new object?[] { "Asia/Kathmandu", "2025-07-15T12:00:00", "+0545", "+0545", null };
-            yield return new object?[] { "Asia/Kolkata", "2025-07-15T12:00:00", "IST", "IST", null };
-            // Australia/Lord_Howe: a numeric abbreviation with 30 minutes of daylight saving.
-            yield return new object?[] { "Australia/Lord_Howe", "2025-07-15T12:00:00", "+1030", "+1030", "+11" };
-            // Asia/Tokyo: no daylight saving time since 1951.
-            yield return new object?[] { "Asia/Tokyo", "2025-07-15T12:00:00", "JST", "JST", null };
-            // America/New_York: local mean time, before standard time.
-            yield return new object?[] { "America/New_York", "1880-07-15T12:00:00", "LMT", "LMT", null };
-            // America/New_York: war time from February 1942, in force all year in 1943 and 1944, then peace time in 1945.
-            yield return new object?[] { "America/New_York", "1942-01-15T12:00:00", "EST", "EST", "EWT" };
-            yield return new object?[] { "America/New_York", "1943-01-15T12:00:00", "EWT", "EST", "EWT" };
-            yield return new object?[] { "America/New_York", "1945-09-15T12:00:00", "EPT", "EST", "EPT" };
-            yield return new object?[] { "America/New_York", "1946-01-15T12:00:00", "EST", "EST", "EDT" };
-            // Europe/London: British Standard Time, +1 as standard time all year from 1968 to 1971.
-            yield return new object?[] { "Europe/London", "1970-01-15T12:00:00", "BST", "BST", null };
-            // Europe/London: before the first rule, standard time takes the letter of the first standard time rule.
-            yield return new object?[] { "Europe/London", "1900-01-15T12:00:00", "GMT", "GMT", null };
-            // Europe/Moscow: the standard time rule of October 1921 takes effect when the zone line ends, so it belongs to the next line.
-            yield return new object?[] { "Europe/Moscow", "1921-01-15T12:00:00", "MSK", "MSK", "MSD" };
-            // America/Argentina/Jujuy: a zone line that saves a fixed hour.
-            yield return new object?[] { "America/Argentina/Jujuy", "1991-01-15T12:00:00", "-03", "-04", "-03" };
+            var testCases = new TheoryData<TzDataTimezone, DateTime, string>();
+            foreach (var testCase in AbbreviationCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.Abbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, string> StandardAbbreviation_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, string>();
+            foreach (var testCase in AbbreviationCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.StandardAbbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, string?> DaylightAbbreviation_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, string?>();
+            foreach (var testCase in AbbreviationCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.DaylightAbbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTimeOffset, string> AbbreviationWithDateTimeOffset_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTimeOffset, string>();
+            foreach (var testCase in AbbreviationCases)
+                testCases.Add(testCase.Timezone, new DateTimeOffset(testCase.Instant).ToOffset(UnrelatedOffset), testCase.Abbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTimeOffset, string> StandardAbbreviationWithDateTimeOffset_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTimeOffset, string>();
+            foreach (var testCase in AbbreviationCases)
+                testCases.Add(testCase.Timezone, new DateTimeOffset(testCase.Instant).ToOffset(UnrelatedOffset), testCase.StandardAbbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTimeOffset, string?> DaylightAbbreviationWithDateTimeOffset_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTimeOffset, string?>();
+            foreach (var testCase in AbbreviationCases)
+                testCases.Add(testCase.Timezone, new DateTimeOffset(testCase.Instant).ToOffset(UnrelatedOffset), testCase.DaylightAbbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime> WholeRange_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime>();
+            foreach (var timezone in TimezoneFieldCatalog.Timezones.Values)
+            {
+                foreach (var instant in WholeRangeInstants)
+                    testCases.Add(timezone, instant);
+            }
+
+            return testCases;
         }
     }
 
     [Theory]
     [MemberData(nameof(Abbreviation_TestCases))]
-    public void AbbreviationMethods_Instant_ReturnAbbreviations(string testIdentifier, string testInstant, string expectedAbbreviation, string expectedStandardAbbreviation, string? expectedDaylightAbbreviation)
+    public void GetAbbreviation_Instant_ReturnsAbbreviationInForce(TzDataTimezone testTimezone, DateTime testInstant, string expectedResult)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testUtc = ParseUtc(testInstant);
-
         // act
-        var testAbbreviation = testTimezone.GetAbbreviation(testUtc);
-        var testStandardAbbreviation = testTimezone.GetStandardAbbreviation(testUtc);
-        var testDaylightAbbreviation = testTimezone.GetDaylightAbbreviation(testUtc);
+        var testResult = testTimezone.GetAbbreviation(testInstant);
 
         // assert
-        testAbbreviation.Should().Be(expectedAbbreviation, "{0} is known as {1} at {2}", testIdentifier, expectedAbbreviation, testInstant);
-        testAbbreviation.Should().Be(testTimezone.GetOffsetInfo(testUtc).Abbreviation);
-        testStandardAbbreviation.Should().Be(expectedStandardAbbreviation, "standard time in {0} is {1} at {2}", testIdentifier, expectedStandardAbbreviation, testInstant);
-        testDaylightAbbreviation.Should().Be(expectedDaylightAbbreviation, "daylight saving time in {0} is {1} at {2}", testIdentifier, expectedDaylightAbbreviation ?? "not observed", testInstant);
+        testResult.Should().Be(expectedResult, "{0} is known as {1} at {2:O}", testTimezone, expectedResult, testInstant);
     }
 
     [Theory]
     [MemberData(nameof(Abbreviation_TestCases))]
-    public void AbbreviationMethods_DateTimeOffset_UseInstant(string testIdentifier, string testInstant, string expectedAbbreviation, string expectedStandardAbbreviation, string? expectedDaylightAbbreviation)
+    public void GetOffsetInfo_Instant_HasAbbreviationInForce(TzDataTimezone testTimezone, DateTime testInstant, string expectedResult)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testInstantWithOffset = new DateTimeOffset(ParseUtc(testInstant)).ToOffset(TimeSpan.FromHours(-9.5));
+        // act
+        var testResult = testTimezone.GetOffsetInfo(testInstant);
 
-        // act & assert
-        testTimezone.GetAbbreviation(testInstantWithOffset).Should().Be(expectedAbbreviation);
-        testTimezone.GetStandardAbbreviation(testInstantWithOffset).Should().Be(expectedStandardAbbreviation);
-        testTimezone.GetDaylightAbbreviation(testInstantWithOffset).Should().Be(expectedDaylightAbbreviation);
+        // assert
+        testResult.Abbreviation.Should().Be(expectedResult, "{0} is known as {1} at {2:O}", testTimezone, expectedResult, testInstant);
     }
 
-    [Fact]
-    public void AbbreviationMethods_WholeRange_ReturnAbbreviationForEveryTimezone()
+    [Theory]
+    [MemberData(nameof(StandardAbbreviation_TestCases))]
+    public void GetStandardAbbreviation_Instant_ReturnsStandardTimeAbbreviation(TzDataTimezone testTimezone, DateTime testInstant, string expectedResult)
     {
-        // arrange
-        var testInstants = new[] { DateTime.MinValue, new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc), DateTime.MaxValue };
-        var testTimezones = GetTimezoneFields(typeof(TzDataTimezone));
+        // act
+        var testResult = testTimezone.GetStandardAbbreviation(testInstant);
 
-        foreach (var testTimezone in testTimezones)
-        {
-            foreach (var testInstant in testInstants)
-            {
-                // act
-                var testStandardAbbreviation = testTimezone.GetStandardAbbreviation(testInstant);
-                var testDaylightAbbreviation = testTimezone.GetDaylightAbbreviation(testInstant);
+        // assert
+        testResult.Should().Be(expectedResult, "standard time in {0} is {1} at {2:O}", testTimezone, expectedResult, testInstant);
+    }
 
-                // assert
-                testStandardAbbreviation.Should().NotBeNullOrEmpty("{0} has a standard abbreviation at {1:O}", testTimezone, testInstant);
-                testDaylightAbbreviation.Should().NotBe(string.Empty, "{0} has no empty daylight abbreviation at {1:O}", testTimezone, testInstant);
-            }
-        }
+    [Theory]
+    [MemberData(nameof(DaylightAbbreviation_TestCases))]
+    public void GetDaylightAbbreviation_Instant_ReturnsDaylightSavingTimeAbbreviation(TzDataTimezone testTimezone, DateTime testInstant, string? expectedResult)
+    {
+        // act
+        var testResult = testTimezone.GetDaylightAbbreviation(testInstant);
+
+        // assert
+        testResult.Should().Be(expectedResult, "daylight saving time in {0} has the abbreviation {1} at {2:O}", testTimezone, expectedResult, testInstant);
+    }
+
+    [Theory]
+    [MemberData(nameof(AbbreviationWithDateTimeOffset_TestCases))]
+    public void GetAbbreviation_DateTimeOffset_UsesInstant(TzDataTimezone testTimezone, DateTimeOffset testInstant, string expectedResult)
+    {
+        // act
+        var testResult = testTimezone.GetAbbreviation(testInstant);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [MemberData(nameof(StandardAbbreviationWithDateTimeOffset_TestCases))]
+    public void GetStandardAbbreviation_DateTimeOffset_UsesInstant(TzDataTimezone testTimezone, DateTimeOffset testInstant, string expectedResult)
+    {
+        // act
+        var testResult = testTimezone.GetStandardAbbreviation(testInstant);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [MemberData(nameof(DaylightAbbreviationWithDateTimeOffset_TestCases))]
+    public void GetDaylightAbbreviation_DateTimeOffset_UsesInstant(TzDataTimezone testTimezone, DateTimeOffset testInstant, string? expectedResult)
+    {
+        // act
+        var testResult = testTimezone.GetDaylightAbbreviation(testInstant);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [MemberData(nameof(WholeRange_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetStandardAbbreviation_EveryTimezoneAcrossWholeRange_ReturnsAbbreviation(TzDataTimezone testTimezone, DateTime testInstant)
+    {
+        // act
+        var testResult = testTimezone.GetStandardAbbreviation(testInstant);
+
+        // assert
+        testResult.Should().NotBeNullOrEmpty("{0} has a standard abbreviation at {1:O}", testTimezone, testInstant);
+    }
+
+    [Theory]
+    [MemberData(nameof(WholeRange_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetDaylightAbbreviation_EveryTimezoneAcrossWholeRange_ReturnsNoEmptyAbbreviation(TzDataTimezone testTimezone, DateTime testInstant)
+    {
+        // act
+        var testResult = testTimezone.GetDaylightAbbreviation(testInstant);
+
+        // assert
+        testResult.Should().NotBe(string.Empty, "{0} has no empty daylight abbreviation at {1:O}", testTimezone, testInstant);
     }
 }

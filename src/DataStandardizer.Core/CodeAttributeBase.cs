@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Core
@@ -48,7 +48,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishName => _englishNames.FirstOrDefault();
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string EnglishName => _englishNames.FirstOrDefault();
 #endif
         /// <summary>
@@ -62,7 +62,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public string? FrenchName => _frenchNames.FirstOrDefault();
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string FrenchName => _frenchNames.FirstOrDefault();
 #endif
         /// <summary>

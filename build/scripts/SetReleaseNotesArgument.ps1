@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 
 param (
     # Package name.
@@ -18,35 +18,46 @@ param (
     [ValidateSet('Subject', 'Body', 'Both')]
     [string]    $NoteSource = 'Subject',
 
+    # The file holding the release notes of commits which can no longer declare their own.
+    [Parameter()]
+    [string]    $OverridePath = (Join-Path $PSScriptRoot '../release-notes-overrides.json'),
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
 Import-Module $modulePath -Force -Scope Local
+Import-Module (Join-Path $PSScriptRoot "../psmodules/BuildPlan/BuildPlan.psm1") -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
 # Resolve the package's source folder so release notes can be scoped to commits that
-# actually touched this package (rather than every change across the repository).
-$packageInfo = $env:PACKAGEINFOS | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+# actually touched this package (rather than every change across the repository). A change to a
+# shared build file marks every package as changed, so those commits count for every package too,
+# and a change to a Shared Project marks each package that imports it, so those commits count for
+# each of them.
+$packageManifest = Get-PackageManifest
+$packageInfo = Get-PackageInfo | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "No package information found for $PackageName."
     exit
 }
 $packageSourcePath = $packageInfo.packageSourcePath
+[string[]]$commitPaths = @($packageSourcePath) + @(Get-SharedProjectFolder -PackageSourcePath $packageSourcePath) + @($packageManifest.sharedBuildFiles)
 
 # Find the most recent tag for the package that is an ancestor of the build commit.
 # `--merged` (not `--no-contains`) restricts the candidates to tags reachable from the
 # build commit, so the chosen baseline is genuinely the previous tag on this history.
+$buildCommit = Get-BuildCommit
 $escapedPackageName = [regex]::Escape($PackageName)
 $packageMatchPattern = "v*$PackageName"
-$tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $env:BUILD_SOURCEVERSION
+$tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $buildCommit
 # On master the package is promoted to a 3-part release version, so notes accumulate from
 # the previous release tag; otherwise (pre-release) they accumulate from the previous 4-part tag.
-$tagMatchPattern = ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') ? "^v\d+\.\d+\.\d+-$escapedPackageName$" : "^v\d+\.\d+\.\d+\.\d+-$escapedPackageName$"
+$tagMatchPattern = (Test-ReleaseBuild) ? "^v\d+\.\d+\.\d+-$escapedPackageName$" : "^v\d+\.\d+\.\d+\.\d+-$escapedPackageName$"
 [string]$latestTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern $tagMatchPattern -Raw | Select-Object -First 1
 
 # Find the repository object preceding the source commit.
@@ -58,12 +69,12 @@ else {
     $previousCommitObject = & git log --format="%H" --no-abbrev-commit | Select-Object -Last 1
 }
 
-$revisionRange = "$previousCommitObject..$env:BUILD_SOURCEVERSION"
+$revisionRange = "$previousCommitObject..$buildCommit"
 
-Write-Information "Using commit messages between $previousCommitObject and $env:BUILD_SOURCEVERSION scoped to $packageSourcePath."
+Write-Information "Using commit messages between $previousCommitObject and $buildCommit scoped to $($commitPaths -join ', ')."
 
 # Patterns to scrub from commit messages before they become release notes.
-[string[]]$sanitiseTags = @('[skip ci]', '[ci skip]', 'skip-checks: true', 'skip-checks:true', '[skip azurepipelines]', '[azurepipelines skip]', '[skip azpipelines]', '[azpipelines skip]', '[skip azp]', '[azp skip]', '***NO_CI***')
+[string[]]$sanitiseTags = @('[skip ci]', '[ci skip]', 'skip-checks: true', 'skip-checks:true', '[skip azurepipelines]', '[azurepipelines skip]', '[skip azpipelines]', '[azpipelines skip]', '[skip azp]', '[azp skip]', '***NO_CI***', '[no ci]', '[skip actions]', '[actions skip]')
 $sanitisePattern = [string]::Join('|', [System.Linq.Enumerable]::Select[string, string]($sanitiseTags, [System.Func[string, string]] { param($tag)[regex]::Escape($tag) }))
 
 # Read the commits in the range as structured records. A commit body spans many lines, so a record
@@ -72,13 +83,22 @@ $sanitisePattern = [string]::Join('|', [System.Linq.Enumerable]::Select[string, 
 function Get-CommitRecord {
     param (
         [string]    $RevisionRange,
-        [string]    $PackageSourcePath
+        [string[]]  $Path
     )
 
     $recordSeparator = [char]0x1e
     $unitSeparator = [char]0x1f
     $commitFormat = "%H$unitSeparator%s$unitSeparator%b$recordSeparator"
-    $output = & git rev-list $RevisionRange --no-merges --reverse --no-commit-header --format=$commitFormat -- $PackageSourcePath
+    # PowerShell decodes git's output with the console encoding, which on Windows is an OEM code
+    # page, so have git emit UTF-8 and decode it as UTF-8 for notes to match on every runner (#438).
+    $savedOutputEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        $output = & git -c i18n.logOutputEncoding=UTF-8 rev-list $RevisionRange --no-merges --reverse --no-commit-header --format=$commitFormat -- $Path
+    }
+    finally {
+        [Console]::OutputEncoding = $savedOutputEncoding
+    }
 
     # Git emits each record over several lines, which PowerShell surfaces as an array; rejoin them
     # before splitting so that the record separator is found regardless of the line boundaries.
@@ -435,23 +455,75 @@ $script:trackerReferencePattern = '(?:\bAB)?#\d+'
 # and the backtick which sets code and file names apart.
 $script:quotingChars = [char[]]@('"', "'", '`', [char]0x2018, [char]0x2019, [char]0x201C, [char]0x201D)
 
-# Test whether the character at an index falls inside a quoted or backticked run. Counting the
-# quoting characters which precede it is enough: an odd count means one is still open. This is
-# what distinguishes a reference the prose is discussing from one a tool appended.
+# The character which closes a run each quoting character opens. Curly quotes close with their
+# counterpart; every other quoting character closes with itself.
+$script:closingQuoteChars = @{
+    ([char]0x2018) = [char]0x2019
+    ([char]0x201C) = [char]0x201D
+}
+
+# The characters which also serve as an apostrophe, and are one rather than a quote where they
+# stand between two letters or digits, as in "VTIMEZONE's" or "doesn't".
+$script:apostropheChars = [char[]]@("'", [char]0x2019)
+
+# Test whether the character at an index of a note is a quoting character, rather than another
+# character or an apostrophe within a word.
+function Test-QuotingCharacter {
+    param (
+        [string]    $Note,
+        [int]       $Index
+    )
+
+    $character = $Note[$Index]
+    if ($script:quotingChars -notcontains $character) {
+        return $false
+    }
+
+    if ($script:apostropheChars -contains $character -and
+        $Index -gt 0 -and $Index -lt ($Note.Length - 1) -and
+        [char]::IsLetterOrDigit($Note[$Index - 1]) -and [char]::IsLetterOrDigit($Note[$Index + 1])) {
+        return $false
+    }
+
+    return $true
+}
+
+# Test whether the character at an index falls inside a quoted or backticked run: after a quoting
+# character that is still open, and before the character that closes it. This is what
+# distinguishes a reference the prose is discussing from one a tool appended. Quotes of another
+# kind inside an open run don't close it, and a quote that is never closed quotes nothing.
 function Test-QuotedPosition {
     param (
         [string]    $Note,
         [int]       $Index
     )
 
-    $quoteCount = 0
+    $closingChar = $null
     for ($characterIndex = 0; $characterIndex -lt $Index; $characterIndex++) {
-        if ($script:quotingChars -contains $Note[$characterIndex]) {
-            $quoteCount++
+        if (-not (Test-QuotingCharacter -Note $Note -Index $characterIndex)) {
+            continue
+        }
+
+        $character = $Note[$characterIndex]
+        if ($null -eq $closingChar) {
+            $closingChar = $script:closingQuoteChars.ContainsKey($character) ? $script:closingQuoteChars[$character] : $character
+        }
+        elseif ($character -ceq $closingChar) {
+            $closingChar = $null
         }
     }
 
-    return (0 -ne ($quoteCount % 2))
+    if ($null -eq $closingChar) {
+        return $false
+    }
+
+    for ($characterIndex = $Index; $characterIndex -lt $Note.Length; $characterIndex++) {
+        if ($Note[$characterIndex] -ceq $closingChar -and (Test-QuotingCharacter -Note $Note -Index $characterIndex)) {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 # Remove the tracker references a tool appended to a commit subject, leaving those the prose is
@@ -636,10 +708,14 @@ function Get-ReleaseNoteTrailer {
 
 # Read the release notes declared for commits which were merged before they could declare them
 # themselves. A commit's message cannot be changed once it is on develop, so its notes are stated in
-# this file instead, keyed by the full commit id; an empty list of notes leaves the commit out.
+# this file instead, keyed by the full commit id; an empty list of notes leaves the commit out. A
+# note with a list of packages is published only for those: a commit which changed a shared build
+# file reaches every package, but what it says may be true of only some of them.
 function Get-ReleaseNoteOverride {
     param (
-        [string]    $Path
+        [string]    $Path,
+        [string]    $PackageName,
+        [string[]]  $KnownPackageName
     )
 
     $overrides = @{}
@@ -661,6 +737,17 @@ function Get-ReleaseNoteOverride {
                 Write-Error "Release note override for $commitId has the unrecognised category '$declared'."
                 exit 1
             }
+
+            foreach ($limitedTo in $entry['packages']) {
+                if ($KnownPackageName -cnotcontains $limitedTo) {
+                    Write-Error "Release note override for $commitId names the unknown package '$limitedTo'."
+                    exit 1
+                }
+            }
+            if ($entry.ContainsKey('packages') -and $entry['packages'] -cnotcontains $PackageName) {
+                continue
+            }
+
             $notes.Add((New-DeclaredNote -Category $script:declaredCategories[$declared] -Text $entry['text']))
         }
 
@@ -735,9 +822,9 @@ foreach ($category in $script:categoryHeadings.Keys) {
     $noteTextsByCategory[$category] = [System.Collections.Generic.List[string]]::new()
 }
 
-$overrides = Get-ReleaseNoteOverride -Path (Join-Path $PSScriptRoot '../release-notes-overrides.json')
+$overrides = Get-ReleaseNoteOverride -Path $OverridePath -PackageName $PackageName -KnownPackageName @($packageManifest.packages.packageName)
 
-foreach ($commit in (Get-CommitRecord -RevisionRange $revisionRange -PackageSourcePath $packageSourcePath)) {
+foreach ($commit in (Get-CommitRecord -RevisionRange $revisionRange -Path $commitPaths)) {
     # An override states every note of the commit, breaking changes included, because it exists to
     # correct what the commit message says.
     $override = $overrides[$commit.CommitId]
@@ -843,6 +930,6 @@ if ([string]::IsNullOrWhiteSpace($releaseNotes)) {
 }
 $releaseNotes
 
-# Output release notes to pipeline variable.
+# Output release notes to a pipeline variable or step output.
 $encodedReleaseNotes = $releaseNotes | ConvertTo-Base64String
-Write-Host "##vso[task.setvariable variable=releaseNotesArg]$encodedReleaseNotes"
+Set-CiOutput -Name 'releaseNotesArg' -Value $encodedReleaseNotes

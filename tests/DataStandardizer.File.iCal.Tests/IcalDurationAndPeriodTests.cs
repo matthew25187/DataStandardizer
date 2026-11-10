@@ -1,9 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -11,56 +6,93 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalDurationAndPeriodTests
     {
+        private const string OneDay = "P1D";
+        private const string TwentyFourHours = "PT24H";
+        private const string OneHour = "PT1H";
+        private const string NinetyMinutes = "PT1H30M";
+        private const string FiveSeconds = "PT5S";
+        private const string ZeroSeconds = "PT0S";
+        private const string LondonTimeZoneId = "Europe/London";
+
+        // ref. RFC 5545 §3.3.6: seven weeks, here negative.
+        private const string MinusSevenWeeks = "-P7W";
+
+        public static TheoryData<string> CanonicalDurations => new TheoryData<string>
+        {
+            Rfc5545Examples.Duration,
+            "P7W",
+            "PT15M",
+            "-PT15M",
+            OneDay,
+            TwentyFourHours,
+            OneHour,
+            NinetyMinutes,
+            FiveSeconds,
+            "PT1M5S",
+            "P2DT1H",
+            "-P1W",
+            "P0W",
+            ZeroSeconds,
+        };
+
+        public static TheoryData<string> RfcExamplePeriods => new TheoryData<string>
+        {
+            Rfc5545Examples.ExplicitPeriod,
+            Rfc5545Examples.StartPeriod,
+        };
+
         #region IcalDuration
 
         [Theory]
-        [InlineData("P15DT5H0M20S")]
-        [InlineData("P7W")]
-        [InlineData("PT15M")]
-        [InlineData("-PT15M")]
-        [InlineData("P1D")]
-        [InlineData("PT24H")]
-        [InlineData("PT1H")]
-        [InlineData("PT1H30M")]
-        [InlineData("PT5S")]
-        [InlineData("PT1M5S")]
-        [InlineData("P2DT1H")]
-        [InlineData("-P1W")]
-        [InlineData("P0W")]
-        [InlineData("PT0S")]
-        public void IcalDuration_TryParse_CanonicalValue_RoundTripsExactly(string value)
+        [MemberData(nameof(CanonicalDurations))]
+        public void IcalDuration_TryParse_CanonicalValue_Succeeds(string value)
         {
             // act
-            var testResult = IcalDuration.TryParse(value.AsSpan(), IcalValueFormat.Text, out var duration);
+            var testResult = IcalDuration.TryParse(value.AsSpan(), IcalValueFormat.Text, out _);
 
             // assert
             testResult.Should().BeTrue();
-            duration.ToString().Should().Be(value);
         }
 
         [Theory]
-        [InlineData("+P1D", "P1D")]
-        [InlineData("PT90M", "PT1H30M")]
-        [InlineData("PT0H0M5S", "PT5S")]
-        [InlineData("PT1H0M0S", "PT1H")]
-        [InlineData("P0D", "PT0S")]
-        [InlineData("-PT0S", "PT0S")]
-        [InlineData("p1dt2h", "P1DT2H")]
-        public void IcalDuration_TryParse_NonCanonicalValue_IsWrittenCanonically(string value, string expected)
+        [MemberData(nameof(CanonicalDurations))]
+        public void IcalDuration_ToString_ParsedCanonicalValue_IsWrittenExactly(string value)
         {
+            // arrange
+            var duration = IcalDuration.Parse(value.AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalDuration.Parse(value.AsSpan(), IcalValueFormat.Text);
+            var testResult = duration.ToString();
 
             // assert
-            testResult.ToString().Should().Be(expected);
-            IcalDuration.Parse(testResult.ToString().AsSpan(), IcalValueFormat.Text).Should().Be(testResult);
+            testResult.Should().Be(value);
+        }
+
+        [Theory]
+        [InlineData("+P1D", OneDay)]
+        [InlineData("PT90M", NinetyMinutes)]
+        [InlineData("PT0H0M5S", FiveSeconds)]
+        [InlineData("PT1H0M0S", OneHour)]
+        [InlineData("P0D", ZeroSeconds)]
+        [InlineData("-PT0S", ZeroSeconds)]
+        [InlineData("p1dt2h", "P1DT2H")]
+        public void IcalDuration_ToString_ParsedNonCanonicalValue_IsWrittenCanonically(string value, string expected)
+        {
+            // arrange
+            var duration = IcalDuration.Parse(value.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = duration.ToString();
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Fact]
-        public void IcalDuration_RfcExample_HasNominalAndExactParts()
+        public void IcalDuration_Parse_RfcExample_HasNominalAndExactParts()
         {
             // act
-            var testResult = IcalDuration.Parse("P15DT5H0M20S".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalDuration.Parse(Rfc5545Examples.Duration.AsSpan(), IcalValueFormat.Text);
 
             // assert
             testResult.IsNegative.Should().BeFalse();
@@ -70,31 +102,65 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void IcalDuration_OneDayAnd24Hours_AreDistinct()
+        public void IcalDuration_Parse_OneDay_IsOneNominalDay()
         {
             // act
-            var day = IcalDuration.Parse("P1D".AsSpan(), IcalValueFormat.Text);
-            var hours = IcalDuration.Parse("PT24H".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalDuration.Parse(OneDay.AsSpan(), IcalValueFormat.Text);
 
             // assert
-            day.Should().NotBe(hours);
-            day.Days.Should().Be(1);
-            day.Time.Should().Be(TimeSpan.Zero);
-            hours.Days.Should().Be(0);
-            hours.Time.Should().Be(TimeSpan.FromHours(24));
+            testResult.Days.Should().Be(1);
+            testResult.Time.Should().Be(TimeSpan.Zero);
         }
 
         [Fact]
-        public void IcalDuration_Weeks_AreNominalAndDistinctFromDays()
+        public void IcalDuration_Parse_TwentyFourHours_IsExactTime()
         {
             // act
-            var weeks = IcalDuration.Parse("-P7W".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalDuration.Parse(TwentyFourHours.AsSpan(), IcalValueFormat.Text);
 
             // assert
-            weeks.IsWeeks.Should().BeTrue();
-            weeks.Weeks.Should().Be(-7);
-            weeks.Days.Should().Be(0);
-            IcalDuration.FromWeeks(1).Should().NotBe(new IcalDuration(7, TimeSpan.Zero));
+            testResult.Days.Should().Be(0);
+            testResult.Time.Should().Be(TimeSpan.FromHours(24));
+        }
+
+        [Fact]
+        public void IcalDuration_Equals_OneDayAnd24Hours_IsFalse()
+        {
+            // arrange
+            var day = IcalDuration.Parse(OneDay.AsSpan(), IcalValueFormat.Text);
+            var hours = IcalDuration.Parse(TwentyFourHours.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = day.Equals(hours);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IcalDuration_Parse_Weeks_AreNominalWeeks()
+        {
+            // act
+            var testResult = IcalDuration.Parse(MinusSevenWeeks.AsSpan(), IcalValueFormat.Text);
+
+            // assert
+            testResult.IsWeeks.Should().BeTrue();
+            testResult.Weeks.Should().Be(-7);
+            testResult.Days.Should().Be(0);
+        }
+
+        [Fact]
+        public void IcalDuration_Equals_OneWeekAndSevenDays_IsFalse()
+        {
+            // arrange
+            var week = IcalDuration.FromWeeks(1);
+            var days = new IcalDuration(7, TimeSpan.Zero);
+
+            // act
+            var testResult = week.Equals(days);
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Theory]
@@ -133,14 +199,14 @@ namespace DataStandardizer.File.iCal.Tests
         public void IcalDuration_Constructor_MixedSigns_Throws()
         {
             // act
-            Action act = () => new IcalDuration(1, TimeSpan.FromHours(-1));
+            Action testAction = () => new IcalDuration(1, TimeSpan.FromHours(-1));
 
             // assert
-            act.Should().Throw<ArgumentException>();
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
-        public void IcalDuration_Constructor_Negative_IsWrittenWithSign()
+        public void IcalDuration_Constructor_Negative_IsNegative()
         {
             // act
             var testResult = new IcalDuration(-2, TimeSpan.FromMinutes(-90));
@@ -149,18 +215,42 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.IsNegative.Should().BeTrue();
             testResult.Days.Should().Be(-2);
             testResult.Time.Should().Be(TimeSpan.FromMinutes(-90));
-            testResult.ToString().Should().Be("-P2DT1H30M");
-            testResult.Negate().ToString().Should().Be("P2DT1H30M");
+        }
+
+        [Fact]
+        public void IcalDuration_ToString_Negative_IsWrittenWithSign()
+        {
+            // arrange
+            var duration = new IcalDuration(-2, TimeSpan.FromMinutes(-90));
+
+            // act
+            var testResult = duration.ToString();
+
+            // assert
+            testResult.Should().Be("-P2DT1H30M");
+        }
+
+        [Fact]
+        public void IcalDuration_Negate_Negative_IsPositive()
+        {
+            // arrange
+            var duration = new IcalDuration(-2, TimeSpan.FromMinutes(-90));
+
+            // act
+            var testResult = duration.Negate();
+
+            // assert
+            testResult.Should().Be(new IcalDuration(2, TimeSpan.FromMinutes(90)));
         }
 
         [Fact]
         public void IcalDuration_Constructor_FractionalSeconds_Throws()
         {
             // act
-            Action act = () => new IcalDuration(0, TimeSpan.FromMilliseconds(1500));
+            Action testAction = () => new IcalDuration(0, TimeSpan.FromMilliseconds(1500));
 
             // assert
-            act.Should().Throw<ArgumentException>();
+            testAction.Should().Throw<ArgumentException>();
         }
 
         #endregion
@@ -168,36 +258,47 @@ namespace DataStandardizer.File.iCal.Tests
         #region IcalPeriod
 
         [Theory]
-        [InlineData("19970101T180000Z/19970102T070000Z")]
-        [InlineData("19970101T180000Z/PT5H30M")]
-        public void IcalPeriod_TryParse_RfcExample_ParsesAndRoundTrips(string value)
+        [MemberData(nameof(RfcExamplePeriods))]
+        public void IcalPeriod_TryParse_RfcExample_Succeeds(string value)
         {
             // act
-            var testResult = IcalPeriod.TryParse(value.AsSpan(), IcalValueFormat.Text, out var period);
+            var testResult = IcalPeriod.TryParse(value.AsSpan(), IcalValueFormat.Text, out _);
 
             // assert
             testResult.Should().BeTrue();
-            period.ToString().Should().Be(value);
-            IcalPeriod.Parse(period.ToString().AsSpan(), IcalValueFormat.Text).Should().Be(period);
+        }
+
+        [Theory]
+        [MemberData(nameof(RfcExamplePeriods))]
+        public void IcalPeriod_ToString_ParsedRfcExample_IsWrittenExactly(string value)
+        {
+            // arrange
+            var period = IcalPeriod.Parse(value.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = period.ToString();
+
+            // assert
+            testResult.Should().Be(value);
         }
 
         [Fact]
-        public void IcalPeriod_Explicit_HasEndAndNoDuration()
+        public void IcalPeriod_Parse_Explicit_HasEndAndNoDuration()
         {
             // act
-            var testResult = IcalPeriod.Parse("19970101T180000Z/19970102T070000Z".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalPeriod.Parse(Rfc5545Examples.ExplicitPeriod.AsSpan(), IcalValueFormat.Text);
 
             // assert
-            testResult.Start.Should().Be(IcalDateTime.Parse("19970101T180000Z".AsSpan(), IcalValueFormat.Text));
-            testResult.End.Should().Be(IcalDateTime.Parse("19970102T070000Z".AsSpan(), IcalValueFormat.Text));
+            testResult.Start.Should().Be(new IcalDateTime(new IcalDate(1997, 1, 1), new IcalTime(18, 0, 0, true)));
+            testResult.End.Should().Be(new IcalDateTime(new IcalDate(1997, 1, 2), new IcalTime(7, 0, 0, true)));
             testResult.Duration.Should().BeNull();
         }
 
         [Fact]
-        public void IcalPeriod_Start_HasDurationAndNoEnd()
+        public void IcalPeriod_Parse_Start_HasDurationAndNoEnd()
         {
             // act
-            var testResult = IcalPeriod.Parse("19970101T180000Z/PT5H30M".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalPeriod.Parse(Rfc5545Examples.StartPeriod.AsSpan(), IcalValueFormat.Text);
 
             // assert
             testResult.End.Should().BeNull();
@@ -205,18 +306,18 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void IcalPeriod_TryParse_WithTimeZoneId_ZonesStartAndEnd()
+        public void IcalPeriod_Parse_WithTimeZoneId_ZonesStartAndEnd()
         {
             // act
-            var testResult = IcalPeriod.Parse("19970101T180000/19970102T070000".AsSpan(), "Europe/London", IcalValueFormat.Text);
+            var testResult = IcalPeriod.Parse("19970101T180000/19970102T070000".AsSpan(), LondonTimeZoneId, IcalValueFormat.Text);
 
             // assert
-            testResult.Start.TimeZoneId.Should().Be("Europe/London");
-            testResult.End.Value.TimeZoneId.Should().Be("Europe/London");
+            testResult.Start.TimeZoneId.Should().Be(LondonTimeZoneId);
+            testResult.End.Value.TimeZoneId.Should().Be(LondonTimeZoneId);
         }
 
         [Theory]
-        [InlineData("19970101T180000Z")]
+        [InlineData(Rfc5545Examples.PeriodStart)]
         [InlineData("19970101T180000Z/")]
         [InlineData("/19970102T070000Z")]
         [InlineData("19970101T180000Z/19970101T180000Z")]
@@ -239,7 +340,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void IcalPeriod_TryParse_UtcWithTimeZoneId_Fails()
         {
             // act
-            var testResult = IcalPeriod.TryParse("19970101T180000Z/PT1H".AsSpan(), "Europe/London", IcalValueFormat.Text, out _);
+            var testResult = IcalPeriod.TryParse("19970101T180000Z/PT1H".AsSpan(), LondonTimeZoneId, IcalValueFormat.Text, out _);
 
             // assert
             testResult.Should().BeFalse();
@@ -249,26 +350,27 @@ namespace DataStandardizer.File.iCal.Tests
         public void IcalPeriod_Constructor_EndNotAfterStart_Throws()
         {
             // arrange
-            var start = IcalDateTime.Parse("19970101T180000Z".AsSpan(), IcalValueFormat.Text);
+            var start = new IcalDateTime(new IcalDate(1997, 1, 1), new IcalTime(18, 0, 0, true));
 
             // act
-            Action act = () => new IcalPeriod(start, start);
+            Action testAction = () => new IcalPeriod(start, start);
 
             // assert
-            act.Should().Throw<ArgumentException>().WithParameterName("end");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("end");
         }
 
         [Fact]
         public void IcalPeriod_Constructor_NegativeDuration_Throws()
         {
             // arrange
-            var start = IcalDateTime.Parse("19970101T180000Z".AsSpan(), IcalValueFormat.Text);
+            var start = new IcalDateTime(new IcalDate(1997, 1, 1), new IcalTime(18, 0, 0, true));
+            var duration = new IcalDuration(0, TimeSpan.FromHours(-1));
 
             // act
-            Action act = () => new IcalPeriod(start, IcalDuration.Parse("-PT1H".AsSpan(), IcalValueFormat.Text));
+            Action testAction = () => new IcalPeriod(start, duration);
 
             // assert
-            act.Should().Throw<ArgumentException>().WithParameterName("duration");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("duration");
         }
 
         #endregion

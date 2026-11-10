@@ -38,7 +38,7 @@ read these names through the [Iso3166Extensions](Iso3166Extensions.md)
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 
@@ -46,4 +46,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [Iso3166Extensions](Iso3166Extensions.md)
 - [Iso3166Part2Subdivision](Iso3166Part2Subdivision.md)
 - [Geography API reference](index.md)
-</content>

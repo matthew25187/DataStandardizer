@@ -9,13 +9,14 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag.Registry`
 
 A *tag* entry from the IANA Subtag Registry. The constructor is internal; you
-obtain instances by enumerating a [SubtagRegistry](SubtagRegistry.md).
+get instances from a [SubtagRegistry](SubtagRegistry.md): by enumerating it, or
+from its `GrandfatheredTags` and `RedundantTags` lists.
 
 ```csharp
-public class SubtagRegistryTagRecord : SubtagRegistryTagRecordBase
+public sealed class SubtagRegistryTagRecord : SubtagRegistryTagRecordBase
 ```
 
 ## Remarks
@@ -32,7 +33,7 @@ identifying `Tag` field.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

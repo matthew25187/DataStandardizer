@@ -23,8 +23,9 @@
         UndefinedTimeZone = 3,
 
         /// <summary>
-        /// A property value does not follow the syntax of its value type, or breaks a rule that ties it to its property.  Accepted with
-        /// <see cref="IcalOptions.AllowInvalidValues"/>.
+        /// A property value does not follow the syntax of its value type, or breaks a rule that ties it to its property; or a parameter that
+        /// RFC 5545 or RFC 7986 defines is repeated or has too many values, or a <c>FMTTYPE</c> parameter does not follow RFC 5545 §3.2.8.
+        /// Accepted with <see cref="IcalOptions.AllowInvalidValues"/>.
         /// </summary>
         InvalidValue = 4,
 
@@ -36,6 +37,13 @@
         /// <summary>
         /// The <c>VERSION</c> property does not include iCalendar 2.0.  Never accepted.
         /// </summary>
-        UnsupportedVersion = 6
+        UnsupportedVersion = 6,
+
+        /// <summary>
+        /// A parameter whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted form has a value in double quotes, such as
+        /// <c>FMTTYPE="audio/basic"</c>, or, on a line not read from .ics, a value that a writer would have to quote.  Accepted with
+        /// <see cref="IcalOptions.AllowQuotedParameterValues"/>.
+        /// </summary>
+        QuotedParameterValue = 7
     }
 }

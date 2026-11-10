@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -38,7 +38,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private readonly TzDataRule[]? _tailRules;
 #else
-        [CanBeNull]
+        [MaybeNull]
         private readonly TzDataRule[] _tailRules;
 #endif
         private readonly int _tailFirstYear;
@@ -47,7 +47,7 @@ namespace DataStandardizer.Chronology
 
         internal TzDataZoneCalculator(
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             TzDataZoneLine[] zoneLines)
         {
@@ -92,7 +92,7 @@ namespace DataStandardizer.Chronology
         /// </summary>
         /// <param name="utc">The instant, in universal time.</param>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal TzDataZoneLine GetZoneLine(DateTime utc)
         {
@@ -139,7 +139,7 @@ namespace DataStandardizer.Chronology
         /// effect in the year or, failing that, the latest to take effect before it. Before any has taken effect, the first is used.
         /// </remarks>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal string GetStandardAbbreviation(DateTime utc)
         {
@@ -172,7 +172,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         internal string? GetDaylightAbbreviation(DateTime utc)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         internal string GetDaylightAbbreviation(DateTime utc)
 #endif
         {
@@ -238,18 +238,32 @@ namespace DataStandardizer.Chronology
         /// Where the time falls in a gap, so that no offset is in effect at it, the offset in effect immediately before the gap;
         /// otherwise, <see langword="null"/>.
         /// </param>
+        /// <param name="isBeforeRange">
+        /// <see langword="true"/> where an offset in effect at the time gives it at an instant before the range of
+        /// <see cref="DateTime"/>, so that the offset is left out of the result; otherwise, <see langword="false"/>.
+        /// Such an instant precedes every instant in the result.
+        /// </param>
+        /// <param name="isAfterRange">
+        /// <see langword="true"/> where an offset in effect at the time gives it at an instant after the range of
+        /// <see cref="DateTime"/>, so that the offset is left out of the result; otherwise, <see langword="false"/>.
+        /// Such an instant follows every instant in the result.
+        /// </param>
         /// <returns>
-        /// The offsets, in chronological order of the instants at which they give the time: none in a gap, one normally, and
-        /// two in an overlap.
+        /// The offsets whose instants fall within the range of <see cref="DateTime"/>, in chronological order of the instants
+        /// at which they give the time: one normally, and two in an overlap. There are none where the time falls in a gap,
+        /// or where each offset in effect at it gives an instant outside the range of <see cref="DateTime"/>, which
+        /// <paramref name="isBeforeRange"/> and <paramref name="isAfterRange"/> tell apart from a gap.
         /// </returns>
         /// <remarks>
         /// Each offset in effect near the time gives a candidate instant, being the time less the offset. A candidate is kept
         /// where the offset is in effect at it, so that the offset gives the same time on the local clock back.
         /// </remarks>
-        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap)
+        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap, out bool isBeforeRange, out bool isAfterRange)
         {
             var result = new List<TzDataOffsetInfo>(2);
             offsetBeforeGap = null;
+            isBeforeRange = false;
+            isAfterRange = false;
 
             // An offset is less than a day, so only the changes in effect within a day either side of the time can give it.
             var fromTicks = localTicks - TimeSpan.TicksPerDay;
@@ -264,7 +278,7 @@ namespace DataStandardizer.Chronology
             {
                 if (current != null)
                 {
-                    AddOffsetInfoForLocal(result, localTicks, current, next);
+                    AddOffsetInfoForLocal(result, localTicks, current, next, ref isBeforeRange, ref isAfterRange);
 
                     // The time falls in a gap where it comes after the change on the clock before it, and before it on the clock after it.
                     if (!offsetBeforeGap.HasValue &&
@@ -280,7 +294,7 @@ namespace DataStandardizer.Chronology
             }
 
             if (current != null)
-                AddOffsetInfoForLocal(result, localTicks, current, null);
+                AddOffsetInfoForLocal(result, localTicks, current, null, ref isBeforeRange, ref isAfterRange);
 
             return result;
         }
@@ -290,16 +304,22 @@ namespace DataStandardizer.Chronology
             long localTicks,
             Change current,
 #if NETCOREAPP3_0_OR_GREATER
-            Change? next)
+            Change? next,
 #else
-            [CanBeNull] Change next)
+            [AllowNull] Change next,
 #endif
+            ref bool isBeforeRange,
+            ref bool isAfterRange)
         {
             var candidateTicks = localTicks - current.State.UtcOffsetTicks;
-            if (candidateTicks < TicksMinimum || candidateTicks > TicksMaximum)
+            if (candidateTicks < current.Instant || (next != null && candidateTicks >= next.Instant))
                 return;
 
-            if (candidateTicks >= current.Instant && (next is null || candidateTicks < next.Instant))
+            if (candidateTicks < TicksMinimum)
+                isBeforeRange = true;
+            else if (candidateTicks > TicksMaximum)
+                isAfterRange = true;
+            else
                 offsetInfos.Add(CreateOffsetInfo(current, next));
         }
 
@@ -311,17 +331,17 @@ namespace DataStandardizer.Chronology
         /// <param name="isDaylightSavingTime">Whether daylight saving time is in effect.</param>
         /// <param name="utcOffset">The total offset from universal time in effect.</param>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal static string FormatAbbreviation(
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             string format,
 #if NETCOREAPP3_0_OR_GREATER
             string? letter,
 #else
-            [CanBeNull] string letter,
+            [AllowNull] string letter,
 #endif
             bool isDaylightSavingTime,
             TimeSpan utcOffset)
@@ -379,7 +399,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataRule? FindLatestRule(IReadOnlyList<TzDataRule> rules, int fromYear, int toYear, bool? isDaylight, long untilTicks)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataRule FindLatestRule(IReadOnlyList<TzDataRule> rules, int fromYear, int toYear, bool? isDaylight, long untilTicks)
 #endif
         {
@@ -418,7 +438,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataRule? FindEarliestRule(IReadOnlyList<TzDataRule> rules, bool isDaylight)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataRule FindEarliestRule(IReadOnlyList<TzDataRule> rules, bool isDaylight)
 #endif
         {
@@ -468,7 +488,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataRule[]? GetTailRules(TzDataZoneLine lastZoneLine)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataRule[] GetTailRules(TzDataZoneLine lastZoneLine)
 #endif
         {
@@ -887,7 +907,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             string? letter,
 #else
-            [CanBeNull] string letter,
+            [AllowNull] string letter,
 #endif
             long standardOffset,
             long save,
@@ -902,7 +922,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             Change? next)
 #else
-            [CanBeNull] Change next)
+            [AllowNull] Change next)
 #endif
         {
             var validFromUtc = current.Instant >= TicksMinimum ? ToUtc(current.Instant) : (DateTime?)null;
@@ -1001,15 +1021,15 @@ namespace DataStandardizer.Chronology
             private readonly Dictionary<string, TzDataZoneCalculator> _calculators = new Dictionary<string, TzDataZoneCalculator>(StringComparer.Ordinal);
 
 #if NETSTANDARD
-            [NotNull]
+            [return: NotNull]
 #endif
             internal TzDataZoneCalculator GetCalculator(
 #if NETSTANDARD
-                [NotNull]
+                [DisallowNull]
 #endif
                 string identifier,
 #if NETSTANDARD
-                [NotNull]
+                [DisallowNull]
 #endif
                 TzDataZoneLine[] zoneLines)
             {

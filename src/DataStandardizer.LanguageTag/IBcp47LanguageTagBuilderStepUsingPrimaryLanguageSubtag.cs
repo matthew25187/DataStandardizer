@@ -1,6 +1,6 @@
 ﻿using DataStandardizer.Language;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -18,7 +18,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1Language primaryLanguageSubtag); 
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1Language primaryLanguageSubtag); 
 #endif
 
@@ -30,7 +30,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2TLanguage primaryLanguageSubtag);
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2TLanguage primaryLanguageSubtag); 
 #endif
 
@@ -42,7 +42,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3Language primaryLanguageSubtag); 
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3Language primaryLanguageSubtag); 
 #endif
 
@@ -54,20 +54,23 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag); 
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag); 
 #endif
 
         /// <summary>
-        /// Build a language tag using a Primary Language subtag registered with the IANA Language Subtag Registry.
+        /// Build a language tag using a Primary Language subtag given as a string.
         /// </summary>
+        /// <remarks>
+        /// This step checks only that the subtag has two to eight letters. <see cref="IBcp47LanguageTagBuilderStepBuild.Build"/> applies the rest of what was chosen.
+        /// </remarks>
         /// <param name="primaryLanguageSubtag">Primary language subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(string primaryLanguageSubtag);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag([NotNull] string primaryLanguageSubtag);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag([DisallowNull] string primaryLanguageSubtag);
 #endif
     }
 

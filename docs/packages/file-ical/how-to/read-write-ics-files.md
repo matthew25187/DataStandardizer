@@ -51,7 +51,15 @@ if (calendar is null)
 
 Each constructor has an overload that takes an `IcalOptions`. A file or stream is
 read as UTF-8, the default charset of RFC 5545, or in `IcalOptions.Encoding` if you
-set it. A byte order mark at the start of the data takes precedence over both.
+set it. Data that isn't valid UTF-8 throws `IcalFileException`; set
+`IcalOptions.Encoding` to `Encoding.UTF8` to replace it with U+FFFD instead.
+
+A byte order mark never selects the encoding. RFC 5545 has no place for one, so a
+byte order mark at the start of the data throws `IcalFileException` unless you set
+`IcalOptions.AcceptByteOrderMark`. To read a UTF-16 file, set both
+`IcalOptions.Encoding` to `Encoding.Unicode` and, if the file starts with one,
+`IcalOptions.AcceptByteOrderMark`. The last line must end with CRLF too; set
+`IcalOptions.AcceptMissingFinalLineBreak` to read a file whose last line doesn't.
 
 When the data comes from a file or stream as UTF-8, a fold that splits a multi-byte
 character is repaired before decoding. A `TextReader` has already decoded the data,
@@ -96,6 +104,20 @@ foreach (var attendee in calendarEvent.GetProperties("ATTENDEE"))
 escaping in place. `GetTextValue()` removes the escaping. `SetProperty` and
 `RemoveProperties` change the list by name.
 
+`GetFormatType()` reads the `FMTTYPE` parameter of a property such as `ATTACH` as a
+`MimeMediaType`, from `DataStandardizer.Communication.Mime`. It returns `null` if the
+property has no `FMTTYPE` parameter, and throws `IcalFileException` if the parameter
+isn't a type and subtype, as RFC 5545 §3.2.8 requires. The reader rejects such a
+parameter when it reads the calendar, unless `AllowInvalidValues` is set.
+
+```csharp
+foreach (var attachment in calendarEvent.GetProperties("ATTACH"))
+{
+    var mediaType = attachment.GetFormatType();
+    Console.WriteLine($"{attachment.Value} ({mediaType?.Type})");
+}
+```
+
 ## Write a file
 
 ```csharp
@@ -127,8 +149,8 @@ var options = new IcalOptions { LineBreak = "\n", FoldLength = 60 };
 using var writer = new IcalWriter("calendar.ics", options);
 ```
 
-On .NET 5 and later, `IcalOptions` is a record with `init` properties, so you can
-also use `with` to copy one. On older targets it is a class with `set` properties.
+On `net10.0`, `IcalOptions` is a record with `init` properties, so you can
+also use `with` to copy one. On the .NET Standard targets it is a class with `set` properties.
 
 ### Flush and dispose
 

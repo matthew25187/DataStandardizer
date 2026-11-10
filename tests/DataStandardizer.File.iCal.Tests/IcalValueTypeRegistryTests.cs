@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -11,11 +8,49 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalValueTypeRegistryTests
     {
+        private const string DtStart = "DTSTART";
+        private const string Attach = "ATTACH";
+        private const string RDate = "RDATE";
+        private const string Trigger = "TRIGGER";
+        private const string ExtensionProperty = "X-PROP";
+
+        // ref. RFC 5545 §3.3.4: the DATE value type name.
+        private const string DateValueTypeName = "DATE";
+
+        // ref. RFC 5545 §3.3.4: July 14, 1997, the example DATE value.
+        private const string Rfc5545DateExample = "19970714";
+
+        public static TheoryData<IcalContentLine, IcalValueType> ContentLines() => new TheoryData<IcalContentLine, IcalValueType>
+        {
+            { new IcalContentLine(DtStart, new[] { new IcalContentLineParameter("value", DateValueTypeName) }, Rfc5545DateExample), IcalValueType.Date },
+            { new IcalContentLine(DtStart, "19970714T133000"), IcalValueType.DateTime },
+            { new IcalContentLine(ExtensionProperty, new[] { new IcalContentLineParameter("VALUE", DateValueTypeName) }, Rfc5545DateExample), IcalValueType.Unknown },
+        };
+
+        // ref. RFC 5545 §3.2.20: the value type names that the VALUE parameter takes.
+        public static TheoryData<IcalValueType, string> ValueTypeNames() => new TheoryData<IcalValueType, string>
+        {
+            { IcalValueType.Binary, "BINARY" },
+            { IcalValueType.Boolean, "BOOLEAN" },
+            { IcalValueType.CalAddress, "CAL-ADDRESS" },
+            { IcalValueType.Date, DateValueTypeName },
+            { IcalValueType.DateTime, "DATE-TIME" },
+            { IcalValueType.Duration, "DURATION" },
+            { IcalValueType.Float, "FLOAT" },
+            { IcalValueType.Integer, "INTEGER" },
+            { IcalValueType.Period, "PERIOD" },
+            { IcalValueType.Recur, "RECUR" },
+            { IcalValueType.Text, "TEXT" },
+            { IcalValueType.Time, "TIME" },
+            { IcalValueType.Uri, "URI" },
+            { IcalValueType.UtcOffset, "UTC-OFFSET" },
+        };
+
         [Theory]
-        [InlineData("DTSTART", IcalValueType.DateTime)]
+        [InlineData(DtStart, IcalValueType.DateTime)]
         [InlineData("dtstart", IcalValueType.DateTime)]
         [InlineData("SUMMARY", IcalValueType.Text)]
-        [InlineData("ATTACH", IcalValueType.Uri)]
+        [InlineData(Attach, IcalValueType.Uri)]
         [InlineData("ATTENDEE", IcalValueType.CalAddress)]
         [InlineData("GEO", IcalValueType.Float)]
         [InlineData("PRIORITY", IcalValueType.Integer)]
@@ -23,7 +58,7 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("FREEBUSY", IcalValueType.Period)]
         [InlineData("RRULE", IcalValueType.Recur)]
         [InlineData("TZOFFSETFROM", IcalValueType.UtcOffset)]
-        [InlineData("TRIGGER", IcalValueType.Duration)]
+        [InlineData(Trigger, IcalValueType.Duration)]
         [InlineData("COLOR", IcalValueType.Text)]
         [InlineData("REFRESH-INTERVAL", IcalValueType.Duration)]
         [InlineData("CONFERENCE", IcalValueType.Uri)]
@@ -37,19 +72,36 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be(expected);
-            IcalValueTypeRegistry.IsKnownProperty(propertyName.AsSpan()).Should().Be(expected != IcalValueType.Unknown);
         }
 
         [Theory]
-        [InlineData("DTSTART", "DATE", IcalValueType.Date)]
-        [InlineData("DTSTART", "date", IcalValueType.Date)]
-        [InlineData("ATTACH", "BINARY", IcalValueType.Binary)]
-        [InlineData("RDATE", "PERIOD", IcalValueType.Period)]
-        [InlineData("TRIGGER", "DATE-TIME", IcalValueType.DateTime)]
-        [InlineData("DTSTART", "X-CUSTOM", IcalValueType.Unknown)]
-        [InlineData("DTSTART", "", IcalValueType.Unknown)]
-        [InlineData("X-PROP", "DATE", IcalValueType.Unknown)]
-        [InlineData("DTSTART", "INTEGER", IcalValueType.Integer)]
+        [InlineData(DtStart, true)]
+        [InlineData("dtstart", true)]
+        [InlineData("SUMMARY", true)]
+        [InlineData("COLOR", true)]
+        [InlineData("CONFERENCE", true)]
+        [InlineData("X-WR-CALNAME", false)]
+        [InlineData("NEW-IANA-PROPERTY", false)]
+        [InlineData("", false)]
+        public void IsKnownProperty_Property_ReturnsWhetherKnown(string propertyName, bool expected)
+        {
+            // act
+            var testResult = IcalValueTypeRegistry.IsKnownProperty(propertyName.AsSpan());
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(DtStart, DateValueTypeName, IcalValueType.Date)]
+        [InlineData(DtStart, "date", IcalValueType.Date)]
+        [InlineData(Attach, "BINARY", IcalValueType.Binary)]
+        [InlineData(RDate, "PERIOD", IcalValueType.Period)]
+        [InlineData(Trigger, "DATE-TIME", IcalValueType.DateTime)]
+        [InlineData(DtStart, "X-CUSTOM", IcalValueType.Unknown)]
+        [InlineData(DtStart, "", IcalValueType.Unknown)]
+        [InlineData(ExtensionProperty, DateValueTypeName, IcalValueType.Unknown)]
+        [InlineData(DtStart, "INTEGER", IcalValueType.Integer)]
         public void GetValueType_ValueParameter_Overrides(string propertyName, string valueParameter, IcalValueType expected)
         {
             // act
@@ -60,13 +112,13 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("DTSTART", IcalValueType.DateTime, true)]
-        [InlineData("DTSTART", IcalValueType.Date, true)]
-        [InlineData("DTSTART", IcalValueType.Integer, false)]
-        [InlineData("RDATE", IcalValueType.Period, true)]
+        [InlineData(DtStart, IcalValueType.DateTime, true)]
+        [InlineData(DtStart, IcalValueType.Date, true)]
+        [InlineData(DtStart, IcalValueType.Integer, false)]
+        [InlineData(RDate, IcalValueType.Period, true)]
         [InlineData("EXDATE", IcalValueType.Period, false)]
         [InlineData("IMAGE", IcalValueType.Binary, true)]
-        [InlineData("X-PROP", IcalValueType.Text, false)]
+        [InlineData(ExtensionProperty, IcalValueType.Text, false)]
         public void IsAllowedValueType_Property_ReturnsWhetherAllowed(string propertyName, IcalValueType valueType, bool expected)
         {
             // act
@@ -76,57 +128,67 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(expected);
         }
 
-        [Fact]
-        public void GetValueType_ContentLine_UsesValueParameter()
+        [Theory]
+        [MemberData(nameof(ContentLines), DisableDiscoveryEnumeration = true)]
+        public void GetValueType_ContentLine_UsesValueParameter(IcalContentLine line, IcalValueType expected)
         {
-            // arrange
-            var withValue = new IcalContentLine("DTSTART", new[] { new IcalContentLineParameter("value", "DATE") }, "19970714");
-            var withoutValue = new IcalContentLine("DTSTART", "19970714T133000");
-            var unknown = new IcalContentLine("X-PROP", new[] { new IcalContentLineParameter("VALUE", "DATE") }, "19970714");
+            // act
+            var testResult = IcalValueTypeRegistry.GetValueType(line);
 
             // assert
-            IcalValueTypeRegistry.GetValueType(withValue).Should().Be(IcalValueType.Date);
-            IcalValueTypeRegistry.GetValueType(withoutValue).Should().Be(IcalValueType.DateTime);
-            IcalValueTypeRegistry.GetValueType(unknown).Should().Be(IcalValueType.Unknown);
+            testResult.Should().Be(expected);
         }
 
-        [Fact]
-        public void GetValueType_View_UsesValueParameter()
+        [Theory]
+        [InlineData("DTSTART;VALUE=DATE:19970714\r\n", IcalValueType.Date)]
+        [InlineData("DTSTART:19970714T133000\r\n", IcalValueType.DateTime)]
+        [InlineData("X-PROP;VALUE=DATE:19970714\r\n", IcalValueType.Unknown)]
+        public void GetValueType_View_UsesValueParameter(string text, IcalValueType expected)
         {
             // arrange
-            var text = "DTSTART;VALUE=DATE:19970714\r\nDTSTART:19970714T133000\r\nX-PROP;VALUE=DATE:19970714\r\n";
             using (var reader = new IcalContentLineReader(new MemoryStream(Encoding.UTF8.GetBytes(text))))
             {
-                var testResult = new List<IcalValueType>();
+                reader.ReadContentLine();
 
                 // act
-                while (reader.ReadContentLine())
-                {
-                    testResult.Add(IcalValueTypeRegistry.GetValueType(reader.CurrentLine));
-                }
+                var testResult = IcalValueTypeRegistry.GetValueType(reader.CurrentLine);
 
                 // assert
-                testResult.Should().Equal(IcalValueType.Date, IcalValueType.DateTime, IcalValueType.Unknown);
+                testResult.Should().Be(expected);
             }
         }
 
-        [Fact]
-        public void ValueTypeNames_RoundTrip()
+        [Theory]
+        [MemberData(nameof(ValueTypeNames))]
+        public void GetValueTypeName_ValueType_ReturnsRfc5545Name(IcalValueType valueType, string expected)
         {
-            // arrange
-            var valueTypes = Enum.GetValues(typeof(IcalValueType)).Cast<IcalValueType>().Where(valueType => valueType != IcalValueType.Unknown);
+            // act
+            var testResult = IcalValueTypeRegistry.GetValueTypeName(valueType);
 
-            // act / assert
-            foreach (var valueType in valueTypes)
-            {
-                var name = IcalValueTypeRegistry.GetValueTypeName(valueType);
-                IcalValueTypeRegistry.TryParseValueTypeName(name.AsSpan(), out var parsed).Should().BeTrue();
-                parsed.Should().Be(valueType);
-            }
+            // assert
+            testResult.Should().Be(expected);
+        }
 
-            IcalValueTypeRegistry.GetValueTypeName(IcalValueType.UtcOffset).Should().Be("UTC-OFFSET");
-            IcalValueTypeRegistry.GetValueTypeName(IcalValueType.CalAddress).Should().Be("CAL-ADDRESS");
-            FluentActions.Invoking(() => IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Unknown)).Should().Throw<ArgumentOutOfRangeException>();
+        [Theory]
+        [MemberData(nameof(ValueTypeNames))]
+        public void TryParseValueTypeName_Rfc5545Name_ReturnsValueType(IcalValueType expected, string name)
+        {
+            // act
+            var testResult = IcalValueTypeRegistry.TryParseValueTypeName(name.AsSpan(), out var parsed);
+
+            // assert
+            testResult.Should().BeTrue();
+            parsed.Should().Be(expected);
+        }
+
+        [Fact]
+        public void GetValueTypeName_Unknown_ThrowsArgumentOutOfRange()
+        {
+            // act
+            Action testAction = () => IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Unknown);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
         }
     }
 }

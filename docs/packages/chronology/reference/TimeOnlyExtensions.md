@@ -20,7 +20,7 @@ public static class TimeOnlyExtensions
 
 ## Remarks
 
-This class and its members require .NET 6 or later (they depend on `TimeOnly`)
+This class and its members require the `net10.0` build (they depend on `TimeOnly`)
 and are not available on the .NET Standard targets. The whole class is gated
 behind `#if NET6_0_OR_GREATER`. `ToUnixTime` returns the seconds since midnight;
 `ToDosDateTime` combines the time with a fixed DOS date of 1 January 1980.
@@ -31,13 +31,13 @@ behind `#if NET6_0_OR_GREATER`. `ToUnixTime` returns the seconds since midnight;
 
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
-| `ToDosDateTime()` | `TimeOnly` | `DosDateTime` | *(net6.0+)* Combined with a fixed DOS date of 1 January 1980. |
-| `ToUnixTime()` | `TimeOnly` | `UnixTime` | *(net6.0+)* Seconds since midnight. |
+| `ToDosDateTime()` | `TimeOnly` | `DosDateTime` | *(`net10.0` only)* Combined with a fixed DOS date of 1 January 1980. |
+| `ToUnixTime()` | `TimeOnly` | `UnixTime` | *(`net10.0` only)* Seconds since midnight. |
 
 ## Applies to
 
-Available only on `net8.0` and `net10.0`. **Not** available on `netstandard1.0`
-or `netstandard2.0` (requires `TimeOnly`, net6.0+).
+Available only on `net10.0`. **Not** available on `netstandard1.0`
+or `netstandard2.0` (requires `TimeOnly`).
 
 ## See also
 

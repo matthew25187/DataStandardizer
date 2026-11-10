@@ -4,12 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Frozen;
 #endif
 #if NETSTANDARD
-using JetBrains.Annotations;
-#endif
-#if NETSTANDARD1_0
-using CharSpan = DataStandardizer.LanguageTag.InternalState.Bcp47CharSpan;
-#else
-using CharSpan = System.ReadOnlySpan<char>;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -32,7 +27,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47SubtagSet(IEnumerable<string> items)
 #else
-        internal Bcp47SubtagSet([NotNull] IEnumerable<string> items)
+        internal Bcp47SubtagSet([DisallowNull] IEnumerable<string> items)
 #endif
         {
 #if NET9_0_OR_GREATER
@@ -70,7 +65,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// A value with a character outside the ASCII range is never in the set, so the result does not depend on how a runtime's
         /// <see cref="StringComparison.OrdinalIgnoreCase"/> folds non-ASCII characters such as U+0131 LATIN SMALL LETTER DOTLESS I.
         /// </remarks>
-        internal bool Contains(CharSpan value)
+        internal bool Contains(ReadOnlySpan<char> value)
         {
             for (var index = 0; index < value.Length; index++)
             {

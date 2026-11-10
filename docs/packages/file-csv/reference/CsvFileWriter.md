@@ -39,9 +39,9 @@ disposed, `WriteLine`, `RegisterMapper` and `UnregisterMapper` throw
 caller-supplied `TextWriter`.
 
 **Thread safety.** A single writer instance is not thread-safe. Distinct instances
-may be used concurrently, including for the same record type. Mapper registration
-through `RegisterMapper` is process-wide per record type and visible to every reader
-and writer instance.
+may be used concurrently, including for the same record type. A mapper registered
+through `RegisterMapper` applies to this writer only; register it on each reader
+and writer that should use it.
 
 **Mapper changes.** The writer works out the output field order and mappings once and
 reuses them for each line. If a mapper is registered or unregistered part way
@@ -77,17 +77,17 @@ documented on [CsvFileIoBase](CsvFileIoBase.md).
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors are available on `netstandard2.0`,
-`netstandard2.1`, and the .NET targets only; on `netstandard1.3` construct the
+`netstandard2.1`, and the .NET targets only; on `netstandard1.1` construct the
 writer from a `Stream` or `TextWriter`.
 
 ## See also
 
 - [Write CSV files](../how-to/write-csv-files.md)
+- [Performance](../how-to/performance.md)
 - [The CSV line model](../concepts/csv-line-model.md)
 - [CsvFileReader](CsvFileReader.md)
 - [CsvFileIoBase](CsvFileIoBase.md)
 - [CsvFileOptions](CsvFileOptions.md)
 - [File.CSV API reference](index.md)
-</content>

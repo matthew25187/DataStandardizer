@@ -31,11 +31,11 @@ Populate it with the public `Add` method inherited from
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `FieldNames` | `IReadOnlyList<string> FieldNames { get; }` | The field names, in order. |
+| `FieldNames` | `IReadOnlyList<string> FieldNames { get; }` | The field names, in order: the values of the line's fields. A value that isn't a string gives an empty name. |
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 ## See also
 
@@ -44,4 +44,3 @@ Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net
 - [CsvFileRecordLine](CsvFileRecordLine.md)
 - [CsvFileHeaderHandling](CsvFileHeaderHandling.md)
 - [File.CSV API reference](index.md)
-</content>

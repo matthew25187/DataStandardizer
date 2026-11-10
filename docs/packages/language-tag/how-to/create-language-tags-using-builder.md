@@ -42,12 +42,29 @@ var languageTag = new Bcp47LanguageTagBuilder()
 ## Create language tags with subtag registry
 
 A copy of the *IANA Language Subtag Registry* can be used to validate the subtags
-for a language tag. For example,
+for a language tag.
+IANA publishes the registry with a line feed alone at the end of each line, not the
+CRLF that RFC 5646 §3.1.1 requires, so load its file with
+[SubtagRegistryLoadOptions](../reference/SubtagRegistryLoadOptions.md)`.AcceptBareLineFeed`.
+For example,
 
 ```csharp
-var subtagRegistry = SubtagRegistry.CreateFromFile("registry.txt");
+var subtagRegistry = SubtagRegistry.CreateFromFile("registry.txt", SubtagRegistryLoadOptions.AcceptBareLineFeed);
 var languageTag = new Bcp47LanguageTagBuilder()
     .WithLanguageSubtagRegistry(subtagRegistry)
+    .UsingPrimaryLanguageSubtag("gsw")
+    .UsingExtensionSubtags("u-sd-chzh")
+    .Build();
+```
+
+If you can't load a registry, you can check the tag against the ISO code lists instead
+with `WithConformance`. With neither step, `Build()` checks only that the tag is
+well-formed. See
+[Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md).
+
+```csharp
+var languageTag = new Bcp47LanguageTagBuilder()
+    .WithConformance(LanguageTagConformance.IsoCodeLists)
     .UsingPrimaryLanguageSubtag("gsw")
     .UsingExtensionSubtags("u-sd-chzh")
     .Build();

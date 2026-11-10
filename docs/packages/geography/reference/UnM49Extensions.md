@@ -44,7 +44,8 @@ sub-regions, and intermediate regions return `null`.
 the two country-keyed enumerations cannot represent a region as a value.
 
 On .NET Standard targets the `string?` return and parameter types are `string`
-annotated with JetBrains `[CanBeNull]` / `[NotNull]`.
+annotated with `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## Methods
 
@@ -55,8 +56,8 @@ extension methods.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `GetM49Codes(Type enumType)` | `ushort[]` | All M49 codes (global, region, sub-region, intermediate, and area) for an M49 area enum type. Throws `ArgumentNullException` if `enumType` is `null`; `ArgumentException` if it is not an enum. |
-| `GetM49Codes<T>()` *(where `T : struct, Enum`)* | `ushort[]` | Generic form of `GetM49Codes`. |
+| `GetM49Codes(Type enumType)` | `ushort[]` | All M49 codes (global, region, sub-region, intermediate, and area) for a UN M49 enum type. Throws `ArgumentNullException` if `enumType` is `null`; `ArgumentException` if it is not an enum, its underlying type is not `ushort`, or it has no members or a member without `UnM49AreaCodeAttribute`. |
+| `GetM49Codes<T>()` *(where `T : struct, Enum`)* | `ushort[]` | Generic form of `GetM49Codes`. Throws `ArgumentException` if the underlying type of `T` is not `ushort`, or `T` has no members or a member without `UnM49AreaCodeAttribute`. |
 
 ### Extension
 
@@ -78,9 +79,11 @@ extension methods.
 | `GetSubRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the sub-region code. |
 | `IsWithin(UnM49Area other)` | `UnM49Area` | `bool` | Whether the code falls within another area. An area does not fall within itself. |
 
+The `languageCode` parameter takes an ISO 639-1 or ISO 639-2/T code, such as `en` or `eng`, and matches it without regard to the case of its letters (RFC 5646 §2.1.1), so `EN` and `Eng` give the same name as `en`. A bibliographic ISO 639-2/B code, such as `fre` or `chi`, isn't matched, and a `null` code gives `null`. UN M49 gives names in Arabic, Chinese, English, French, Russian and Spanish; any other code gives `null`.
+
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 
@@ -92,4 +95,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [UnM49AreaByAlpha3CountryCode](UnM49AreaByAlpha3CountryCode.md)
 - [UnM49AreaCodeAttribute](UnM49AreaCodeAttribute.md)
 - [Geography API reference](index.md)
-</content>

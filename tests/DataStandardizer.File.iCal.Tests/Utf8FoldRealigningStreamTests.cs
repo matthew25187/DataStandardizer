@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DataStandardizer.File.ContentLine;
 using FluentAssertions;
 using Xunit;
 
@@ -10,6 +11,16 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class Utf8FoldRealigningStreamTests
     {
+        // Content lines with folds before and inside multi-octet characters: the euro sign, a grinning face and e-acute.
+        private const string FoldedUtf8Text = "SUMMARY:a\r\n b \x20AC\r\n\t\xD83D\xDE00 \xE9\r\nX:\n y\r\n";
+
+        // A UTF-16 byte order mark and U+0DE2 U+200A U+0D82, which in UTF-16 is E2 0D 0A 20 82 0D.
+        private static readonly byte[] WideByteOrderMarkInput = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("\x0DE2\x200A\x0D82")).ToArray();
+
+        // The folds that fill the 256 bytes held back inside a sequence, at three bytes a fold, and one too many.
+        private const int FoldsThatFillTheLimit = 85;
+        private const int FoldsOverTheLimit = 86;
+
         public static TheoryData<int> BufferSizeData()
         {
             return new TheoryData<int>(1, 2, 3, 4, 5, 6, 7, 16 * 1024);
@@ -20,7 +31,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void Read_AsciiAndWholeSequences_PassesThroughUnchanged(int bufferSize)
         {
             // arrange
-            var input = Encoding.UTF8.GetBytes("SUMMARY:a\r\n b €\r\n\t😀 é\r\nX:\n y\r\n");
+            var input = Encoding.UTF8.GetBytes(FoldedUtf8Text);
 
             // act
             var testResult = ReadThrough(input, bufferSize);
@@ -41,6 +52,35 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Equal(0x41, 0xE2, 0x82, 0xAC, 0x0D, 0x0A, 0x20, 0x42);
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizeData))]
+        public void Read_FoldsInsideSequenceUpToLimit_MovesAllAfterSequence(int bufferSize)
+        {
+            // arrange
+            var input = EuroSignWithFoldsAfterLeadByte(FoldsThatFillTheLimit);
+            var expected = EuroSignThenFolds(FoldsThatFillTheLimit);
+
+            // act
+            var testResult = ReadThrough(input, bufferSize);
+
+            // assert
+            testResult.Should().Equal(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizeData))]
+        public void Read_FoldsInsideSequenceOverLimit_EndsSequenceAndKeepsEveryByte(int bufferSize)
+        {
+            // arrange
+            var input = EuroSignWithFoldsAfterLeadByte(FoldsOverTheLimit);
+
+            // act
+            var testResult = ReadThrough(input, bufferSize);
+
+            // assert
+            testResult.Should().Equal(input);
         }
 
         [Theory]
@@ -133,7 +173,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             // In UTF-16, U+0DE2 U+200A is E2 0D 0A 20, which would otherwise look like a fold inside a UTF-8 sequence.
-            var input = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("෢ ං")).ToArray();
+            var input = WideByteOrderMarkInput;
 
             // act
             var testResult = ReadThrough(input, bufferSize);
@@ -185,6 +225,31 @@ namespace DataStandardizer.File.iCal.Tests
             inner.CanRead.Should().BeFalse();
         }
 
+        // Inputs of the synchronous tests, each with what the stream gives for it, and each buffer size and overload it is read with.
+        public static TheoryData<byte[], byte[], int, bool> AsyncCases()
+        {
+            var cases = new[]
+            {
+                (Encoding.UTF8.GetBytes(FoldedUtf8Text), Encoding.UTF8.GetBytes(FoldedUtf8Text)),
+                (new byte[] { 0x41, 0xE2, 0x0D, 0x0A, 0x20, 0x82, 0xAC, 0x42 }, new byte[] { 0x41, 0xE2, 0x82, 0xAC, 0x0D, 0x0A, 0x20, 0x42 }),
+                (new byte[] { 0xF0, 0x0D, 0x0A, 0x20, 0x9F, 0x0A, 0x09, 0x98, 0x0D, 0x0A, 0x09, 0x80, 0x41 },
+                    new byte[] { 0xF0, 0x9F, 0x98, 0x80, 0x0D, 0x0A, 0x20, 0x0A, 0x09, 0x0D, 0x0A, 0x09, 0x41 }),
+                (new byte[] { 0xE2, 0x82, 0x0D }, new byte[] { 0xE2, 0x82, 0x0D }),
+                (new byte[] { 0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00 }, new byte[] { 0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00 }),
+                (new byte[0], new byte[0]),
+            };
+            var data = new TheoryData<byte[], byte[], int, bool>();
+            foreach (var (input, expected) in cases)
+            {
+                foreach (var row in AsyncBufferSizeData())
+                {
+                    data.Add(input, expected, (int)row[0], (bool)row[1]);
+                }
+            }
+
+            return data;
+        }
+
         public static TheoryData<int, bool> AsyncBufferSizeData()
         {
             var data = new TheoryData<int, bool>();
@@ -200,51 +265,45 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(AsyncBufferSizeData))]
-        public async Task ReadAsync_AsyncOnlyInnerStream_MatchesRead(int bufferSize, bool useMemoryOverload)
+        [MemberData(nameof(AsyncCases))]
+        public async Task ReadAsync_AsyncOnlyInnerStream_RealignsFolds(byte[] input, byte[] expected, int bufferSize, bool useMemoryOverload)
         {
-            // arrange
-            byte[][] inputs =
-            {
-                Encoding.UTF8.GetBytes("SUMMARY:a\r\n b €\r\n\t😀 é\r\nX:\n y\r\n"),
-                new byte[] { 0x41, 0xE2, 0x0D, 0x0A, 0x20, 0x82, 0xAC, 0x42 },
-                new byte[] { 0xF0, 0x0D, 0x0A, 0x20, 0x9F, 0x0A, 0x09, 0x98, 0x0D, 0x0A, 0x09, 0x80, 0x41 },
-                new byte[] { 0xE2, 0x82, 0x0D },
-                new byte[] { 0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00 },
-                new byte[0]
-            };
+            // act
+            var testResult = await ReadThroughAsync(input, bufferSize, useMemoryOverload);
 
-            foreach (var input in inputs)
-            {
-                // act
-                var testResult = await ReadThroughAsync(input, bufferSize, useMemoryOverload);
-
-                // assert
-                testResult.Should().Equal(ReadThrough(input, bufferSize));
-            }
+            // assert
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
-        public async Task ReadAsync_Disposed_Throws()
+        public async Task ReadAsync_AfterDispose_ThrowsObjectDisposed()
         {
             // arrange
             var stream = new Utf8FoldRealigningStream(new AsyncOnlyStream(new byte[] { 0x41 }), false, 16);
-#if NETCOREAPP3_0_OR_GREATER
-            await stream.DisposeAsync();
-#else
             stream.Dispose();
-#endif
 
             // act
-#if NETCOREAPP2_1_OR_GREATER
-            Func<Task<int>> testAction = async () => await stream.ReadAsync(new byte[1]);
-#else
-            Func<Task<int>> testAction = async () => await stream.ReadAsync(new byte[1], 0, 1);
-#endif
+            Func<Task<int>> testAction = () => stream.ReadAsync(new byte[1], 0, 1);
 
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
         }
+
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public async Task ReadAsync_MemoryAfterDisposeAsync_ThrowsObjectDisposed()
+        {
+            // arrange
+            var stream = new Utf8FoldRealigningStream(new AsyncOnlyStream(new byte[] { 0x41 }), false, 16);
+            await stream.DisposeAsync();
+
+            // act
+            Func<Task<int>> testAction = () => stream.ReadAsync(new byte[1]).AsTask();
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+#endif
 
         /// <summary>
         /// Reads all of the input asynchronously through the stream, a few bytes at a time, from an inner stream that can only be read
@@ -284,6 +343,27 @@ namespace DataStandardizer.File.iCal.Tests
         /// <summary>
         /// Reads all of the input through the stream, a few bytes at a time.
         /// </summary>
+        /// <summary>
+        /// The euro sign in UTF-8, E2 82 AC, with a number of CRLF-space folds between its first and second octets.
+        /// </summary>
+        private static byte[] EuroSignWithFoldsAfterLeadByte(int foldCount)
+        {
+            return new byte[] { 0xE2 }.Concat(Folds(foldCount)).Concat(new byte[] { 0x82, 0xAC }).ToArray();
+        }
+
+        /// <summary>
+        /// The euro sign in UTF-8, E2 82 AC, followed by a number of CRLF-space folds.
+        /// </summary>
+        private static byte[] EuroSignThenFolds(int foldCount)
+        {
+            return new byte[] { 0xE2, 0x82, 0xAC }.Concat(Folds(foldCount)).ToArray();
+        }
+
+        private static byte[] Folds(int foldCount)
+        {
+            return Enumerable.Repeat(new byte[] { 0x0D, 0x0A, 0x20 }, foldCount).SelectMany(fold => fold).ToArray();
+        }
+
         private static byte[] ReadThrough(byte[] input, int bufferSize)
         {
             using (var stream = new Utf8FoldRealigningStream(new MemoryStream(input), false, bufferSize))

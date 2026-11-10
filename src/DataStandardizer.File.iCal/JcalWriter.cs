@@ -58,7 +58,9 @@ namespace DataStandardizer.File.iCal
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another
-    /// is in progress throws <see cref="InvalidOperationException"/>.
+    /// is in progress throws <see cref="InvalidOperationException"/>.  A write to the stream that fails, or a flush of it, leaves what reached
+    /// it unknown, so later calls throw <see cref="InvalidOperationException"/>, and disposal writes nothing more to the stream.  A calendar that is refused before
+    /// any of it is written, such as one that breaks a rule of RFC 5545, leaves the writer able to continue.
     /// </para>
     /// <para>
     /// jCal needs System.Text.Json, so this type is not available on netstandard1.1.
@@ -77,6 +79,7 @@ namespace DataStandardizer.File.iCal
         private readonly JcalBufferWriter _held = new JcalBufferWriter();
         private bool _isArrayStarted;
         private bool _isCanceled;
+        private bool _isFaulted;
         private bool _isHeld;
         private readonly Utf8JsonWriter _jsonWriter;
         private long _linesWritten;
@@ -210,7 +213,7 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
         /// <see cref="ObjectDisposedException"/>, and the document is ended once that operation has finished.  The file is closed even if ending
-        /// the document throws.
+        /// the document throws, and the task then faults with that exception, even an <see cref="OperationCanceledException"/>.
         /// </remarks>
         /// <returns>A task that completes once the document has been ended and the writer released.</returns>
         public ValueTask DisposeAsync()
@@ -219,7 +222,7 @@ namespace DataStandardizer.File.iCal
 
             if (Volatile.Read(ref _isOperationInProgress) == 0 && MarkReleased())
             {
-                return ReleaseAsync();
+                return new ValueTask(AsyncOutcome.Unwrap(AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), Task.CompletedTask)));
             }
 
             return default(ValueTask);
@@ -231,7 +234,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         public void Flush()
         {
             ThrowIfDisposed();
@@ -239,6 +242,12 @@ namespace DataStandardizer.File.iCal
             try
             {
                 _stream.Flush();
+            }
+            catch
+            {
+                // What reached the stream is now unknown.
+                _isFaulted = true;
+                throw;
             }
             finally
             {
@@ -259,7 +268,7 @@ namespace DataStandardizer.File.iCal
         /// jCal, and nothing has been written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         public void WriteCalendar(IcalCalendar calendar)
         {
             ThrowIfDisposed();
@@ -299,7 +308,7 @@ namespace DataStandardizer.File.iCal
         /// jCal.  The calendars before it have been written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public void WriteCalendars(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null)
 #else
@@ -334,20 +343,24 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Flushes the stream asynchronously.  A first calendar that is held until the next is written is not written.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the flush is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The flush is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once the stream has been flushed.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the flush is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// flush failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.  Either way, the writer
+        /// then cannot continue.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
             BeginOperation();
-            return FlushCoreAsync(cancellationToken);
+            return AsyncOutcome.Unwrap(FlushCoreAsync(cancellationToken));
         }
 
         /// <summary>
@@ -355,17 +368,22 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <param name="calendar">The calendar.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked before the calendar is written, so that a
-        /// canceled write never leaves part of a calendar.  If the write is canceled, the writer cannot continue.</param>
+        /// canceled write never leaves part of a calendar.  The write is canceled only if this token is canceled, and the writer then
+        /// cannot continue.</param>
         /// <returns>A task that completes once the calendar has been written to the stream, or held as the first calendar.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="calendar"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="IcalFileException">By the task: the calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
         /// written in jCal, and nothing has been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.  The writer can then
+        /// continue, unless the failure was in a write to the stream.</exception>
         public ValueTask WriteCalendarAsync(IcalCalendar calendar, CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the calendar or the I/O, and cancellation, go to the task.
@@ -374,7 +392,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(calendar));
 
             BeginOperation();
-            return WriteCalendarOperationAsync(calendar, cancellationToken);
+            return new ValueTask(AsyncOutcome.Unwrap(WriteCalendarOperationAsync(calendar, cancellationToken)));
         }
 
         /// <summary>
@@ -387,20 +405,25 @@ namespace DataStandardizer.File.iCal
         /// <param name="progress">Receives the progress after each calendar has been written, synchronously on the writing thread; or
         /// <c>null</c>.  Its <see cref="IcalWriteProgress.LinesWritten"/> is the number of content lines the calendars written so far would have
         /// in <c>.ics</c> form.  An exception it throws ends the call; the calendar it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between calendars.  If the write is
-        /// canceled, the writer cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between calendars.  The write is
+        /// canceled only if this token is canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every calendar has been written.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="calendars"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="calendars"/> contains <c>null</c>.  The calendars before it have
         /// been written.</exception>
         /// <exception cref="IcalFileException">By the task: a calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
         /// written in jCal.  The calendars before it have been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying writer,
+        /// <paramref name="calendars"/> or <paramref name="progress"/>.  The writer can then continue, unless the failure was in a write to the
+        /// stream.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteCalendarsAsync(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null,
 #else
@@ -413,7 +436,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(calendars));
 
             BeginOperation();
-            return WriteCalendarsCoreAsync(calendars, progress, cancellationToken);
+            return AsyncOutcome.Unwrap(WriteCalendarsCoreAsync(calendars, progress, cancellationToken));
         }
 
         /// <summary>
@@ -426,20 +449,25 @@ namespace DataStandardizer.File.iCal
         /// <param name="progress">Receives the progress after each calendar has been written, synchronously on the writing thread; or
         /// <c>null</c>.  Its <see cref="IcalWriteProgress.LinesWritten"/> is the number of content lines the calendars written so far would have
         /// in <c>.ics</c> form.  An exception it throws ends the call; the calendar it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between calendars.  If the write is
-        /// canceled, the writer cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between calendars.  The write is
+        /// canceled only if this token is canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every calendar has been written.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="calendars"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="calendars"/> contains <c>null</c>.  The calendars before it have
         /// been written.</exception>
         /// <exception cref="IcalFileException">By the task: a calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
         /// written in jCal.  The calendars before it have been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying writer,
+        /// <paramref name="calendars"/> or <paramref name="progress"/>.  The writer can then continue, unless the failure was in a write to the
+        /// stream.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteCalendarsAsync(IAsyncEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null,
 #else
@@ -452,51 +480,53 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(calendars));
 
             BeginOperation();
-            return WriteAsyncCalendarsCoreAsync(calendars, progress, cancellationToken);
+            return AsyncOutcome.Unwrap(WriteAsyncCalendarsCoreAsync(calendars, progress, cancellationToken));
         }
 
-        private async Task FlushCoreAsync(CancellationToken cancellationToken)
+        private async ValueTask<Task> FlushCoreAsync(CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                _isCanceled = true;
-                throw;
-            }
-            finally
-            {
-                if (EndOperation())
+                try
                 {
-                    await ReleaseAsync().ConfigureAwait(false);
+                    await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
+
+                outcome = Task.CompletedTask;
             }
+            catch (Exception exception)
+            {
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
+            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
-        private async ValueTask WriteCalendarOperationAsync(IcalCalendar calendar, CancellationToken cancellationToken)
+        private async ValueTask<Task> WriteCalendarOperationAsync(IcalCalendar calendar, CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 await WriteCalendarCoreAsync(calendar, cancellationToken).ConfigureAwait(false);
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
-        private async Task WriteCalendarsCoreAsync(IEnumerable<IcalCalendar> calendars,
+        private async ValueTask<Task> WriteCalendarsCoreAsync(IEnumerable<IcalCalendar> calendars,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<IcalWriteProgress>? progress,
 #else
@@ -504,6 +534,7 @@ namespace DataStandardizer.File.iCal
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 foreach (var calendar in calendars)
@@ -514,22 +545,17 @@ namespace DataStandardizer.File.iCal
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
-        private async Task WriteAsyncCalendarsCoreAsync(IAsyncEnumerable<IcalCalendar> calendars,
+        private async ValueTask<Task> WriteAsyncCalendarsCoreAsync(IAsyncEnumerable<IcalCalendar> calendars,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<IcalWriteProgress>? progress,
 #else
@@ -537,6 +563,7 @@ namespace DataStandardizer.File.iCal
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 var enumerator = calendars.GetAsyncEnumerator(cancellationToken);
@@ -559,19 +586,14 @@ namespace DataStandardizer.File.iCal
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
         /// <summary>
@@ -586,14 +608,23 @@ namespace DataStandardizer.File.iCal
             Encode(calendar, out componentCount, out propertyCount);
             if (_calendarsWritten != 0)
             {
-                if (_isHeld)
+                try
                 {
-                    await _stream.WriteAsync(ArrayStart, 0, ArrayStart.Length, CancellationToken.None).ConfigureAwait(false);
-                    await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
-                    ReleaseHeld();
-                }
+                    if (_isHeld)
+                    {
+                        await _stream.WriteAsync(ArrayStart, 0, ArrayStart.Length, CancellationToken.None).ConfigureAwait(false);
+                        await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
+                        ReleaseHeld();
+                    }
 
-                await _stream.WriteAsync(_encoded.Buffer, 0, _encoded.Count, CancellationToken.None).ConfigureAwait(false);
+                    await _stream.WriteAsync(_encoded.Buffer, 0, _encoded.Count, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
             }
 
             CountCalendar(componentCount, propertyCount);
@@ -606,16 +637,19 @@ namespace DataStandardizer.File.iCal
         {
             try
             {
-                if (_isHeld)
+                if (!_isFaulted)
                 {
-                    await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
-                }
-                else if (_isArrayStarted)
-                {
-                    await _stream.WriteAsync(ArrayEnd, 0, ArrayEnd.Length, CancellationToken.None).ConfigureAwait(false);
-                }
+                    if (_isHeld)
+                    {
+                        await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    else if (_isArrayStarted)
+                    {
+                        await _stream.WriteAsync(ArrayEnd, 0, ArrayEnd.Length, CancellationToken.None).ConfigureAwait(false);
+                    }
 
-                await _stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
             }
             finally
             {
@@ -640,14 +674,23 @@ namespace DataStandardizer.File.iCal
             Encode(calendar, out componentCount, out propertyCount);
             if (_calendarsWritten != 0)
             {
-                if (_isHeld)
+                try
                 {
-                    _stream.Write(ArrayStart, 0, ArrayStart.Length);
-                    _stream.Write(_held.Buffer, 0, _held.Count);
-                    ReleaseHeld();
-                }
+                    if (_isHeld)
+                    {
+                        _stream.Write(ArrayStart, 0, ArrayStart.Length);
+                        _stream.Write(_held.Buffer, 0, _held.Count);
+                        ReleaseHeld();
+                    }
 
-                _stream.Write(_encoded.Buffer, 0, _encoded.Count);
+                    _stream.Write(_encoded.Buffer, 0, _encoded.Count);
+                }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
             }
 
             CountCalendar(componentCount, propertyCount);
@@ -664,6 +707,9 @@ namespace DataStandardizer.File.iCal
             IcalConformance.Validate(calendar, true, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
+                // jCal has no quoting, so a value quoted where it was read is written like any other.
+                if (diagnostic.Kind == IcalDiagnosticKind.QuotedParameterValue) continue;
+
                 if (!IcalConformance.IsAccepted(diagnostic.Kind, _options))
                     throw IcalConformance.BuildException(diagnostic);
             }
@@ -800,7 +846,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Marks an operation as in progress.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Another operation is in progress, or an earlier one was canceled.</exception>
+        /// <exception cref="InvalidOperationException">Another operation is in progress, or an earlier one was canceled or failed to write to or flush the stream.</exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         private void BeginOperation()
         {
@@ -826,6 +872,16 @@ namespace DataStandardizer.File.iCal
                 }
 
                 throw new InvalidOperationException("The writer cannot continue after an operation was canceled.");
+            }
+
+            if (_isFaulted)
+            {
+                if (EndOperation())
+                {
+                    Release();
+                }
+
+                throw new InvalidOperationException("The writer cannot continue after a write to the stream or a flush of it failed.");
             }
         }
 
@@ -855,16 +911,19 @@ namespace DataStandardizer.File.iCal
         {
             try
             {
-                if (_isHeld)
+                if (!_isFaulted)
                 {
-                    _stream.Write(_held.Buffer, 0, _held.Count);
-                }
-                else if (_isArrayStarted)
-                {
-                    _stream.Write(ArrayEnd, 0, ArrayEnd.Length);
-                }
+                    if (_isHeld)
+                    {
+                        _stream.Write(_held.Buffer, 0, _held.Count);
+                    }
+                    else if (_isArrayStarted)
+                    {
+                        _stream.Write(ArrayEnd, 0, ArrayEnd.Length);
+                    }
 
-                _stream.Flush();
+                    _stream.Flush();
+                }
             }
             finally
             {

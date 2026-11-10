@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using static DataStandardizer.File.iCal.Tests.IcalLines;
 using static DataStandardizer.File.iCal.Tests.IcalTestData;
 
 namespace DataStandardizer.File.iCal.Tests
@@ -18,17 +19,17 @@ namespace DataStandardizer.File.iCal.Tests
         /// RFC 6321 Appendix B.1, in iCalendar form.
         /// </summary>
         public static readonly string Example1Ical = Crlf(
-            "BEGIN:VCALENDAR",
+            BeginCalendar,
             "CALSCALE:GREGORIAN",
             "PRODID:-//Example Inc.//Example Calendar//EN",
-            "VERSION:2.0",
-            "BEGIN:VEVENT",
+            Version20,
+            BeginEvent,
             "DTSTAMP:20080205T191224Z",
             "DTSTART;VALUE=DATE:20081006",
             "SUMMARY:Planning meeting",
             "UID:4088E990AD89CB3DBB484909",
-            "END:VEVENT",
-            "END:VCALENDAR");
+            EndEvent,
+            EndCalendar);
 
         /// <summary>
         /// RFC 6321 Appendix B.1, in xCal form.
@@ -81,28 +82,28 @@ namespace DataStandardizer.File.iCal.Tests
         /// corrected here.
         /// </remarks>
         public static readonly string Example2Ical = Crlf(
-            "BEGIN:VCALENDAR",
+            BeginCalendar,
             "PRODID:-//Example Inc.//Example Client//EN",
-            "VERSION:2.0",
-            "BEGIN:VTIMEZONE",
+            Version20,
+            BeginTimeZone,
             "LAST-MODIFIED:20040110T032845Z",
             "TZID:US/Eastern",
-            "BEGIN:DAYLIGHT",
+            BeginDaylight,
             "DTSTART:20000404T020000",
             "RRULE:FREQ=YEARLY;BYDAY=1SU;BYMONTH=4",
             "TZNAME:EDT",
             "TZOFFSETFROM:-0500",
             "TZOFFSETTO:-0400",
-            "END:DAYLIGHT",
-            "BEGIN:STANDARD",
+            EndDaylight,
+            BeginStandard,
             "DTSTART:20001026T020000",
             "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10",
             "TZNAME:EST",
             "TZOFFSETFROM:-0400",
             "TZOFFSETTO:-0500",
-            "END:STANDARD",
-            "END:VTIMEZONE",
-            "BEGIN:VEVENT",
+            EndStandard,
+            EndTimeZone,
+            BeginEvent,
             "DTSTAMP:20060206T001121Z",
             "DTSTART;TZID=US/Eastern:20060102T120000",
             "DURATION:PT1H",
@@ -114,16 +115,16 @@ namespace DataStandardizer.File.iCal.Tests
             " ours long.\\nPlease bring your own lunch for the 12 pm meetin",
             " gs.",
             "UID:00959BC664CA650E933C892C@example.com",
-            "END:VEVENT",
-            "BEGIN:VEVENT",
+            EndEvent,
+            BeginEvent,
             "DTSTAMP:20060206T001121Z",
             "DTSTART;TZID=US/Eastern:20060104T140000",
             "DURATION:PT1H",
             "RECURRENCE-ID;TZID=US/Eastern:20060104T120000",
             "SUMMARY:Event #2 bis",
             "UID:00959BC664CA650E933C892C@example.com",
-            "END:VEVENT",
-            "END:VCALENDAR");
+            EndEvent,
+            EndCalendar);
 
         /// <summary>
         /// RFC 6321 Appendix B.2, in xCal form.

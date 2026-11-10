@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DataStandardizer.File.InternetMessage\DataStandardizer.File.InternetMessage.csproj" />
+    <!-- Builds the netstandard1.1 target too, without referencing it, so that NetStandard11BuildTests can check it has no asynchronous or
+         file-path members.  CopyNetStandard11Build copies it to the netstandard1.1 folder of the output. -->
+    <ProjectReference Include="..\..\src\DataStandardizer.File.InternetMessage\DataStandardizer.File.InternetMessage.csproj" SetTargetFramework="TargetFramework=netstandard1.1"
+                      ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" OutputItemType="NetStandard11Build" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The helpers that read header sections and messages are shared with the unit tests. -->
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\AsyncDisposal.cs" Link="Shared\AsyncDisposal.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\EntityEvents.cs" Link="Shared\EntityEvents.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\FieldSnapshot.cs" Link="Shared\FieldSnapshot.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\HeaderSections.cs" Link="Shared\HeaderSections.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\Mailboxes.cs" Link="Shared\Mailboxes.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\Octets.cs" Link="Shared\Octets.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\Rfc5322Messages.cs" Link="Shared\Rfc5322Messages.cs" />
+  </ItemGroup>
+
+  <Target Name="CopyNetStandard11Build" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy SourceFiles="@(NetStandard11Build)" DestinationFolder="$(OutDir)netstandard1.1" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

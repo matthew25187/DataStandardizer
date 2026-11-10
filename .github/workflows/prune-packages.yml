@@ -1,0 +1,54 @@
+# Deletes preview versions from GitHub Packages once their release exists (or they pass the age limit), unless they were
+# promoted, published to nuget.org, or are a package's current version.  Releases and tags are never deleted.  See
+# build/scripts/PrunePreviewPackages.ps1.
+
+name: Prune preview packages
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      what-if:
+        description: 'List what would be deleted without deleting it'
+        type: boolean
+        default: true
+      max-age-days:
+        description: 'Delete previews older than this many days even without a release (0 for no limit)'
+        type: string
+        default: '180'
+  workflow_call:
+    inputs:
+      what-if:
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  prune:
+    name: Prune
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Prune
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VARIABLES_JSON: ${{ toJSON(vars) }}
+          # Until publishing is enabled, a scheduled run only lists.
+          WHAT_IF: ${{ inputs.what-if == true || (github.event_name == 'schedule' && vars.DS_PUBLISH_ENABLED != 'true') }}
+          MAX_AGE_DAYS: ${{ inputs.max-age-days || '180' }}
+        run: |
+          $InformationPreference = 'Continue'
+          $snapshot = Join-Path $env:RUNNER_TEMP 'vars.json'
+          Set-Content -LiteralPath $snapshot -Value $env:VARIABLES_JSON
+          ./build/scripts/PrunePreviewPackages.ps1 -VariablesFile $snapshot -MaxAgeDays ([int]$env:MAX_AGE_DAYS) -WhatIf:($env:WHAT_IF -eq 'true')

@@ -1,7 +1,7 @@
 ﻿using System;
 using DataStandardizer.Core;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -26,13 +26,13 @@ namespace DataStandardizer.Geography
             SubdivisionParentCode = subdivisionParentCode;
         }
 #else
-        internal Iso3166SubdivisionCodeAttribute(ushort subdivisionCategoryIdentifier, [NotNull] string subdivisionCode)
+        internal Iso3166SubdivisionCodeAttribute(ushort subdivisionCategoryIdentifier, [DisallowNull] string subdivisionCode)
         {
             SubdivisionCategoryIdentifier = subdivisionCategoryIdentifier;
             SubdivisionCode = subdivisionCode;
         }
 
-        internal Iso3166SubdivisionCodeAttribute(ushort subdivisionCategoryIdentifier, [NotNull] string subdivisionCode, [NotNull] string subdivisionParentCode) : this(subdivisionCategoryIdentifier, subdivisionCode)
+        internal Iso3166SubdivisionCodeAttribute(ushort subdivisionCategoryIdentifier, [DisallowNull] string subdivisionCode, [DisallowNull] string subdivisionParentCode) : this(subdivisionCategoryIdentifier, subdivisionCode)
         {
             SubdivisionParentCode = subdivisionParentCode;
         }
@@ -58,7 +58,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SubdivisionParentCode { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SubdivisionParentCode { get; set; }
 #endif
 

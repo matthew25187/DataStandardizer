@@ -1,6 +1,6 @@
 #########################################################################
 # Title: ISO 3166 Part 2 Source Code Generator                          #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.       #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.  #
 #                                                                       #
 # Purpose: Generate source code for implementing the ISO 3166 standard. #
 # Source: Country Codes Collection, ISO.                                #
@@ -223,7 +223,7 @@ function Out-SourceCode {
             $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Geography.$TypeName(string value)
     #else
-            public static explicit operator DataStandardizer.Geography.$TypeName([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator DataStandardizer.Geography.$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
                 return new DataStandardizer.Geography.$TypeName(value);
@@ -235,7 +235,7 @@ function Out-SourceCode {
             $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Geography.$TypeName value)
     #else
-            [JetBrains.Annotations.CanBeNullAttribute]
+            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
             public static implicit operator string(DataStandardizer.Geography.$TypeName value)
     #endif
             {
@@ -334,6 +334,13 @@ function Out-SourceCode {
         # Add name attributes.
         $subdivisionCode = $_.subdivision_code
         $subdivisionNamesCurrentSet = $SubdivisionNamesSet | Where-Object { $_.alpha_2_code -eq $IncludeFieldsForCountryCode -and $_.subdivision_code -eq $subdivisionCode }
+        # A language with several names (one per romanization system) gives each name its position in the source data, so that the
+        # name listed first can be chosen without relying on the order in which reflection returns attributes.
+        $subdivisionNameLanguageCounts = @{}
+        foreach ($subdivisionName in $subdivisionNamesCurrentSet) {
+            $subdivisionNameLanguageCounts[$subdivisionName.language_alpha_3_code] = ($subdivisionNameLanguageCounts[$subdivisionName.language_alpha_3_code] ?? 0) + 1
+        }
+        $subdivisionNameLanguageSequences = @{}
         foreach ($subdivisionName in $subdivisionNamesCurrentSet) {
             $subdivisionNameLanguage = (-not [string]::IsNullOrWhiteSpace($subdivisionName.language))?$subdivisionName.language:$null
             $subdivisionNameAttributeArguments = @(
@@ -341,6 +348,11 @@ function Out-SourceCode {
                 [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($subdivisionName.language_alpha_3_code)),
                 [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($subdivisionName.subdivision_category_id -as [ushort])),
                 [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($subdivisionName.subdivision_name)))
+            if ($subdivisionNameLanguageCounts[$subdivisionName.language_alpha_3_code] -gt 1) {
+                $subdivisionNameSequence = $subdivisionNameLanguageSequences[$subdivisionName.language_alpha_3_code] ?? 0
+                $subdivisionNameLanguageSequences[$subdivisionName.language_alpha_3_code] = $subdivisionNameSequence + 1
+                $subdivisionNameAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($subdivisionNameSequence -as [int]))
+            }
             if (-not [string]::IsNullOrWhiteSpace($subdivisionName.subdivision_name_local_variation)) {
                 $subdivisionNameAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('SubdivisionNameLocalVariant', [System.CodeDom.CodePrimitiveExpression]::new($subdivisionName.subdivision_name_local_variation))
             }
@@ -397,11 +409,11 @@ function Out-SourceCode {
                 (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                 (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
+                (Get-CompareToMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
                 (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-                (Get-CompareToMethodDefinition),
+                (Get-CompareToMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                 (Get-SpecialToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')

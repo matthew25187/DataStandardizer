@@ -1,475 +1,1202 @@
-﻿using System.Collections;
-using System.Collections.Specialized;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
+using Xunit;
 
-namespace DataStandardizer.File.CSV.Tests;
-
-/// <summary>
-/// Checks that a CSV line behaves as an <see cref="IOrderedDictionary"/> in the same way as the non-generic
-/// <see cref="OrderedDictionary"/>, which each test also runs against as the reference implementation.
-/// </summary>
-public class CsvFileLineDictionaryContractTests
+namespace DataStandardizer.File.CSV.Tests
 {
-    public static TheoryData<string> Implementations => new() { RecordLine, Reference };
-
-    private const string RecordLine = nameof(CsvFileRecordLine);
-    private const string Reference = nameof(OrderedDictionary);
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void IntIndexer_Get_ReturnsValueAtPosition(string implementation)
+    /// <summary>
+    /// Checks that a CSV line behaves as an ordered, string-keyed collection of fields.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The project runs these tests once for each target framework, and the line has a different backing store on each: the
+    /// <c>net10.0</c> build of the package uses the generic <c>OrderedDictionary&lt;string, object?&gt;</c>, and the
+    /// <c>netstandard2.0</c> build that <c>net48</c> gets uses the package's own ordered store.  The expected results are the
+    /// ones the non-generic <c>OrderedDictionary</c> gave in version 1.x for positions, order and exceptions.
+    /// </para>
+    /// <para>
+    /// Each line starts with the fields A = 1, B = 2 and C = 3, in that order.  The members that change a line return
+    /// nothing, so their tests look at the line's entries afterwards, in the order that enumerating it gives them.
+    /// </para>
+    /// </remarks>
+    public class CsvFileLineDictionaryContractTests
     {
-        // arrange
-        var testLine = CreateLine(implementation);
+        // The fields each line starts with.
+        private const string KeyA = "A";
+        private const string KeyB = "B";
+        private const string KeyC = "C";
+        private const string ValueA = "1";
+        private const string ValueB = "2";
+        private const string ValueC = "3";
+        private const int FieldCount = 3;
 
-        // act
-        var value = testLine[1];
+        // Keys and values the tests add.
+        private const string MissingKey = "Z";
+        private const string NewKey = "D";
+        private const string NewValue = "x";
+        private const string OtherNewKey = "E";
+        private const string OtherNewValue = "y";
 
-        // assert
-        value.Should().Be("2");
-    }
+        private const string ReplacementValue = "two";
+        private const int NotFound = -1;
 
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void IntIndexer_Set_ReplacesValueAtPosition(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
+        private static readonly KeyValuePair<string, object> EntryA = new KeyValuePair<string, object>(KeyA, ValueA);
+        private static readonly KeyValuePair<string, object> EntryB = new KeyValuePair<string, object>(KeyB, ValueB);
+        private static readonly KeyValuePair<string, object> EntryC = new KeyValuePair<string, object>(KeyC, ValueC);
+        private static readonly KeyValuePair<string, object> NewEntry = new KeyValuePair<string, object>(NewKey, NewValue);
 
-        // act
-        testLine[1] = "two";
-
-        // assert
-        Entries(testLine).Should().Equal(Entry("A", "1"), Entry("B", "two"), Entry("C", "3"));
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void IntIndexer_OutOfRange_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var getAction = () => testLine[3];
-        var setAction = () => testLine[-1] = "x";
-
-        // assert
-        getAction.Should().Throw<ArgumentOutOfRangeException>();
-        setAction.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void KeyIndexer_Get_ReturnsValueForKey(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var value = testLine["C"];
-
-        // assert
-        value.Should().Be("3");
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void KeyIndexer_GetMissingKey_ReturnsNull(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var value = testLine["Z"];
-
-        // assert
-        value.Should().BeNull();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void KeyIndexer_SetExistingKey_ReplacesValueInPlace(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine["A"] = "one";
-
-        // assert
-        Entries(testLine).Should().Equal(Entry("A", "one"), Entry("B", "2"), Entry("C", "3"));
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void KeyIndexer_SetMissingKey_AddsAtEnd(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine["D"] = null;
-
-        // assert
-        Entries(testLine).Should().Equal(Entry("A", "1"), Entry("B", "2"), Entry("C", "3"), Entry("D", null));
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Add_DuplicateKey_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var action = () => testLine.Add("B", "x");
-
-        // assert
-        action.Should().Throw<ArgumentException>();
-        Entries(testLine).Should().Equal(Entry("A", "1"), Entry("B", "2"), Entry("C", "3"));
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void NullKey_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var actions = new Action[]
+        /// <summary>
+        /// Every member that takes a field name, called with a null name.
+        /// </summary>
+        public static TheoryData<LineOperation> NullKeyOperations => new TheoryData<LineOperation>
         {
-            () => testLine.Add(null!, "x"),
-            () => _ = testLine[null!],
-            () => testLine[null!] = "x",
-            () => testLine.Contains(null!),
-            () => testLine.Remove(null!),
-            () => testLine.Insert(0, null!, "x")
+            new LineOperation("Add", line => line.Add(null, NewValue)),
+            new LineOperation("get key indexer", line => _ = line[null]),
+            new LineOperation("set key indexer", line => line[null] = NewValue),
+            new LineOperation("Contains", line => line.Contains(null)),
+            new LineOperation("IndexOf", line => line.IndexOf(null)),
+            new LineOperation("TryGetValue", line => line.TryGetValue(null, out _)),
+            new LineOperation("Remove", line => line.Remove(null)),
+            new LineOperation("Insert", line => line.Insert(0, null, NewValue))
         };
 
-        // assert
-        foreach (var action in actions)
+        /// <summary>
+        /// Every member that takes a position, called with a position past the last field.
+        /// </summary>
+        public static TheoryData<LineOperation> IndexPastEndOperations => new TheoryData<LineOperation>
         {
-            action.Should().Throw<ArgumentNullException>();
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Insert_AddsAtPosition(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine.Insert(0, "First", "0");
-        testLine.Insert(2, "Middle", "1.5");
-        testLine.Insert(testLine.Count, "Last", "4");
-
-        // assert
-        Entries(testLine).Should().Equal(
-            Entry("First", "0"), Entry("A", "1"), Entry("Middle", "1.5"), Entry("B", "2"), Entry("C", "3"), Entry("Last", "4"));
-        testLine["Middle"].Should().Be("1.5");
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Insert_DuplicateKeyOrOutOfRange_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var duplicateAction = () => testLine.Insert(0, "C", "x");
-        var outOfRangeAction = () => testLine.Insert(4, "D", "x");
-
-        // assert
-        duplicateAction.Should().Throw<ArgumentException>();
-        outOfRangeAction.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void RemoveAt_RemovesAtPosition(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine.RemoveAt(0);
-
-        // assert
-        Entries(testLine).Should().Equal(Entry("B", "2"), Entry("C", "3"));
-        testLine.Contains("A").Should().BeFalse();
-        testLine[0].Should().Be("2");
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void RemoveAt_OutOfRange_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var action = () => testLine.RemoveAt(3);
-
-        // assert
-        action.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Remove_RemovesKeyAndIgnoresMissingKey(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine.Remove("B");
-        testLine.Remove("Z");
-
-        // assert
-        Entries(testLine).Should().Equal(Entry("A", "1"), Entry("C", "3"));
-        testLine[1].Should().Be("3");
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Contains_ReportsKeyPresence(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var containsPresent = testLine.Contains("A");
-        var containsMissing = testLine.Contains("Z");
-        var containsValue = testLine.Contains("1");
-
-        // assert
-        containsPresent.Should().BeTrue();
-        containsMissing.Should().BeFalse();
-        containsValue.Should().BeFalse();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Enumeration_AfterInsertsAndRemovals_FollowsPositionOrder(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine.Remove("A");
-        testLine.Insert(1, "X", "x");
-        testLine.Add("A", "1");
-        testLine.RemoveAt(0);
-
-        // assert
-        var expected = new[] { Entry("X", "x"), Entry("C", "3"), Entry("A", "1") };
-        Entries(testLine).Should().Equal(expected);
-        EntriesFrom(((IDictionary)testLine).GetEnumerator()).Should().Equal(expected);
-        ((IEnumerable)testLine).Cast<object>().Should().AllBeOfType<DictionaryEntry>().And.Equal(expected.Cast<object>());
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Enumeration_ModifiedDuringEnumeration_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-        var enumerator = testLine.GetEnumerator();
-        enumerator.MoveNext();
-
-        // act
-        testLine.Add("D", "4");
-        var action = () => enumerator.MoveNext();
-
-        // assert
-        action.Should().Throw<InvalidOperationException>();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void KeysAndValues_FollowPositionOrder(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-        testLine.Insert(0, "Z", "26");
-
-        // act
-        var keys = testLine.Keys;
-        var values = testLine.Values;
-
-        // assert
-        keys.Count.Should().Be(4);
-        values.Count.Should().Be(4);
-        keys.Cast<object>().Should().Equal("Z", "A", "B", "C");
-        values.Cast<object>().Should().Equal("26", "1", "2", "3");
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void KeysAndValues_CopyTo_CopiesInPositionOrder(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-        var keys = new object[4];
-        var values = new object[4];
-
-        // act
-        testLine.Keys.CopyTo(keys, 1);
-        testLine.Values.CopyTo(values, 1);
-
-        // assert
-        keys.Should().Equal(new object?[] { null, "A", "B", "C" });
-        values.Should().Equal(new object?[] { null, "1", "2", "3" });
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void CopyTo_CopiesDictionaryEntriesInPositionOrder(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-        var entries = new DictionaryEntry[4];
-        var objects = new object[3];
-
-        // act
-        testLine.CopyTo(entries, 1);
-        testLine.CopyTo(objects, 0);
-
-        // assert
-        var expected = new[] { Entry("A", "1"), Entry("B", "2"), Entry("C", "3") };
-        entries[0].Should().Be(default(DictionaryEntry));
-        if (implementation == Reference)
-        {
-            // The non-generic OrderedDictionary copies from its Hashtable, so its order is unspecified.  CSV lines
-            // copy in field order on every target.
-            entries.Skip(1).Should().BeEquivalentTo(expected);
-            objects.Should().BeEquivalentTo(expected.Cast<object>());
-        }
-        else
-        {
-            entries.Skip(1).Should().Equal(expected);
-            objects.Should().Equal(expected.Cast<object>());
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void CopyTo_InvalidTarget_Throws(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        var nullAction = () => testLine.CopyTo(null!, 0);
-        var negativeIndexAction = () => testLine.CopyTo(new object[3], -1);
-        var tooSmallAction = () => testLine.CopyTo(new object[3], 1);
-
-        // assert
-        nullAction.Should().Throw<ArgumentNullException>();
-        negativeIndexAction.Should().Throw<ArgumentOutOfRangeException>();
-        tooSmallAction.Should().Throw<ArgumentException>();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void Clear_RemovesAllFields(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act
-        testLine.Clear();
-
-        // assert
-        testLine.Count.Should().Be(0);
-        testLine["A"].Should().BeNull();
-        Entries(testLine).Should().BeEmpty();
-    }
-
-    [Theory]
-    [MemberData(nameof(Implementations))]
-    public void CollectionProperties_DescribeWritableUnsynchronizedDictionary(string implementation)
-    {
-        // arrange
-        var testLine = CreateLine(implementation);
-
-        // act / assert
-        testLine.Count.Should().Be(3);
-        testLine.IsFixedSize.Should().BeFalse();
-        testLine.IsReadOnly.Should().BeFalse();
-        testLine.IsSynchronized.Should().BeFalse();
-        testLine.SyncRoot.Should().NotBeNull();
-    }
-
-#if NET9_0_OR_GREATER
-    [Fact]
-    public void NonStringKey_OnGenericBackingStore_ThrowsOnWriteAndIsMissingOnRead()
-    {
-        // arrange
-        IOrderedDictionary testLine = CreateLine(RecordLine);
-
-        // act
-        var writeActions = new Action[]
-        {
-            () => testLine.Add(1, "x"),
-            () => ((IDictionary)testLine)[1] = "x",
-            () => testLine.Insert(0, 1, "x")
+            new LineOperation("get int indexer", line => _ = line[FieldCount]),
+            new LineOperation("set int indexer", line => line[FieldCount] = NewValue),
+            new LineOperation("GetAt", line => line.GetAt(FieldCount)),
+            new LineOperation("RemoveAt", line => line.RemoveAt(FieldCount)),
+            new LineOperation("Insert", line => line.Insert(FieldCount + 1, NewKey, NewValue)),
+            new LineOperation("Keys indexer", line => _ = line.Keys[FieldCount]),
+            new LineOperation("Values indexer", line => _ = line.Values[FieldCount])
         };
-        var value = ((IDictionary)testLine)[1];
-        var contains = testLine.Contains(1);
-        testLine.Remove(1);
 
-        // assert
-        foreach (var action in writeActions)
+        /// <summary>
+        /// Every member that takes a position, called with a negative position.
+        /// </summary>
+        public static TheoryData<LineOperation> NegativeIndexOperations => new TheoryData<LineOperation>
         {
-            action.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("key");
-        }
-
-        value.Should().BeNull();
-        contains.Should().BeFalse();
-        Entries(testLine).Should().Equal(Entry("A", "1"), Entry("B", "2"), Entry("C", "3"));
-    }
-#endif
-
-    private static IOrderedDictionary CreateLine(string implementation)
-    {
-        IOrderedDictionary testLine = implementation switch
-        {
-            RecordLine => new CsvFileRecordLine(),
-            Reference => new OrderedDictionary(),
-            _ => throw new ArgumentOutOfRangeException(nameof(implementation))
+            new LineOperation("get int indexer", line => _ = line[-1]),
+            new LineOperation("set int indexer", line => line[-1] = NewValue),
+            new LineOperation("GetAt", line => line.GetAt(-1)),
+            new LineOperation("RemoveAt", line => line.RemoveAt(-1)),
+            new LineOperation("Insert", line => line.Insert(-1, NewKey, NewValue)),
+            new LineOperation("Keys indexer", line => _ = line.Keys[-1]),
+            new LineOperation("Values indexer", line => _ = line.Values[-1])
         };
-        testLine.Add("A", "1");
-        testLine.Add("B", "2");
-        testLine.Add("C", "3");
 
-        return testLine;
-    }
-
-    private static DictionaryEntry Entry(string key, object? value)
-    {
-        return new DictionaryEntry(key, value);
-    }
-
-    private static List<DictionaryEntry> Entries(IOrderedDictionary testLine)
-    {
-        return EntriesFrom(testLine.GetEnumerator());
-    }
-
-    private static List<DictionaryEntry> EntriesFrom(IDictionaryEnumerator enumerator)
-    {
-        var entries = new List<DictionaryEntry>();
-        while (enumerator.MoveNext())
+        /// <summary>
+        /// Every change that adds or removes a field, which invalidates an enumerator of the line.
+        /// </summary>
+        public static TheoryData<LineOperation> StructuralChanges => new TheoryData<LineOperation>
         {
-            entries.Add(new DictionaryEntry(enumerator.Key, enumerator.Value));
-            enumerator.Entry.Should().Be((DictionaryEntry)enumerator.Current);
+            new LineOperation("Add", line => line.Add(NewKey, NewValue)),
+            new LineOperation("set key indexer to a new key", line => line[NewKey] = NewValue),
+            new LineOperation("Insert", line => line.Insert(0, NewKey, NewValue)),
+            new LineOperation("Remove", line => line.Remove(KeyB)),
+            new LineOperation("RemoveAt", line => line.RemoveAt(1)),
+            new LineOperation("Clear", line => line.Clear())
+        };
+
+        /// <summary>
+        /// Every change that leaves the fields of the line in place, which doesn't invalidate an enumerator of the line.
+        /// </summary>
+        public static TheoryData<LineOperation> InPlaceChanges => new TheoryData<LineOperation>
+        {
+            new LineOperation("set key indexer to an existing key", line => line[KeyB] = ReplacementValue),
+            new LineOperation("set int indexer", line => line[1] = ReplacementValue),
+            new LineOperation("Remove a missing key", line => line.Remove(MissingKey))
+        };
+
+        /// <summary>
+        /// The ways to enumerate a line, its field names and its values, each with the change that invalidates it.
+        /// </summary>
+        public static TheoryData<LineEnumeration> Enumerations => new TheoryData<LineEnumeration>
+        {
+            new LineEnumeration("line", line => ((IEnumerable<KeyValuePair<string, object>>)line).GetEnumerator()),
+            new LineEnumeration("line as IEnumerable", line => ((IEnumerable)line).GetEnumerator()),
+            new LineEnumeration("Keys", line => line.Keys.GetEnumerator()),
+            new LineEnumeration("Values", line => line.Values.GetEnumerator())
+        };
+
+        [Fact]
+        public void IntIndexer_Get_ReturnsValueAtPosition()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine[1];
+
+            // assert
+            testResult.Should().Be(ValueB);
         }
 
-        return entries;
+        [Fact]
+        public void IntIndexer_Set_ReplacesValueAtPosition()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine[1] = ReplacementValue;
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, new KeyValuePair<string, object>(KeyB, ReplacementValue), EntryC);
+        }
+
+        [Theory]
+        [MemberData(nameof(IndexPastEndOperations), DisableDiscoveryEnumeration = true)]
+        public void PositionalMember_IndexPastEnd_ThrowsArgumentOutOfRangeException(LineOperation operation)
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            Action testAction = () => operation.Invoke(testLine);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(NegativeIndexOperations), DisableDiscoveryEnumeration = true)]
+        public void PositionalMember_NegativeIndex_ThrowsArgumentOutOfRangeException(LineOperation operation)
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            Action testAction = () => operation.Invoke(testLine);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void KeyIndexer_Get_ReturnsValueForKey()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine[KeyC];
+
+            // assert
+            testResult.Should().Be(ValueC);
+        }
+
+        [Fact]
+        public void KeyIndexer_GetMissingKey_ReturnsNull()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine[MissingKey];
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void KeyIndexer_GetKeyInDifferentCase_ReturnsNull()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine["a"];
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void KeyIndexer_SetExistingKey_ReplacesValueInPlace()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine[KeyA] = ReplacementValue;
+
+            // assert
+            Entries(testLine).Should().Equal(new KeyValuePair<string, object>(KeyA, ReplacementValue), EntryB, EntryC);
+        }
+
+        [Fact]
+        public void KeyIndexer_SetMissingKey_AddsAtEnd()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine[NewKey] = null;
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC, new KeyValuePair<string, object>(NewKey, null));
+        }
+
+        [Fact]
+        public void Add_NewKey_AddsAtEnd()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Add(NewKey, NewValue);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC, NewEntry);
+        }
+
+        [Fact]
+        public void Add_PastInitialCapacity_KeepsPositionOrder()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            testLine.Add(OtherNewKey, OtherNewValue);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC, NewEntry, new KeyValuePair<string, object>(OtherNewKey, OtherNewValue));
+        }
+
+        [Fact]
+        public void Add_DuplicateKey_ThrowsArgumentException()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            Action testAction = () => testLine.Add(KeyB, NewValue);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Add_DuplicateKey_LeavesFieldsUnchanged()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            _ = Record.Exception(() => testLine.Add(KeyB, NewValue));
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC);
+        }
+
+        [Theory]
+        [MemberData(nameof(NullKeyOperations), DisableDiscoveryEnumeration = true)]
+        public void KeyedMember_NullKey_ThrowsArgumentNullException(LineOperation operation)
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            Action testAction = () => operation.Invoke(testLine);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void Insert_AtStart_AddsBeforeFirstField()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Insert(0, NewKey, NewValue);
+
+            // assert
+            Entries(testLine).Should().Equal(NewEntry, EntryA, EntryB, EntryC);
+        }
+
+        [Fact]
+        public void Insert_InMiddle_AddsAtPosition()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Insert(1, NewKey, NewValue);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, NewEntry, EntryB, EntryC);
+        }
+
+        [Fact]
+        public void Insert_AtEnd_AddsAfterLastField()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Insert(FieldCount, NewKey, NewValue);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC, NewEntry);
+        }
+
+        [Fact]
+        public void KeyIndexer_AfterInsertInMiddle_ReturnsInsertedValue()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Insert(1, NewKey, NewValue);
+
+            // act
+            var testResult = testLine[NewKey];
+
+            // assert
+            testResult.Should().Be(NewValue);
+        }
+
+        [Theory]
+        [InlineData(KeyA, 0)]
+        [InlineData(NewKey, 1)]
+        [InlineData(KeyB, 2)]
+        [InlineData(KeyC, 3)]
+        public void IndexOf_AfterInsertInMiddle_ReturnsShiftedPosition(string key, int expected)
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Insert(1, NewKey, NewValue);
+
+            // act
+            var testResult = testLine.IndexOf(key);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Insert_DuplicateKey_ThrowsArgumentException()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            Action testAction = () => testLine.Insert(0, KeyC, NewValue);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Insert_DuplicateKey_LeavesFieldsUnchanged()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            _ = Record.Exception(() => testLine.Insert(0, KeyC, NewValue));
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC);
+        }
+
+        [Fact]
+        public void Insert_NullKeyAndIndexPastEnd_ThrowsArgumentOutOfRangeException()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            Action testAction = () => testLine.Insert(FieldCount + 1, null, NewValue);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void RemoveAt_FirstPosition_RemovesField()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.RemoveAt(0);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryB, EntryC);
+        }
+
+        [Fact]
+        public void Contains_AfterRemoveAt_ReturnsFalseForRemovedKey()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.RemoveAt(0);
+
+            // act
+            var testResult = testLine.Contains(KeyA);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IntIndexer_AfterRemoveAt_ReturnsValueAtNewPosition()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.RemoveAt(0);
+
+            // act
+            var testResult = testLine[0];
+
+            // assert
+            testResult.Should().Be(ValueB);
+        }
+
+        [Theory]
+        [InlineData(KeyA, NotFound)]
+        [InlineData(KeyB, 0)]
+        [InlineData(KeyC, 1)]
+        public void IndexOf_AfterRemoveAt_ReturnsShiftedPosition(string key, int expected)
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.RemoveAt(0);
+
+            // act
+            var testResult = testLine.IndexOf(key);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Remove_ExistingKey_RemovesField()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Remove(KeyB);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryC);
+        }
+
+        [Fact]
+        public void Remove_ExistingKey_ReturnsTrue()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Remove(KeyB);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Remove_MissingKey_LeavesFieldsUnchanged()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Remove(MissingKey);
+
+            // assert
+            Entries(testLine).Should().Equal(EntryA, EntryB, EntryC);
+        }
+
+        [Fact]
+        public void Remove_MissingKey_ReturnsFalse()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Remove(MissingKey);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IntIndexer_AfterRemove_ReturnsValueAtNewPosition()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Remove(KeyB);
+
+            // act
+            var testResult = testLine[1];
+
+            // assert
+            testResult.Should().Be(ValueC);
+        }
+
+        [Theory]
+        [InlineData(KeyA, 0)]
+        [InlineData(KeyB, NotFound)]
+        [InlineData(KeyC, 1)]
+        public void IndexOf_AfterRemove_ReturnsShiftedPosition(string key, int expected)
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Remove(KeyB);
+
+            // act
+            var testResult = testLine.IndexOf(key);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(NewKey, 0)]
+        [InlineData(KeyC, 1)]
+        [InlineData(KeyA, 2)]
+        [InlineData(KeyB, NotFound)]
+        public void IndexOf_AfterInsertsAndRemovals_ReturnsPosition(string key, int expected)
+        {
+            // arrange
+            var testLine = CreateRearrangedLine();
+
+            // act
+            var testResult = testLine.IndexOf(key);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Contains_PresentKey_ReturnsTrue()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Contains(KeyA);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Contains_MissingKey_ReturnsFalse()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Contains(MissingKey);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Contains_ValueNotKey_ReturnsFalse()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Contains(ValueA);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IndexOf_MissingKey_ReturnsMinusOne()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.IndexOf(MissingKey);
+
+            // assert
+            testResult.Should().Be(NotFound);
+        }
+
+        [Fact]
+        public void TryGetValue_PresentKey_ReturnsTrueAndValue()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.TryGetValue(KeyB, out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            value.Should().Be(ValueB);
+        }
+
+        [Fact]
+        public void TryGetValue_PresentKeyWithNullValue_ReturnsTrueAndNull()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Add(NewKey, null);
+
+            // act
+            var testResult = testLine.TryGetValue(NewKey, out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            value.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryGetValue_MissingKey_ReturnsFalseAndNull()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.TryGetValue(MissingKey, out var value);
+
+            // assert
+            testResult.Should().BeFalse();
+            value.Should().BeNull();
+        }
+
+        [Fact]
+        public void GetAt_MiddlePosition_ReturnsEntry()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.GetAt(1);
+
+            // assert
+            testResult.Should().Be(EntryB);
+        }
+
+        [Fact]
+        public void GetEnumerator_AfterInsertsAndRemovals_FollowsPositionOrder()
+        {
+            // arrange
+            var testLine = CreateRearrangedLine();
+
+            // act
+            var testResult = ((IEnumerable<KeyValuePair<string, object>>)testLine).GetEnumerator();
+
+            // assert
+            Remaining(testResult).Should().Equal(NewEntry, EntryC, EntryA);
+        }
+
+        [Fact]
+        public void EnumerableGetEnumerator_AfterInsertsAndRemovals_FollowsPositionOrderAsKeyValuePairs()
+        {
+            // arrange
+            var testLine = CreateRearrangedLine();
+
+            // act
+            var testResult = ((IEnumerable)testLine).GetEnumerator();
+
+            // assert
+            Remaining(testResult).Should().Equal(NewEntry, EntryC, EntryA);
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_AfterFieldAdded_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            enumerator.MoveNext();
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_FieldAddedBeforeFirstMoveNext_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_FieldAddedAfterEnumerationEnded_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            _ = RemainingItems(enumerator);
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void Reset_AfterFieldAdded_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            enumerator.MoveNext();
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.Reset();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void Reset_ValueReplacedAfterEnumerationEnded_DoesNotThrow(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            _ = RemainingItems(enumerator);
+            testLine[KeyA] = ReplacementValue;
+
+            // act
+            Action testAction = () => enumerator.Reset();
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [MemberData(nameof(StructuralChanges), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_AfterStructuralChange_ThrowsInvalidOperationException(LineOperation change)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = ((IEnumerable<KeyValuePair<string, object>>)testLine).GetEnumerator();
+            enumerator.MoveNext();
+            change.Invoke(testLine);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(InPlaceChanges), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_AfterInPlaceChange_DoesNotThrow(LineOperation change)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = ((IEnumerable<KeyValuePair<string, object>>)testLine).GetEnumerator();
+            enumerator.MoveNext();
+            change.Invoke(testLine);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Fact]
+        public void MoveNext_AfterValueReplacedAhead_ReturnsReplacedValue()
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = ((IEnumerable<KeyValuePair<string, object>>)testLine).GetEnumerator();
+            enumerator.MoveNext();
+            testLine[KeyB] = ReplacementValue;
+
+            // act
+            var testResult = Remaining(enumerator);
+
+            // assert
+            testResult.Should().Equal(new KeyValuePair<string, object>(KeyB, ReplacementValue), EntryC);
+        }
+
+        [Fact]
+        public void MoveNext_AfterEmptyLineCleared_DoesNotThrow()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            var enumerator = ((IEnumerable<KeyValuePair<string, object>>)testLine).GetEnumerator();
+            testLine.Clear();
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Keys_AfterInsertAtStart_FollowsPositionOrder()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Insert(0, NewKey, NewValue);
+
+            // act
+            var testResult = testLine.Keys;
+
+            // assert
+            testResult.Should().Equal(NewKey, KeyA, KeyB, KeyC);
+        }
+
+        [Fact]
+        public void Values_AfterInsertAtStart_FollowsPositionOrder()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Insert(0, NewKey, NewValue);
+
+            // act
+            var testResult = testLine.Values;
+
+            // assert
+            testResult.Should().Equal(NewValue, ValueA, ValueB, ValueC);
+        }
+
+        [Fact]
+        public void Keys_ReadAfterRemoveAt_ReflectsLine()
+        {
+            // arrange
+            var testLine = CreateLine();
+            var testResult = testLine.Keys;
+
+            // act
+            testLine.RemoveAt(0);
+
+            // assert
+            testResult.Should().Equal(KeyB, KeyC);
+        }
+
+        [Fact]
+        public void Values_ReadAfterValueReplaced_ReflectsLine()
+        {
+            // arrange
+            var testLine = CreateLine();
+            var testResult = testLine.Values;
+
+            // act
+            testLine[KeyC] = ReplacementValue;
+
+            // assert
+            testResult.Should().Equal(ValueA, ValueB, ReplacementValue);
+        }
+
+        [Fact]
+        public void KeysIndexer_LastPosition_ReturnsKey()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Keys[2];
+
+            // assert
+            testResult.Should().Be(KeyC);
+        }
+
+        [Fact]
+        public void ValuesIndexer_LastPosition_ReturnsValue()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Values[2];
+
+            // assert
+            testResult.Should().Be(ValueC);
+        }
+
+        [Fact]
+        public void KeysCount_AfterInsertAtStart_ReturnsFieldCount()
+        {
+            // arrange
+            const int expectedCount = 4;
+            var testLine = CreateLine();
+            testLine.Insert(0, NewKey, NewValue);
+
+            // act
+            var testResult = testLine.Keys.Count;
+
+            // assert
+            testResult.Should().Be(expectedCount);
+        }
+
+        [Fact]
+        public void ValuesCount_AfterInsertAtStart_ReturnsFieldCount()
+        {
+            // arrange
+            const int expectedCount = 4;
+            var testLine = CreateLine();
+            testLine.Insert(0, NewKey, NewValue);
+
+            // act
+            var testResult = testLine.Values.Count;
+
+            // assert
+            testResult.Should().Be(expectedCount);
+        }
+
+        [Fact]
+        public void Clear_ThreeFields_RemovesAllFields()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            testLine.Clear();
+
+            // assert
+            Entries(testLine).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Count_AfterClear_ReturnsZero()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Clear();
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
+        [Fact]
+        public void KeyIndexer_AfterClear_ReturnsNull()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Clear();
+
+            // act
+            var testResult = testLine[KeyA];
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void Add_AfterClear_AddsAtStart()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Clear();
+
+            // act
+            testLine.Add(NewKey, NewValue);
+
+            // assert
+            Entries(testLine).Should().Equal(new[] { NewEntry });
+        }
+
+        [Fact]
+        public void Count_ThreeFields_ReturnsThree()
+        {
+            // arrange
+            var testLine = CreateLine();
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(FieldCount);
+        }
+
+        /// <summary>
+        /// Creates a line with the fields A = 1, B = 2 and C = 3.
+        /// </summary>
+        private static ICsvFileLine CreateLine()
+        {
+            ICsvFileLine line = new CsvFileRecordLine();
+            line.Add(KeyA, ValueA);
+            line.Add(KeyB, ValueB);
+            line.Add(KeyC, ValueC);
+
+            return line;
+        }
+
+        /// <summary>
+        /// Creates a line whose fields have been removed, inserted and added, so that it holds D = x, C = 3 and A = 1.
+        /// </summary>
+        private static ICsvFileLine CreateRearrangedLine()
+        {
+            var line = CreateLine();
+            line.Remove(KeyA);
+            line.Insert(1, NewKey, NewValue);
+            line.Add(KeyA, ValueA);
+            line.RemoveAt(0);
+
+            return line;
+        }
+
+        /// <summary>
+        /// Gets the entries of a line, in the order that enumerating it gives them.
+        /// </summary>
+        private static List<KeyValuePair<string, object>> Entries(ICsvFileLine line) => line.ToList();
+
+        /// <summary>
+        /// Gets the entries that remain in an enumerator of a line.
+        /// </summary>
+        private static List<KeyValuePair<string, object>> Remaining(IEnumerator enumerator) =>
+            new List<KeyValuePair<string, object>>(new EntrySequence(enumerator));
+
+        /// <summary>
+        /// Gets the items that remain in an enumerator of a line, its field names or its values.
+        /// </summary>
+        private static List<object> RemainingItems(IEnumerator enumerator) => new List<object>(new ItemSequence(enumerator));
+
+        /// <summary>
+        /// A call to a member of a line.
+        /// </summary>
+        public sealed class LineOperation
+        {
+            private readonly string _name;
+            private readonly Action<ICsvFileLine> _operation;
+
+            public LineOperation(string name, Action<ICsvFileLine> operation)
+            {
+                _name = name;
+                _operation = operation;
+            }
+
+            public void Invoke(ICsvFileLine line) => _operation(line);
+
+            public override string ToString() => _name;
+        }
+
+        /// <summary>
+        /// A way to start enumerating a line.
+        /// </summary>
+        public sealed class LineEnumeration
+        {
+            private readonly string _name;
+            private readonly Func<ICsvFileLine, IEnumerator> _start;
+
+            public LineEnumeration(string name, Func<ICsvFileLine, IEnumerator> start)
+            {
+                _name = name;
+                _start = start;
+            }
+
+            public IEnumerator Start(ICsvFileLine line) => _start(line);
+
+            public override string ToString() => _name;
+        }
+
+        /// <summary>
+        /// The items that remain in an enumerator, whatever their type.
+        /// </summary>
+        private sealed class ItemSequence : IEnumerable<object>
+        {
+            private readonly IEnumerator _enumerator;
+
+            public ItemSequence(IEnumerator enumerator)
+            {
+                _enumerator = enumerator;
+            }
+
+            public IEnumerator<object> GetEnumerator() => new ItemEnumerator(_enumerator);
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed class ItemEnumerator : IEnumerator<object>
+        {
+            private readonly IEnumerator _enumerator;
+
+            public ItemEnumerator(IEnumerator enumerator)
+            {
+                _enumerator = enumerator;
+            }
+
+            public object Current => _enumerator.Current;
+
+            public bool MoveNext() => _enumerator.MoveNext();
+
+            public void Reset() => _enumerator.Reset();
+
+            public void Dispose()
+            {
+            }
+        }
+
+        /// <summary>
+        /// The entries that remain in an enumerator of a line.
+        /// </summary>
+        private sealed class EntrySequence : IEnumerable<KeyValuePair<string, object>>
+        {
+            private readonly IEnumerator _enumerator;
+
+            public EntrySequence(IEnumerator enumerator)
+            {
+                _enumerator = enumerator;
+            }
+
+            public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => new EntryEnumerator(_enumerator);
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed class EntryEnumerator : IEnumerator<KeyValuePair<string, object>>
+        {
+            private readonly IEnumerator _enumerator;
+
+            public EntryEnumerator(IEnumerator enumerator)
+            {
+                _enumerator = enumerator;
+            }
+
+            public KeyValuePair<string, object> Current => (KeyValuePair<string, object>)_enumerator.Current;
+
+            object IEnumerator.Current => Current;
+
+            public bool MoveNext() => _enumerator.MoveNext();
+
+            public void Reset() => _enumerator.Reset();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 }

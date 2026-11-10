@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -56,7 +56,7 @@ namespace DataStandardizer.File.CSV
             SetFieldValue(fieldName, value);
         } 
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         protected virtual T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
         {
             var fieldName = GetPropertyKey(propertyName);

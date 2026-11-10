@@ -137,9 +137,8 @@ as it was given (`Uri.OriginalString`), in every form.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-Every form, `Json` included, is supported on every target. On the `netstandard2.1`,
-`net8.0`, and `net10.0` builds, the `out` parameters of `TryParseText` (string
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+Every form, `Json` included, is supported on every target. On the `netstandard2.1` and `net10.0` builds, the `out` parameters of `TryParseText` (string
 overload), `TryParseBinary`, `TryParseUri` and `TryParseCalAddress` are nullable and
 annotated `[NotNullWhen(true)]`.
 

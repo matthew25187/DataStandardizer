@@ -1,0 +1,11 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="CsvHelper" Version="34.0.0" />
+    <PackageVersion Include="FolkerKinzel.VCards" Version="8.2.0" />
+    <PackageVersion Include="Ical.Net" Version="5.2.4" />
+    <PackageVersion Include="MimeKit" Version="4.18.2" />
+  </ItemGroup>
+</Project>

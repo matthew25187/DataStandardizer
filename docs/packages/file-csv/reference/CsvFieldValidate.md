@@ -29,7 +29,7 @@ is set, otherwise a `CsvFileException`. See [CsvFieldContext](CsvFieldContext.md
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 ## See also
 
@@ -38,4 +38,3 @@ Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net
 - [CsvFieldMappingBuilder](CsvFieldMappingBuilder.md)
 - [CsvFieldBadValue](CsvFieldBadValue.md)
 - [File.CSV API reference](index.md)
-</content>

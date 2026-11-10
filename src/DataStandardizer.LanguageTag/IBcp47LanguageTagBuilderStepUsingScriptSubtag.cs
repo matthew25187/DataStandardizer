@@ -1,6 +1,6 @@
 ﻿using DataStandardizer.Language;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -18,7 +18,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(Iso15924Script scriptSubtag); 
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(Iso15924Script scriptSubtag); 
 #endif
 
@@ -30,8 +30,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(string scriptSubtag);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag([NotNull] string scriptSubtag);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag([DisallowNull] string scriptSubtag);
 #endif
     }
 

@@ -6,20 +6,18 @@ This project is not packed and is not part of the CI test run.
 
 ## Running
 
-Benchmarks must be run in Release, from this folder. The project targets `net8.0` and `net10.0`, because the package's builds for those targets can differ, so `dotnet run` needs a framework. Run from the `net10.0` build and ask BenchmarkDotNet for both runtimes, so each benchmark is measured on each:
+Benchmarks must be run in Release, from this folder. The project targets `net10.0`:
 
 ```
-dotnet run -c Release -f net10.0 -- --filter * --runtimes net8.0 net10.0
+dotnet run -c Release -- --filter *
 ```
-
-Leave out `--runtimes` to measure only the runtime of the framework given with `-f`.
 
 Run a subset by filtering on class or method name, for example:
 
 ```
-dotnet run -c Release -f net10.0 -- --filter *CreateBenchmarks* --runtimes net8.0 net10.0
-dotnet run -c Release -f net10.0 -- --filter *Create_Registry* --runtimes net8.0 net10.0
-dotnet run -c Release -f net10.0 -- --filter *.CheckBenchmarks.* *.PropertyBenchmarks.* --runtimes net8.0 net10.0
+dotnet run -c Release -- --filter *CreateBenchmarks*
+dotnet run -c Release -- --filter *Create_Registry*
+dotnet run -c Release -- --filter *.CheckBenchmarks.* *.PropertyBenchmarks.*
 ```
 
 Filters match the full name, including the namespace, so `*LanguageTag*` selects every benchmark. `*Create*` also selects `TryCreate_Invalid`, the `TryCreate_Span` benchmarks and `Registry_CreateFromStream`.
@@ -27,7 +25,7 @@ Filters match the full name, including the namespace, so `*LanguageTag*` selects
 To check that every benchmark runs without waiting for a full measurement, use the dry job:
 
 ```
-dotnet run -c Release -f net10.0 -- --filter * --job Dry --runtimes net8.0 net10.0
+dotnet run -c Release -- --filter * --job Dry
 ```
 
 Results are written to `BenchmarkDotNet.Artifacts/results/` (ignored by git). BenchmarkDotNet exits with code 0 even when a benchmark fails, so check the "Benchmarks with issues" list at the end of the output, and look for `NA` in the tables.
@@ -46,13 +44,14 @@ The inputs are fixed, so every run uses identical data. They are in `BenchmarkDa
 
 | Class | Benchmark | What it measures |
 |-------|-----------|------------------|
-| `CreateBenchmarks` | `Create_Rules` | `Bcp47LanguageTag.Create(tag)` over the 12 valid tags (baseline). |
+| `CreateBenchmarks` | `Create_WellFormed` | `Bcp47LanguageTag.Create(tag)` over the 12 valid tags (baseline). |
+| | `Create_IsoCodeLists` | `Bcp47LanguageTag.Create(tag, LanguageTagConformance.IsoCodeLists)` over the same tags. |
 | | `Create_Registry` | `Bcp47LanguageTag.Create(tag, registry)` over the same tags, with the registry loaded in `[GlobalSetup]`. |
 | | `TryCreate_Invalid` | `Bcp47LanguageTag.TryCreate(tag, out _)` over the 12 invalid strings. |
-| | `IsWellFormed` | `Bcp47LanguageTag.IsWellFormedLanguageTagString(tag)` over the 12 valid tags. |
+| | `IsWellFormed` | `Bcp47LanguageTag.IsWellFormed(tag)` over the 12 valid tags. |
 | | `TryCreate_Span` | `Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)` over the 12 valid tags. |
 | | `TryCreate_Span_Invalid` | `Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)` over the 12 invalid strings. Should allocate nothing. |
-| | `IsWellFormed_Span` | `Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan())` over the 12 valid tags. Should allocate nothing. |
+| | `IsWellFormed_Span` | `Bcp47LanguageTag.IsWellFormed(tag.AsSpan())` over the 12 valid tags. Should allocate nothing. |
 | `CheckBenchmarks` | `Check_PrimaryLanguage` | `CheckPrimaryLanguageSubtag("zh")`. |
 | | `Check_ExtendedLanguage` | `CheckExtendedLanguageSubtag("yue")`. |
 | | `Check_Script` | `CheckScriptSubtag("Hant")`. |
@@ -65,8 +64,9 @@ The inputs are fixed, so every run uses identical data. They are in `BenchmarkDa
 | | `Builder_Build_Strings` | The same tag built from strings. |
 | `KeyedSubtagBenchmarks` | `KeyedSubtag_Singleton` | `Bcp47KeyedSubtag.Singleton` of `u-sd-chzh`, created in `[GlobalSetup]`. |
 | | `KeyedSubtag_Subtags` | `Bcp47KeyedSubtag.Subtags` of the same subtag. |
-| `RegistryBenchmarks` | `Registry_CreateFromStream` | `SubtagRegistry.CreateFromStream` over the registry fixture. |
+| `RegistryBenchmarks` | `Registry_CreateFromStream` | `SubtagRegistry.CreateFromStream` over the registry fixture, with `SubtagRegistryLoadOptions.AcceptBareLineFeed`, as the fixture has the line feeds IANA publishes it with. |
 | | `Registry_RecordProperties` | Reads `Type`, `Subtag` or `Tag`, `Added` and `Description` of every record of a registry loaded in `[GlobalSetup]`. |
+| | `Registry_TryGetSubtag` | `SubtagRegistry.TryGetSubtag` for one subtag of each of the five subtag types, and `IsGrandfathered("i-klingon")`, on the same registry. Should allocate nothing. |
 
 Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 
@@ -75,23 +75,23 @@ Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 BenchmarkDotNet warms up before it measures, so it never sees the one-off cost of the first call in a process, such as building the code lists behind validation or the index of a Subtag Registry. To measure that, run the project with `--coldstart`:
 
 ```
-dotnet run -c Release -f net8.0 -- --coldstart
-dotnet run -c Release -f net10.0 -- --coldstart
+dotnet run -c Release -- --coldstart
 ```
 
 This runs no benchmarks. It times, with `Stopwatch`, in a fresh process:
 
-1. The first `Bcp47LanguageTag.Create("en")`.
-2. Loading the registry fixture, for context only (`RegistryBenchmarks` measures it properly).
-3. The first `Bcp47LanguageTag.Create("en", registry)`, which builds the registry's index, and how much of that was JIT compilation (`JitInfo.GetCompilationTime`, on every thread).
-4. The second `Bcp47LanguageTag.Create("en", registry)`, to show how much of the first was one-off.
-5. The first `Bcp47LanguageTag.Create("en", registry)` against a second copy of the registry, after a forced garbage collection. The code is already compiled, so this is the cost of building an index alone, and the difference from step 3 is the one-off cost of the first registry in a process.
+1. The first `Bcp47LanguageTag.Create("en")`, which checks the grammar only and builds no code lists.
+2. The first `Bcp47LanguageTag.Create("en", LanguageTagConformance.IsoCodeLists)`, which builds the code lists.
+3. Loading the registry fixture, for context only (`RegistryBenchmarks` measures it properly).
+4. The first `Bcp47LanguageTag.Create("en", registry)`, which builds the registry's index, and how much of that was JIT compilation (`JitInfo.GetCompilationTime`, on every thread).
+5. The second `Bcp47LanguageTag.Create("en", registry)`, to show how much of the first was one-off.
+6. The first `Bcp47LanguageTag.Create("en", registry)` against a second copy of the registry, after a forced garbage collection. The code is already compiled, so this is the cost of building an index alone, and the difference from step 4 is the one-off cost of the first registry in a process.
 
 Each figure is a single sample, including JIT compilation, and varies from run to run. Build once, then run the process several times and report every run, for example in PowerShell:
 
 ```
 dotnet build -c Release
-1..5 | ForEach-Object { dotnet run -c Release -f net10.0 --no-build -- --coldstart }
+1..5 | ForEach-Object { dotnet run -c Release --no-build -- --coldstart }
 ```
 
 ## Reporting results
@@ -101,6 +101,6 @@ When a performance change is proposed, paste the before and after results into t
 1. The BenchmarkDotNet markdown table, from `BenchmarkDotNet.Artifacts/results/*-report-github.md`.
 2. The cold-start output, from several runs on each target, if the change could affect start-up.
 3. The commit hash that was measured (`git rev-parse --short HEAD`).
-4. The machine summary BenchmarkDotNet prints above the table (OS, CPU, .NET SDK and runtimes).
+4. The .NET SDK and runtime versions. Leave out the rest of the summary BenchmarkDotNet prints above the table (the OS and CPU), as these reports are public and it describes your own machine.
 
 Run "before" and "after" on the same machine, one straight after the other, so the numbers can be compared.

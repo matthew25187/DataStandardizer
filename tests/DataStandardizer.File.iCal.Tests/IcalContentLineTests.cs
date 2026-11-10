@@ -12,13 +12,18 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalContentLineTests
     {
+        private const string Attendee = "ATTENDEE";
+        private const string CommonName = "CN";
+        private const string AnnName = "Ann";
+        private const string AnnAddress = "mailto:a@example.com";
+
         #region Read-only lists
 
         [Fact]
         public void Parameters_LineBuiltInCode_CannotBeCastToArray()
         {
             // arrange
-            var line = new IcalContentLine("ATTENDEE", new[] { new IcalContentLineParameter("CN", "Ann") }, "mailto:a@example.com");
+            var line = new IcalContentLine(Attendee, new[] { new IcalContentLineParameter(CommonName, AnnName) }, AnnAddress);
 
             // act
             var testResult = line.Parameters;
@@ -69,14 +74,14 @@ namespace DataStandardizer.File.iCal.Tests
         public void Values_ParameterBuiltInCode_DoesNotChangeWithSourceArray()
         {
             // arrange
-            var values = new[] { "Ann" };
-            var parameter = new IcalContentLineParameter("CN", values);
+            var values = new[] { AnnName };
+            var parameter = new IcalContentLineParameter(CommonName, values);
 
             // act
             values[0] = "Mallory";
 
             // assert
-            parameter.Values.Should().Equal("Ann");
+            parameter.Values.Should().Equal(AnnName);
             parameter.Values.Should().NotBeAssignableTo<string[]>();
         }
 
@@ -84,14 +89,15 @@ namespace DataStandardizer.File.iCal.Tests
         public void Parameters_ReadTwice_ReturnsSameList()
         {
             // arrange
-            var line = new IcalContentLine("ATTENDEE", new[] { new IcalContentLineParameter("CN", "Ann") }, "mailto:a@example.com");
+            var line = new IcalContentLine(Attendee, new[] { new IcalContentLineParameter(CommonName, AnnName) }, AnnAddress);
+            var firstRead = line.Parameters;
 
             // act
             var testResult = line.Parameters;
 
             // assert
-            testResult.Should().BeSameAs(line.Parameters);
-            testResult[0].Values.Should().BeSameAs(line.Parameters[0].Values);
+            testResult.Should().BeSameAs(firstRead);
+            testResult[0].Values.Should().BeSameAs(firstRead[0].Values);
         }
 
         #endregion

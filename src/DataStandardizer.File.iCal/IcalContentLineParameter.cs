@@ -57,10 +57,11 @@ namespace DataStandardizer.File.iCal
         }
 
         // The arguments are in the other order so this does not clash with the params constructor.
-        private IcalContentLineParameter(string[] values, string name)
+        private IcalContentLineParameter(string[] values, string name, bool hasQuotedValue)
         {
             Name = name;
             _values = values;
+            HasQuotedValue = hasQuotedValue;
         }
 
         /// <summary>
@@ -96,11 +97,20 @@ namespace DataStandardizer.File.iCal
         internal string[] ValueArray => _values;
 
         /// <summary>
+        /// Gets a flag indicating if any of the values was enclosed in double quotes where it was read.  It is <c>false</c> for a parameter built
+        /// in code, which a writer quotes only where a value needs it.
+        /// </summary>
+        internal bool HasQuotedValue { get; }
+
+        /// <summary>
         /// Creates a parameter from values read by <see cref="IcalContentLineReader"/>, taking ownership of the array.
         /// </summary>
-        internal static IcalContentLineParameter FromReader(string name, string[] values)
+        /// <param name="name">The parameter name.</param>
+        /// <param name="values">The values, without quotes or caret encoding.</param>
+        /// <param name="hasQuotedValue"><c>true</c> if any of the values was enclosed in double quotes.</param>
+        internal static IcalContentLineParameter FromReader(string name, string[] values, bool hasQuotedValue)
         {
-            return new IcalContentLineParameter(values, name);
+            return new IcalContentLineParameter(values, name, hasQuotedValue);
         }
     }
 }

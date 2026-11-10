@@ -1,7 +1,7 @@
 ---
 title: LanguageTag
 parent: Packages
-nav_order: 7
+nav_order: 8
 has_children: true
 ---
 
@@ -19,35 +19,36 @@ dotnet add package DataStandardizer.LanguageTag
 
 | Standard | What it provides |
 | --- | --- |
-| **RFC 5646** | *Tags for Identifying Languages* (part of IETF BCP 47): language tags built from subtags for primary language, extended language, script, region, variant, extension, and private use, together with the format of the *IANA Language Subtag Registry* (section 3.1). |
+| **RFC 5646** | *Tags for Identifying Languages* (part of IETF BCP 47): language tags built from subtags for primary language, extended language, script, region, variant, extension, and private use, together with the format of the *IANA Language Subtag Registry* (section 3.1). The package implements both conformance classes of section 2.2.9: well-formed and valid. |
 
 BCP 47 also includes RFC 4647, *Matching of Language Tags*, which defines
 filtering and lookup of language ranges against tags. This package does not
 implement RFC 4647 matching.
 
-Validation draws on the codes implemented by the other *Data Standardizer*
-packages (ISO 639 languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions),
-and can optionally be constrained to a loaded copy of the *IANA Language Subtag
-Registry*.
+Creating a language tag checks that it's well-formed: it matches the grammar, and
+nothing is looked up. To check that it's valid, pass a loaded copy of the *IANA
+Language Subtag Registry*. If you can't load a registry, you can opt in to checking
+against the codes implemented by the other *Data Standardizer* packages (ISO 639
+languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions). See
+[Well-formed, valid and the ISO code lists](concepts/well-formed-and-valid.md).
 
 ## Platform support
 
-Targets .NET Standard 1.0 and 2.0 for use in legacy applications, as well as
-in-support modern .NET runtimes (`net8.0`, `net10.0`).
+Targets .NET Standard 1.1 and 2.0 for use in legacy applications, as well as
+in-support modern .NET runtimes (`net10.0`).
 
-The `netstandard2.0` build depends on the `System.Memory` package, which
-provides the span types it uses. NuGet installs it automatically. The other
-builds have no extra dependency for spans: `net8.0` and `net10.0` have them
-built in, and `netstandard1.0` has no span-based API.
+The `netstandard1.1` and `netstandard2.0` builds depend on the `System.Memory`
+package, which provides the span types they use. NuGet installs it
+automatically. The `net10.0` build has the span types built in,
+so it has no extra dependency.
 
 > **Applies to:** the `ReadOnlySpan<char>` overloads of `TryCreate`,
-> `IsWellFormedLanguageTagString` and the `Check…Subtag` methods, and
-> `Bcp47LanguageTag.AsSpan()`, need `netstandard2.0`, `net8.0` or `net10.0`.
-> `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
-> `ISpanParsable<T>` on `net8.0` and `net10.0` only. The builder's
+> `IsWellFormed`, `IsValid` and the `Check…Subtag` methods, and
+> `Bcp47LanguageTag.AsSpan()`, exist on every target. `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
+> `ISpanParsable<T>` on `net10.0` only. The builder's
 > `params ReadOnlySpan<string>` overloads exist on `net10.0` only. Loading a
 > subtag registry from a file path (`SubtagRegistry.CreateFromFile` and
-> `CreateFromFileAsync`) needs `netstandard2.0` or later; on `netstandard1.0`,
+> `CreateFromFileAsync`) needs `netstandard2.0` or later; on `netstandard1.1`,
 > load it from a `Stream` or a string.
 
 See [Platform support](../../overview/platform-support.md) for the full matrix,
@@ -63,6 +64,7 @@ notes.
 
 - [Anatomy of a language tag](concepts/language-tag-anatomy.md)
 - [The language-tag builder pipeline](concepts/builder-pipeline.md)
+- [Well-formed, valid and the ISO code lists](concepts/well-formed-and-valid.md)
 
 ## Reference
 

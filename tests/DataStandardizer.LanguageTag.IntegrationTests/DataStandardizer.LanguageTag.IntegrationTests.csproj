@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The IANA Language Subtag Registry fixture of the unit tests, embedded under this assembly's name. -->
+    <EmbeddedResource Include="..\DataStandardizer.LanguageTag.Tests\Resources\IanaSubtagRegistry.txt" Link="Resources\IanaSubtagRegistry.txt" LogicalName="DataStandardizer.LanguageTag.IntegrationTests.Resources.IanaSubtagRegistry.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DataStandardizer.LanguageTag\DataStandardizer.LanguageTag.csproj" />
+  </ItemGroup>
+
+</Project>

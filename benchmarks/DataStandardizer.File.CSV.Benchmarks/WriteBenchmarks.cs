@@ -2,7 +2,6 @@
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using CsvHelper;
-using CsvHelper.Configuration;
 
 namespace DataStandardizer.File.CSV.Benchmarks;
 
@@ -74,7 +73,7 @@ public class WriteBenchmarks
     public long Write_CsvHelper()
     {
         using var streamWriter = CreateStreamWriter();
-        using (var writer = new CsvWriter(streamWriter, new CsvConfiguration(CultureInfo.InvariantCulture), leaveOpen: true))
+        using (var writer = CsvWriter.Create(streamWriter, CsvWriterOptions.Default, leaveOpen: true))
         {
             writer.WriteRecords(_people);
         }

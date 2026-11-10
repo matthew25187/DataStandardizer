@@ -51,8 +51,9 @@ RFC 5545 that the options do not accept, `IcalFileException` is thrown and nothi
 that calendar is written. Its `Data` holds `ComponentPath` and `DiagnosticKind`, plus
 `LineNumber` (the line the property was read from, if any) and `PropertyName` where they
 apply. The accommodations are `IcalOptions.AllowMissingRequiredProperties`,
-`AllowCardinalityViolations`, `AllowUndefinedTimeZones` and `AllowInvalidValues`, all
-off by default. `InvalidComponentNesting` and `UnsupportedVersion` problems are never
+`AllowCardinalityViolations`, `AllowUndefinedTimeZones`, `AllowInvalidValues` and
+`AllowQuotedParameterValues`, all off by default. A parameter read with
+`AllowQuotedParameterValues` is written as it was read, with its quotes. `InvalidComponentNesting` and `UnsupportedVersion` problems are never
 accepted.
 
 **Content line errors.** A property that cannot be written as a content line (a name
@@ -70,8 +71,12 @@ progress on another thread, it completes with `ObjectDisposedException`.
 **Thread safety and async rules.** A single writer instance is not thread-safe. Only
 one operation may be in progress at a time. Synchronous and asynchronous calls may
 follow one another, but a call made while another is in progress throws
-`InvalidOperationException`. A canceled asynchronous operation leaves the writer
-unable to continue. In the bulk methods, the whole call is one operation, so neither
+`InvalidOperationException`. An asynchronous operation is canceled only when the token passed to it is canceled.
+That leaves the writer unable to continue, and later calls throw
+`InvalidOperationException`. An `OperationCanceledException` while that token isn't
+canceled, whether from the underlying text writer, the calendars being enumerated or the
+progress callback, is handled as an I/O error: the task faults with it, and the
+writer can continue. In the bulk methods, the whole call is one operation, so neither
 the calendars being enumerated nor the progress callback may call the writer. The
 lines of each calendar are gathered before any is written, so a calendar changed by
 another thread during the write cannot make it fail part way through for that reason.
@@ -115,8 +120,16 @@ Errors in how the writer is used (`ObjectDisposedException`, `ArgumentNullExcept
 `InvalidOperationException`) are thrown by the call. Errors in the calendars
 (`IcalFileException`, and `ArgumentException` for a `null` item), I/O errors, and
 cancellation (`OperationCanceledException`) are thrown by the task. If the writer is
-disposed while an operation is pending, the task throws `ObjectDisposedException`. If
-an operation is canceled, the writer cannot continue.
+disposed while an operation is pending, the task throws `ObjectDisposedException`.
+
+An operation is canceled when its `cancellationToken` is canceled before the call, or
+when the operation fails with an `OperationCanceledException` while that token is
+canceled, whatever token the exception carries, or if it carries none. The task is then
+canceled, and the writer cannot continue. Any other exception faults the task, even
+while the token is canceled. An `OperationCanceledException` while the token isn't
+canceled faults the task too, as an I/O error does, and the writer can continue. If
+`DisposeAsync` fails, the task faults with that exception, an
+`OperationCanceledException` included.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
@@ -128,12 +141,11 @@ an operation is canceled, the writer cannot continue.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors, the asynchronous methods, and `IAsyncDisposable`
 are available on `netstandard2.0`, `netstandard2.1`, and the .NET targets only; on
 `netstandard1.1` construct the writer from a `Stream` or `TextWriter` and write
-synchronously. The nullable reference annotations apply to the `netstandard2.1`,
-`net8.0`, and `net10.0` builds.
+synchronously. The nullable reference annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

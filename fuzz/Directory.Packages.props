@@ -1,0 +1,8 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <ItemGroup>
+    <!-- Keep this the same version as the SharpFuzz.CommandLine tool in .config/dotnet-tools.json.  Dependabot updates neither, so bump them together by hand. -->
+    <PackageVersion Include="SharpFuzz" Version="2.3.0" />
+  </ItemGroup>
+</Project>

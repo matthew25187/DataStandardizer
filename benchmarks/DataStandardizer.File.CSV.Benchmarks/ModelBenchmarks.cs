@@ -1,5 +1,4 @@
-﻿using System.Collections.Specialized;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
 
 namespace DataStandardizer.File.CSV.Benchmarks;
 
@@ -59,7 +58,7 @@ public class ModelBenchmarks
     {
         var total = 0m;
         var length = 0;
-        foreach (IOrderedDictionary personLine in _personLines)
+        foreach (ICsvFileLine personLine in _personLines)
         {
             total += (int)personLine["Id"]! + (decimal)personLine["Amount"]!;
             length += (((string?)personLine["FirstName"])?.Length ?? 0)
@@ -77,7 +76,7 @@ public class ModelBenchmarks
         for (var i = 0; i < _personLines.Count; i++)
         {
             var person = _people[i];
-            IOrderedDictionary personLine = _personLines[i];
+            ICsvFileLine personLine = _personLines[i];
             personLine["Id"] = person.Id;
             personLine["FirstName"] = person.FirstName;
             personLine["LastName"] = person.LastName;

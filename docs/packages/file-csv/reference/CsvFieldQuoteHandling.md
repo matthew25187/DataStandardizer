@@ -25,12 +25,12 @@ public enum CsvFieldQuoteHandling
 | Field | Value | Meaning |
 | --- | --- | --- |
 | `Always` | 0 | Always surround field values in double-quotes. |
-| `Auto` | 1 | Quote non-numeric (string) values. |
+| `Auto` | 1 | Quote non-numeric (string) values, and any value that contains a line break, double quote or field delimiter, such as `1,000` with a comma delimiter. |
 | `Required` | 2 | Quote only when the value contains a line break, double-quote, or delimiter (RFC 4180). |
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 ## See also
 
@@ -38,4 +38,3 @@ Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net
 - [Write CSV files](../how-to/write-csv-files.md)
 - [CsvFileOptions](CsvFileOptions.md)
 - [File.CSV API reference](index.md)
-</content>

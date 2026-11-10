@@ -1,9 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -11,14 +6,26 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalDateTimeValueTests
     {
+        // The DATE value of default(IcalDate), January 1 of year 1.
+        private const string FirstDate = "00010101";
+
+        // ref. RFC 5545 §3.3.12: a positive leap second, here on June 30, 1997.
+        private const string LeapSecondDateTime = "19970630T235960Z";
+
+        private const string LondonTimeZoneId = "Europe/London";
+        private const string AucklandTimeZoneId = "Pacific/Auckland";
+
+        // The length of a UTC DATE-TIME value, such as Rfc5545Examples.UtcDateTime.
+        private const int UtcDateTimeLength = 16;
+
         #region IcalDate
 
         [Theory]
-        [InlineData("19970714", 1997, 7, 14)]
-        [InlineData("00010101", 1, 1, 1)]
+        [InlineData(Rfc5545Examples.Date, 1997, 7, 14)]
+        [InlineData(FirstDate, 1, 1, 1)]
         [InlineData("99991231", 9999, 12, 31)]
         [InlineData("20240229", 2024, 2, 29)]
-        public void IcalDate_TryParse_ValidValue_ParsesAndRoundTrips(string value, int year, int month, int day)
+        public void IcalDate_TryParse_ValidValue_Parses(string value, int year, int month, int day)
         {
             // act
             var testResult = IcalDate.TryParse(value.AsSpan(), IcalValueFormat.Text, out var date);
@@ -28,7 +35,23 @@ namespace DataStandardizer.File.iCal.Tests
             date.Year.Should().Be(year);
             date.Month.Should().Be(month);
             date.Day.Should().Be(day);
-            date.ToString().Should().Be(value);
+        }
+
+        [Theory]
+        [InlineData(1997, 7, 14, Rfc5545Examples.Date)]
+        [InlineData(1, 1, 1, FirstDate)]
+        [InlineData(9999, 12, 31, "99991231")]
+        [InlineData(2024, 2, 29, "20240229")]
+        public void IcalDate_ToString_ValidDate_WritesDateValue(int year, int month, int day, string expected)
+        {
+            // arrange
+            var date = new IcalDate(year, month, day);
+
+            // act
+            var testResult = date.ToString();
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -56,48 +79,96 @@ namespace DataStandardizer.File.iCal.Tests
         public void IcalDate_Constructor_InvalidDay_Throws()
         {
             // act
-            Action act = () => new IcalDate(2026, 2, 30);
+            Action testAction = () => new IcalDate(2026, 2, 30);
 
             // assert
-            act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("day");
+            testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("day");
         }
 
         [Fact]
-        public void IcalDate_Default_Is00010101()
+        public void IcalDate_ToString_Default_Is00010101()
         {
             // act
             var testResult = default(IcalDate).ToString();
 
             // assert
-            testResult.Should().Be("00010101");
+            testResult.Should().Be(FirstDate);
         }
 
-        [Fact]
-        public void IcalDate_DayOfWeek_MatchesDateTime()
+        [Theory]
+        [InlineData(1, DayOfWeek.Thursday)]
+        [InlineData(2, DayOfWeek.Friday)]
+        [InlineData(3, DayOfWeek.Saturday)]
+        [InlineData(4, DayOfWeek.Sunday)]
+        [InlineData(5, DayOfWeek.Monday)]
+        [InlineData(6, DayOfWeek.Tuesday)]
+        [InlineData(7, DayOfWeek.Wednesday)]
+        public void IcalDate_DayOfWeek_DayInJanuary2026_IsItsDayOfTheWeek(int day, DayOfWeek expected)
         {
             // arrange
-            var start = new DateTime(2026, 1, 1);
+            var date = IcalDate.FromDateTime(new DateTime(2026, 1, day));
 
-            // act / assert
-            for (var offset = 0; offset < 14; offset++)
-            {
-                var dateTime = start.AddDays(offset);
-                IcalDate.FromDateTime(dateTime).DayOfWeek.Should().Be(dateTime.DayOfWeek);
-            }
+            // act
+            var testResult = date.DayOfWeek;
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Fact]
-        public void IcalDate_Comparison_OrdersByDate()
+        public void IcalDate_LessThan_EarlierDate_IsTrue()
         {
             // arrange
             var earlier = new IcalDate(2026, 1, 31);
             var later = new IcalDate(2026, 2, 1);
 
+            // act
+            var testResult = earlier < later;
+
             // assert
-            (earlier < later).Should().BeTrue();
-            (later >= earlier).Should().BeTrue();
-            earlier.CompareTo(later).Should().BeNegative();
-            earlier.Should().Be(new IcalDate(2026, 1, 31));
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void IcalDate_GreaterThanOrEqual_LaterDate_IsTrue()
+        {
+            // arrange
+            var earlier = new IcalDate(2026, 1, 31);
+            var later = new IcalDate(2026, 2, 1);
+
+            // act
+            var testResult = later >= earlier;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void IcalDate_CompareTo_LaterDate_IsNegative()
+        {
+            // arrange
+            var earlier = new IcalDate(2026, 1, 31);
+            var later = new IcalDate(2026, 2, 1);
+
+            // act
+            var testResult = earlier.CompareTo(later);
+
+            // assert
+            testResult.Should().BeNegative();
+        }
+
+        [Fact]
+        public void IcalDate_Equals_SameDate_IsTrue()
+        {
+            // arrange
+            var date = new IcalDate(2026, 1, 31);
+            var other = new IcalDate(2026, 1, 31);
+
+            // act
+            var testResult = date.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         #endregion
@@ -106,10 +177,10 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [InlineData("230000", 23, 0, 0, false)]
-        [InlineData("070000Z", 7, 0, 0, true)]
+        [InlineData(Rfc5545Examples.UtcTime, 7, 0, 0, true)]
         [InlineData("083000", 8, 30, 0, false)]
         [InlineData("235960Z", 23, 59, 60, true)]
-        public void IcalTime_TryParse_ValidValue_ParsesAndRoundTrips(string value, int hour, int minute, int second, bool isUtc)
+        public void IcalTime_TryParse_ValidValue_Parses(string value, int hour, int minute, int second, bool isUtc)
         {
             // act
             var testResult = IcalTime.TryParse(value.AsSpan(), IcalValueFormat.Text, out var time);
@@ -117,7 +188,23 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Should().BeTrue();
             time.Should().Be(new IcalTime(hour, minute, second, isUtc));
-            time.ToString().Should().Be(value);
+        }
+
+        [Theory]
+        [InlineData(23, 0, 0, false, "230000")]
+        [InlineData(7, 0, 0, true, Rfc5545Examples.UtcTime)]
+        [InlineData(8, 30, 0, false, "083000")]
+        [InlineData(23, 59, 60, true, "235960Z")]
+        public void IcalTime_ToString_ValidTime_WritesTimeValue(int hour, int minute, int second, bool isUtc, string expected)
+        {
+            // arrange
+            var time = new IcalTime(hour, minute, second, isUtc);
+
+            // act
+            var testResult = time.ToString();
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -139,21 +226,27 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void IcalTime_TryParse_LowerCaseZ_IsUtc()
+        public void IcalTime_Parse_LowerCaseZ_IsUtc()
         {
             // act
             var testResult = IcalTime.Parse("070000z".AsSpan(), IcalValueFormat.Text);
 
             // assert
-            testResult.IsUtc.Should().BeTrue();
-            testResult.ToString().Should().Be("070000Z");
+            testResult.Should().Be(new IcalTime(7, 0, 0, true));
         }
 
         [Fact]
         public void IcalTime_Equals_FloatingAndUtc_AreDifferent()
         {
+            // arrange
+            var floating = new IcalTime(7, 0, 0);
+            var utc = new IcalTime(7, 0, 0, true);
+
+            // act
+            var testResult = floating.Equals(utc);
+
             // assert
-            new IcalTime(7, 0, 0).Should().NotBe(new IcalTime(7, 0, 0, true));
+            testResult.Should().BeFalse();
         }
 
         #endregion
@@ -161,12 +254,12 @@ namespace DataStandardizer.File.iCal.Tests
         #region IcalDateTime
 
         [Theory]
-        [InlineData("19980118T230000", IcalDateTimeKind.Floating)]
-        [InlineData("19980119T070000Z", IcalDateTimeKind.Utc)]
+        [InlineData(Rfc5545Examples.FloatingDateTime, IcalDateTimeKind.Floating)]
+        [InlineData(Rfc5545Examples.UtcDateTime, IcalDateTimeKind.Utc)]
         [InlineData("19970714T133000", IcalDateTimeKind.Floating)]
         [InlineData("19970714T173000Z", IcalDateTimeKind.Utc)]
-        [InlineData("19970630T235960Z", IcalDateTimeKind.Utc)]
-        public void IcalDateTime_TryParse_RfcExample_ParsesAndRoundTrips(string value, IcalDateTimeKind kind)
+        [InlineData(LeapSecondDateTime, IcalDateTimeKind.Utc)]
+        public void IcalDateTime_TryParse_RfcExample_Parses(string value, IcalDateTimeKind kind)
         {
             // act
             var testResult = IcalDateTime.TryParse(value.AsSpan(), IcalValueFormat.Text, out var dateTime);
@@ -175,40 +268,69 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeTrue();
             dateTime.Kind.Should().Be(kind);
             dateTime.TimeZoneId.Should().BeNull();
-            dateTime.ToString().Should().Be(value);
-            IcalDateTime.Parse(dateTime.ToString().AsSpan(), IcalValueFormat.Text).Should().Be(dateTime);
+        }
+
+        [Theory]
+        [InlineData(Rfc5545Examples.FloatingDateTime)]
+        [InlineData(Rfc5545Examples.UtcDateTime)]
+        [InlineData("19970714T133000")]
+        [InlineData("19970714T173000Z")]
+        [InlineData(LeapSecondDateTime)]
+        public void IcalDateTime_ToString_ParsedRfcExample_WritesItAsItWasRead(string value)
+        {
+            // arrange
+            var dateTime = IcalDateTime.Parse(value.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = dateTime.ToString();
+
+            // assert
+            testResult.Should().Be(value);
         }
 
         [Fact]
         public void IcalDateTime_TryParse_WithTimeZoneId_IsZoned()
         {
             // act
-            var testResult = IcalDateTime.TryParse("19980119T020000".AsSpan(), "America/New_York", IcalValueFormat.Text, out var dateTime);
+            var testResult = IcalDateTime.TryParse(Rfc5545Examples.NewYorkLocalDateTime.AsSpan(), Rfc5545Examples.NewYorkTimeZoneId,
+                IcalValueFormat.Text, out var dateTime);
 
             // assert
             testResult.Should().BeTrue();
             dateTime.Kind.Should().Be(IcalDateTimeKind.Zoned);
-            dateTime.TimeZoneId.Should().Be("America/New_York");
+            dateTime.TimeZoneId.Should().Be(Rfc5545Examples.NewYorkTimeZoneId);
             dateTime.Date.Should().Be(new IcalDate(1998, 1, 19));
             dateTime.Time.Should().Be(new IcalTime(2, 0, 0));
-            dateTime.ToString().Should().Be("19980119T020000");
+        }
+
+        [Fact]
+        public void IcalDateTime_ToString_Zoned_WritesLocalTimeWithoutTimeZone()
+        {
+            // arrange
+            var dateTime = new IcalDateTime(new IcalDate(1998, 1, 19), new IcalTime(2, 0, 0), Rfc5545Examples.NewYorkTimeZoneId);
+
+            // act
+            var testResult = dateTime.ToString();
+
+            // assert
+            testResult.Should().Be(Rfc5545Examples.NewYorkLocalDateTime);
         }
 
         [Fact]
         public void IcalDateTime_TryParse_UtcWithTimeZoneId_Fails()
         {
             // act
-            var testResult = IcalDateTime.TryParse("19980119T070000Z".AsSpan(), "America/New_York", IcalValueFormat.Text, out _);
+            var testResult = IcalDateTime.TryParse(Rfc5545Examples.UtcDateTime.AsSpan(), Rfc5545Examples.NewYorkTimeZoneId, IcalValueFormat.Text, out _);
 
             // assert
             testResult.Should().BeFalse();
         }
 
         [Fact]
-        public void IcalDateTime_TryParse_NullTimeZoneId_IsFloating()
+        public void IcalDateTime_Parse_NullTimeZoneId_IsFloating()
         {
             // act
-            var testResult = IcalDateTime.Parse("19980119T020000".AsSpan(), null, IcalValueFormat.Text);
+            var testResult = IcalDateTime.Parse(Rfc5545Examples.NewYorkLocalDateTime.AsSpan(), null, IcalValueFormat.Text);
 
             // assert
             testResult.Kind.Should().Be(IcalDateTimeKind.Floating);
@@ -218,10 +340,10 @@ namespace DataStandardizer.File.iCal.Tests
         public void IcalDateTime_TryParse_EmptyTimeZoneId_Throws()
         {
             // act
-            Action act = () => IcalDateTime.TryParse("19980119T020000".AsSpan(), string.Empty, IcalValueFormat.Text, out _);
+            Action testAction = () => IcalDateTime.TryParse(Rfc5545Examples.NewYorkLocalDateTime.AsSpan(), string.Empty, IcalValueFormat.Text, out _);
 
             // assert
-            act.Should().Throw<ArgumentException>().WithParameterName("timeZoneId");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("timeZoneId");
         }
 
         [Theory]
@@ -243,68 +365,142 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void IcalDateTime_Equals_DifferentTimeZoneIds_AreDifferent()
+        public void IcalDateTime_Equals_DifferentTimeZoneIds_IsFalse()
         {
             // arrange
-            var date = new IcalDate(2026, 3, 1);
-            var time = new IcalTime(9, 0, 0);
+            var london = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0), LondonTimeZoneId);
+            var paris = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0), "Europe/Paris");
+
+            // act
+            var testResult = london.Equals(paris);
 
             // assert
-            new IcalDateTime(date, time, "Europe/London").Should().NotBe(new IcalDateTime(date, time, "Europe/Paris"));
-            new IcalDateTime(date, time, "Europe/London").Should().NotBe(new IcalDateTime(date, time));
-            new IcalDateTime(date, time, "Europe/London").Should().Be(new IcalDateTime(date, time, "Europe/London"));
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IcalDateTime_Equals_ZonedAndFloating_IsFalse()
+        {
+            // arrange
+            var zoned = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0), LondonTimeZoneId);
+            var floating = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0));
+
+            // act
+            var testResult = zoned.Equals(floating);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IcalDateTime_Equals_SameTimeZoneId_IsTrue()
+        {
+            // arrange
+            var dateTime = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0), LondonTimeZoneId);
+            var other = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0), LondonTimeZoneId);
+
+            // act
+            var testResult = dateTime.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
         public void IcalDateTime_Constructor_UtcTimeWithTimeZoneId_Throws()
         {
             // act
-            Action act = () => new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0, true), "Europe/London");
+            Action testAction = () => new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 0, 0, true), LondonTimeZoneId);
 
             // assert
-            act.Should().Throw<ArgumentException>().WithParameterName("time");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("time");
         }
 
         [Fact]
-        public void IcalDateTime_FromDateTime_KeepsKindAndDropsFraction()
+        public void IcalDateTime_FromDateTime_UtcWithFraction_IsUtcWithoutFraction()
         {
             // arrange
             var utc = new DateTime(2026, 3, 1, 9, 30, 15, 500, DateTimeKind.Utc);
+
+            // act
+            var testResult = IcalDateTime.FromDateTime(utc);
+
+            // assert
+            testResult.Should().Be(new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 30, 15, true)));
+        }
+
+        [Fact]
+        public void IcalDateTime_FromDateTime_Local_IsFloating()
+        {
+            // arrange
             var local = new DateTime(2026, 3, 1, 9, 30, 15, DateTimeKind.Local);
 
             // act
-            var utcResult = IcalDateTime.FromDateTime(utc);
-            var localResult = IcalDateTime.FromDateTime(local);
-            var zonedResult = IcalDateTime.FromDateTime(local, "Pacific/Auckland");
+            var testResult = IcalDateTime.FromDateTime(local);
 
             // assert
-            utcResult.ToString().Should().Be("20260301T093015Z");
-            utcResult.ToDateTime().Should().Be(new DateTime(2026, 3, 1, 9, 30, 15, DateTimeKind.Utc));
-            utcResult.ToDateTime().Kind.Should().Be(DateTimeKind.Utc);
-            localResult.Kind.Should().Be(IcalDateTimeKind.Floating);
-            localResult.ToDateTime().Kind.Should().Be(DateTimeKind.Unspecified);
-            zonedResult.Kind.Should().Be(IcalDateTimeKind.Zoned);
-            zonedResult.TimeZoneId.Should().Be("Pacific/Auckland");
+            testResult.Should().Be(new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 30, 15)));
+        }
+
+        [Fact]
+        public void IcalDateTime_FromDateTime_WithTimeZoneId_IsZoned()
+        {
+            // arrange
+            var local = new DateTime(2026, 3, 1, 9, 30, 15, DateTimeKind.Local);
+
+            // act
+            var testResult = IcalDateTime.FromDateTime(local, AucklandTimeZoneId);
+
+            // assert
+            testResult.Kind.Should().Be(IcalDateTimeKind.Zoned);
+            testResult.TimeZoneId.Should().Be(AucklandTimeZoneId);
+        }
+
+        [Fact]
+        public void IcalDateTime_ToDateTime_Utc_IsUtcDateTime()
+        {
+            // arrange
+            var dateTime = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 30, 15, true));
+
+            // act
+            var testResult = dateTime.ToDateTime();
+
+            // assert
+            testResult.Should().Be(new DateTime(2026, 3, 1, 9, 30, 15, DateTimeKind.Utc));
+            testResult.Kind.Should().Be(DateTimeKind.Utc);
+        }
+
+        [Fact]
+        public void IcalDateTime_ToDateTime_Floating_IsUnspecifiedDateTime()
+        {
+            // arrange
+            var dateTime = new IcalDateTime(new IcalDate(2026, 3, 1), new IcalTime(9, 30, 15));
+
+            // act
+            var testResult = dateTime.ToDateTime();
+
+            // assert
+            testResult.Kind.Should().Be(DateTimeKind.Unspecified);
         }
 
         [Fact]
         public void IcalDateTime_ToDateTime_LeapSecond_Throws()
         {
             // arrange
-            var leapSecond = IcalDateTime.Parse("19970630T235960Z".AsSpan(), IcalValueFormat.Text);
+            var leapSecond = IcalDateTime.Parse(LeapSecondDateTime.AsSpan(), IcalValueFormat.Text);
 
             // act
-            Action act = () => leapSecond.ToDateTime();
+            Action testAction = () => leapSecond.ToDateTime();
 
             // assert
-            act.Should().Throw<InvalidOperationException>();
+            testAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
         public void IcalDateTime_TryFormat_DestinationTooShort_ReturnsFalse()
         {
             // arrange
-            var dateTime = IcalDateTime.Parse("19980119T070000Z".AsSpan(), IcalValueFormat.Text);
+            var dateTime = IcalDateTime.Parse(Rfc5545Examples.UtcDateTime.AsSpan(), IcalValueFormat.Text);
             var destination = new char[15];
 
             // act
@@ -319,15 +515,16 @@ namespace DataStandardizer.File.iCal.Tests
         public void IcalDateTime_TryFormat_ExactLength_Succeeds()
         {
             // arrange
-            var dateTime = IcalDateTime.Parse("19980119T070000Z".AsSpan(), IcalValueFormat.Text);
-            var destination = new char[16];
+            var dateTime = IcalDateTime.Parse(Rfc5545Examples.UtcDateTime.AsSpan(), IcalValueFormat.Text);
+            var destination = new char[UtcDateTimeLength];
 
             // act
             var testResult = dateTime.TryFormat(destination, out var charsWritten, IcalValueFormat.Text);
 
             // assert
             testResult.Should().BeTrue();
-            new string(destination, 0, charsWritten).Should().Be("19980119T070000Z");
+            charsWritten.Should().Be(UtcDateTimeLength);
+            destination.Should().Equal(Rfc5545Examples.UtcDateTime.ToCharArray());
         }
 
         #endregion
@@ -335,13 +532,13 @@ namespace DataStandardizer.File.iCal.Tests
         #region IcalUtcOffset
 
         [Theory]
-        [InlineData("-0500", -5 * 3600)]
-        [InlineData("+0100", 3600)]
+        [InlineData(Rfc5545Examples.NegativeUtcOffset, -18000)]
+        [InlineData(Rfc5545Examples.PositiveUtcOffset, 3600)]
         [InlineData("+0000", 0)]
-        [InlineData("+1345", 13 * 3600 + 45 * 60)]
+        [InlineData("+1345", 49500)]
         [InlineData("-000001", -1)]
-        [InlineData("+023045", 2 * 3600 + 30 * 60 + 45)]
-        public void IcalUtcOffset_TryParse_ValidValue_ParsesAndRoundTrips(string value, int totalSeconds)
+        [InlineData("+023045", 9045)]
+        public void IcalUtcOffset_TryParse_ValidValue_Parses(string value, int totalSeconds)
         {
             // act
             var testResult = IcalUtcOffset.TryParse(value.AsSpan(), IcalValueFormat.Text, out var offset);
@@ -349,7 +546,25 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Should().BeTrue();
             offset.Offset.Should().Be(TimeSpan.FromSeconds(totalSeconds));
-            offset.ToString().Should().Be(value);
+        }
+
+        [Theory]
+        [InlineData(-18000, Rfc5545Examples.NegativeUtcOffset)]
+        [InlineData(3600, Rfc5545Examples.PositiveUtcOffset)]
+        [InlineData(0, "+0000")]
+        [InlineData(49500, "+1345")]
+        [InlineData(-1, "-000001")]
+        [InlineData(9045, "+023045")]
+        public void IcalUtcOffset_ToString_ValidOffset_WritesUtcOffsetValue(int totalSeconds, string expected)
+        {
+            // arrange
+            var offset = new IcalUtcOffset(TimeSpan.FromSeconds(totalSeconds));
+
+            // act
+            var testResult = offset.ToString();
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -373,25 +588,36 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void IcalUtcOffset_TryParse_ZeroSeconds_IsWrittenWithoutSeconds()
+        public void IcalUtcOffset_ToString_ParsedWithZeroSeconds_IsWrittenWithoutSeconds()
         {
+            // arrange
+            var offset = IcalUtcOffset.Parse("+010000".AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalUtcOffset.Parse("+010000".AsSpan(), IcalValueFormat.Text).ToString();
+            var testResult = offset.ToString();
 
             // assert
-            testResult.Should().Be("+0100");
+            testResult.Should().Be(Rfc5545Examples.PositiveUtcOffset);
         }
 
         [Fact]
-        public void IcalUtcOffset_Constructor_OutOfRange_Throws()
+        public void IcalUtcOffset_Constructor_OneDay_ThrowsArgumentOutOfRange()
         {
             // act
-            Action tooLarge = () => new IcalUtcOffset(TimeSpan.FromHours(24));
-            Action fractional = () => new IcalUtcOffset(TimeSpan.FromMilliseconds(500));
+            Action testAction = () => new IcalUtcOffset(TimeSpan.FromHours(24));
 
             // assert
-            tooLarge.Should().Throw<ArgumentOutOfRangeException>();
-            fractional.Should().Throw<ArgumentException>();
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void IcalUtcOffset_Constructor_FractionOfASecond_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => new IcalUtcOffset(TimeSpan.FromMilliseconds(500));
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         #endregion

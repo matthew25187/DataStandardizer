@@ -39,9 +39,9 @@ disposed, `ReadLine`, `Context`, `RegisterMapper` and `UnregisterMapper` throw
 caller-supplied `TextReader`.
 
 **Thread safety.** A single reader instance is not thread-safe. Distinct instances
-may be used concurrently, including for the same record type. Mapper registration
-through `RegisterMapper` is process-wide per record type and visible to every reader
-and writer instance.
+may be used concurrently, including for the same record type. A mapper registered
+through `RegisterMapper` applies to this reader only; register it on each reader
+and writer that should use it.
 
 **Mapper changes.** The reader works out the field names and mappings once and
 reuses them for each line. If a mapper is registered or unregistered part way
@@ -72,25 +72,25 @@ returned are not affected.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. Calling it again has no effect. |
-| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, or `ObjectDisposedException` after `Dispose`. |
+| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, `InvalidOperationException` if the header handler returns `null`, or `ObjectDisposedException` after `Dispose`. Once reading the header line or getting the header handler's field names fails, every later call throws the same exception and reads no further lines. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors are available on `netstandard2.0`,
-`netstandard2.1`, and the .NET targets only; on `netstandard1.3` construct the
+`netstandard2.1`, and the .NET targets only; on `netstandard1.1` construct the
 reader from a `Stream` or `TextReader`.
 
 ## See also
 
 - [Read CSV files](../how-to/read-csv-files.md)
+- [Performance](../how-to/performance.md)
 - [The CSV line model](../concepts/csv-line-model.md)
 - [CsvFileWriter](CsvFileWriter.md)
 - [CsvFileIoBase](CsvFileIoBase.md)
 - [CsvFileOptions](CsvFileOptions.md)
 - [CsvContext](CsvContext.md)
 - [File.CSV API reference](index.md)
-</content>

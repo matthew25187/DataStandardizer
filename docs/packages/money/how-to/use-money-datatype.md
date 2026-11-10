@@ -105,6 +105,10 @@ var monetaryValue = (Money)55.67m;
 var amount = (decimal)monetaryValue;
 ```
 
+A cast to `double` or `float` also gives the amount. A cast to an integer type
+gives the amount in minor units instead; see
+[Amounts in minor units](#amounts-in-minor-units).
+
 Arithmetic operators support the calculation of a result combining `Money` and
 decimal values. For example:
 
@@ -129,3 +133,90 @@ supported. The result of an operation on two monetary values of different
 currencies would be undefined, as these values are effectively of different
 types and therefore incomparable. See [The Money type](../concepts/money-type.md)
 for more on this design.
+
+## Amounts in minor units
+
+Payment systems and databases often store an amount as a whole number of the
+currency's minor units, such as cents. A cast from `Money` to `long`, `int`,
+`short` or `sbyte` gives the amount in the minor units ISO 4217 defines for its
+currency:
+
+```csharp
+var dollars = Money.Create(12.34m, Iso4217CurrencyCurrent.USD);
+var cents = (long)dollars;          // 1234
+
+var yen = Money.Create(500m, Iso4217CurrencyCurrent.JPY);
+var yenUnits = (long)yen;           // 500, the yen has no minor units
+
+var dinars = Money.Create(1.234m, Iso4217CurrencyCurrent.BHD);
+var fils = (long)dinars;            // 1234, the dinar has three minor-unit digits
+```
+
+The cast uses the rounded amount, so a value's rounding is applied first:
+
+```csharp
+var rounded = Money.Create(1.005m, Iso4217CurrencyCurrent.USD, 2, MidpointRounding.AwayFromZero);
+var roundedCents = (long)rounded;   // 101
+```
+
+The cast never truncates or rounds the amount itself. It throws when there's no
+exact answer:
+
+- `InvalidCastException` when the currency has no minor units. That's `XXX`,
+  including a value created without a currency and `default(Money)`, and `XTS`.
+- `InvalidCastException` when the amount isn't a whole number of minor units,
+  such as 1.005 USD without rounding. This is the exception whatever the size
+  of the amount.
+- `OverflowException` when the amount in minor units doesn't fit the target
+  type, such as 21474836.48 USD cast to `int`.
+
+To truncate the amount to an integer, which is what the integer casts used to
+do, convert through `decimal`:
+
+```csharp
+var wholeDollars = (long)(decimal)dollars;   // 12
+```
+
+There's no cast from an integer to `Money`, because a cast has nowhere to carry
+the currency. Create the value from a `decimal` amount instead.
+
+### Migrating from earlier versions
+
+{: .warning }
+> In earlier versions an integer cast such as `(long)money` converted through
+> `decimal` and truncated the amount, so 12.34 USD gave `12`. The same code
+> recompiled against this version gives `1234`. Code compiled against an
+> earlier version keeps the old behaviour until it's rebuilt.
+
+Review each integer cast of a `Money` value:
+
+- Where you want the amount in minor units, keep the cast, and handle the
+  exceptions it can now throw.
+- Where you want the truncated amount, change `(long)money` to
+  `(long)(decimal)money`.
+
+A cast to an unsigned integer type (`ulong`, `uint`, `ushort` or `byte`) no
+longer compiles, and fails with error CS0619, so it can't quietly keep
+truncating while the signed casts change meaning. Casts to `char` and `nuint`
+fail the same way. Write `(uint)(decimal)money` to keep the old result.
+`(nint)money` now gives the amount in minor units, through the `int` cast.
+
+These conversions are unchanged: `decimal d = money`, `(decimal)money`,
+`(double)money`, `(float)money`, the arithmetic and comparison operators, and
+`Convert.ToInt64(money)` and its siblings. None of them scale the amount.
+`Convert.ToInt64(money)` and the `IConvertible` integer members round a fraction
+to the nearest integer, with ties to even, rather than truncating it as
+`(long)(decimal)money` does.
+
+The `IConvertible` members, which `Convert.ToDecimal((object)money)` and its
+siblings call, don't scale the amount either, but they now convert it with the
+rounding the value carries, as `(decimal)money` does. Before, they converted
+the amount before rounding. `Convert.ToString(money)` and
+`IConvertible.ToString` also apply the rounding now, as `money.ToString()` does.
+No member returns the amount before rounding. If you need it, create the value
+without a rounding precision, with `Money.Create(amount, currency)`, and round
+where you need to.
+
+`Money.Create` now throws `ArgumentOutOfRangeException` for a rounding precision
+outside 0 to 28. Before, it accepted one, and converting the value to `decimal`
+failed later.

@@ -29,7 +29,7 @@ namespace DataStandardizer.Language
         
 #else
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly string _value;
         
 #endif
@@ -50,7 +50,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator DataStandardizer.Language.Iso639Part1Language(string value)
 #else
-        public static explicit operator DataStandardizer.Language.Iso639Part1Language([JetBrains.Annotations.NotNullAttribute] string value)
+        public static explicit operator DataStandardizer.Language.Iso639Part1Language([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
         {
             return new DataStandardizer.Language.Iso639Part1Language(value);
@@ -59,7 +59,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(DataStandardizer.Language.Iso639Part1Language value)
 #else
-        [JetBrains.Annotations.CanBeNullAttribute]
+        [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
         public static implicit operator string(DataStandardizer.Language.Iso639Part1Language value)
 #endif
         {
@@ -1304,19 +1304,23 @@ namespace DataStandardizer.Language
         
         public int CompareTo(object? obj)
         {
+            if ((this._value == null))
+            {
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
+            }
             if ((obj == null))
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
-            if ((obj.GetType() != this.GetType()))
+            if (!(obj is DataStandardizer.Language.Iso639Part1Language other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
             }
-            if ((this._value == null))
+            if ((other._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
             }
-            return this._value.CompareTo(obj);
+            return string.CompareOrdinal(this._value, other._value);
         }
         
         public override bool Equals(object? obj)
@@ -1355,19 +1359,23 @@ namespace DataStandardizer.Language
         
         public int CompareTo(object obj)
         {
+            if ((this._value == null))
+            {
+                throw new System.InvalidOperationException("The enumeration type is unknown.");
+            }
             if ((obj == null))
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
-            if ((obj.GetType() != this.GetType()))
+            if (!(obj is DataStandardizer.Language.Iso639Part1Language other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
             }
-            if ((this._value == null))
+            if ((other._value == null))
             {
-                throw new System.NullReferenceException();
+                throw new System.ArgumentException($"{nameof(obj)} is an uninitialized instance.", nameof(obj));
             }
-            return ((System.IComparable)(this._value)).CompareTo(obj);
+            return string.CompareOrdinal(this._value, other._value);
         }
         
         public override bool Equals(object obj)

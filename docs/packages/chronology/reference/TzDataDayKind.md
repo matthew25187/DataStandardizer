@@ -35,7 +35,7 @@ Used by the `DayKind` property of [TzDataRule](TzDataRule.md) and
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

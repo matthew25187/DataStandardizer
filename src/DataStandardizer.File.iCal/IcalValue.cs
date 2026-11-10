@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Globalization;
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
+using DataStandardizer.Communication.Mime;
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -14,7 +14,6 @@ namespace DataStandardizer.File.iCal
     /// </remarks>
     public static class IcalValue
     {
-        private const string Base64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         private const string TrueText = "TRUE";
         private const string FalseText = "FALSE";
         private const string XmlTrueText = "true";
@@ -56,7 +55,7 @@ namespace DataStandardizer.File.iCal
             }
 
             int errorIndex;
-            if (!IcalEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
+            if (!ContentLineEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
             {
                 charsWritten = 0;
                 return false;
@@ -77,7 +76,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out string? result)
 #else
-        public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, out string result)
+        public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out string result)
 #endif
         {
             var buffer = new char[value.Length];
@@ -486,7 +485,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out byte[]? result)
 #else
-        public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, out byte[] result)
+        public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out byte[] result)
 #endif
         {
             IcalValueFormatting.CheckFormat(format);
@@ -495,42 +494,7 @@ namespace DataStandardizer.File.iCal
                 value = RemoveXmlWhitespace(value);
             }
 
-            // ref. RFC 4648§4: each 4 characters encode 3 bytes; "=" pads the last group.
-            result = null;
-            if (value.Length % 4 != 0) return false;
-
-            var padding = 0;
-            if (value.Length > 0 && value[value.Length - 1] == '=')
-            {
-                padding = value[value.Length - 2] == '=' ? 2 : 1;
-            }
-
-            var bytes = new byte[value.Length / 4 * 3 - padding];
-            var byteIndex = 0;
-            for (var index = 0; index < value.Length; index += 4)
-            {
-                var group = 0;
-                var groupLength = index + 4 == value.Length ? 4 - padding : 4;
-                for (var offset = 0; offset < 4; offset++)
-                {
-                    var sextet = 0;
-                    if (offset < groupLength)
-                    {
-                        sextet = Base64Alphabet.IndexOf(value[index + offset]);
-                        if (sextet < 0) return false;
-                    }
-
-                    group = (group << 6) | sextet;
-                }
-
-                for (var shift = 16; shift >= 0 && byteIndex < bytes.Length; shift -= 8)
-                {
-                    bytes[byteIndex++] = (byte)(group >> shift);
-                }
-            }
-
-            result = bytes;
-            return true;
+            return MimeBase64.TryDecode(value, MimeBase64Mode.Strict, MimeBase64DecoderOptions.None, out result);
         }
 
         /// <summary>
@@ -546,36 +510,14 @@ namespace DataStandardizer.File.iCal
         {
             IcalValueFormatting.CheckFormat(format);
 
-            var length = (value.Length + 2) / 3 * 4;
-            if (destination.Length < length)
+            // The codec writes what fits before it reports a short destination, and a failed call here leaves the destination as it was.
+            if (MimeBase64.GetMaxDecodedLength(destination.Length) < value.Length)
             {
                 charsWritten = 0;
                 return false;
             }
 
-            var position = 0;
-            for (var index = 0; index < value.Length; index += 3)
-            {
-                var remaining = Math.Min(3, value.Length - index);
-                var group = value[index] << 16;
-                if (remaining > 1)
-                {
-                    group |= value[index + 1] << 8;
-                }
-
-                if (remaining > 2)
-                {
-                    group |= value[index + 2];
-                }
-
-                for (var offset = 0; offset < 4; offset++)
-                {
-                    destination[position++] = offset <= remaining ? Base64Alphabet[(group >> (18 - 6 * offset)) & 0x3F] : '=';
-                }
-            }
-
-            charsWritten = length;
-            return true;
+            return MimeBase64.TryEncode(value, destination, out charsWritten, MimeBase64Mode.Strict);
         }
 
         /// <summary>
@@ -585,15 +527,16 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form to write.</param>
         /// <returns>The value.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member, or the value
+        /// would be longer than <see cref="int.MaxValue"/> characters.</exception>
         public static string FormatBinary(byte[] value, IcalValueFormat format)
         {
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
 
-            var buffer = new char[(value.Length + 2) / 3 * 4];
-            int charsWritten;
-            return IcalValueFormatting.ToString(buffer, TryFormatBinary(value, buffer, out charsWritten, format), charsWritten);
+            IcalValueFormatting.CheckFormat(format);
+
+            return MimeBase64.Encode(value, MimeBase64Mode.Strict);
         }
 
         #endregion
@@ -614,7 +557,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out Uri? result)
 #else
-        public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, out Uri result)
+        public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out Uri result)
 #endif
         {
             IcalValueFormatting.CheckFormat(format);
@@ -665,7 +608,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out Uri? result)
 #else
-        public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, out Uri result)
+        public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out Uri result)
 #endif
         {
             // ref. RFC 5545§3.3.3: cal-address = uri

@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.Communication.E164.ItuE164Constants;
 
@@ -34,16 +34,17 @@ namespace DataStandardizer.Communication.E164
                 .ToArray();
             var countryCodePattern = string.Join("|", validCountryCodes);
 
-            // Compose expressions for parsing a number.
-            return string.Concat(@"^(?=(?:\D*\d){2,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*": string.Empty,
-                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}" : string.Empty, "?[", PatternWhiteSpaceCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
+            // Compose expressions for parsing a number. The Subscriber Number quantifier allows the most digits
+            // that follow a one-digit Country Code; the digit-count lookahead that starts the pattern enforces
+            // the limit on the whole number for Country Codes of every length.
+            return string.Concat(ComposePatternStart(2, numberStyles), "(?<", NumberPart.CountryCode, ">",
                 countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){0,", MaximumDigitCount - 2, "})",
-                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*": string.Empty, "$");
+                ComposePatternEnd(numberStyles));
         }
 #if NETCOREAPP3_0_OR_GREATER
         internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForGeographicAreas? result)
 #else
-        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForGeographicAreas result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [MaybeNullWhen(false)] out ItuE164InternationalNumberStructureForGeographicAreas result)
 #endif
         {
             var isParsed = false;

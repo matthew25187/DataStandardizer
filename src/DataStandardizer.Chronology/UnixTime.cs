@@ -6,9 +6,11 @@
     /// </summary>
     /// <remarks>
     /// This struct provides implicit conversions to and from <see cref="System.Int64"/> 
-    /// and includes functionality to calculate the Julian Day Number.
+    /// and includes functionality to calculate the Julian Day Number. Because Unix time is defined in UTC,
+    /// <see cref="SystemTimeExtensions.ToDateTime{T}(T)"/> returns a <see cref="System.DateTime"/> of kind
+    /// <see cref="System.DateTimeKind.Utc"/> for it, and for a <see cref="SystemTimeWithGregorianCalendar"/> that wraps it.
     /// </remarks>
-    public readonly struct UnixTime : ISystemTime
+    public readonly struct UnixTime : ISystemTime, ISystemTimeKind
     {
         private readonly long _value;
 
@@ -27,6 +29,8 @@
             return new UnixTime(value);
         }
 
-        public decimal JulianDayNumber => decimal.Divide(_value, 86400) + 2440587.5m;
+        public decimal JulianDayNumber => decimal.Divide(_value, JulianDayNumberHelper.SecondsPerDay) + JulianDayNumberHelper.UnixEpochJdn;
+
+        System.DateTimeKind ISystemTimeKind.DateTimeKind => System.DateTimeKind.Utc;
     }
 }

@@ -30,6 +30,10 @@ fluent [CsvFileMappingBuilder](CsvFileMappingBuilder.md), and surfaced (read-onl
 through a [CsvFileMapper](CsvFileMapper.md) / [ICsvFileMapper](ICsvFileMapper.md).
 The properties below are all publicly readable.
 
+When neither `FromStringConverter` nor `TypeConverterType` is set, a reader parses
+the field with its built-in parse for `PropertyType`. See
+[converting field values](../concepts/field-mapping.md#converting-field-values).
+
 ## Properties
 
 | Property | Signature | Notes |
@@ -37,19 +41,19 @@ The properties below are all publicly readable.
 | `ConstantValue` | `object? ConstantValue { get; }` | A constant value for the field. |
 | `FieldIndex` | `int? FieldIndex { get; }` | The mapped field index. Setting a negative value throws `ArgumentOutOfRangeException`. |
 | `FieldName` | `string? FieldName { get; }` | The mapped field name. |
-| `FromStringConverter` | `Delegate? FromStringConverter { get; }` | A [CsvFieldConvertFromString](CsvFieldConvertFromString.md) delegate (reading only). |
+| `FromStringConverter` | `Delegate? FromStringConverter { get; }` | A [CsvFieldConvertFromString](CsvFieldConvertFromString.md) delegate (reading only). Takes precedence over `TypeConverterType` and the reader's built-in parse. |
 | `IsOptional` | `bool IsOptional { get; }` | `true` if the field is optional. |
 | `PropertyType` | `Type PropertyType { get; }` | The type of the mapped property. |
 | `ToStringConverter` | `Delegate? ToStringConverter { get; }` | A [CsvFieldConvertToString](CsvFieldConvertToString.md) delegate (writing only). |
-| `TypeConverterType` | `Type? TypeConverterType { get; }` | The `TypeConverter` type used for (de)serialization. |
+| `TypeConverterType` | `Type? TypeConverterType { get; }` | The `TypeConverter` type used for (de)serialization. When reading, takes precedence over the reader's built-in parse, and a value the converter throws for is a bad value. |
 | `Validator` | `Delegate? Validator { get; }` | A [CsvFieldValidate](CsvFieldValidate.md) delegate. |
 | `VariableValueGenerator` | `Delegate? VariableValueGenerator { get; }` | A [CsvFieldGenerate](CsvFieldGenerate.md) delegate. |
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The nullable reference annotations apply to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 
@@ -58,4 +62,3 @@ The nullable reference annotations apply to the
 - [CsvFileMappingBuilder](CsvFileMappingBuilder.md)
 - [ICsvFileMapper](ICsvFileMapper.md)
 - [File.CSV API reference](index.md)
-</content>

@@ -45,13 +45,12 @@ build an instance.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The nullable reference annotations apply to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 
 - [Configure a reader or writer](../how-to/configure-csv.md)
 - [CsvFileOptions](CsvFileOptions.md)
 - [File.CSV API reference](index.md)
-</content>

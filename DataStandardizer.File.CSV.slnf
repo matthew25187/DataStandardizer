@@ -2,9 +2,12 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "benchmarks\\DataStandardizer.File.CSV.Benchmarks\\DataStandardizer.File.CSV.Benchmarks.csproj",
+      "fuzz\\DataStandardizer.File.CSV.Fuzz\\DataStandardizer.File.CSV.Fuzz.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.CSV\\DataStandardizer.File.CSV.csproj",
+      "tests\\DataStandardizer.File.CSV.IntegrationTests\\DataStandardizer.File.CSV.IntegrationTests.csproj",
       "tests\\DataStandardizer.File.CSV.Tests\\DataStandardizer.File.CSV.Tests.csproj"
     ]
   }

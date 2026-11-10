@@ -8,8 +8,8 @@ nav_order: 20
 # DataStandardizer.LanguageTag API reference
 
 The public types of **DataStandardizer.LanguageTag**. The core types are in the
-`DataStandardizer.LanguageTag` namespace; the registry types are in the nested
-`DataStandardizer.LanguageTag.SubtagRegistry` namespace.
+`DataStandardizer.LanguageTag` namespace, as is `SubtagRegistry`; the types of its
+records are in the nested `DataStandardizer.LanguageTag.Registry` namespace.
 
 ## Structures
 
@@ -29,7 +29,14 @@ The public types of **DataStandardizer.LanguageTag**. The core types are in the
 | [SubtagRegistryTagRecord](SubtagRegistryTagRecord.md) | A registry *tag* entry. |
 | [SubtagRegistrySubtagRecord](SubtagRegistrySubtagRecord.md) | A registry *subtag* entry. |
 | [SubtagRegistryFileDateRecord](SubtagRegistryFileDateRecord.md) | The registry's `File-Date` header record. |
-| [SubtagRegistryFieldAttribute](SubtagRegistryFieldAttribute.md) | Maps a record property to its underlying registry field name. |
+
+## Enumerations
+
+| Type | Description |
+| --- | --- |
+| [LanguageTagConformance](LanguageTagConformance.md) | What was checked when a language tag was created: well-formed, valid or the ISO code lists. |
+| [SubtagRegistryLoadOptions](SubtagRegistryLoadOptions.md) | Line breaks to accept, besides CRLF, when a registry is loaded. |
+| [SubtagRegistryRecordType](SubtagRegistryRecordType.md) | The `Type` of a registry record. |
 
 ## Interfaces
 
@@ -47,6 +54,5 @@ The public types of **DataStandardizer.LanguageTag**. The core types are in the
 
 - [Anatomy of a language tag](../concepts/language-tag-anatomy.md)
 - [The language-tag builder pipeline](../concepts/builder-pipeline.md)
+- [Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md)
 - [Use language tags](../how-to/use-language-tags.md)
-</content>
-</invoke>

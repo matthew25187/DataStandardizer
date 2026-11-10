@@ -29,7 +29,7 @@ public sealed class CsvFileOptions : ICsvFileOptions
 
 ## Remarks
 
-On .NET 5 and later the type is a `record` whose properties are `init`-only, so
+On `net10.0` the type is a `record` whose properties are `init`-only, so
 configure it with an object initializer or a `with` expression. On .NET Standard the
 type is a plain `class` whose properties are settable. Construct it with the implicit
 parameterless constructor and set the properties you need; the rest keep their
@@ -46,7 +46,7 @@ RFC 4180 defaults.
 | Property | Signature | Default | Notes |
 | --- | --- | --- | --- |
 | `BadValueHandler` | `Delegate? BadValueHandler { get; init; }` | `null` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate. `get; set;` on .NET Standard. |
-| `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. `get; set;` on .NET Standard. |
+| `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. When `null`, values are converted with the invariant culture, never the current culture. `get; set;` on .NET Standard. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; init; }` | `null` | Replacement for line breaks embedded in field values. `get; set;` on .NET Standard. |
 | `Encoding` | `Encoding? Encoding { get; init; }` | `null` | File encoding. `get; set;` on .NET Standard. |
 | `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; init; }` | `','` | Field separator. `get; set;` on .NET Standard. |
@@ -59,11 +59,10 @@ RFC 4180 defaults.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`CsvFileOptions` is a `record` with `init`-only properties on the `net8.0` and
-`net10.0` builds, and a plain `class` with settable properties on the
-`netstandard1.3`, `netstandard2.0`, and `netstandard2.1` builds. The nullable
-reference annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0`
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`CsvFileOptions` is a `record` with `init`-only properties on the `net10.0` build, and a plain `class` with settable properties on the
+`netstandard1.1`, `netstandard2.0`, and `netstandard2.1` builds. The nullable
+reference annotations apply to the `netstandard2.1` and `net10.0`
 builds.
 
 ## See also
@@ -73,4 +72,3 @@ builds.
 - [CsvFileHeaderHandling](CsvFileHeaderHandling.md)
 - [CsvFieldQuoteHandling](CsvFieldQuoteHandling.md)
 - [File.CSV API reference](index.md)
-</content>

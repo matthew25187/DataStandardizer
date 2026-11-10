@@ -3,3 +3,4 @@
 [assembly: System.Reflection.AssemblyTitle("Data Standardizer: Chronology")]
 
 [assembly: InternalsVisibleTo("DataStandardizer.Chronology.Tests")]
+[assembly: InternalsVisibleTo("DataStandardizer.Chronology.IntegrationTests")]

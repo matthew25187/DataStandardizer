@@ -1,12 +1,37 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 
 namespace DataStandardizer.Chronology.Tests;
 
 public class TzDataRuleTests
 {
+    private const string TestRuleName = "Test";
+    private const string DayParameterName = "day";
+    private const string DayOfWeekParameterName = "dayOfWeek";
+    private const string MonthParameterName = "month";
+    private const string YearParameterName = "year";
+
+    // The rule of TZ Database 2026e for the end of Irish Standard Time from 1996: Rule Eire 1996 max - Oct lastSun 1:00u -1:00 -
+    // Its negative save is daylight saving time, and its LETTER/S column, "-", is an empty letter.
+    private const string EireRuleName = "Eire";
+    private const int EireFromYear = 1996;
+    private const int EireMonth = 10;
+
+    // The first year of the rules whose years are tested, the year before it and the year after it.
+    private const int RuleFromYear = 2007;
+    private const int YearBeforeRuleFromYear = 2006;
+    private const int YearAfterRuleFromYear = 2008;
+
+    // The last year that DateTime can represent, and the year after it.
+    private const int LastDateTimeYear = 9999;
+    private const int YearAfterLastDateTimeYear = 10000;
+
+    // A value that is not a member of DayOfWeek, and one that is not a member of TzDataDayKind.
+    private const DayOfWeek UndefinedDayOfWeek = (DayOfWeek)7;
+    private const TzDataDayKind UndefinedDayKind = (TzDataDayKind)4;
+
     private static TzDataRule CreateRule(int month, TzDataDayKind dayKind, int? day, DayOfWeek? dayOfWeek, int fromYear = 1900, int toYear = int.MaxValue)
     {
-        return new TzDataRule("Test", fromYear, toYear, month, dayKind, day, dayOfWeek, TimeSpan.FromHours(2), TzDataTimeReference.Wall, TimeSpan.FromHours(1), true, "D");
+        return new TzDataRule(TestRuleName, fromYear, toYear, month, dayKind, day, dayOfWeek, TimeSpan.FromHours(2), TzDataTimeReference.Wall, TimeSpan.FromHours(1), true, "D");
     }
 
     [Theory]
@@ -38,10 +63,10 @@ public class TzDataRuleTests
         var testRule = CreateRule(2, TzDataDayKind.DayOfMonth, 29, null);
 
         // act
-        var testAction = () => testRule.GetTransitionDate(testYear);
+        Action testAction = () => testRule.GetTransitionDate(testYear);
 
         // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("year");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(YearParameterName);
     }
 
     [Theory]
@@ -107,7 +132,7 @@ public class TzDataRuleTests
     }
 
     [Fact]
-    public void GetTransitionDate_ReturnsMidnightOfUnspecifiedKind()
+    public void GetTransitionDate_AnyRule_ReturnsMidnightOfUnspecifiedKind()
     {
         // arrange
         var testRule = CreateRule(3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday);
@@ -121,49 +146,49 @@ public class TzDataRuleTests
     }
 
     [Theory]
-    [InlineData(2007, 2007, 2007)]
-    [InlineData(2007, int.MaxValue, 2007)]
-    [InlineData(2007, int.MaxValue, 9999)]
+    [InlineData(RuleFromYear, RuleFromYear, RuleFromYear)]
+    [InlineData(RuleFromYear, int.MaxValue, RuleFromYear)]
+    [InlineData(RuleFromYear, int.MaxValue, LastDateTimeYear)]
     public void GetTransitionDate_YearWithinRule_DoesNotThrow(int testFromYear, int testToYear, int testYear)
     {
         // arrange
         var testRule = CreateRule(3, TzDataDayKind.WeekdayOnOrAfter, 8, DayOfWeek.Sunday, testFromYear, testToYear);
 
         // act
-        var testAction = () => testRule.GetTransitionDate(testYear);
+        Action testAction = () => testRule.GetTransitionDate(testYear);
 
         // assert
         testAction.Should().NotThrow();
     }
 
     [Theory]
-    [InlineData(2007, 2007, 2006)]
-    [InlineData(2007, 2007, 2008)]
-    [InlineData(2007, int.MaxValue, 2006)]
-    [InlineData(2007, int.MaxValue, 10000)]
+    [InlineData(RuleFromYear, RuleFromYear, YearBeforeRuleFromYear)]
+    [InlineData(RuleFromYear, RuleFromYear, YearAfterRuleFromYear)]
+    [InlineData(RuleFromYear, int.MaxValue, YearBeforeRuleFromYear)]
+    [InlineData(RuleFromYear, int.MaxValue, YearAfterLastDateTimeYear)]
     public void GetTransitionDate_YearOutsideRuleOrDateTimeRange_ThrowsArgumentOutOfRangeException(int testFromYear, int testToYear, int testYear)
     {
         // arrange
         var testRule = CreateRule(3, TzDataDayKind.WeekdayOnOrAfter, 8, DayOfWeek.Sunday, testFromYear, testToYear);
 
         // act
-        var testAction = () => testRule.GetTransitionDate(testYear);
+        Action testAction = () => testRule.GetTransitionDate(testYear);
 
         // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("year");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(YearParameterName);
     }
 
     [Fact]
     public void Constructor_ValidArguments_SetsProperties()
     {
         // act
-        var testResult = new TzDataRule("Eire", 1981, int.MaxValue, 10, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, TimeSpan.FromHours(1), TzDataTimeReference.Universal, TimeSpan.FromHours(-1), true, string.Empty);
+        var testResult = new TzDataRule(EireRuleName, EireFromYear, int.MaxValue, EireMonth, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, TimeSpan.FromHours(1), TzDataTimeReference.Universal, TimeSpan.FromHours(-1), true, string.Empty);
 
         // assert
-        testResult.Name.Should().Be("Eire");
-        testResult.FromYear.Should().Be(1981);
+        testResult.Name.Should().Be(EireRuleName);
+        testResult.FromYear.Should().Be(EireFromYear);
         testResult.ToYear.Should().Be(int.MaxValue);
-        testResult.Month.Should().Be(10);
+        testResult.Month.Should().Be(EireMonth);
         testResult.DayKind.Should().Be(TzDataDayKind.LastWeekday);
         testResult.Day.Should().BeNull();
         testResult.DayOfWeek.Should().Be(DayOfWeek.Sunday);
@@ -178,20 +203,20 @@ public class TzDataRuleTests
     {
         get
         {
-            yield return new object?[] { 0, TzDataDayKind.DayOfMonth, 1, null, "month" };
-            yield return new object?[] { 13, TzDataDayKind.DayOfMonth, 1, null, "month" };
-            yield return new object?[] { 1, TzDataDayKind.DayOfMonth, null, null, "day" };
-            yield return new object?[] { 1, TzDataDayKind.DayOfMonth, 0, null, "day" };
-            yield return new object?[] { 4, TzDataDayKind.DayOfMonth, 31, null, "day" };
-            yield return new object?[] { 2, TzDataDayKind.DayOfMonth, 30, null, "day" };
-            yield return new object?[] { 1, TzDataDayKind.DayOfMonth, 1, DayOfWeek.Sunday, "dayOfWeek" };
-            yield return new object?[] { 1, TzDataDayKind.LastWeekday, 1, DayOfWeek.Sunday, "day" };
-            yield return new object?[] { 1, TzDataDayKind.LastWeekday, null, null, "dayOfWeek" };
-            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrAfter, 8, null, "dayOfWeek" };
-            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrBefore, null, DayOfWeek.Sunday, "day" };
-            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrBefore, 32, DayOfWeek.Sunday, "day" };
-            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrAfter, 8, (DayOfWeek)7, "dayOfWeek" };
-            yield return new object?[] { 1, (TzDataDayKind)4, 8, DayOfWeek.Sunday, "dayKind" };
+            yield return new object?[] { 0, TzDataDayKind.DayOfMonth, 1, null, MonthParameterName };
+            yield return new object?[] { 13, TzDataDayKind.DayOfMonth, 1, null, MonthParameterName };
+            yield return new object?[] { 1, TzDataDayKind.DayOfMonth, null, null, DayParameterName };
+            yield return new object?[] { 1, TzDataDayKind.DayOfMonth, 0, null, DayParameterName };
+            yield return new object?[] { 4, TzDataDayKind.DayOfMonth, 31, null, DayParameterName };
+            yield return new object?[] { 2, TzDataDayKind.DayOfMonth, 30, null, DayParameterName };
+            yield return new object?[] { 1, TzDataDayKind.DayOfMonth, 1, DayOfWeek.Sunday, DayOfWeekParameterName };
+            yield return new object?[] { 1, TzDataDayKind.LastWeekday, 1, DayOfWeek.Sunday, DayParameterName };
+            yield return new object?[] { 1, TzDataDayKind.LastWeekday, null, null, DayOfWeekParameterName };
+            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrAfter, 8, null, DayOfWeekParameterName };
+            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrBefore, null, DayOfWeek.Sunday, DayParameterName };
+            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrBefore, 32, DayOfWeek.Sunday, DayParameterName };
+            yield return new object?[] { 1, TzDataDayKind.WeekdayOnOrAfter, 8, UndefinedDayOfWeek, DayOfWeekParameterName };
+            yield return new object?[] { 1, UndefinedDayKind, 8, DayOfWeek.Sunday, "dayKind" };
         }
     }
 
@@ -200,7 +225,7 @@ public class TzDataRuleTests
     public void Constructor_InvalidDaySpecification_ThrowsArgumentException(int testMonth, TzDataDayKind testDayKind, int? testDay, DayOfWeek? testDayOfWeek, string expectedParamName)
     {
         // act
-        var testAction = () => CreateRule(testMonth, testDayKind, testDay, testDayOfWeek);
+        Action testAction = () => CreateRule(testMonth, testDayKind, testDay, testDayOfWeek);
 
         // assert
         testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be(expectedParamName);
@@ -210,7 +235,7 @@ public class TzDataRuleTests
     public void Constructor_ToYearBeforeFromYear_ThrowsArgumentOutOfRangeException()
     {
         // act
-        var testAction = () => CreateRule(3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, 2007, 2006);
+        Action testAction = () => CreateRule(3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, RuleFromYear, YearBeforeRuleFromYear);
 
         // assert
         testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("toYear");
@@ -220,7 +245,7 @@ public class TzDataRuleTests
     public void Constructor_NullLetter_ThrowsArgumentNullException()
     {
         // act
-        var testAction = () => new TzDataRule("Test", 2007, 2007, 3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, TimeSpan.Zero, TzDataTimeReference.Wall, TimeSpan.Zero, false, null!);
+        Action testAction = () => new TzDataRule(TestRuleName, RuleFromYear, RuleFromYear, 3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, TimeSpan.Zero, TzDataTimeReference.Wall, TimeSpan.Zero, false, null!);
 
         // assert
         testAction.Should().Throw<ArgumentNullException>().Which.ParamName.Should().Be("letter");

@@ -14,7 +14,7 @@ The public types of **DataStandardizer.File.CSV**. All types are in the
 
 | Type | Description |
 | --- | --- |
-| [CsvContext](CsvContext.md) | The state of a CSV reader or writer (its mappers and options). |
+| [CsvContext](CsvContext.md) | The state of a CSV reader (its registered mapper and options). |
 | [CsvExtensions](CsvExtensions.md) | Conversion extension methods for mappers and line-model objects. |
 | [CsvFieldAttribute](CsvFieldAttribute.md) | Maps a property to a named CSV field for direct field access. |
 | [CsvFieldContext](CsvFieldContext.md) | The context passed to the field handler and converter delegates. |
@@ -32,6 +32,7 @@ The public types of **DataStandardizer.File.CSV**. All types are in the
 | [CsvFileReader](CsvFileReader.md) | A forward-only, non-cached CSV reader. |
 | [CsvFileRecordLine](CsvFileRecordLine.md) | A CSV data record; subclass it for strongly-typed fields. |
 | [CsvFileWriter](CsvFileWriter.md) | A CSV writer over a stream, text writer, or file. |
+| [CsvMapperCache](CsvMapperCache.md) | The process-wide cache of mappers built from attributes, and how to clear it. |
 
 ## Exceptions
 
@@ -65,5 +66,3 @@ The public types of **DataStandardizer.File.CSV**. All types are in the
 | [CsvFieldGenerate](CsvFieldGenerate.md) | Generates a value for a CSV field. |
 | [CsvFieldValidate](CsvFieldValidate.md) | Validates an incoming CSV field value. |
 | [CsvFileHeader](CsvFileHeader.md) | Supplies field names in lieu of a header line from the file. |
-</content>
-</invoke>

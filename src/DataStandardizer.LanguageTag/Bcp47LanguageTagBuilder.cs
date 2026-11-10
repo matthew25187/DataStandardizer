@@ -5,7 +5,7 @@ using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag.InternalState;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -13,7 +13,13 @@ namespace DataStandardizer.LanguageTag
     /// <summary>
     /// Builder for constructing an IETF BCP 47 language tag.
     /// </summary>
-    public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepWithTimeoutNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
+    /// <remarks>
+    /// The steps that take a string check only the shape of the subtag. <c>Build</c> applies what was chosen: validity against the Subtag Registry from
+    /// <see cref="WithLanguageSubtagRegistry"/>, the conformance from <see cref="WithConformance"/>, or otherwise well-formedness. The last of the two steps called applies.
+    /// The steps that take a code are ISO by construction. The Variant and Extension steps refuse a repeated variant subtag or extension singleton whichever is chosen:
+    /// RFC 5646 §2.2.9 allows one in a well-formed language tag, but a builder has no reason to compose a tag that could never be valid.
+    /// </remarks>
+    public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithConformance, IBcp47LanguageTagBuilderStepWithConformanceNext, IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext, IBcp47LanguageTagBuilderStepUsingScriptSubtagNext, IBcp47LanguageTagBuilderStepUsingRegionSubtagNext, IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext,
         IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext, IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext
     {
@@ -34,8 +40,6 @@ namespace DataStandardizer.LanguageTag
 
         #region Instance Declarations
 
-        private TimeSpan? _matchTimeout;
-
 #if NETSTANDARD1_3_OR_GREATER||NET
         private string[] _extendedLanguageSubtags = Array.Empty<string>();
         private string[] _extensionSubtags = Array.Empty<string>();
@@ -45,20 +49,21 @@ namespace DataStandardizer.LanguageTag
         private string[] _extensionSubtags = { };
         private string[] _variantSubtags = { };
 #endif
+        private LanguageTagConformance _conformance = LanguageTagConformance.WellFormed;
 #if NETCOREAPP3_0_OR_GREATER
         private string? _languageTag;
         private object? _primaryLanguageSubtag;
         private string? _privateUseSubtag;
         private object? _regionSubtag;
         private object? _scriptSubtag;
-        private SubtagRegistry.SubtagRegistry? _subtagRegistry;
+        private SubtagRegistry? _subtagRegistry;
 #else
-        [CanBeNull] private string _languageTag;
-        [CanBeNull] private object _primaryLanguageSubtag;
-        [CanBeNull] private string _privateUseSubtag;
-        [CanBeNull] private object _regionSubtag;
-        [CanBeNull] private object _scriptSubtag;
-        [CanBeNull] private SubtagRegistry.SubtagRegistry _subtagRegistry;
+        [MaybeNull] private string _languageTag;
+        [MaybeNull] private object _primaryLanguageSubtag;
+        [MaybeNull] private string _privateUseSubtag;
+        [MaybeNull] private object _regionSubtag;
+        [MaybeNull] private object _scriptSubtag;
+        [MaybeNull] private SubtagRegistry _subtagRegistry;
 #endif
 
         #endregion
@@ -71,7 +76,7 @@ namespace DataStandardizer.LanguageTag
 #endif
 
         /// <inheritdoc />
-        public IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry.SubtagRegistry subtagRegistry)
+        public IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry)
         {
             _subtagRegistry = subtagRegistry ?? throw new ArgumentNullException(nameof(subtagRegistry));
 
@@ -79,10 +84,15 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <inheritdoc />
-        [Obsolete(Bcp47Constants.WithTimeoutObsoleteMessage)]
-        public IBcp47LanguageTagBuilderStepWithTimeoutNext WithTimeout(TimeSpan matchTimeout)
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        public IBcp47LanguageTagBuilderStepWithConformanceNext WithConformance(LanguageTagConformance conformance)
         {
-            _matchTimeout = matchTimeout;
+            // Reject a conformance that Build could not apply now, rather than when the tag is built.
+            Bcp47LanguageTag.GetClassifier(conformance);
+
+            _conformance = conformance;
+            _subtagRegistry = null;
 
             return this;
         }
@@ -280,28 +290,6 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <inheritdoc />
-        /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag)
-        {
-            if (!Bcp47UnM49Codes.ContainsSupranational((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
-
-            _regionSubtag = regionSubtag;
-
-            return this;
-        }
-
-        /// <inheritdoc />
-        /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag)
-        {
-            if (!Bcp47UnM49Codes.ContainsSupranational((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
-
-            _regionSubtag = regionSubtag;
-
-            return this;
-        }
-
-        /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined, or is not a valid Region subtag.</exception>
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49Area regionSubtag)
         {
@@ -311,7 +299,8 @@ namespace DataStandardizer.LanguageTag
 #else
             if (!Enum.IsDefined(typeof(UnM49Area), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", code), nameof(regionSubtag));
 #endif
-            if (!Bcp47LanguageTag.CheckRegionSubtag(code)) throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, code, "Region subtag"), nameof(regionSubtag));
+            // A UN M.49 code of a country is not a Region subtag, whatever is chosen for Build (ref. RFC 5646 §2.2.4¶4).
+            if (!Bcp47IsoCodeListClassifier.Instance.IsRegion(code.AsSpan())) throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, code, "Region subtag"), nameof(regionSubtag));
 
             _regionSubtag = regionSubtag;
 
@@ -404,30 +393,14 @@ namespace DataStandardizer.LanguageTag
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">
-        /// The Primary Language subtag is not an ISO 639-1 code, an ISO 639-2 code, an ISO 639-3 code, an ISO 639-5 code, or a registered subtag.
-        /// -or-
         /// More than three Extended Language subtags were specified.
-        /// -or-
-        /// The Script subtag is not an ISO 15924 code, nor a registered subtag.
-        /// -or-
-        /// The Region subtag is not an ISO 3166-1 Alpha-2 code, a UN M49 code, or a registered subtag.
-        /// -or-
-        /// A Variant subtag is not a registered subtag.
         /// </exception>
         /// <exception cref="LanguageTagFormatException">
-        /// The Primary Language subtag is not correctly formatted.
+        /// The language tag is not valid against the Subtag Registry, if one was given.
         /// -or-
-        /// An Extended Language subtag is not correctly formatted.
+        /// The language tag does not satisfy the conformance, if one was chosen.
         /// -or-
-        /// The Script subtag is not correctly formatted.
-        /// -or-
-        /// The Region subtag is not correctly formatted.
-        /// -or-
-        /// A Variant subtag is not correctly formatted.
-        /// -or-
-        /// An Extension subtag is not correctly formatted.
-        /// -or-
-        /// The Private Use subtag is not correctly formatted.
+        /// Otherwise, the language tag is not well-formed.
         /// </exception>
         Bcp47LanguageTag IBcp47LanguageTagBuilderStepBuild.Build()
         {
@@ -495,7 +468,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static void CheckVariantSubtagArgument(string? variantSubtag, string parameterName)
 #else
-        private static void CheckVariantSubtagArgument([CanBeNull] string variantSubtag, [NotNull] string parameterName)
+        private static void CheckVariantSubtagArgument([AllowNull] string variantSubtag, [DisallowNull] string parameterName)
 #endif
         {
             if (variantSubtag is null)
@@ -507,7 +480,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static void CheckExtensionSubtagArgument(string? extensionSubtag, string parameterName)
 #else
-        private static void CheckExtensionSubtagArgument([CanBeNull] string extensionSubtag, [NotNull] string parameterName)
+        private static void CheckExtensionSubtagArgument([AllowNull] string extensionSubtag, [DisallowNull] string parameterName)
 #endif
         {
             if (extensionSubtag is null)
@@ -521,8 +494,8 @@ namespace DataStandardizer.LanguageTag
 #elif NETCOREAPP3_0_OR_GREATER
         private static string[] CreateVariantSubtags(string variantSubtag, string[] variantSubtags)
 #else
-        [NotNull]
-        private static string[] CreateVariantSubtags([NotNull] string variantSubtag, [NotNull] string[] variantSubtags)
+        [return: NotNull]
+        private static string[] CreateVariantSubtags([DisallowNull] string variantSubtag, [DisallowNull] string[] variantSubtags)
 #endif
         {
             var useVariantSubtags = new string[variantSubtags.Length + 1];
@@ -545,8 +518,8 @@ namespace DataStandardizer.LanguageTag
 #elif NETCOREAPP3_0_OR_GREATER
         private static string[] CreateExtensionSubtags(string extensionSubtag, string[] extensionSubtags)
 #else
-        [NotNull]
-        private static string[] CreateExtensionSubtags([NotNull] string extensionSubtag, [NotNull] string[] extensionSubtags)
+        [return: NotNull]
+        private static string[] CreateExtensionSubtags([DisallowNull] string extensionSubtag, [DisallowNull] string[] extensionSubtags)
 #endif
         {
             var useExtensionSubtags = new string[extensionSubtags.Length + 1];
@@ -567,8 +540,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static string GetPrimaryLanguageSubtag(object primaryLanguageSubtag)
 #else
-        [NotNull]
-        private static string GetPrimaryLanguageSubtag([NotNull] object primaryLanguageSubtag)
+        [return: NotNull]
+        private static string GetPrimaryLanguageSubtag([DisallowNull] object primaryLanguageSubtag)
 #endif
         {
 #if NETCOREAPP3_0_OR_GREATER
@@ -609,8 +582,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static string? GetRegionSubtag(object regionSubtag, out int numericRegionSubtag)
 #else
-        [CanBeNull]
-        private static string GetRegionSubtag([NotNull] object regionSubtag, out int numericRegionSubtag)
+        [return: MaybeNull]
+        private static string GetRegionSubtag([DisallowNull] object regionSubtag, out int numericRegionSubtag)
 #endif
         {
             numericRegionSubtag = -1;
@@ -628,15 +601,7 @@ namespace DataStandardizer.LanguageTag
                 return regionSubtagFromRegistry;
             }
 
-            if (regionSubtag is UnM49AreaByAlpha2CountryCode regionSubtagFromUnM49ByAlpha2Code)
-            {
-                numericRegionSubtag = (ushort)regionSubtagFromUnM49ByAlpha2Code;
-            }
-            else if (regionSubtag is UnM49AreaByAlpha3CountryCode regionSubtagFromUnM49ByAlpha3Code)
-            {
-                numericRegionSubtag = (ushort)regionSubtagFromUnM49ByAlpha3Code;
-            }
-            else if (regionSubtag is UnM49Area regionSubtagFromUnM49Area)
+            if (regionSubtag is UnM49Area regionSubtagFromUnM49Area)
             {
                 numericRegionSubtag = (ushort)regionSubtagFromUnM49Area;
             }
@@ -650,8 +615,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static string GetScriptSubtag(object scriptSubtag)
 #else
-        [NotNull]
-        private static string GetScriptSubtag([NotNull] object scriptSubtag)
+        [return: NotNull]
+        private static string GetScriptSubtag([DisallowNull] object scriptSubtag)
 #endif
         {
             if (scriptSubtag is Iso15924Script scriptSubtagFromIso15924)
@@ -729,18 +694,10 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47LanguageTag CreateLanguageTag(string languageTag)
 #else
-        private Bcp47LanguageTag CreateLanguageTag([NotNull] string languageTag)
+        private Bcp47LanguageTag CreateLanguageTag([DisallowNull] string languageTag)
 #endif
         {
-            // The timeout overloads are obsolete but still validate the timeout passed to WithTimeout, as they did before they became inert.
-#pragma warning disable CS0618
-            if (_subtagRegistry != null)
-            {
-                return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _subtagRegistry, _matchTimeout.Value);
-            }
-
-            return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag) : Bcp47LanguageTag.Create(languageTag, _matchTimeout.Value);
-#pragma warning restore CS0618
+            return _subtagRegistry != null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _conformance);
         }
 
         #endregion

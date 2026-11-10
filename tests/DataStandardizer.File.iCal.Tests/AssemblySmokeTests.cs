@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Reflection;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 using FluentAssertions;
 using Xunit;
 
@@ -13,13 +7,12 @@ namespace DataStandardizer.File.iCal.Tests
     public class AssemblySmokeTests
     {
         [Fact]
-        public void Load_LibraryAssembly_HasExpectedTitle()
+        public void GetCustomAttribute_LibraryAssemblyTitle_IsExpectedTitle()
         {
             // arrange
-            var assemblyName = new AssemblyName("DataStandardizer.File.iCal");
+            var assembly = Assembly.Load(new AssemblyName("DataStandardizer.File.iCal"));
 
             // act
-            var assembly = Assembly.Load(assemblyName);
             var testResult = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
 
             // assert

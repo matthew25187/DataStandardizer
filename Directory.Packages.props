@@ -1,0 +1,31 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!--
+    Versions of the packages the published libraries use.  A change to this file marks every package as changed (build/packages.json).
+    Test and benchmark versions are in the Directory.Packages.props of their own folders, so that updating one doesn't mark any package as changed.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
+    <PackageVersion Include="System.Collections.Specialized" Version="4.3.0" />
+    <PackageVersion Include="System.ComponentModel.TypeConverter" Version="4.3.0" />
+    <PackageVersion Include="System.Memory" Version="4.6.3" />
+    <!-- Referenced directly on netstandard1.1 and netstandard1.3, where NETStandard.Library 2.0.3 would otherwise bring in the vulnerable 4.3.2. -->
+    <PackageVersion Include="System.Net.Http" Version="4.3.4" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.14" />
+    <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <!-- Intentional exact pin.  Do not update. -->
+    <PackageVersion Include="System.ValueTuple" Version="[4.5.0]" />
+  </ItemGroup>
+
+  <!--
+    Intentional exact pin.  Do not update.  4.5.5 is the last version of System.Memory that supports netstandard1.x.
+    TargetFramework is empty in the outer build of a multi-targeting project, where IsTargetFrameworkCompatible would fail.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' != '' And !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.0'))">
+    <PackageVersion Update="System.Memory" Version="[4.5.5]" />
+  </ItemGroup>
+</Project>

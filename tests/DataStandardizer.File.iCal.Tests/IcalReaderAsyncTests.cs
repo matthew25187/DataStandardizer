@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -16,81 +15,118 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     public class IcalReaderAsyncTests
     {
+        // The number of characters that AsyncOnlyTextReader gives each read, so that reads end at many different points.
+        private const int CharactersPerRead = 7;
+
+        private static readonly byte[] GoogleThenOutlookExport = Encoding.UTF8.GetBytes(CalendarFixtures.GoogleExport + CalendarFixtures.OutlookExport);
+
         [Theory]
         [MemberData(nameof(CalendarFixtures.AllNamesAndBufferSizes), MemberType = typeof(CalendarFixtures))]
-        public async Task ReadCalendarsAsync_EveryFixture_MatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadCalendarsAsync_EveryFixture_ReadsItsContentLines(string fixtureName, int bufferSize)
         {
             // arrange
             var (text, options) = CalendarFixtures.All[fixtureName];
-            using (var syncReader = CreateCalendarReader(text, options, bufferSize))
+            var expected = FixtureExpectations.Models[fixtureName];
+            var reader = new IcalReader(new AsyncOnlyTextReader(text, CharactersPerRead), options, bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var expected = syncReader.ReadCalendars().ToList();
-                var asyncReader = new IcalReader(new AsyncOnlyTextReader(text, 7), options, bufferSize);
-                try
-                {
-                    // act
-                    var testResult = await AsyncEnumerables.ToListAsync(asyncReader.ReadCalendarsAsync());
+                // act
+                var testResult = XcalTestData.Model(await AsyncEnumerables.ToListAsync(reader.ReadCalendarsAsync()), options);
 
-                    // assert
-                    WriteCalendars(testResult, options).Should().Be(WriteCalendars(expected, options));
-                    asyncReader.CalendarsRead.Should().Be(syncReader.CalendarsRead);
-                    asyncReader.ComponentsRead.Should().Be(syncReader.ComponentsRead);
-                    asyncReader.LinesRead.Should().Be(syncReader.LinesRead);
-                    asyncReader.PhysicalLinesRead.Should().Be(syncReader.PhysicalLinesRead);
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarFixtures.AllNamesAndBufferSizes), MemberType = typeof(CalendarFixtures))]
+        public async Task ReadCalendarsAsync_EveryFixture_CountsWhatItReads(string fixtureName, int bufferSize)
+        {
+            // arrange
+            var (text, options) = CalendarFixtures.All[fixtureName];
+            var expected = FixtureExpectations.Counts[fixtureName];
+            var reader = new IcalReader(new AsyncOnlyTextReader(text, CharactersPerRead), options, bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                // act
+                await AsyncEnumerables.ToListAsync(reader.ReadCalendarsAsync());
+
+                // assert
+                reader.CalendarsRead.Should().Be(expected.Calendars);
+                reader.ComponentsRead.Should().Be(expected.Components);
+                reader.LinesRead.Should().Be(expected.Lines);
+                reader.PhysicalLinesRead.Should().Be(expected.PhysicalLines);
+            });
         }
 
         [Theory]
         [MemberData(nameof(ConformanceCases.Accommodated), MemberType = typeof(ConformanceCases))]
-        public async Task ReadCalendarAsync_NonConformant_ThrowsAsSync(string caseName)
+        public async Task ReadCalendarAsync_NonConformant_ThrowsWithTheDiagnostic(string caseName)
         {
             // arrange
             var testCase = ConformanceCases.All[caseName];
-            var syncException = FluentActions.Invoking(() => ReadCalendars(testCase.Text)).Should().Throw<IcalFileException>().Which;
-            var reader = new IcalReader(new AsyncOnlyTextReader(testCase.Text, 7));
-            try
+            var reader = new IcalReader(new AsyncOnlyTextReader(testCase.Text, CharactersPerRead));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
-                Func<Task> act = () => reader.ReadCalendarAsync().AsTask();
+                Func<Task> testAction = () => reader.ReadCalendarAsync().AsTask();
 
                 // assert
-                var exception = (await act.Should().ThrowAsync<IcalFileException>()).Which;
-                exception.Message.Should().Be(syncException.Message);
-                exception.Data.Should().BeEquivalentTo(syncException.Data);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+                var exception = (await testAction.Should().ThrowAsync<IcalFileException>()).Which;
+                exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind);
+                exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(testCase.ComponentPath);
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName);
+            });
         }
 
         [Fact]
-        public async Task ReadCalendarAsync_Stream_ReadsWithoutSynchronousIo()
+        public async Task ReadCalendarAsync_FirstCalendarFromStream_ReadsWithoutSynchronousIo()
         {
             // arrange
-            var data = Encoding.UTF8.GetBytes(CalendarFixtures.GoogleExport + CalendarFixtures.OutlookExport);
-            var reader = new IcalReader(new AsyncOnlyStream(data));
-            try
+            var reader = new IcalReader(new AsyncOnlyStream(GoogleThenOutlookExport));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
-                var first = await reader.ReadCalendarAsync();
-                var second = await reader.ReadCalendarAsync();
-                var end = await reader.ReadCalendarAsync();
+                var testResult = await reader.ReadCalendarAsync();
 
                 // assert
-                first.Events.Should().HaveCount(2);
-                second.TimeZones.Single().TimeZoneId.Should().Be("New Zealand Standard Time");
-                end.Should().BeNull();
-            }
-            finally
+                testResult.Events.Should().HaveCount(2);
+            });
+        }
+
+        [Fact]
+        public async Task ReadCalendarAsync_SecondCalendarFromStream_ReadsWithoutSynchronousIo()
+        {
+            // arrange
+            var reader = new IcalReader(new AsyncOnlyStream(GoogleThenOutlookExport));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                await reader.DisposeAsync();
-            }
+                await reader.ReadCalendarAsync();
+
+                // act
+                var testResult = await reader.ReadCalendarAsync();
+
+                // assert
+                testResult.TimeZones.Should().ContainSingle().Which.TimeZoneId.Should().Be("New Zealand Standard Time");
+            });
+        }
+
+        [Fact]
+        public async Task ReadCalendarAsync_AfterTheLastCalendarFromStream_ReturnsNull()
+        {
+            // arrange
+            var reader = new IcalReader(new AsyncOnlyStream(GoogleThenOutlookExport));
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                await reader.ReadCalendarAsync();
+                await reader.ReadCalendarAsync();
+
+                // act
+                var testResult = await reader.ReadCalendarAsync();
+
+                // assert
+                testResult.Should().BeNull();
+            });
         }
 
         [Fact]
@@ -99,87 +135,80 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var data = Encoding.UTF8.GetBytes(RfcFixtures.Rfc5545Event + RfcFixtures.Rfc5545Event);
             var reader = new IcalReader(new AsyncOnlyStream(data, completeSynchronously: true));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                (await reader.ReadCalendarAsync()).Should().NotBeNull();
+                await reader.ReadCalendarAsync();
 
                 // act
                 var testResult = reader.ReadCalendarAsync();
 
                 // assert
                 testResult.IsCompletedSuccessfully.Should().BeTrue();
-                (await testResult).Should().NotBeNull();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+                testResult.Result.Should().NotBeNull();
+            });
         }
 
         [Fact]
-        public async Task ReadCalendarAsync_Canceled_ReaderCannotContinue()
+        public async Task ReadCalendarAsync_Canceled_ThrowsOperationCanceled()
         {
             // arrange
             var reader = new IcalReader(new AsyncOnlyTextReader(RfcFixtures.Rfc5545Event));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
                     await TestTasks.CancelAsync(source);
 
                     // act
-                    Func<Task> act = () => reader.ReadCalendarAsync(source.Token).AsTask();
+                    Func<Task> testAction = () => reader.ReadCalendarAsync(source.Token).AsTask();
 
                     // assert
-                    await act.Should().ThrowAsync<OperationCanceledException>();
-                    Action next = () => reader.ReadCalendarAsync();
-                    next.Should().Throw<InvalidOperationException>();
+                    await testAction.Should().ThrowAsync<OperationCanceledException>();
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
-        public async Task ReadCalendarsAsync_EnumeratorToken_IsCombined()
+        public async Task ReadCalendarAsync_AfterCancellation_ThrowsInvalidOperation()
         {
             // arrange
-            var reader = new IcalReader(new AsyncOnlyTextReader(RfcFixtures.Rfc5545Event + RfcFixtures.Rfc5545Event));
-            try
+            var reader = new IcalReader(new AsyncOnlyTextReader(RfcFixtures.Rfc5545Event));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
-                    var count = 0;
+                    await TestTasks.CancelAsync(source);
+                    await Record.ExceptionAsync(() => reader.ReadCalendarAsync(source.Token).AsTask());
 
                     // act
-                    Func<Task> act = async () =>
-                    {
-                        var enumerator = reader.ReadCalendarsAsync().GetAsyncEnumerator(source.Token);
-                        try
-                        {
-                            while (await enumerator.MoveNextAsync())
-                            {
-                                count++;
-                                await TestTasks.CancelAsync(source);
-                            }
-                        }
-                        finally
-                        {
-                            await enumerator.DisposeAsync();
-                        }
-                    };
+                    Action testAction = () => reader.ReadCalendarAsync();
 
                     // assert
-                    await act.Should().ThrowAsync<OperationCanceledException>();
-                    count.Should().Be(1);
+                    testAction.Should().Throw<InvalidOperationException>();
                 }
-            }
-            finally
+            });
+        }
+
+        [Fact]
+        public async Task ReadCalendarsAsync_EnumeratorTokenCanceledAfterTheFirstCalendar_ThrowsOperationCanceled()
+        {
+            // arrange
+            var reader = new IcalReader(new AsyncOnlyTextReader(RfcFixtures.Rfc5545Event + RfcFixtures.Rfc5545Event));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                await reader.DisposeAsync();
-            }
+                using (var source = new CancellationTokenSource())
+                {
+                    var enumerator = reader.ReadCalendarsAsync().GetAsyncEnumerator(source.Token);
+                    await enumerator.MoveNextAsync();
+                    await TestTasks.CancelAsync(source);
+
+                    // act
+                    Func<Task> testAction = () => enumerator.MoveNextAsync().AsTask();
+
+                    // assert
+                    await testAction.Should().ThrowAsync<OperationCanceledException>();
+                }
+            });
         }
 
         [Fact]
@@ -190,13 +219,14 @@ namespace DataStandardizer.File.iCal.Tests
             var reader = new IcalReader(source);
             var pending = reader.ReadCalendarAsync();
             await source.ReadStarted;
-
-            // act
             await reader.DisposeAsync();
             source.OpenGate();
 
+            // act
+            Func<Task> testAction = () => pending.AsTask();
+
             // assert
-            await FluentActions.Awaiting(() => pending.AsTask()).Should().ThrowAsync<ObjectDisposedException>();
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
         }
     }
 }

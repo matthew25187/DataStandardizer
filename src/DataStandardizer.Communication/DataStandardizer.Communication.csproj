@@ -1,65 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0;net10.0</TargetFrameworks>
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
-    <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
-    <Authors>matthew25187</Authors>
-    <Product>Data Standardizer</Product>
+    <TargetFrameworks>netstandard1.1;netstandard2.0;net10.0</TargetFrameworks>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
 Provides types supporting communication-related standards, including:
-- ITU-T E.164 telephony numbers</Description>
+- ITU-T E.164 telephony numbers
+- MIME: media types, transfer encodings, base64 and quoted-printable codecs, character sets, data: URIs, encoded words and RFC 2231 parameter values</Description>
     <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
-    <PackageIcon>054-doc_web.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>data;standard;itu;e.164;telephone number;phone number</PackageTags>
-    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
-    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <PackageTags>data;standard;itu;e.164;telephone number;phone number;mime;media-type;base64;quoted-printable</PackageTags>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="..\GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Text.RegularExpressions" />
+    <PackageReference Include="System.ValueTuple" />
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\images\054-doc_web.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0'">
-    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
-    <PackageReference Include="System.ValueTuple" Version="[4.5.0]" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
 
   <ItemGroup>

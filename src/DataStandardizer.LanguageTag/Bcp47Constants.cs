@@ -2,16 +2,6 @@
 {
     internal static class Bcp47Constants
     {
-        /// <summary>
-        /// Message of the <see cref="System.ObsoleteAttribute"/> on the overloads that take a match timeout, which removal in v2.0 (#256) follows.
-        /// </summary>
-        internal const string MatchTimeoutObsoleteMessage = "Language tags are checked by a parser, which cannot time out, so the match timeout has no effect. Use the overload without a matchTimeout. This member will be removed in version 2.0.";
-
-        /// <summary>
-        /// Message of the <see cref="System.ObsoleteAttribute"/> on the builder's timeout step.
-        /// </summary>
-        internal const string WithTimeoutObsoleteMessage = "Language tags are checked by a parser, which cannot time out, so the match timeout has no effect. Leave out the WithTimeout step. This member will be removed in version 2.0.";
-
         internal static class RegistrySubtagGroupName
         {
             internal const string Added = "Added";

@@ -2,7 +2,9 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "src\\DataStandardizer.Chronology\\DataStandardizer.Chronology.csproj",
+      "tests\\DataStandardizer.Chronology.IntegrationTests\\DataStandardizer.Chronology.IntegrationTests.csproj",
       "tests\\DataStandardizer.Chronology.Tests\\DataStandardizer.Chronology.Tests.csproj"
     ]
   }

@@ -34,14 +34,18 @@ RSCALE (RFC 7529). A vCalendar 1.0 file is rejected with an error.
 
 ## Platform support
 
-Targets .NET Standard 1.1, 2.0 and 2.1, .NET 8 and .NET 10.
+Targets .NET Standard 1.1, 2.0 and 2.1, and .NET 10.
 
 > **Applies to:** the async API, the file-path constructors and the `System`
 > time-zone resolver need .NET Standard 2.0 or later. jCal (`JcalReader` and
 > `JcalWriter`) needs .NET Standard 2.0 or later too. On .NET Standard 1.1,
 > read and write synchronously, from a `Stream`, `TextReader` or `TextWriter`.
-> `IcalOptions` is a `record` on .NET 5 and later, so `with` expressions work
+> `IcalOptions` is a `record` on `net10.0`, so `with` expressions work
 > there, and a plain `class` on the .NET Standard targets.
+
+The package depends on [DataStandardizer.Communication](../communication/index.md) for
+media types and base64, which brings in **DataStandardizer.LanguageTag**,
+**DataStandardizer.Geography** and **DataStandardizer.Language**.
 
 See [Platform support](../../overview/platform-support.md) for the full matrix.
 

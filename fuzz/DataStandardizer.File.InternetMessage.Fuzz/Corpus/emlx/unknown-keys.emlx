@@ -1,0 +1,31 @@
+57
+Date: Thu, 1 Jan 2026 00:00:00 +0000
+From: a@b.test
+
+one
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>x-color</key>
+	<real>1.50</real>
+	<key>x-big</key>
+	<integer>123456789012345678901234567890</integer>
+	<key>x-list</key>
+	<array>
+		<string>a</string>
+		<true/>
+		<false/>
+	</array>
+	<key>x-map</key>
+	<dict>
+		<key>when</key>
+		<date>2026-01-01T00:00:00Z</date>
+		<key>bytes</key>
+		<data>AAEC</data>
+	</dict>
+	<!-- kept -->
+	<key>subject</key>
+	<string>  spaced  </string>
+</dict>
+</plist>

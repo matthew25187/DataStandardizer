@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -12,74 +11,14 @@ namespace DataStandardizer.Chronology
         private static readonly TimeSpan MaximumDateTimeOffsetOffset = TimeSpan.FromHours(14);
 
         /// <summary>
-        /// Get the comment on a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>Comment for the timezone, if available; otherwise, <c>null</c>.</returns>
-        [Obsolete("Use TzDataTimezone.Comment instead.")]
-#if NETCOREAPP3_0_OR_GREATER
-        public static string? GetComment(this TzDataTimezone timezone)
-#else
-        [CanBeNull]
-        public static string GetComment(this TzDataTimezone timezone)
-#endif
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-            return timezoneAttribute?.Comment;
-        }
-
-        /// <summary>
-        /// Get the ISO country codes for the countries covered by a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>A collection of ISO country codes related to the timezone.</returns>
-        [Obsolete("Use TzDataTimezone.IsoCountryCodes instead.")]
-        public static string[] GetIsoCountryCodes(this TzDataTimezone timezone)
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-#if NET8_0_OR_GREATER
-            return timezoneAttribute?.IsoCountryCodes ?? [];
-#elif NETSTANDARD1_3_OR_GREATER || NET
-            return timezoneAttribute?.IsoCountryCodes ?? Array.Empty<string>();
-#else
-            return timezoneAttribute?.IsoCountryCodes ?? new string[] { };
-#endif
-        }
-
-        /// <summary>
-        /// Get the latitude of the principal location within a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>Latitude of the timezone.</returns>
-        [Obsolete("Use TzDataTimezone.Latitude instead.")]
-        public static double GetLatitude(this TzDataTimezone timezone)
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-            return timezoneAttribute?.Latitude ?? 0;
-        }
-
-        /// <summary>
-        /// Get the longitude of the principal location within a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>Longitude of the timezone.</returns>
-        [Obsolete("Use TzDataTimezone.Longitude instead.")]
-        public static double GetLongitude(this TzDataTimezone timezone)
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-            return timezoneAttribute?.Longitude ?? 0;
-        }
-
-        /// <summary>
         /// Get the zone line of a timezone in force at an instant.
         /// </summary>
         /// <param name="timezone">A TzData timezone.</param>
         /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
         /// <returns>The zone line in force at the instant.</returns>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static TzDataZoneLine GetZoneLine(this TzDataTimezone timezone, DateTime utc)
         {
@@ -93,9 +32,8 @@ namespace DataStandardizer.Chronology
         /// <param name="timezone">A TzData timezone.</param>
         /// <param name="instant">The instant.</param>
         /// <returns>The zone line in force at the instant.</returns>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static TzDataZoneLine GetZoneLine(this TzDataTimezone timezone, DateTimeOffset instant)
         {
@@ -109,7 +47,6 @@ namespace DataStandardizer.Chronology
         /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
         /// <returns>The total offset from universal time, including any daylight saving.</returns>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TimeSpan GetUtcOffset(this TzDataTimezone timezone, DateTime utc)
         {
             return GetOffsetInfo(timezone, utc).UtcOffset;
@@ -121,7 +58,6 @@ namespace DataStandardizer.Chronology
         /// <param name="timezone">A TzData timezone.</param>
         /// <param name="instant">The instant.</param>
         /// <returns>The total offset from universal time, including any daylight saving.</returns>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TimeSpan GetUtcOffset(this TzDataTimezone timezone, DateTimeOffset instant)
         {
             return GetUtcOffset(timezone, instant.UtcDateTime);
@@ -134,7 +70,6 @@ namespace DataStandardizer.Chronology
         /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
         /// <returns>The offset of standard time from universal time, excluding any daylight saving.</returns>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TimeSpan GetStandardOffset(this TzDataTimezone timezone, DateTime utc)
         {
             return GetOffsetInfo(timezone, utc).StandardOffset;
@@ -146,7 +81,6 @@ namespace DataStandardizer.Chronology
         /// <param name="timezone">A TzData timezone.</param>
         /// <param name="instant">The instant.</param>
         /// <returns>The offset of standard time from universal time, excluding any daylight saving.</returns>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TimeSpan GetStandardOffset(this TzDataTimezone timezone, DateTimeOffset instant)
         {
             return GetStandardOffset(timezone, instant.UtcDateTime);
@@ -159,7 +93,6 @@ namespace DataStandardizer.Chronology
         /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
         /// <returns>The amount of time saved, which may be negative, as for Europe/Dublin in winter.</returns>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TimeSpan GetDaylightSavings(this TzDataTimezone timezone, DateTime utc)
         {
             return GetOffsetInfo(timezone, utc).DaylightSavings;
@@ -171,7 +104,6 @@ namespace DataStandardizer.Chronology
         /// <param name="timezone">A TzData timezone.</param>
         /// <param name="instant">The instant.</param>
         /// <returns>The amount of time saved, which may be negative, as for Europe/Dublin in winter.</returns>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TimeSpan GetDaylightSavings(this TzDataTimezone timezone, DateTimeOffset instant)
         {
             return GetDaylightSavings(timezone, instant.UtcDateTime);
@@ -187,7 +119,6 @@ namespace DataStandardizer.Chronology
         /// The TZ Database decides which time is daylight saving time. Europe/Dublin saves a negative amount in winter, so its winter time is daylight saving time.
         /// </remarks>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static bool IsDaylightSavingTime(this TzDataTimezone timezone, DateTime utc)
         {
             return GetOffsetInfo(timezone, utc).IsDaylightSavingTime;
@@ -202,7 +133,6 @@ namespace DataStandardizer.Chronology
         /// <remarks>
         /// The TZ Database decides which time is daylight saving time. Europe/Dublin saves a negative amount in winter, so its winter time is daylight saving time.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static bool IsDaylightSavingTime(this TzDataTimezone timezone, DateTimeOffset instant)
         {
             return IsDaylightSavingTime(timezone, instant.UtcDateTime);
@@ -215,7 +145,6 @@ namespace DataStandardizer.Chronology
         /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
         /// <returns>The offset in effect at the instant.</returns>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TzDataOffsetInfo GetOffsetInfo(this TzDataTimezone timezone, DateTime utc)
         {
             var calculator = timezone.GetCalculator();
@@ -228,7 +157,6 @@ namespace DataStandardizer.Chronology
         /// <param name="timezone">A TzData timezone.</param>
         /// <param name="instant">The instant.</param>
         /// <returns>The offset in effect at the instant.</returns>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static TzDataOffsetInfo GetOffsetInfo(this TzDataTimezone timezone, DateTimeOffset instant)
         {
             return GetOffsetInfo(timezone, instant.UtcDateTime);
@@ -244,9 +172,8 @@ namespace DataStandardizer.Chronology
         /// The abbreviation is that of <see cref="TzDataOffsetInfo.Abbreviation"/>, formatted from the FORMAT of the zone line in force as zic formats it.
         /// </remarks>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetAbbreviation(this TzDataTimezone timezone, DateTime utc)
         {
@@ -262,9 +189,8 @@ namespace DataStandardizer.Chronology
         /// <remarks>
         /// The abbreviation is that of <see cref="TzDataOffsetInfo.Abbreviation"/>, formatted from the FORMAT of the zone line in force as zic formats it.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
         {
@@ -289,9 +215,8 @@ namespace DataStandardizer.Chronology
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetStandardAbbreviation(this TzDataTimezone timezone, DateTime utc)
         {
@@ -316,9 +241,8 @@ namespace DataStandardizer.Chronology
         /// The TZ Database decides which time is standard time. Europe/Dublin saves a negative amount in winter, so its standard time is <c>IST</c>.
         /// </para>
         /// </remarks>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetStandardAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
         {
@@ -347,11 +271,10 @@ namespace DataStandardizer.Chronology
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetDaylightAbbreviation(this TzDataTimezone timezone, DateTime utc)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetDaylightAbbreviation(this TzDataTimezone timezone, DateTime utc)
 #endif
         {
@@ -380,11 +303,10 @@ namespace DataStandardizer.Chronology
         /// The TZ Database decides which time is daylight saving time. Europe/Dublin saves a negative amount in winter, so its daylight saving time is <c>GMT</c>.
         /// </para>
         /// </remarks>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetDaylightAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetDaylightAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
 #endif
         {
@@ -403,9 +325,8 @@ namespace DataStandardizer.Chronology
         /// </returns>
         /// <exception cref="ArgumentException"><paramref name="fromUtc"/> or <paramref name="toUtc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="toUtc"/> precedes <paramref name="fromUtc"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static IEnumerable<TzDataTransition> GetTransitions(this TzDataTimezone timezone, DateTime fromUtc, DateTime toUtc)
         {
@@ -431,9 +352,8 @@ namespace DataStandardizer.Chronology
         /// daylight saving time or the abbreviation changes.
         /// </returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> precedes <paramref name="from"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static IEnumerable<TzDataTransition> GetTransitions(this TzDataTimezone timezone, DateTimeOffset from, DateTimeOffset to)
         {
@@ -451,18 +371,24 @@ namespace DataStandardizer.Chronology
         /// falls in an overlap, as when clocks go back.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// This is the reverse of <see cref="GetOffsetInfo(TzDataTimezone, DateTime)"/>. The instant at which each offset gives
         /// the time is <paramref name="local"/> less its <see cref="TzDataOffsetInfo.UtcOffset"/>.
+        /// </para>
+        /// <para>
+        /// An offset whose instant would fall outside the range of <see cref="DateTime"/> is left out. Near either end of that
+        /// range, an empty result can therefore mean that the instant is out of range rather than that the time falls in a gap.
+        /// <see cref="DateTimeExtensions.ToDateTimeOffset(DateTime, TzDataTimezone, TzDataLocalTimeResolution)"/> tells the two apart.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException"><paramref name="local"/> is of kind <see cref="DateTimeKind.Utc"/> or <see cref="DateTimeKind.Local"/>.</exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static IReadOnlyList<TzDataOffsetInfo> GetOffsetInfosForLocal(this TzDataTimezone timezone, DateTime local)
         {
             var calculator = timezone.GetCalculator();
-            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _);
+            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _, out _, out _);
         }
 
         private static DateTime ToUniversalInstant(DateTime utc, string parameterName)
@@ -493,21 +419,5 @@ namespace DataStandardizer.Chronology
 
             return new DateTimeOffset(new DateTime(localTicks, DateTimeKind.Unspecified), utcOffset);
         }
-
-        // The obsolete accessors keep reading the obsolete attribute, so that their behaviour is unchanged until they are removed.
-#pragma warning disable CS0618 // TzDataTimezoneAttribute is obsolete
-#if NETCOREAPP3_0_OR_GREATER
-        private static TzDataTimezoneAttribute? GetTimezoneAttribute(TzDataTimezone timezone)
-#else
-        [CanBeNull]
-        private static TzDataTimezoneAttribute GetTimezoneAttribute(TzDataTimezone timezone)
-#endif
-        {
-            if (!timezone.TryGetRegistryEntry(out var entry))
-                return null;
-
-            return entry.Field.GetCustomAttribute<TzDataTimezoneAttribute>();
-        }
-#pragma warning restore CS0618
     }
 }

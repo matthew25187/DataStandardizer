@@ -18,12 +18,49 @@ instructions, how-to guides, and an API reference.
 | **Unix time** | [Chronology](../packages/chronology/index.md) | A point in time as seconds since the Unix epoch (1 January 1970 UTC). |
 | **DOS date & time** | [Chronology](../packages/chronology/index.md) | A packed date/time as used by the MS-DOS file system (1980–2107). |
 | **ITU-T E.164** | [Communication](../packages/communication/index.md) | The international public telecommunication numbering plan (telephone numbers). |
+| **RFC 2045** | [Communication](../packages/communication/index.md) | MIME Part One: Content-Type values, Content-Transfer-Encoding tokens, and the quoted-printable and base64 encodings. |
+| **RFC 2046** | [Communication](../packages/communication/index.md) | MIME Part Two: top-level media types and the `charset` parameter. |
+| **RFC 2047** | [Communication](../packages/communication/index.md) | MIME Part Three: encoded words, which carry text that isn't US-ASCII in a message header. |
+| **RFC 2231** | [Communication](../packages/communication/index.md) | MIME parameter value and encoded word extensions: character sets, languages and continuations. |
+| **RFC 2397** | [Communication](../packages/communication/index.md) | The `data:` URL scheme. |
+| **RFC 2978** | [Communication](../packages/communication/index.md) | IANA charset registration procedures: the syntax of character set names. |
+| **RFC 4289** | [Communication](../packages/communication/index.md) | MIME Part Four: Content-Transfer-Encoding extension tokens. |
+| **RFC 4648** | [Communication](../packages/communication/index.md) | The strict base64 of §4, used by iCalendar BINARY values and "B" encoded words. |
+| **RFC 6657** | [Communication](../packages/communication/index.md) | The default `charset` of textual media types. |
+| **RFC 6838** | [Communication](../packages/communication/index.md) | Media type naming rules and registration trees. |
+| **RFC 6839** | [Communication](../packages/communication/index.md) | Structured syntax suffixes for media types, such as `+json` and `+xml`. |
 | **RFC 4180** | [File.CSV](../packages/file-csv/index.md) | Common format and MIME type for Comma-Separated Values (CSV) files. |
 | **RFC 5545** | [File.iCal](../packages/file-ical/index.md) | Internet Calendaring and Scheduling Core Object Specification (iCalendar): `.ics` files, their components and properties, and recurrence rules. |
 | **RFC 6868** | [File.iCal](../packages/file-ical/index.md) | Parameter value encoding in iCalendar and vCard (caret encoding of quotes and line breaks in parameter values). |
 | **RFC 7986** | [File.iCal](../packages/file-ical/index.md) | New properties for iCalendar, such as `NAME`, `COLOR`, `IMAGE` and `REFRESH-INTERVAL`. |
 | **RFC 7265** | [File.iCal](../packages/file-ical/index.md) | jCal: the JSON format for iCalendar. |
 | **RFC 6321** | [File.iCal](../packages/file-ical/index.md) | xCal: the XML format for iCalendar. |
+| **RFC 5322** | [File.InternetMessage](../packages/file-internet-message/index.md) | Internet Message Format: header fields, addresses, date-times and message identifiers, in `.eml` files. |
+| **RFC 6532** | [File.InternetMessage](../packages/file-internet-message/index.md) | Internationalized email headers: UTF-8 in field bodies. |
+| **RFC 6854** | [File.InternetMessage](../packages/file-internet-message/index.md) | Group syntax in the From and Sender header fields. |
+| **RFC 2045, RFC 2046** | [File.InternetMessage](../packages/file-internet-message/index.md) | MIME header fields, multipart bodies, embedded messages and transfer decoding in a message. The values and codecs come from [Communication](../packages/communication/index.md). |
+| **RFC 2047** | [File.InternetMessage](../packages/file-internet-message/index.md) | Encoded words in display names, keyword phrases, comments and unstructured fields. |
+| **RFC 2183** | [File.InternetMessage](../packages/file-internet-message/index.md) | The Content-Disposition header field. |
+| **RFC 2231** | [File.InternetMessage](../packages/file-internet-message/index.md) | Extended parameters of the Content-Type and Content-Disposition fields. |
+| **RFC 2387** | [File.InternetMessage](../packages/file-internet-message/index.md) | The `multipart/related` content type. |
+| **RFC 2392** | [File.InternetMessage](../packages/file-internet-message/index.md) | `cid:` URIs and the parts they refer to. |
+| **RFC 2557** | [File.InternetMessage](../packages/file-internet-message/index.md) | MHTML: web pages saved with their resources, in `.mht` and `.mhtml` files. |
+| **RFC 3282** | [File.InternetMessage](../packages/file-internet-message/index.md) | The Content-Language header field. |
+| **RFC 4155** | [File.InternetMessage](../packages/file-internet-message/index.md) | The mbox format, in the mboxrd, mboxo, mboxcl and mboxcl2 variants. |
+| **EMLX** | [File.InternetMessage](../packages/file-internet-message/index.md) | The message files of Apple Mail, which have no published standard. The package follows the layout that open-source readers agree on. |
+| **RFC 6350** | [File.vCard](../packages/file-vcard/index.md) | vCard Format Specification (vCard 4.0): `.vcf` files, their properties, parameters and values, and the rules a card must follow. |
+| **RFC 6868** | [File.vCard](../packages/file-vcard/index.md) | Parameter value encoding in iCalendar and vCard, in vCard 4.0 cards. |
+| **RFC 7095** | [File.vCard](../packages/file-vcard/index.md) | jCard: the JSON format for vCard. |
+| **RFC 6351** | [File.vCard](../packages/file-vcard/index.md) | xCard: the XML format for vCard. |
+| **vCard 2.1** | [File.vCard](../packages/file-vcard/index.md) | The Electronic Business Card, version 2.1, with quoted-printable, `BASE64` and `CHARSET`. |
+| **RFC 2425, RFC 2426** | [File.vCard](../packages/file-vcard/index.md) | The MIME directory profile for vCard 3.0. |
+| **RFC 2739** | [File.vCard](../packages/file-vcard/index.md) | Calendar attributes for vCard, such as `FBURL` and `CALURI`, in vCard 3.0. |
+| **RFC 4770** | [File.vCard](../packages/file-vcard/index.md) | Instant messaging addresses (`IMPP`) in vCard 3.0. |
+| **RFC 9554** | [File.vCard](../packages/file-vcard/index.md) | vCard extensions for JSContact, such as `PRONOUNS`, `SOCIALPROFILE` and the `PHONETIC` parameter. |
+| **RFC 6473, RFC 6869** | [File.vCard](../packages/file-vcard/index.md) | `KIND:application` and `KIND:device`. |
+| **RFC 6474** | [File.vCard](../packages/file-vcard/index.md) | Place of birth, and place and date of death. |
+| **RFC 6715** | [File.vCard](../packages/file-vcard/index.md) | The extensions of the OMA Converged Address Book, such as `EXPERTISE`, `HOBBY` and `INTEREST`. |
+| **RFC 8605** | [File.vCard](../packages/file-vcard/index.md) | The ICANN extensions for RDAP: `CONTACT-URI` and the `CC` parameter. |
 | **ISO 3166-1** | [Geography](../packages/geography/index.md) | Codes for the representation of names of countries — Part 1: Country code. |
 | **ISO 3166-2** | [Geography](../packages/geography/index.md) | Codes for the representation of names of countries — Part 2: Country subdivision code. |
 | **UN M49** | [Geography](../packages/geography/index.md) | Standard Country or Area Codes for Statistical Use (Series M, No. 49). |

@@ -1,7 +1,7 @@
 ﻿using System;
 using DataStandardizer.Core;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Language
@@ -31,12 +31,12 @@ namespace DataStandardizer.Language
             LanguageType = languageType;
         }
 #else
-        public Iso639LanguageCodeAttribute([NotNull] string englishName) : base(new[] { englishName })
+        public Iso639LanguageCodeAttribute([DisallowNull] string englishName) : base(new[] { englishName })
         {
 
         }
 
-        public Iso639LanguageCodeAttribute([NotNull] string englishName, [NotNull] string frenchName) : base(new[] { englishName }, new[] { frenchName })
+        public Iso639LanguageCodeAttribute([DisallowNull] string englishName, [DisallowNull] string frenchName) : base(new[] { englishName }, new[] { frenchName })
         {
 
         }
@@ -74,7 +74,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? Part1Code { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Part1Code { get; set; }
 #endif
         /// <summary>
@@ -83,7 +83,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? Part2BCode { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Part2BCode { get; set; }
 #endif
         /// <summary>
@@ -92,7 +92,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? Part2TCode { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Part2TCode { get; set; }
 #endif
         /// <summary>
@@ -111,7 +111,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? PrintName { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string PrintName { get; set; }
 #endif
         /// <summary>
@@ -120,7 +120,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? InvertedName { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string InvertedName { get; set; }
 #endif
         /// <summary>
@@ -129,7 +129,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public string? MacrolanguageCode { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string MacrolanguageCode { get; set; }
 #endif
 

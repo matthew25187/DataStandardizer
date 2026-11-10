@@ -9,20 +9,21 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag.Registry`
 
 The registry's `File-Date` header record — carries the date the loaded copy of the
 IANA Subtag Registry was published.
 
 ```csharp
-public class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
+public sealed class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
 ```
 
-## Constructors
+## Remarks
 
-| Constructor | Notes |
-| --- | --- |
-| `SubtagRegistryFileDateRecord(Tuple<string, object> field)` | Wraps the single `File-Date` field pair. |
+The constructor is internal; the record is created when a
+[SubtagRegistry](SubtagRegistry.md) is loaded, and the registry's `FileDate`
+property returns its date. A registry whose `File-Date` isn't an RFC 3339
+full-date (`yyyy-MM-dd`) fails to load with a `FormatException`.
 
 ## Properties
 
@@ -32,7 +33,7 @@ public class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

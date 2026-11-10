@@ -1,0 +1,49 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Never set Version, AssemblyVersion, FileVersion or InformationalVersion here.  CI stamps them through Version.g.props, which
+    Directory.Build.targets imports after the project file, so a value here would apply locally but not in CI.
+  -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageIcon>054-doc_web.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
+    <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
+    <!-- Supplied by GlobalAssemblyInfo.cs and each project's Properties/AssemblyInfo.cs. -->
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <!-- Source Link and the compiler flags are stored in the PDB.  Embedded in the DLL, they reach nuget.org inside the .nupkg that is promoted from GitHub Packages, which has no symbol package support. -->
+    <DebugType>embedded</DebugType>
+    <!-- Generated files, such as AssemblyInfo.cs, aren't in git, so Source Link can't fetch them.  Their source goes in the PDB instead. -->
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <!--
+    TargetFrameworkIdentifier isn't known yet when this file is evaluated, so these conditions test TargetFramework.  It is empty in
+    the outer build of a multi-targeting project, where IsTargetFrameworkCompatible would fail.
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' != '' And $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.1'))">
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />
+    <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="True" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)..\images\054-doc_web.png" Pack="True" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <!-- Every package needs the attributes, so the import is here and not in each csproj.  The .shproj imports the .projitems itself, and it reaches this file through Microsoft.Common.props. -->
+  <Import Project="$(MSBuildThisFileDirectory)DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems" Label="Shared" Condition="'$(MSBuildProjectExtension)' != '.shproj'" />
+</Project>

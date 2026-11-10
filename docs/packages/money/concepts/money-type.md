@@ -35,11 +35,25 @@ you can compute with amounts naturally while the currency and rounding settings
 carry through to the result. It also defines implicit conversions to and from
 `decimal`, so a `Money` behaves like a number in expressions.
 
-The comparison and equality operators (`==`, `!=`, `<`, `>`, `<=`, `>=`) enforce
-a key invariant: comparing two `Money` values whose currencies differ throws an
-`InvalidOperationException`. Two amounts in different currencies are effectively
-different types, and silently comparing them would produce undefined results, so
-the type refuses the operation rather than returning a misleading answer.
+Ordering enforces a key invariant: two `Money` values whose currencies differ
+have no order. The relational operators (`<`, `>`, `<=`, `>=`) throw an
+`InvalidOperationException` for them, and `CompareTo` throws an
+`ArgumentException`. Two amounts in different currencies are effectively
+different types, and ordering them by amount alone would produce a misleading
+answer, so the type refuses rather than guessing.
+
+Anything that orders values through `CompareTo` therefore fails on a collection
+that mixes currencies. LINQ's `OrderBy`, `Min` and `Max` pass the
+`ArgumentException` on as it is. `List<T>.Sort` and `Array.Sort` wrap it in an
+`InvalidOperationException`, with the `ArgumentException` as its
+`InnerException`. Group or convert the values by currency first.
+
+Equality is different: it always has an answer. Values in different currencies
+are simply not equal, so `Equals`, `==` and `!=` agree and never throw.
+`Dictionary<Money, …>`, `Contains`, `Distinct` and `EqualityComparer<Money>`
+see the same answer as `==`. A value with no currency, such as
+`default(Money)`, counts as the currency `XXX`, so it is not equal to, and can't
+be ordered against, a value in a real currency.
 
 ## Rounding as part of the value
 
@@ -57,8 +71,8 @@ each call site to remember it.
 
 - **No orphaned amounts.** The currency is part of the value, so an amount can
   never drift away from the currency it belongs to.
-- **Mistakes become errors, not silent bugs.** Mixing currencies in a comparison
-  throws instead of returning a wrong-but-plausible result.
+- **Mistakes become errors, not silent bugs.** Ordering values in different
+  currencies throws instead of returning a wrong-but-plausible result.
 - **One rounding policy.** Precision and method are stored on the value and
   applied consistently on conversion to `decimal`.
 - **Familiar ergonomics.** Implicit `decimal` conversions and arithmetic

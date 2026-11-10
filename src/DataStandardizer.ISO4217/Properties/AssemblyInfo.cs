@@ -1,1 +1,0 @@
-﻿[assembly: System.Reflection.AssemblyTitle("Data Standardizer: ISO 4217")]

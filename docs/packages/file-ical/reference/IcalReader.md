@@ -31,8 +31,11 @@ public sealed class IcalReader : IDisposable
 
 The data is read with an [IcalContentLineReader](IcalContentLineReader.md), so the same
 constructors, encodings, options and content line rules apply: CRLF line breaks
-unless `IcalOptions.AcceptBareLineFeed` is set, unfolding, RFC 6868 caret decoding of
-parameter values, and `IcalOptions.MaxLineLength`. A caller-supplied `Stream` or
+unless `IcalOptions.AcceptBareLineFeed` is set, including after the last line unless
+`IcalOptions.AcceptMissingFinalLineBreak` is set; no byte order mark unless
+`IcalOptions.AcceptByteOrderMark` is set; strict UTF-8 unless `IcalOptions.Encoding`
+is set; unfolding, RFC 6868 caret decoding of parameter values, and
+`IcalOptions.MaxLineLength`. A caller-supplied `Stream` or
 `TextReader` is left open when the reader is disposed.
 
 **Structure.** Each `BEGIN` line must be matched by an `END` line, and components must
@@ -64,7 +67,8 @@ the content lines of such data, use `IcalContentLineReader`, which does not chec
 and `DiagnosticKind`, plus `LineNumber` and `PropertyName` where they apply. Reading
 can then continue with the next calendar. The accommodations are
 `IcalOptions.AllowMissingRequiredProperties`, `AllowCardinalityViolations`,
-`AllowUndefinedTimeZones` and `AllowInvalidValues`, all off by default.
+`AllowUndefinedTimeZones`, `AllowInvalidValues` and `AllowQuotedParameterValues`, all
+off by default.
 `InvalidComponentNesting` and `UnsupportedVersion` problems are never accepted. See
 [IcalDiagnosticKind](IcalDiagnosticKind.md).
 
@@ -88,9 +92,9 @@ buffers already hold the whole calendar.
 
 | Constructor | Notes |
 | --- | --- |
-| `IcalReader(Stream icalStream)` | Reads as UTF-8 unless the stream starts with a byte order mark. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
+| `IcalReader(Stream icalStream)` | Reads as UTF-8. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `IcalReader(Stream icalStream, IcalOptions options)` | Throws `ArgumentNullException` if `icalStream` or `options` is `null`, or `ArgumentException` if the stream cannot be read or `options.MaxLineLength` is less than 1. |
-| `IcalReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading, and reads it as UTF-8 unless it starts with a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
+| `IcalReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading, and reads it as UTF-8. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
 | `IcalReader(string icalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Throws `ArgumentNullException` if `icalFilePath` or `options` is `null`, or `ArgumentException` if `options.MaxLineLength` is less than 1. |
 | `IcalReader(TextReader reader)` | The text reader is left open. Throws `ArgumentNullException` if `reader` is `null`. |
 | `IcalReader(TextReader reader, IcalOptions options)` | Throws `ArgumentNullException` if `reader` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set or `options.MaxLineLength` is less than 1. |
@@ -120,20 +124,28 @@ Errors in how the reader is used (`ObjectDisposedException`, `InvalidOperationEx
 are thrown by the call. Errors in the data (`IcalFileException`) and cancellation
 (`OperationCanceledException`) are thrown by the task.
 
+A read is canceled when its `cancellationToken` is canceled before the call, or when
+the read fails with an `OperationCanceledException` while that token is canceled,
+whatever token the exception carries, or if it carries none. The task is then canceled.
+An `OperationCanceledException` while the token isn't canceled faults the task, as any
+other failure of the source does. Either one leaves the reader unable to continue. During
+`ReadCalendarsAsync`, awaiting `MoveNextAsync` throws either one, but its task is
+canceled for both on every target, as an async iterator's always is for an
+`OperationCanceledException`, so check the token to tell which it was.
+
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `ReadCalendarAsync(CancellationToken cancellationToken = default)` | `ValueTask<IcalCalendar?>` | As `ReadCalendar`. If canceled, the reader cannot continue. |
+| `ReadCalendarAsync(CancellationToken cancellationToken = default)` | `ValueTask<IcalCalendar?>` | As `ReadCalendar`. If the read is canceled, or fails with an `OperationCanceledException` while the token isn't canceled, the reader cannot continue. |
 | `ReadCalendarsAsync(CancellationToken cancellationToken = default)` | `IAsyncEnumerable<IcalCalendar>` | The remaining calendars. The token is combined with any token passed to `GetAsyncEnumerator`. Throws `ObjectDisposedException` from the call itself if the reader is disposed. |
 | `DisposeAsync()` | `ValueTask` | Same as `Dispose`; returns a completed task. |
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors, the asynchronous methods, and `IAsyncDisposable`
 are available on `netstandard2.0`, `netstandard2.1`, and the .NET targets only; on
 `netstandard1.1` construct the reader from a `Stream` or `TextReader` and read
-synchronously. The nullable reference annotations apply to the `netstandard2.1`,
-`net8.0`, and `net10.0` builds.
+synchronously. The nullable reference annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

@@ -23,8 +23,10 @@ public sealed class CsvFieldMappingAttribute : Attribute
 
 ## Remarks
 
-Combine with `[TypeConverter]` to attach a type converter to the field. For
-imperative configuration use [CsvFileMappingBuilder](CsvFileMappingBuilder.md)
+Combine with `[TypeConverter]` to attach a type converter to the field. A reader
+parses the numeric, date, time, `bool`, `Guid` and enum types without one; see
+[converting field values](../concepts/field-mapping.md#converting-field-values).
+For imperative configuration use [CsvFileMappingBuilder](CsvFileMappingBuilder.md)
 instead.
 
 ## Constructors
@@ -46,9 +48,9 @@ instead.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The nullable reference annotations apply to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 
@@ -57,4 +59,3 @@ The nullable reference annotations apply to the
 - [CsvFieldAttribute](CsvFieldAttribute.md)
 - [CsvFieldMapping](CsvFieldMapping.md)
 - [File.CSV API reference](index.md)
-</content>

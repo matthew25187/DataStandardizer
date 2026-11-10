@@ -24,9 +24,10 @@ public readonly struct Bcp47KeyedSubtag : IEquatable<Bcp47KeyedSubtag>
 ## Remarks
 
 The `Singleton` and `Subtags` getters throw `InvalidOperationException` when the
-instance is uninitialised (default-constructed). On the `netstandard1.0` and
-`netstandard2.0` targets nullability is expressed through JetBrains
-`[NotNull]` / `[CanBeNull]` attributes rather than C# nullable reference types.
+instance is uninitialised (default-constructed). On the `netstandard1.1` and
+`netstandard2.0` targets nullability is expressed through
+`System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]` rather than C# nullable reference types.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 Equality and hashing ignore case, because RFC 5646 section 2.1.1 makes subtags
 case-insensitive and [Bcp47LanguageTag](Bcp47LanguageTag.md) equality does the
@@ -40,7 +41,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | Property | Signature | Notes |
 | --- | --- | --- |
 | `Singleton` | `char? Singleton { get; }` | The leading single character, or `null` if empty. |
-| `Subtags` | `string[] Subtags { get; }` | The remaining hyphen-separated parts. |
+| `Subtags` | `IReadOnlyList<string> Subtags { get; }` | The remaining hyphen-separated parts. Each read splits the subtag again and returns a new list. |
 
 ## Methods
 
@@ -63,9 +64,8 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
-.NET Standard targets nullability is expressed through JetBrains
-`[NotNull]` / `[CanBeNull]` attributes; the public surface is otherwise the same.
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
+.NET Standard targets nullability is expressed through `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`. A project gets null warnings from them only on C# 8 or later with nullable enabled. The public surface is otherwise the same.
 
 ## See also
 

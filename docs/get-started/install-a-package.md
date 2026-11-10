@@ -20,6 +20,8 @@ to map each standard to its package.
 | **Communication** | `DataStandardizer.Communication` |
 | **File.CSV** | `DataStandardizer.File.CSV` |
 | **File.iCal** | `DataStandardizer.File.iCal` |
+| **File.InternetMessage** | `DataStandardizer.File.InternetMessage` |
+| **File.vCard** | `DataStandardizer.File.vCard` |
 | **Geography** | `DataStandardizer.Geography` |
 | **Language** | `DataStandardizer.Language` |
 | **LanguageTag** | `DataStandardizer.LanguageTag` |

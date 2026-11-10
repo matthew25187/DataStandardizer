@@ -21,6 +21,13 @@ namespace DataStandardizer.File.iCal
         internal const string EndName = "END";
 
         /// <summary>
+        /// The most levels of components a calendar may nest, counting the VCALENDAR as the first.  ref. RFC 5545§3.6: the grammar allows three
+        /// (VCALENDAR, VEVENT or VTODO, and VALARM), so this refuses nothing the RFC allows.  Every pass over the tree, including each
+        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.
+        /// </summary>
+        internal const int MaxComponentDepth = 64;
+
+        /// <summary>
         /// The components being built, outermost first.
         /// </summary>
         private readonly List<Frame> _frames = new List<Frame>();
@@ -85,7 +92,7 @@ namespace DataStandardizer.File.iCal
             {
                 var frame = _frames[_frames.Count - 1];
                 var name = frame.Component.Name.ToUpperInvariant();
-                var exception = IcalContentLineScanner.BuildException(
+                var exception = IcalContentLineErrorFactory.BuildException(
                     string.Format(CultureInfo.InvariantCulture, "The data ended before END:{0}; the BEGIN:{0} on line {1} is not closed.", name,
                         frame.Component.LineNumber),
                     frame.Component.LineNumber, frame.PhysicalLineNumber, BeginName);
@@ -120,6 +127,11 @@ namespace DataStandardizer.File.iCal
             }
             else
             {
+                if (_frames.Count >= MaxComponentDepth)
+                    throw BuildException(
+                        string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545§3.6 allows three.",
+                            MaxComponentDepth), line, CurrentPath);
+
                 var parent = _frames[_frames.Count - 1];
                 component = CreateComponent(name, parent.Component.Name);
                 parent.Component.Components.Add(component);
@@ -205,7 +217,7 @@ namespace DataStandardizer.File.iCal
         private static IcalFileException BuildException(string message, IcalContentLine line, string path)
 #endif
         {
-            var exception = IcalContentLineScanner.BuildException(message, line.LineNumber, line.PhysicalLineNumber, line.Name);
+            var exception = IcalContentLineErrorFactory.BuildException(message, line.LineNumber, line.PhysicalLineNumber, line.Name);
             if (path != null)
             {
                 exception.Data.Add(IcalFileException.DataItemName.ComponentPath, path);

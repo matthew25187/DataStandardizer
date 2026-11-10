@@ -5,7 +5,7 @@
 This repository follows Gitflow. The long-lived branches are:
 
 - `master`: released code only. Every commit on `master` is either a release merge from `develop` or a commit already on `develop`.
-- `develop`: the integration branch and the default branch. CI builds of `develop` publish preview packages.
+- `develop`: the integration branch and the default branch. CI builds of `develop` publish preview packages to GitHub Packages, the store for every package CI produces.
 
 `release/*` and `hotfix/*` branches are not used. Every package release is an immutable NuGet version, so a defect in a release is handled by deprecating that version on NuGet and shipping the fix through `develop` → `master` like any other change.
 
@@ -13,28 +13,28 @@ This repository follows Gitflow. The long-lived branches are:
 
 - Branch from `develop` as `feature/<issue>-<short-name>` (or `docs/...`).
 - Open the PR into `develop` and complete it with **Squash and merge**. Never target `master` with a feature PR.
-- Pushes to a feature branch don't start a CI build. Only a PR does, and it builds the branch merged with its target. To get builds for work that isn't ready to merge, open the PR as a draft.
-- CI builds and tests the packages whose `src/<Package>` folder changed, the packages that depend on them, and any package whose `tests/<Package>.Tests` folder the build changes. A test-only change never versions or publishes the package.
+- Pushes to a feature branch don't start a CI build. Only a PR does (`.github/workflows/ci.yml`), and it builds the branch merged with its target. To get builds for work that isn't ready to merge, open the PR as a draft.
+- CI builds and tests the packages whose `src/<Package>` folder changed, or a Shared Project folder their csproj imports (it finds these from each `Import` of a `.projitems`, so write that import as a relative path), the packages that depend on them, and any package whose `tests/<Package>.Tests` or `tests/<Package>.IntegrationTests` folder the build changes. A change to a shared test file (`sharedTestFiles` in `build/packages.json`), such as the SDK version in `global.json`, builds and tests every package. A test-only change, unit or integration, never versions or publishes the package. Each test project runs once for every target framework it builds for, and a package's integration tests, when it has them, run after its unit tests. A test project is built only when it's listed in `DataStandardizer.sln` and in its package's `<Package>.slnf`; the Pester tests check that every one is.
 - Never commit or push directly to `master` or `develop`, and never open a PR into `master` from any branch other than `develop`.
-- Changes to either pipeline (`build/datastandardizer-ci-build-pipeline.yml` or `build/datastandardizer-release-build-pipeline.yml`) or to the shared templates and scripts in `build/` go through `develop` like any other change. They reach `master` with the next release.
+- Changes to the workflows in `.github/workflows/`, or to the scripts, modules and package list in `build/`, go through `develop` like any other change. They reach `master` with the next release. Keep the Pester tests in `build/tests/` passing; CI runs them on Ubuntu and Windows.
 
 ### Releasing
 
-1. Open a PR from `develop` into `master`.
-2. Complete it with **Create a merge commit**. Never squash or rebase a release PR. The release pipeline tags the merge commit (`v<major>.<minor>.<patch>-<package>`), and change detection depends on that commit's ancestry.
+1. Open a PR from `develop` into `master` with the release template: `gh pr create --base master --head develop --template release.md` (or add `?template=release.md` to the compare URL). Work through its checklist. The PR description is public, so it records only that each step was done. Security findings go in private security advisories, never in the PR or an issue.
+2. Complete it with **Create a merge commit**. Never squash or rebase a release PR. The release workflow (`.github/workflows/release.yml`) tags the merge commit (`v<major>.<minor>.<patch>-<package>`), and change detection depends on that commit's ancestry.
 3. Don't put `[skip ci]` in the release PR title or merge commit. The merge to `master` is what triggers the release build.
-4. Wait for the release pipeline to succeed. If it fails, fix the cause on `develop` and release again. Don't patch `master`.
+4. Wait for the release workflow to succeed. If it fails, fix the cause on `develop` and release again. Don't patch `master`.
 5. Back-merge: open a PR from `master` into `develop` and complete it with **Create a merge commit**, never squash. Do this after every successful release, before any other PR merges into `develop`. Don't resolve a conflict by deleting a file that exists on `master`.
 
-Publishing a released package to nuget.org is a separate, manual step that the maintainer does per package. A release build may produce packages that are never published, and patch versions are set up by hand before a release build. Agents don't do either.
+Promoting a package version, and publishing it to nuget.org, is a separate, manual step that the maintainer does per package with `.github/workflows/publish-package.yml`. Promotion creates a GitHub Release on the version's tag, which the README badges show, and attaches the package's build provenance, which the `attest` job in `.github/workflows/build-and-publish.yml` signs before the package is published; the nuget.org push waits for the maintainer's approval in the `nuget-org` environment. A release build may produce packages that are never promoted. A new major version, or a patch release, is set up before a release build with the `Start major version` and `Start patch release` workflows (`.github/workflows/start-major-version.yml` and `start-patch-release.yml`), which write the package's `DATASTANDARDIZER_<suffix>__NEXT_*` repository variables (the suffix is in `build/packages.json`). A patch series continues by itself with each release build, until `Start patch release` is run with `resume-development`. Agents don't do any of these.
 
 ### Why the merge method matters
 
-Packages are versioned from Azure DevOps variable groups, not from files in the repo. "Has this package changed?" is decided by diffing against the latest reachable package tag (`build/scripts/FindChangedPackages.ps1`). A squash or rebase moves the release onto a commit that has no tag, and a skipped back-merge means `develop` doesn't contain the release. Either one makes the next build publish the wrong set of packages.
+Packages are versioned from GitHub repository variables, not from files in the repo. "Has this package changed?" is decided by diffing against the latest reachable package tag (`Get-ChangedPackageName` in `build/psmodules/BuildPlan`). A squash or rebase moves the release onto a commit that has no tag, and a skipped back-merge means `develop` doesn't contain the release. Either one makes the next build publish the wrong set of packages.
 
 ## Release notes
 
-Each package's NuGet release notes are generated from the commits that changed its `src/<Package>` folder since its last release (`build/scripts/SetReleaseNotesArgument.ps1`). Each commit gives one line under one of these headings: Breaking changes, New, Fixed, Deprecated and removed, Changed. Write commits so those lines make sense to someone who uses the package.
+Each package's NuGet release notes are generated from the commits that changed its `src/<Package>` folder, a Shared Project its csproj imports, or a file in `sharedBuildFiles` in `build/packages.json`, since its last release (`build/scripts/SetReleaseNotesArgument.ps1`). A commit that changes a shared build file reaches every package's notes, and one that changes a Shared Project reaches the notes of each package that imports it, so its note has to be true of all of them. Each commit gives one line under one of these headings: Breaking changes, New, Fixed, Deprecated and removed, Changed. Write commits so those lines make sense to someone who uses the package.
 
 - **The squash subject is the note.** A squash merge takes the PR title as its subject, or the commit's subject when the PR has one commit. Write both to describe what changed for a user of the package, not how it was implemented. Write "`IcalAlarm.TriggerDuration` no longer drops TRIGGER parameters", not "Replace the alarm TRIGGER in place".
 - **Declare notes with `Release-note:` trailers in a commit message**, not in the PR description. The squash merge builds its body from the commit messages, so a trailer in the PR description never reaches git. Put the trailers on one commit only; a trailer repeated on several commits is published once per commit.
@@ -43,7 +43,63 @@ Each package's NuGet release notes are generated from the commits that changed i
   - `Release-note: none` leaves out a commit that touches a package folder without affecting users, such as a build, test or documentation-comment change.
   - Declare a note on every PR that touches `src/`. Without one, the heading is guessed from the subject's first word (`Fix`/`Correct`, `Add`/`Support`/`Expose`, `Deprecate`/`Remove`/`Drop`), and anything else lands under Changed.
 - **`BREAKING CHANGE: <text>`** is still published under Breaking changes, whatever else the commit declares.
-- **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out. Check the notes each package will get before a release, and add overrides where they would mislead.
+- **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out, and a `packages` list on a note limits it to those packages. Check the notes each package will get before a release, and add overrides where they would mislead.
+
+## Standards compliance
+
+By default, every package does exactly what the standard it implements says, with no exceptions. A parser rejects input that the standard doesn't allow, and a writer produces only output that the standard allows. This holds even when other software commonly accepts the input, and even when the standard's grammar could be read more loosely.
+
+- **Deviations are opt-in only.** A deviation needs a reasonable justification, such as common real-world behaviour. Offer it only through something the caller has to choose, such as an options flag, a method parameter, a property, or the Options pattern. Never make it the default, and never turn it on as a side effect of another option.
+- **Document each opt-in.** Its XML docs name the rule it relaxes, by RFC or specification section.
+- **Follow the edition the standard cites.** When a standard refers to an older one, for example RFC 2231 refers to RFC 1766 language tags, not BCP 47, implement the edition it cites. If it looks worth revisiting later, mark the place with a `// TODO:` comment.
+- **Test both behaviours.** A test shows the strict default rejecting the input, and another shows the opt-in accepting it.
+
+## Copyright notices
+
+When you change a file that contains a copyright notice, update the notice so its year of publication is the current calendar year. In a range such as `2024-2026`, keep the first year (the year of first publication) and change the last year to the current one. A notice that is a single year becomes a range from that year to the current one. Leave the notice alone if its last year is already the current year, and don't touch files you aren't otherwise changing.
+
+## Security findings
+
+A vulnerability found by any means (a security audit, a fuzzing run, a code-scanning, secret-scanning or Dependabot alert, or while doing other work) goes in a private [repository security advisory](https://github.com/matthew25187/DataStandardizer/security/advisories), never in a public issue, PR, commit message or comment. Keep commit subjects and release notes for the fix free of exploit detail until the advisory is published. `SECURITY.md` is the public policy for outside reporters.
+
+## Unit tests
+
+Every .NET test follows Microsoft's [Unit testing best practices for .NET](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices). This applies to every test you write or change. Tests on `develop` that don't follow it yet are listed under #465.
+
+- **No logic in a test.** A test method has no `if`, `switch`, `?:`, `for`, `foreach`, `while` or `try`. It doesn't build its inputs or expected values by concatenation, interpolation or calculation. There are no exceptions.
+  - When a test has several cases and they can't be written inline as `[InlineData]`, write a test case factory (`TheoryData`, `MemberData` or `ClassData`) that yields each case's inputs and expected result, and feed it to a `[Theory]`. The factory may use loops to generate cases. The test may not.
+  - Take expected values from the standard or work them out by hand, and write them as literals or named constants. Never compute them with the logic under test.
+  - A test that would branch on its input is two tests.
+  - Test infrastructure, such as a helper method or a shared harness, may contain logic as long as its own behaviour is deterministic: given the same inputs it always does the same thing, as its own tests show. The test treats it as a black box and relies only on that. Give a helper with logic of its own its own tests. The test method calls the helper and still has no logic itself. A helper never works out an expected value with the logic under test.
+  - A helper may coordinate operations whose outcome the helper doesn't control, such as a runner that starts calls on several threads at once. The runner's own steps, such as starting the threads together, waiting for them with a time limit, and collecting what each returned, are deterministic. How the scheduler interleaves the calls is not. Such a test is an integration test (see "Deterministic" below), and it still compares the results exactly with fixed expected values.
+  - To dispose of something or restore it, such as `CultureInfo.CurrentCulture`, use a `using` scope, not `try`/`finally`.
+- **Arrange, Act, Assert.** Keep the three sections separate, marked with `// arrange`, `// act` and `// assert`. A test has one Act. Assign its result in Act and assert on that. Never call the code under test inside an assertion, except by running the Act's delegate when testing for exceptions, as the next point describes. To check several overloads or entry points with the same input, write a theory over a factory of delegates, not several calls in one test. To check a result before an action and again after it, either make the whole sequence one Act that keeps every result and assert on them all in Assert, or split the cases across theory rows or tests. Never assert between two calls.
+- **Exceptions.** To test whether the code under test throws, declare a delegate in Act and assert on it in Assert. The delegate is the Act; the assertion only runs it.
+  - In Act, assign the call to an `Action`, or to a `Func<Task>` for asynchronous code: `Action testAction = () => MimeMediaType.Parse(value);`.
+  - In Assert, assert on the delegate: `testAction.Should().Throw<FormatException>()`, `testAction.Should().NotThrow()`, or `await testAction.Should().ThrowAsync<OperationCanceledException>()`.
+  - The delegate holds exactly one call to the code under test and nothing else. Declare it in Act, never inline in the assertion (`subject.Invoking(x => x.Parse(value)).Should()...`).
+  - A test has one delegate. To check that several calls throw, write a theory over a factory of delegates.
+- **Names.** Every test is named `Method_Scenario_ExpectedBehavior`.
+- **Minimal inputs and named constants.** Use the simplest input that shows the behaviour.
+  - A string or numeric literal may be written directly as a test input when it appears only once.
+  - A literal that is repeated with the same meaning in each place it's used is a named constant.
+  - A number whose meaning can't be inferred from its context is a named constant, even when it appears only once.
+  - A value taken from a specification is always a named constant, so its meaning and origin are clear. Its name or a comment cites the RFC or specification section it comes from.
+- **No Setup, Teardown or shared state.** Build what each test needs inside the test, with helper methods. Don't share state between tests through constructors, `IDisposable` teardown, fixtures or mutable static fields. An expensive, immutable resource, such as a parsed registry, may be cached by a static helper, but no test may change it.
+- **Deterministic.** A unit test uses the same inputs and produces the same outputs on every run, on every machine and target framework. It doesn't depend on anything outside the project's control. That includes the clock, unseeded random numbers, the machine's culture or time zone, the operating system's time zone or encoding data, the number of cores, and thread scheduling. A test that has to depend on one of these is an integration test (see the next point).
+  - Every test, unit or integration, uses fixed inputs and compares its outputs exactly against the expected result. Any output that differs from the expected one is a test failure.
+  - Don't retry a test, repeat it until it fails, or widen an assertion so that a varying result passes. A test that sometimes fails has a defect: fix it, don't rerun it.
+- **No infrastructure.** Unit tests don't use the file system, the network, environment variables or the clock. Use the `Stream`, `TextReader` and `TextWriter` overloads with in-memory data, and fixed dates instead of `DateTime.Now`. A behaviour that can only be shown with a system outside the project's control, or with a long run, is an integration test. Examples are a constructor that takes a file path, a resolver that reads the operating system's time zone data, and a concurrency test that runs calls on several threads at once and depends on how the scheduler interleaves them. It goes in the package's integration test project, `tests/<Package>.IntegrationTests`, which is kept separate from the unit tests in `tests/<Package>.Tests`. An integration test project takes the dependencies its tests need without adding them to the unit tests.
+- **Test through the public API.** Don't read or set private members through reflection. If a behaviour can't be observed through the public API, add a seam to the library that the tests reach through `InternalsVisibleTo`, and declare `Release-note: none` on its commit.
+
+## Dependabot
+
+`.github/dependabot.yml` asks for weekly version updates of NuGet packages, GitHub Actions and the .NET SDK, as PRs into `develop`. Complete them with **Squash and merge**, like any other PR.
+
+- **Release notes.** Dependabot's "Bump …" commits have no `Release-note:` trailer. A bump to `/Directory.Packages.props` changes every library package. When squash-merging a Dependabot PR, add the trailer in the merge dialog's commit body: `Release-note: none` for a build-only package such as Source Link, or a note when users would notice the change. Without a trailer, the "Bump …" subject is published under Changed on every package.
+- **Packages it manages.** A package held at an exact pin goes under `ignore`. A new test or benchmark package goes in the `test-and-benchmark` group's `patterns`, or its updates arrive as separate PRs.
+- **Benchmarks.** An update that changes only `benchmarks/Directory.Packages.props` doesn't start a package build, so CI doesn't compile it. Build the benchmarks before merging one.
+- **Fuzz projects.** `SharpFuzz` in `fuzz/Directory.Packages.props` has to stay on the same version as the `SharpFuzz.CommandLine` tool in `fuzz/.config/dotnet-tools.json`. Dependabot can't reach that manifest from `directory: /`, so `SharpFuzz` goes under `ignore` and neither gets updates, including security updates. Bump both by hand in one PR. A change only in `fuzz/` doesn't start a package build, so CI doesn't compile it. Build the fuzz projects before merging one.
 
 ## Repository rules
 

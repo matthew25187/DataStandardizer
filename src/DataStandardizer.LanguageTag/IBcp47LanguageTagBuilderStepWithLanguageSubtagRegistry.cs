@@ -1,5 +1,5 @@
 ﻿#if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -15,17 +15,17 @@ namespace DataStandardizer.LanguageTag
         /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry.SubtagRegistry subtagRegistry);
+        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry([DisallowNull] SubtagRegistry subtagRegistry);
 #endif
     }
 
     /// <summary>
     /// BCP 47 Language Tag Builder steps that follow from having specified whether to use the IANA Language Subtag Registry.
     /// </summary>
-    public interface IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext : IBcp47LanguageTagBuilderStepWithTimeout, IBcp47LanguageTagBuilderStepUsingLanguageTag, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtag
+    public interface IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext : IBcp47LanguageTagBuilderStepUsingLanguageTag, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtag
     {
     }
 }

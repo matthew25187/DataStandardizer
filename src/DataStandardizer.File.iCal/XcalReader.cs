@@ -159,6 +159,12 @@ namespace DataStandardizer.File.iCal
         /// Reading starts at the XML reader's current node, or at its first node if it has not started, and stops at the end of the
         /// <c>icalendar</c> element, leaving the XML reader on that element's end tag.  The XML reader's settings apply, such as whether it allows
         /// a DTD.
+        /// <para>
+        /// On .NET Framework, the XML reader's own <see cref="XmlReader.ReadAsync"/> overflows the stack, which ends the process, when the
+        /// stream or text reader it reads from fails a read with an <see cref="OperationCanceledException"/> without yielding: by throwing it,
+        /// or by returning a task that has already been canceled or faulted with one.  The asynchronous members can't prevent that for an XML
+        /// reader the caller creates, so give it a source that doesn't fail a read that way.  The other constructors guard against it.
+        /// </para>
         /// </remarks>
         /// <param name="reader">The XML reader.  It is left open when the reader is disposed.  For the asynchronous members, its
         /// <see cref="XmlReaderSettings.Async"/> setting must be <c>true</c>.</param>
@@ -174,6 +180,12 @@ namespace DataStandardizer.File.iCal
         /// Reading starts at the XML reader's current node, or at its first node if it has not started, and stops at the end of the
         /// <c>icalendar</c> element, leaving the XML reader on that element's end tag.  The XML reader's settings apply, such as whether it allows
         /// a DTD.
+        /// <para>
+        /// On .NET Framework, the XML reader's own <see cref="XmlReader.ReadAsync"/> overflows the stack, which ends the process, when the
+        /// stream or text reader it reads from fails a read with an <see cref="OperationCanceledException"/> without yielding: by throwing it,
+        /// or by returning a task that has already been canceled or faulted with one.  The asynchronous members can't prevent that for an XML
+        /// reader the caller creates, so give it a source that doesn't fail a read that way.  The other constructors guard against it.
+        /// </para>
         /// </remarks>
         /// <param name="reader">The XML reader.  It is left open when the reader is disposed.  For the asynchronous members, its
         /// <see cref="XmlReaderSettings.Async"/> setting must be <c>true</c>.</param>
@@ -297,13 +309,26 @@ namespace DataStandardizer.File.iCal
                 while (true)
                 {
                     bool isNode;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                    string? value = null;
+#else
+                    string value = null;
+#endif
                     try
                     {
                         ThrowIfDisposed();
                         isNode = MoveToNextNode();
+
+                        // The value of a text node may not have been read yet, so reading it can find malformed XML, which is a fault like any other.
+                        if (isNode && IsTextNode(_reader.NodeType)) value = _reader.Value;
                     }
                     catch (XmlException exception)
                     {
+                        throw Fault(exception);
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
                         throw Fault(exception);
                     }
                     catch
@@ -312,7 +337,6 @@ namespace DataStandardizer.File.iCal
                         throw;
                     }
 
-                    var value = isNode && IsTextNode(_reader.NodeType) ? _reader.Value : null;
                     if (AddNode(isNode, value)) return TakeCalendar();
                 }
             }
@@ -347,8 +371,8 @@ namespace DataStandardizer.File.iCal
         /// The task completes synchronously when the XML reader already holds the whole calendar in its buffer.  Cancellation is checked before
         /// each node of the XML document is read.
         /// </remarks>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is
+        /// canceled, and the reader then cannot continue.</param>
         /// <returns>A task whose result is the calendar, or <c>null</c> if the end of the <c>icalendar</c> element has been reached.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed
         /// while the read is in progress.</exception>
@@ -359,7 +383,10 @@ namespace DataStandardizer.File.iCal
         /// The reader was created from an XML reader whose <see cref="XmlReaderSettings.Async"/> setting is <c>false</c>.</exception>
         /// <exception cref="IcalFileException">By the task: the data is not valid xCal, or the calendar breaks a rule of RFC 5545 that the
         /// options do not accept.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// read failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  An <see cref="OperationCanceledException"/> from the XML reader while the token isn't canceled
+        /// faults the task, as any other failure of the XML reader does.  Either way, the reader then cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ValueTask<IcalCalendar?> ReadCalendarAsync(CancellationToken cancellationToken = default)
 #else
@@ -372,21 +399,25 @@ namespace DataStandardizer.File.iCal
                 throw new InvalidOperationException("The XML reader does not allow asynchronous reads.  Create it with XmlReaderSettings.Async set to true.");
 
             BeginRead();
-            return ReadCalendarCoreAsync(cancellationToken);
+            return AsyncOutcome.Unwrap(ReadCalendarOutcomeAsync(cancellationToken));
         }
 
         /// <summary>
         /// Reads the remaining calendars asynchronously.
         /// </summary>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is combined with any token passed to
-        /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  If a read is canceled, the reader cannot continue.</param>
+        /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  A read is canceled only if this token is canceled, and the reader then
+        /// cannot continue.</param>
         /// <returns>The calendars, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
         /// <exception cref="IcalFileException">During enumeration: the data is not valid xCal, or a calendar breaks a rule of RFC 5545 that the
         /// options do not accept.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, an earlier read failed or was canceled,
         /// or the XML reader does not allow asynchronous reads.</exception>
-        /// <exception cref="OperationCanceledException">During enumeration: the read was canceled.</exception>
+        /// <exception cref="OperationCanceledException">During enumeration: a read was canceled, which it is only if the token is canceled; or
+        /// the XML reader failed with one while the token isn't canceled.  Either one leaves the reader unable to continue.  On every target, the
+        /// task of <see cref="IAsyncEnumerator{T}.MoveNextAsync"/> is canceled for either, as an async iterator's always is for an
+        /// <see cref="OperationCanceledException"/>, so check the token to tell which it was.</exception>
         public IAsyncEnumerable<IcalCalendar> ReadCalendarsAsync(CancellationToken cancellationToken = default)
         {
             // Check now, so the exception comes from this call and not from the first MoveNextAsync.
@@ -427,12 +458,12 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
         /// Continues <see cref="ReadCalendarAsync"/>, and ends the read.  Completes synchronously, without allocating a task, while the XML
-        /// reader completes synchronously.
+        /// reader completes synchronously.  Returns the read's outcome; see <see cref="AsyncOutcome"/>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private async ValueTask<IcalCalendar?> ReadCalendarCoreAsync(CancellationToken cancellationToken)
+        private async ValueTask<ValueTask<IcalCalendar?>> ReadCalendarOutcomeAsync(CancellationToken cancellationToken)
 #else
-        private async ValueTask<IcalCalendar> ReadCalendarCoreAsync(CancellationToken cancellationToken)
+        private async ValueTask<ValueTask<IcalCalendar>> ReadCalendarOutcomeAsync(CancellationToken cancellationToken)
 #endif
         {
             try
@@ -460,14 +491,34 @@ namespace DataStandardizer.File.iCal
                     {
                         throw Fault(exception);
                     }
+                    catch (ArgumentException exception)
+                    {
+                        // Some runtimes' XmlReader throws this for malformed data, such as a garbled encoding name in the XML declaration.
+                        throw Fault(exception);
+                    }
                     catch
                     {
                         _isFaulted = true;
                         throw;
                     }
 
-                    if (AddNode(isNode, value)) return TakeCalendar();
+                    if (AddNode(isNode, value))
+                    {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                        return new ValueTask<IcalCalendar?>(TakeCalendar());
+#else
+                        return new ValueTask<IcalCalendar>(TakeCalendar());
+#endif
+                    }
                 }
+            }
+            catch (Exception exception)
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                return AsyncOutcome.Fail<IcalCalendar?>(XmlSourceGuard.Unwrap(exception), cancellationToken);
+#else
+                return AsyncOutcome.Fail<IcalCalendar>(XmlSourceGuard.Unwrap(exception), cancellationToken);
+#endif
             }
             finally
             {
@@ -599,6 +650,9 @@ namespace DataStandardizer.File.iCal
             IcalConformance.Validate(_calendar, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
+                // xCal has no quoting, so a value is never quoted where it was read.
+                if (diagnostic.Kind == IcalDiagnosticKind.QuotedParameterValue) continue;
+
                 if (!IcalConformance.IsAccepted(diagnostic.Kind, _options))
                 {
                     _calendar = null;
@@ -629,6 +683,17 @@ namespace DataStandardizer.File.iCal
             var fileException = new IcalFileException("The data is not well-formed XML: " + exception.Message, exception);
             XcalConverter.AddLocation(fileException, exception.LineNumber, exception.LinePosition);
             return fileException;
+        }
+
+        /// <summary>
+        /// Marks the reader as faulted, for an exception that the XML reader threw for data it could not read, and makes the exception to throw.
+        /// </summary>
+        /// <param name="exception">The exception.</param>
+        /// <returns>The exception to throw.</returns>
+        private IcalFileException Fault(ArgumentException exception)
+        {
+            _isFaulted = true;
+            return new IcalFileException("The data is not well-formed XML: " + exception.Message, exception);
         }
 
         /// <summary>
@@ -724,11 +789,11 @@ namespace DataStandardizer.File.iCal
             if (!stream.CanRead)
                 throw new ArgumentException("Expected a stream supporting read.", "xcalStream");
 
-            if (options.Encoding is null) return XmlReader.Create(stream, CreateSettings(ownsStream));
+            if (options.Encoding is null) return XmlReader.Create(XmlSourceGuard.Guard(stream), CreateSettings(ownsStream));
 
             // The text reader decodes the data, so the encoding the document declares is not used.
             var textReader = new StreamReader(stream, options.Encoding, true, 4096, !ownsStream);
-            return XmlReader.Create(textReader, CreateSettings(true));
+            return XmlReader.Create(XmlSourceGuard.Guard(textReader), CreateSettings(true));
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
@@ -761,7 +826,7 @@ namespace DataStandardizer.File.iCal
             if (options.Encoding != null)
                 throw new ArgumentException("Unable to apply an encoding to an existing reader.  Specify the encoding when creating the reader.", nameof(options));
 
-            return XmlReader.Create(reader, CreateSettings(false));
+            return XmlReader.Create(XmlSourceGuard.Guard(reader), CreateSettings(false));
         }
 
         private static XmlReader ValidateXmlReader(XmlReader reader, IcalOptions options)
@@ -825,6 +890,8 @@ namespace DataStandardizer.File.iCal
                 {
                     if (_isFinished) return false;
 
+                    // As an async iterator's does, the task is canceled for any OperationCanceledException, whether or not the token is
+                    // canceled, so that MoveNextAsync behaves the same on every target.
                     var calendar = await _reader.ReadCalendarAsync(_cancellationToken).ConfigureAwait(false);
                     Current = calendar;
                     _isFinished = calendar is null;

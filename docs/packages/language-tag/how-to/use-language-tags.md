@@ -25,46 +25,89 @@ languageTag = Bcp47LanguageTag.Create("es-419");    // Spanish as used in Latin 
 languageTag = Bcp47LanguageTag.Create("zh-Hans");   // Chinese written with Simplified script
 ```
 
-Language tags created in this way have validation applied to the source tag using
-rules based on codes implemented by other *Data Standardizer* packages. If an
-attempt is made to create a language tag object with an invalid source tag then an
-exception (`LanguageTagFormatException`) will be thrown.
-
-The standard for language tags also specifies that the range of valid tags can be
-defined or constrained by the *IANA Language Subtag Registry*. You can load an
-instance of the registry from an external source and then use this to validate
-what constitutes a valid language tag. For example,
-
-```csharp
-var subtagRegistry = SubtagRegistry.CreateFromFile("subtag_registry.txt");
-var languageTag = Bcp47LanguageTag.Create("en", subtagRegistry);
-```
+A language tag created this way is checked for well-formedness only: it must match
+the grammar of RFC 5646, and nothing is looked up. If it doesn't match, a
+`LanguageTagFormatException` is thrown. See
+[Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md) for
+what each check covers and how to choose.
 
 If you would rather avoid exceptions for invalid input, the type also provides
 `TryCreate` overloads that return `false` instead of throwing.
 
-## Validate tags
+## Check a tag without validating it
 
-You can validate a tag or subtags without having to try to create the tag. If you
-want to check whether a string contains a valid, full language tag, you can call
-the `IsWellFormedLanguageTagString()` method:
-
-```csharp
-var isValidTag = Bcp47LanguageTag.IsWellFormedLanguageTagString("Not_A_Valid_Tag"); // returns false
-```
-
-Subtags can also be checked. For example,
+To check a tag's form without creating it, call `IsWellFormed`. It matches the grammar
+and looks nothing up:
 
 ```csharp
-bool isValid;
-isValid = Bcp47LanguageTag.CheckPrimaryLanguageSubtag("en");    // English
-isValid = Bcp47LanguageTag.CheckExtendedLanguageSubtag("xxx");
-isValid = Bcp47LanguageTag.CheckScriptSubtag("Cyrl");           // Cyrillic
-isValid = Bcp47LanguageTag.CheckRegionSubtag("419");            // Latin America and the Caribbean
-isValid = Bcp47LanguageTag.CheckVariantSubtag("1606nict");      // Late Middle French
-isValid = Bcp47LanguageTag.CheckExtensionSubtag("u-Latn");
-isValid = Bcp47LanguageTag.CheckPrivateUseSubtag("x-private");
+var isWellFormed = Bcp47LanguageTag.IsWellFormed("Not_A_Valid_Tag"); // false
+isWellFormed = Bcp47LanguageTag.IsWellFormed("zz");                  // true, though no language has this code
+isWellFormed = Bcp47LanguageTag.IsWellFormed("de-1901-1901");        // true, though the variant is repeated
 ```
+
+Subtags can also be checked. These methods check the shape of one subtag, and look
+nothing up:
+
+```csharp
+bool hasShape;
+hasShape = Bcp47LanguageTag.CheckPrimaryLanguageSubtag("en");    // two to eight letters
+hasShape = Bcp47LanguageTag.CheckExtendedLanguageSubtag("xxx");  // three letters
+hasShape = Bcp47LanguageTag.CheckScriptSubtag("Cyrl");           // four letters
+hasShape = Bcp47LanguageTag.CheckRegionSubtag("419");            // two letters or three digits
+hasShape = Bcp47LanguageTag.CheckVariantSubtag("1606nict");      // five to eight letters or digits, or a digit and three more
+hasShape = Bcp47LanguageTag.CheckExtensionSubtag("u-Latn");      // a singleton and its subtags
+hasShape = Bcp47LanguageTag.CheckPrivateUseSubtag("x-private");  // x and its subtags
+```
+
+To find out whether a subtag is an ISO code, use the enums in
+`DataStandardizer.Language` and `DataStandardizer.Geography`, or the `ToIso…` methods of
+a tag.
+
+## Validate against a registry
+
+Validity depends on the *IANA Language Subtag Registry*. You can load a copy from an
+external source and use it to create a tag, or to check one.
+IANA publishes the registry with a line feed alone at the end of each line, not the
+CRLF that RFC 5646 §3.1.1 requires, so load its file with
+[SubtagRegistryLoadOptions](../reference/SubtagRegistryLoadOptions.md)`.AcceptBareLineFeed`.
+
+```csharp
+var subtagRegistry = SubtagRegistry.CreateFromFile("subtag_registry.txt", SubtagRegistryLoadOptions.AcceptBareLineFeed);
+
+var languageTag = Bcp47LanguageTag.Create("en", subtagRegistry);       // throws if it isn't valid
+var isValid = Bcp47LanguageTag.IsValid("de-1901-1901", subtagRegistry); // false: the variant is repeated
+isValid = Bcp47LanguageTag.Create("zz").IsValid(subtagRegistry);        // false: zz isn't in the registry
+```
+
+The registry can also answer questions about a subtag directly, such as whether
+it is deprecated and what replaces it:
+
+```csharp
+using DataStandardizer.LanguageTag.Registry; // for SubtagRegistryRecordType
+
+if (subtagRegistry.TryGetSubtag(SubtagRegistryRecordType.Region, "BU", out var region)
+    && region.Deprecated != null)
+{
+    Console.WriteLine($"Use {region.PreferredValue} instead of BU.");
+}
+```
+
+See [SubtagRegistry](../reference/SubtagRegistry.md) for the typed lists of
+records and the other lookups.
+
+## Use the ISO code lists
+
+If you want more than the grammar and can't load a registry, opt in to the code lists
+implemented by the other *Data Standardizer* packages:
+
+```csharp
+var languageTag = Bcp47LanguageTag.Create("en-NZ", LanguageTagConformance.IsoCodeLists);
+var isListed = Bcp47LanguageTag.IsValid("zz", LanguageTagConformance.IsoCodeLists);  // false
+isListed = Bcp47LanguageTag.IsValid("eng", LanguageTagConformance.IsoCodeLists);     // false: use en
+```
+
+This approximates validity, and has gaps: for example, it doesn't check variant
+subtags. See [The ISO code lists](../concepts/well-formed-and-valid.md#the-iso-code-lists).
 
 ## Extract subtags
 
@@ -83,19 +126,20 @@ For more on the parts that make up a tag, see
 
 ## Performance
 
-Validation is done by a parser that reads the tag once, from left to right, and
-looks each subtag up in the code lists. A few habits keep it fast:
+Tags are checked by a parser that reads the tag once, from left to right. A
+well-formed check looks at the shape of each subtag. The ISO code lists and registry
+checks also look each subtag up. A few habits keep it fast:
 
 - **Parse once, then keep the tag.** Creating a `Bcp47LanguageTag` parses the
   tag and keeps its subtags, so reading `PrimaryLanguageSubtag`, `RegionSubtag`
   and the other properties doesn't parse it again. If you use a tag more than
-  once, keep the `Bcp47LanguageTag` rather than the string. The array
+  once, keep the `Bcp47LanguageTag` rather than the string. The list
   properties (`ExtendedLanguageSubtags`, `VariantSubtags` and
-  `ExtensionSubtags`) return a new copy of the array on each call when it isn't
-  empty, so read them once into a local if you need them in a loop.
-- **Validate spans, not substrings.** On `netstandard2.0`, `net8.0` and
-  `net10.0`, `IsWellFormedLanguageTagString`, the `Check…Subtag` methods and
-  `TryCreate` take a `ReadOnlySpan<char>`, so you can check a tag inside a
+  `ExtensionSubtags`) return the same read-only list on every read, so there is
+  no need to copy them into a local first.
+- **Check spans, not substrings.** `IsWellFormed`, `IsValid`, the
+  `Check…Subtag` methods and `TryCreate` take a `ReadOnlySpan<char>` on every
+  target, so you can check a tag inside a
   larger buffer without making a string of it first:
 
   ```csharp
@@ -112,28 +156,24 @@ looks each subtag up in the code lists. A few habits keep it fast:
   registry builds an index of its subtags. Both are one-off costs for that
   `SubtagRegistry` instance, so load it once and share it; it is safe to use
   from several threads.
-- **Leave out the timeout.** The overloads and the builder step that take a
-  `TimeSpan matchTimeout` are deprecated. The parser can't time out, so the
-  timeout has no effect.
 
 Where allocation happens:
 
 | Operation | Allocates |
 | --- | --- |
-| `IsWellFormedLanguageTagString` and the `Check…Subtag` methods | Nothing. |
-| `TryCreate` with a `ReadOnlySpan<char>` that isn't a valid tag | Nothing. |
-| `Create` or `TryCreate` with a valid tag | The subtag strings and the object that holds them. From a span, the tag string too. |
-| `ExtendedLanguageSubtags`, `VariantSubtags`, `ExtensionSubtags` | A copy of the array, unless it is empty. |
+| `IsWellFormed`, `IsValid` and the `Check…Subtag` methods | Nothing. |
+| `TryCreate` with a `ReadOnlySpan<char>` that it rejects | Nothing. |
+| `Create` or `TryCreate` with a tag it accepts | The subtag strings and the object that holds them. From a span, the tag string too. |
+| `ExtendedLanguageSubtags`, `VariantSubtags`, `ExtensionSubtags` | A small read-only wrapper the first time a non-empty list is read; nothing after that. |
 | The other subtag properties and `AsSpan()` | Nothing. |
 | `ToString()` and the implicit conversion to `string` | Nothing; they return the tag string kept by the instance. |
 
-The first validation in a process also builds the code lists that validation
-uses, once.
+The first use of the ISO code lists in a process builds them, once, which takes tens of
+milliseconds. A well-formed check doesn't need them, so it has no such cost.
 
-On `net10.0`, subtags are looked up in hash sets; the other targets search
-sorted arrays. In the package's benchmarks, validating and creating tags on
-`net10.0` takes about half the time it takes on `net8.0`. The results are the
-same on every target.
+On `net10.0`, the ISO code lists and registry checks look subtags up in hash sets; the
+other targets search sorted arrays. The results are the same on every target. To see
+what this costs on each target, run the benchmark project below.
 
 To measure the package on your own machine, or to compare a change, use the
 [LanguageTag benchmark project](https://github.com/matthew25187/DataStandardizer/tree/master/benchmarks/DataStandardizer.LanguageTag.Benchmarks).
@@ -142,4 +182,5 @@ Its README explains how to run it and what each benchmark measures.
 ## Related
 
 - [Create language tags using the builder](create-language-tags-using-builder.md)
+- [Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md)
 - [API reference](../reference/index.md)

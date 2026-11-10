@@ -1,11 +1,14 @@
 ﻿using System;
-using System.Collections;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -33,20 +36,36 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
         private static readonly char[] LineBreakCharacters = { '\r', '\n' };
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
+        private static readonly char[] NoCharacters = new char[0];
+#endif
+        private static readonly string[] NoFieldNames = new string[0];
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private FieldPlan? _fieldPlan;
         private CsvFileHeaderLine? _headerLine;
+        private string? _quoteSearchEmbeddedLineBreak;
 #else
-        [CanBeNull] private FieldPlan _fieldPlan;
-        [CanBeNull] private CsvFileHeaderLine _headerLine;
+        [MaybeNull] private FieldPlan _fieldPlan;
+        [MaybeNull] private CsvFileHeaderLine _headerLine;
+        [MaybeNull] private string _quoteSearchEmbeddedLineBreak;
 #endif
+#if NET8_0_OR_GREATER
+        private SearchValues<char>? _quoteSearchValues;
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private char[]? _quoteSearchCharacters;
+#else
+        [MaybeNull] private char[] _quoteSearchCharacters;
+#endif
+        private char _quoteSearchDelimiter;
+        private string _quoteSearchTerminator = string.Empty;
+        private char[] _quoteRequiredCharacters = new char[0];
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
-        private char[] _fieldValueCharacters = Array.Empty<char>();
+        private char[] _fieldValueCharacters = NoCharacters;
 #endif
-        private string[] _fieldNames = Array.Empty<string>();
-        private string[] _fieldValues = Array.Empty<string>();
-        private string[] _headerLineFieldNames = Array.Empty<string>();
+        private string[] _fieldNames = NoFieldNames;
+        private string[] _fieldValues = NoFieldNames;
+        private string[] _headerLineFieldNames = NoFieldNames;
         private readonly bool _isInternalWriter;
         private readonly CsvFileOptions _options = new CsvFileOptions();
         private int _previousLineFieldCount;
@@ -110,7 +129,7 @@ namespace DataStandardizer.File.CSV
 
         public CsvFileWriter(TextWriter writer, CsvFileOptions options) : this(writer)
         {
-            _options = options;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
 
             if (_options.Encoding != null)
             {
@@ -153,7 +172,13 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Write a line to a CSV file.
         /// </summary>
-        /// <param name="csvLine">Line containing fields to be written.</param>
+        /// <param name="csvLine">
+        /// Line containing fields to be written: a <see cref="CsvFileHeaderLine"/>, or a record line of type <typeparamref name="TRecordLine"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvLine"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="csvLine"/> is neither a <see cref="CsvFileHeaderLine"/> nor a <typeparamref name="TRecordLine"/>.  Nothing is written.
+        /// </exception>
         /// <exception cref="CsvFileException">
         /// Invalid field name detected.
         /// </exception>
@@ -161,6 +186,16 @@ namespace DataStandardizer.File.CSV
         public void WriteLine(ICsvFileLine csvLine)
         {
             ThrowIfDisposed();
+
+            if (csvLine is null)
+                throw new ArgumentNullException(nameof(csvLine));
+
+            // A line of any other type has no fields the writer can output, and writing it as an empty record would break the rule that a record has one or more fields.
+            // ref. RFC 4180§2
+            if (!(csvLine is CsvFileHeaderLine) && !(csvLine is TRecordLine))
+            {
+                throw new ArgumentException($"Expected a {nameof(CsvFileHeaderLine)} or a {typeof(TRecordLine).Name}; found a {csvLine.GetType().Name}.", nameof(csvLine));
+            }
 
             // Check the line for the last non-empty field value.
             var lastFieldIndex = -1;
@@ -171,16 +206,9 @@ namespace DataStandardizer.File.CSV
 
             // Extract the serialized field values that will comprise the CSV line.  All of them are extracted before any is
             // written, so a line that fails part way through writes nothing.
-            var fieldValueCount = 0;
-            switch (csvLine)
-            {
-                case CsvFileHeaderLine headerLine:
-                    fieldValueCount = GetHeaderLineFieldValues(headerLine, lastFieldIndex);
-                    break;
-                case TRecordLine recordLine:
-                    fieldValueCount = GetRecordLineFieldValues(recordLine, lastFieldIndex);
-                    break;
-            }
+            var fieldValueCount = csvLine is CsvFileHeaderLine headerLine
+                ? GetHeaderLineFieldValues(headerLine, lastFieldIndex)
+                : GetRecordLineFieldValues((TRecordLine)csvLine, lastFieldIndex);
 
             // Write line to CSV output.
             WriteFieldValues(fieldValueCount);
@@ -193,36 +221,41 @@ namespace DataStandardizer.File.CSV
 
             // Extract field names from the header line.
             var fieldValues = GetFieldValueBuffer(csvLine.Count);
+            var fieldNames = new string[csvLine.Count];
             var fieldValueCount = 0;
-            var fieldIndex = 0;
-            foreach (DictionaryEntry field in csvLine)
+            for (var fieldIndex = 0; fieldIndex < csvLine.Count; fieldIndex++)
             {
                 // If the remaining field values are empty, stop here.
-                if (lastFieldIndex > -1 && fieldIndex++ > lastFieldIndex)
+                if (lastFieldIndex > -1 && fieldIndex > lastFieldIndex)
                 {
                     break;
                 }
 
-                // Convert the field value to a string.
-                var rawFieldValue = field.Value as string;
-                if (string.IsNullOrWhiteSpace(rawFieldValue))
+                // The field value is the field name, so must be a string.
+                var fieldValue = csvLine[fieldIndex];
+                if (!(fieldValue is string rawFieldValue) || string.IsNullOrWhiteSpace(rawFieldValue))
                 {
-                    var message = $"Field value '{field.Value}' is not a field name.";
+                    var message = $"Field value '{fieldValue}' is not a field name.";
                     var dataItems = new Dictionary<string, object>();
-                    if (field.Value != null)
+                    if (fieldValue != null)
                     {
-                        dataItems.Add(DataItemName.FieldValue, field.Value);
+                        dataItems.Add(DataItemName.FieldValue, fieldValue);
                     }
 
                     throw BuildException(message, dataItems);
                 }
 
-                fieldValues[fieldValueCount++] = rawFieldValue;
+                // The name is kept as it is, to order the fields on the record lines, and written with the embedded line break, as the reader, which
+                // applies it to every field, will give it back.
+                fieldNames[fieldValueCount] = rawFieldValue;
+                fieldValues[fieldValueCount++] = _options.EmbeddedLineBreak != null && rawFieldValue.IndexOfAny(LineBreakCharacters) >= 0
+                    ? NormalizeFieldValueLineBreaks(rawFieldValue, _options)
+                    : rawFieldValue;
             }
 
             // Store a copy of the header line's field names so fields on the record lines can be correctly ordered.
             var headerLineFieldNames = new string[fieldValueCount];
-            Array.Copy(fieldValues, headerLineFieldNames, fieldValueCount);
+            Array.Copy(fieldNames, headerLineFieldNames, fieldValueCount);
             _headerLineFieldNames = headerLineFieldNames;
 
             return fieldValueCount;
@@ -296,9 +329,10 @@ namespace DataStandardizer.File.CSV
         {
             var fieldNames = new List<string>(_fieldNames);
             var knownFieldNames = new HashSet<string>(_fieldNames);
-            foreach (var key in csvLine.Keys)
+            var lineFieldNames = csvLine.Keys;
+            for (var fieldIndex = 0; fieldIndex < lineFieldNames.Count; fieldIndex++)
             {
-                var fieldName = (string)key;
+                var fieldName = lineFieldNames[fieldIndex];
                 if (knownFieldNames.Add(fieldName))
                 {
                     fieldNames.Add(fieldName);
@@ -313,20 +347,20 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private FieldPlan GetFieldPlan(TRecordLine recordLine)
         {
-            var mapperCacheVersion = MapperCacheVersion;
+            var mapperVersion = MapperVersion;
             var fieldPlan = _fieldPlan;
             if (fieldPlan != null
-                && fieldPlan.MapperCacheVersion == mapperCacheVersion
+                && fieldPlan.MapperVersion == mapperVersion
                 && ReferenceEquals(fieldPlan.HeaderLineFieldNames, _headerLineFieldNames)
                 && ReferenceEquals(fieldPlan.LineFieldNames, _fieldNames)
-                && (fieldPlan.UncachedMapperLineType is null || fieldPlan.UncachedMapperLineType == recordLine.GetType()))
+                && (fieldPlan.MapperLineType is null || fieldPlan.MapperLineType == recordLine.GetType()))
             {
                 return fieldPlan;
             }
 
-            // A mapper that is not cached was created from the record line's type, so the plan only holds for lines of that type.
-            var mapper = GetMapper(recordLine, out var isMapperCached);
-            fieldPlan = new FieldPlan(mapperCacheVersion, isMapperCached ? null : recordLine.GetType(), mapper, _headerLineFieldNames, _fieldNames);
+            // A mapper that is not registered was created from the record line's type, so the plan only holds for lines of that type.
+            var mapper = GetMapper(recordLine, out var isMapperRegistered);
+            fieldPlan = new FieldPlan(mapperVersion, isMapperRegistered ? null : recordLine.GetType(), mapper, _headerLineFieldNames, _fieldNames);
             _fieldPlan = fieldPlan;
             return fieldPlan;
         }
@@ -334,15 +368,15 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private string? SerializeFieldValue(TRecordLine recordLine, FieldWritePlan field)
 #else
-        [CanBeNull]
-        private string SerializeFieldValue([NotNull] TRecordLine recordLine, [NotNull] FieldWritePlan field)
+        [return: MaybeNull]
+        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field)
 #endif
         {
             ICsvFileLine csvLine = recordLine;
             if (!field.IsMapped)
             {
                 var fieldValue = csvLine[field.FieldName];
-                return fieldValue is null ? null : fieldValue as string ?? FormatFieldValue(fieldValue, _options);
+                return fieldValue is null ? null : fieldValue is string stringFieldValue ? stringFieldValue : FormatFieldValue(fieldValue, _options);
             }
 
             // Get the mapped field value.  The line has a field with the mapped field name, so the value is read by that name.
@@ -387,8 +421,8 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private TypeConverter? ResolveTypeConverter(FieldWritePlan field)
 #else
-        [CanBeNull]
-        private TypeConverter ResolveTypeConverter([NotNull] FieldWritePlan field)
+        [return: MaybeNull]
+        private TypeConverter ResolveTypeConverter([DisallowNull] FieldWritePlan field)
 #endif
         {
             var typeConverterType = field.Mapping.Value.TypeConverterType;
@@ -399,11 +433,183 @@ namespace DataStandardizer.File.CSV
 
             if (!field.IsTypeConverterResolved)
             {
-                field.TypeConverter = GetTypeConverter(typeConverterType);
+                field.TypeConverter = CsvMapperCache.GetTypeConverter(typeConverterType);
                 field.IsTypeConverterResolved = true;
             }
 
             return field.TypeConverter;
+        }
+
+        /// <summary>
+        /// Converts a mapped field value that is not already a string: with the mapping's converter if it has one, else its type converter if that can
+        /// convert to a string, else with <see cref="FormatFieldValue"/>.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+            CsvFieldConvertToString<TRecordLine>? converter, TypeConverter? typeConverter, object fieldValue)
+#else
+        [return: MaybeNull]
+        private static string ConvertFieldValueToString([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
+            KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] CsvFieldConvertToString<TRecordLine> converter, [AllowNull] TypeConverter typeConverter, [DisallowNull] object fieldValue)
+#endif
+        {
+            if (converter != null)
+            {
+                var context = new CsvFieldContext<TRecordLine>(options)
+                {
+                    HeaderLine = headerLine,
+                    Model = recordLine,
+                    FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
+                    FieldIndex = propertyFieldMapping.Value.FieldIndex
+                };
+                return converter(context);
+            }
+
+            if (typeConverter != null && typeConverter.CanConvertTo(typeof(string)))
+            {
+                return options.Culture != null
+                    ? typeConverter.ConvertToString(null, options.Culture, fieldValue)
+                    : typeConverter.ConvertToInvariantString(fieldValue);
+            }
+
+            return FormatFieldValue(fieldValue, options);
+        }
+
+        /// <summary>
+        /// Converts a field value to a string.  An <see cref="IFormattable"/> value is formatted with the <see cref="ICsvFileOptions.Culture"/>, or the
+        /// invariant culture if none is set, so the output never depends on the current culture.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? FormatFieldValue(object fieldValue, ICsvFileOptions options)
+#else
+        [return: MaybeNull]
+        private static string FormatFieldValue([DisallowNull] object fieldValue, [DisallowNull] ICsvFileOptions options)
+#endif
+        {
+            return fieldValue is IFormattable formattableFieldValue
+                ? formattableFieldValue.ToString(null, options.Culture ?? CultureInfo.InvariantCulture)
+                : fieldValue.ToString();
+        }
+
+        private bool DoesFieldValueRequireQuoting(string rawFieldValue, CsvFileOptions options)
+        {
+            var quotingRequired = false;
+            switch (options.QuoteHandling)
+            {
+                case CsvFieldQuoteHandling.Always:
+                    quotingRequired = true;
+                    break;
+                case CsvFieldQuoteHandling.Auto:
+                    // The culture that formats the values, so that the output doesn't depend on the machine's culture.
+                    var culture = options.Culture ?? CultureInfo.InvariantCulture;
+                    // A value that RFC 4180 requires to be quoted is quoted even when it reads as a number, such as 1,000 with a comma delimiter.
+                    // ref. RFC 4180§2¶6
+                    quotingRequired = ContainsCharacterRequiringQuotes(rawFieldValue, options)
+                                      || (!string.IsNullOrWhiteSpace(rawFieldValue) && !decimal.TryParse(rawFieldValue, NumberStyles.Number, culture, out _));
+                    break;
+                case CsvFieldQuoteHandling.Required:
+                    // ref. RFC 4180§2¶6
+                    quotingRequired = ContainsCharacterRequiringQuotes(rawFieldValue, options);
+                    break;
+            }
+
+            return quotingRequired;
+        }
+
+        /// <summary>
+        /// Checks a field value for a line break, quote or field delimiter in one scan.
+        /// </summary>
+        /// <remarks>
+        /// A line break is a carriage return or line feed, or the <see cref="ICsvFileOptions.EmbeddedLineBreak"/> sequence when one is set.
+        /// </remarks>
+        private bool ContainsCharacterRequiringQuotes(string rawFieldValue, ICsvFileOptions options)
+        {
+            var embeddedLineBreak = options.EmbeddedLineBreak;
+            if (embeddedLineBreak != null && embeddedLineBreak.Length == 0)
+            {
+                return true; // every value contains the empty string
+            }
+
+            // The search characters are built once, and again only if the options they come from change.
+            var fieldDelimiter = options.FieldDelimiterCharacter;
+            var terminator = options.TerminatorLineBreak ?? string.Empty;
+#if NET8_0_OR_GREATER
+            if (_quoteSearchValues is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak)
+                || !string.Equals(_quoteSearchTerminator, terminator))
+            {
+                _quoteRequiredCharacters = GetRequiredQuoteCharacters(fieldDelimiter, terminator);
+                _quoteSearchValues = SearchValues.Create(GetQuoteSearchCharacters(_quoteRequiredCharacters, embeddedLineBreak));
+                _quoteSearchDelimiter = fieldDelimiter;
+                _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
+                _quoteSearchTerminator = terminator;
+            }
+
+            var fieldValue = rawFieldValue.AsSpan();
+            if (!fieldValue.ContainsAny(_quoteSearchValues))
+            {
+                return false;
+            }
+#else
+            if (_quoteSearchCharacters is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak)
+                || !string.Equals(_quoteSearchTerminator, terminator))
+            {
+                _quoteRequiredCharacters = GetRequiredQuoteCharacters(fieldDelimiter, terminator);
+                _quoteSearchCharacters = GetQuoteSearchCharacters(_quoteRequiredCharacters, embeddedLineBreak);
+                _quoteSearchDelimiter = fieldDelimiter;
+                _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
+                _quoteSearchTerminator = terminator;
+            }
+
+            var fieldValue = rawFieldValue.AsSpan();
+            if (fieldValue.IndexOfAny(_quoteSearchCharacters) < 0)
+            {
+                return false;
+            }
+#endif
+
+            // Every character that requires quoting is in the search, so a hit with no embedded line break sequence settles it.  With one, the hit may be
+            // only part of the sequence, so it is confirmed.
+            // ref. RFC 4180§2¶6
+            if (embeddedLineBreak is null)
+            {
+                return true;
+            }
+
+            return fieldValue.IndexOfAny(_quoteRequiredCharacters) >= 0 || fieldValue.IndexOf(embeddedLineBreak.AsSpan()) >= 0;
+        }
+
+        /// <summary>
+        /// Gets the characters that require a value to be quoted, whatever the options: a line break, a quote and the delimiter (RFC 4180§2¶6), and
+        /// each character of the terminator, since a value that ends with the start of a multi-character terminator would run into the terminator.
+        /// </summary>
+        private static char[] GetRequiredQuoteCharacters(char fieldDelimiter, string terminator)
+        {
+            var characters = new List<char> { '\r', '\n', '"', fieldDelimiter };
+            foreach (var character in terminator)
+            {
+                if (!characters.Contains(character)) characters.Add(character);
+            }
+
+            return characters.ToArray();
+        }
+
+        /// <summary>
+        /// Gets the characters to search a value for: the required characters, and the characters of the embedded line break sequence, whose
+        /// presence as a whole is confirmed afterwards.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static char[] GetQuoteSearchCharacters(char[] requiredCharacters, string? embeddedLineBreak)
+#else
+        private static char[] GetQuoteSearchCharacters(char[] requiredCharacters, [AllowNull] string embeddedLineBreak)
+#endif
+        {
+            var characters = new List<char>(requiredCharacters);
+            foreach (var character in embeddedLineBreak ?? string.Empty)
+            {
+                if (!characters.Contains(character)) characters.Add(character);
+            }
+
+            return characters.ToArray();
         }
 
         private string[] GetFieldValueBuffer(int fieldCount)
@@ -525,19 +731,19 @@ namespace DataStandardizer.File.CSV
         /// The fields to output and how to serialize each, worked out once for a header line, mapper and set of record line field names rather than on every line.
         /// </summary>
         /// <remarks>
-        /// Mappers are shared by every reader and writer, so the plan only reads from the mapper and its field mappings and never writes to them.
+        /// A declarative mapper is shared by every reader and writer, so the plan only reads from the mapper and its field mappings and never writes to them.
         /// </remarks>
         private sealed class FieldPlan
         {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal FieldPlan(int mapperCacheVersion, Type? uncachedMapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames)
+            internal FieldPlan(int mapperVersion, Type? mapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames)
 #else
-            internal FieldPlan(int mapperCacheVersion, [CanBeNull] Type uncachedMapperLineType, [NotNull] ICsvFileMapper mapper, [NotNull] string[] headerLineFieldNames,
-                [NotNull] string[] lineFieldNames)
+            internal FieldPlan(int mapperVersion, [AllowNull] Type mapperLineType, [DisallowNull] ICsvFileMapper mapper, [DisallowNull] string[] headerLineFieldNames,
+                [DisallowNull] string[] lineFieldNames)
 #endif
             {
-                MapperCacheVersion = mapperCacheVersion;
-                UncachedMapperLineType = uncachedMapperLineType;
+                MapperVersion = mapperVersion;
+                MapperLineType = mapperLineType;
                 HeaderLineFieldNames = headerLineFieldNames;
                 LineFieldNames = lineFieldNames;
 
@@ -586,15 +792,15 @@ namespace DataStandardizer.File.CSV
 
             internal string[] LineFieldNames { get; }
 
-            internal int MapperCacheVersion { get; }
+            internal int MapperVersion { get; }
 
             /// <summary>
-            /// Gets the record line type the mapper was created from when it is not cached, or <c>null</c> if it is cached.
+            /// Gets the record line type the mapper was created from when it is not registered, or <c>null</c> if it is registered and applies to a line of any type.
             /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal Type? UncachedMapperLineType { get; }
+            internal Type? MapperLineType { get; }
 #else
-            [CanBeNull] internal Type UncachedMapperLineType { get; }
+            [MaybeNull] internal Type MapperLineType { get; }
 #endif
         }
 
@@ -624,7 +830,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldValueAccessor? Accessor { get; }
 #else
-            [CanBeNull] internal FieldValueAccessor Accessor { get; }
+            [MaybeNull] internal FieldValueAccessor Accessor { get; }
 #endif
 
             /// <summary>
@@ -633,7 +839,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal CsvFieldConvertToString<TRecordLine>? Converter { get; }
 #else
-            [CanBeNull] internal CsvFieldConvertToString<TRecordLine> Converter { get; }
+            [MaybeNull] internal CsvFieldConvertToString<TRecordLine> Converter { get; }
 #endif
 
             /// <summary>
@@ -656,7 +862,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal TypeConverter? TypeConverter { get; set; }
 #else
-            [CanBeNull] internal TypeConverter TypeConverter { get; set; }
+            [MaybeNull, AllowNull] internal TypeConverter TypeConverter { get; set; }
 #endif
         }
     }

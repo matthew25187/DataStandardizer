@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -15,12 +16,12 @@ namespace DataStandardizer.LanguageTag
         private static class ErrorMessage
         {
             internal const string SubtagNull = "The subtag must not be null.";
-            internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialized.";
+            internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialised.";
         }
 #if NETCOREAPP3_0_OR_GREATER
         private readonly string? _subtag;
 #else
-        [CanBeNull] private readonly string _subtag;
+        [MaybeNull] private readonly string _subtag;
 #endif
 
         #endregion
@@ -30,7 +31,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47KeyedSubtag(string subtag)
 #else
-        internal Bcp47KeyedSubtag([NotNull] string subtag)
+        internal Bcp47KeyedSubtag([DisallowNull] string subtag)
 #endif
         {
             _subtag = subtag ?? throw new ArgumentNullException(nameof(subtag));
@@ -48,7 +49,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47KeyedSubtag(string value)
 #else
-        public static explicit operator Bcp47KeyedSubtag([NotNull] string value)
+        public static explicit operator Bcp47KeyedSubtag([DisallowNull] string value)
 #endif
         {
             if (value is null)
@@ -62,7 +63,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(Bcp47KeyedSubtag value)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static implicit operator string(Bcp47KeyedSubtag value)
 #endif
         {
@@ -117,7 +118,7 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the single character that identifies the subtag.
         /// </summary>
-        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialized.</exception>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialised.</exception>
         public char? Singleton
         {
             get
@@ -139,12 +140,15 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the subtags that provide additional information related to the singleton.
         /// </summary>
-        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialized.</exception>
+        /// <remarks>
+        /// Each read splits the subtag afresh, so the list belongs to the caller.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public string[] Subtags
+        public IReadOnlyList<string> Subtags
 #else
         [NotNull]
-        public string[] Subtags
+        public IReadOnlyList<string> Subtags
 #endif
         {
             get
@@ -160,18 +164,6 @@ namespace DataStandardizer.LanguageTag
                 {
                     if (index >= 0) subtags[index] = _subtag[range];
                     index++;
-                }
-
-                return subtags;
-#elif NET8_0_OR_GREATER
-                var span = _subtag.AsSpan();
-                var segmentCount = span.Count('-') + 1;
-                var ranges = segmentCount <= 32 ? stackalloc Range[segmentCount] : new Range[segmentCount];
-                span.Split(ranges, '-');
-                var subtags = new string[segmentCount - 1];
-                for (var i = 1; i < segmentCount; i++)
-                {
-                    subtags[i - 1] = _subtag[ranges[i]];
                 }
 
                 return subtags;

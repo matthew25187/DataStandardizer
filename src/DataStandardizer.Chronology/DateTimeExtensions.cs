@@ -26,21 +26,28 @@ namespace DataStandardizer.Chronology
         /// Converts the specified <see cref="DateTime"/> to a <see cref="UnixTime"/> representation.
         /// </summary>
         /// <param name="dateTime">
-        /// The <see cref="DateTime"/> instance to convert. The time is assumed to be in UTC.
+        /// The <see cref="DateTime"/> instance to convert. It must be of kind <see cref="DateTimeKind.Utc"/>, or of kind
+        /// <see cref="DateTimeKind.Unspecified"/>, which is read as a time in UTC. A time of kind <see cref="DateTimeKind.Local"/>
+        /// is rejected; call <see cref="DateTime.ToUniversalTime"/> on it first.
         /// </param>
         /// <returns>
-        /// A <see cref="UnixTime"/> instance representing the number of seconds elapsed since 
+        /// A <see cref="UnixTime"/> instance representing the number of seconds elapsed since
         /// the Unix epoch (January 1, 1970, 00:00:00 UTC).
         /// </returns>
         /// <remarks>
-        /// This method calculates the Julian Day Number for the given <see cref="DateTime"/> 
-        /// and converts it to the Unix time format.
+        /// This method counts the whole days from the Unix epoch to the date of the given <see cref="DateTime"/>,
+        /// using its Julian Day Number, and adds the whole seconds of its time of day. Any fraction of a second is dropped.
         /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="dateTime"/> is of kind <see cref="DateTimeKind.Local"/>.
+        /// </exception>
         public static UnixTime ToUnixTime(this DateTime dateTime)
         {
-            var jdn = JulianDayNumberHelper.ConvertGregorianCalendarDateToJdn(dateTime.Year, dateTime.Month, dateTime.Day) +
-                      JulianDayNumberHelper.ConvertTimeOfDayToJdn(dateTime.Hour, dateTime.Minute, dateTime.Second);
-            var unixTime = (long)((jdn - 2440587.5m) * 86400);
+            if (dateTime.Kind == DateTimeKind.Local)
+                throw new ArgumentException("A local time can't be converted to Unix time without the machine's time zone; convert it to UTC first.", nameof(dateTime));
+
+            var unixTime = JulianDayNumberHelper.ConvertGregorianCalendarDateTimeToUnixTime(
+                dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second);
             return new UnixTime(unixTime);
         }
 
@@ -75,19 +82,28 @@ namespace DataStandardizer.Chronology
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="resolution"/> is not a defined value; or the offset in effect is not a whole number of minutes of at most
-        /// 14 hours, as for some offsets of local mean time, and so cannot be held by a <see cref="DateTimeOffset"/>; or the result
-        /// falls outside the range of <see cref="DateTime"/>.
+        /// 14 hours, as for some offsets of local mean time, and so cannot be held by a <see cref="DateTimeOffset"/>; or the instant
+        /// at which the local clock shows <paramref name="local"/>, or the result, falls outside the range of <see cref="DateTime"/>.
         /// </exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
         public static DateTimeOffset ToDateTimeOffset(this DateTime local, TzDataTimezone timezone, TzDataLocalTimeResolution resolution)
         {
-            var calculator = timezone.GetCalculator();
+            return ToDateTimeOffset(local, timezone.GetCalculator(), resolution);
+        }
+
+        internal static DateTimeOffset ToDateTimeOffset(DateTime local, TzDataZoneCalculator calculator, TzDataLocalTimeResolution resolution)
+        {
             var localTicks = TzDataExtensions.ToLocalTicks(local, nameof(local));
 
             if (resolution != TzDataLocalTimeResolution.Strict && resolution != TzDataLocalTimeResolution.Rfc5545)
                 throw new ArgumentOutOfRangeException(nameof(resolution), resolution, "The resolution is not a defined value.");
 
-            var offsetInfos = calculator.GetOffsetInfosForLocal(localTicks, out var offsetBeforeGap);
+            var offsetInfos = calculator.GetOffsetInfosForLocal(localTicks, out var offsetBeforeGap, out var isBeforeRange, out var isAfterRange);
+
+            // An offset in effect at the time whose instant falls outside the range of DateTime is not a gap. Where it is one
+            // of two in an overlap, Strict needs both instants to reject the time, and Rfc5545 needs the earlier, which an
+            // instant before the range is.
+            if (isBeforeRange || (isAfterRange && (offsetInfos.Count == 0 || resolution == TzDataLocalTimeResolution.Strict)))
+                throw CreateInstantOutOfRangeException(nameof(local));
 
             if (offsetInfos.Count == 1 || (offsetInfos.Count > 1 && resolution == TzDataLocalTimeResolution.Rfc5545))
             {
@@ -103,10 +119,15 @@ namespace DataStandardizer.Chronology
 
             var gapTicks = localTicks - offsetBeforeGap.Value.UtcOffset.Ticks;
             if (gapTicks < DateTime.MinValue.Ticks || gapTicks > DateTime.MaxValue.Ticks)
-                throw new ArgumentOutOfRangeException(nameof(local), "The instant falls outside the range of DateTime.");
+                throw CreateInstantOutOfRangeException(nameof(local));
 
             var utc = new DateTime(gapTicks, DateTimeKind.Utc);
             return TzDataExtensions.ToDateTimeOffset(utc, calculator.GetOffsetInfo(utc).UtcOffset, nameof(local));
+        }
+
+        private static ArgumentOutOfRangeException CreateInstantOutOfRangeException(string parameterName)
+        {
+            return new ArgumentOutOfRangeException(parameterName, "The instant falls outside the range of DateTime.");
         }
     }
 }

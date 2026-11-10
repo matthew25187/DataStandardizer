@@ -37,8 +37,8 @@ namespace DataStandardizer.Geography
             /// Raseon
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(140, "KP-13")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 140, "Raseon", RomanizationSystem="KPS 11080:2002")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 140, "Rasǒn", SubdivisionNameLocalVariant="Najin Sǒnbong", RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 140, "Raseon", 0, RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 140, "Rasǒn", 1, SubdivisionNameLocalVariant="Najin Sǒnbong", RomanizationSystem="McCune-Reischauer 1939")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _13 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-13");
             #endregion
             
@@ -47,72 +47,72 @@ namespace DataStandardizer.Geography
             /// Hamgyǒng-namdo
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-08")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamgyǒng-namdo", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamkyeongnamto", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamgyǒng-namdo", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamkyeongnamto", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _08 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-08");
             
             /// <summary>
             /// Kangweonto
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-07")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Kangweonto", RomanizationSystem="KPS 11080:2002")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Kangwǒn-do", RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Kangweonto", 0, RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Kangwǒn-do", 1, RomanizationSystem="McCune-Reischauer 1939")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _07 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-07");
             
             /// <summary>
             /// Phyeongannamto
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-02")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Phyeongannamto", RomanizationSystem="KPS 11080:2002")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "P\'yǒngan-namdo", RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Phyeongannamto", 0, RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "P\'yǒngan-namdo", 1, RomanizationSystem="McCune-Reischauer 1939")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _02 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-02");
             
             /// <summary>
             /// Hwanghae-bukto
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-06")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghae-bukto", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghaipukto", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghae-bukto", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghaipukto", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _06 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-06");
             
             /// <summary>
             /// Hamkyeongpukto
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-09")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamkyeongpukto", RomanizationSystem="KPS 11080:2002")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamgyǒng-bukto", RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamkyeongpukto", 0, RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hamgyǒng-bukto", 1, RomanizationSystem="McCune-Reischauer 1939")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _09 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-09");
             
             /// <summary>
             /// Hwanghae-namdo
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-05")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghae-namdo", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghainamto", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghae-namdo", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Hwanghainamto", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _05 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-05");
             
             /// <summary>
             /// Chagang-do
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-04")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Chagang-do", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Jakangto", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Chagang-do", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Jakangto", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _04 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-04");
             
             /// <summary>
             /// P'yǒngan-bukto
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-03")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "P\'yǒngan-bukto", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Phyeonganpukto", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "P\'yǒngan-bukto", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Phyeonganpukto", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _03 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-03");
             
             /// <summary>
             /// Ryangkangto
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(207, "KP-10")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Ryangkangto", RomanizationSystem="KPS 11080:2002")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Ryanggang-do", RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Ryangkangto", 0, RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 207, "Ryanggang-do", 1, RomanizationSystem="McCune-Reischauer 1939")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _10 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-10");
             #endregion
             
@@ -121,8 +121,8 @@ namespace DataStandardizer.Geography
             /// P'yǒngyang
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(356, "KP-01")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 356, "P\'yǒngyang", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 356, "Phyeongyang", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 356, "P\'yǒngyang", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 356, "Phyeongyang", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _01 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-01");
             #endregion
             
@@ -131,16 +131,16 @@ namespace DataStandardizer.Geography
             /// Namp’o
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(473, "KP-14")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Namp’o", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Nampho", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Namp’o", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Nampho", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _14 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-14");
             
             /// <summary>
             /// Kaesŏng
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(473, "KP-15")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Kaesŏng", RomanizationSystem="McCune-Reischauer 1939")]
-            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Kaeseong", RomanizationSystem="KPS 11080:2002")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Kaesŏng", 0, RomanizationSystem="McCune-Reischauer 1939")]
+            [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("ko", "kor", 473, "Kaeseong", 1, RomanizationSystem="KPS 11080:2002")]
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _15 = new DataStandardizer.Geography.Iso3166Part2Subdivision("KP-15");
             #endregion
         }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -11,6 +10,80 @@ namespace DataStandardizer.LanguageTag.Tests
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class Bcp47KeyedSubtagTests
     {
+        #region Declarations
+
+        // The irregular grandfathered tags that start with the singleton i (RFC 5646 §2.1, §2.2.8).
+        private const string GrandfatheredAmi = "i-ami";
+        private const string GrandfatheredBnn = "i-bnn";
+        private const string GrandfatheredDefault = "i-default";
+        private const string GrandfatheredEnochian = "i-enochian";
+        private const string GrandfatheredHak = "i-hak";
+        private const string GrandfatheredKlingon = "i-klingon";
+        private const string GrandfatheredLux = "i-lux";
+        private const string GrandfatheredMingo = "i-mingo";
+        private const string GrandfatheredNavajo = "i-navajo";
+        private const string GrandfatheredPwn = "i-pwn";
+        private const string GrandfatheredTao = "i-tao";
+        private const string GrandfatheredTay = "i-tay";
+        private const string GrandfatheredTsu = "i-tsu";
+
+        /// <summary>
+        /// A Unicode locale extension with the subdivision key (RFC 5646 §2.2.6; RFC 6067), from the RFC 5646 Appendix A example <c>gsw-u-sd-chzh</c>.
+        /// </summary>
+        private const string SubdivisionExtension = "u-sd-chzh";
+
+        /// <summary>
+        /// A Unicode locale extension with the collation key (RFC 5646 §2.2.6; RFC 6067).
+        /// </summary>
+        private const string PhonebookCollationExtension = "u-co-phonebk";
+
+        /// <summary>
+        /// <see cref="PhonebookCollationExtension"/> in upper case, which is the same subtag (RFC 5646 §2.1.1).
+        /// </summary>
+        private const string PhonebookCollationExtensionUpperCase = "U-CO-PHONEBK";
+
+        private const string EmptyFirstSegment = "-a";
+        private const string EmptyLastSegment = "a-";
+        private const string EmptyMiddleSegment = "a--b";
+
+        /// <summary>
+        /// Each way of comparing two instances for equality.
+        /// </summary>
+        private static readonly Dictionary<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>> EqualityOperations = new Dictionary<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>>
+        {
+            { "Equals(Bcp47KeyedSubtag)", (left, right) => left.Equals(right) },
+            { "Equals(object)", (left, right) => left.Equals((object)right) },
+            { "operator ==", (left, right) => left == right }
+        };
+
+        public static TheoryData<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>, Bcp47KeyedSubtag, Bcp47KeyedSubtag> InstancesDifferingOnlyInCase =>
+            CreateEqualityCases(
+                (new Bcp47KeyedSubtag(PhonebookCollationExtension), new Bcp47KeyedSubtag(PhonebookCollationExtensionUpperCase)),
+                (new Bcp47KeyedSubtag("x-whatever"), new Bcp47KeyedSubtag("X-WhatEver")),
+                (new Bcp47KeyedSubtag("t-hi-latn"), new Bcp47KeyedSubtag("T-hi-Latn")));
+
+        public static TheoryData<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>, Bcp47KeyedSubtag, Bcp47KeyedSubtag> InstancesWithDifferentSubtags =>
+            CreateEqualityCases(
+                (new Bcp47KeyedSubtag(PhonebookCollationExtension), new Bcp47KeyedSubtag("u-co-pinyin")),
+                (new Bcp47KeyedSubtag(), new Bcp47KeyedSubtag(PhonebookCollationExtension)));
+
+        public static TheoryData<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>, Bcp47KeyedSubtag, Bcp47KeyedSubtag> UninitializedInstances =>
+            CreateEqualityCases((new Bcp47KeyedSubtag(), new Bcp47KeyedSubtag()));
+
+        private static TheoryData<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>, Bcp47KeyedSubtag, Bcp47KeyedSubtag> CreateEqualityCases(params (Bcp47KeyedSubtag Left, Bcp47KeyedSubtag Right)[] pairs)
+        {
+            var data = new TheoryData<string, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool>, Bcp47KeyedSubtag, Bcp47KeyedSubtag>();
+            foreach (var operation in EqualityOperations)
+            foreach (var pair in pairs)
+            {
+                data.Add(operation.Key, operation.Value, pair.Left, pair.Right);
+            }
+
+            return data;
+        }
+
+        #endregion
+
         [Fact]
         public void Bcp47KeyedSubtag_WithNullSubtag_ThrowsArgumentNullException()
         {
@@ -45,8 +118,9 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData("i-ami", 'i'), InlineData("i-bnn", 'i'), InlineData("i-default", 'i'), InlineData("i-enochian", 'i'), InlineData("i-hak", 'i'), InlineData("i-klingon", 'i'), InlineData("i-lux", 'i'), InlineData("i-mingo", 'i'),
-         InlineData("i-navajo", 'i'), InlineData("i-pwn", 'i'), InlineData("i-tao", 'i'), InlineData("i-tay", 'i'), InlineData("i-tsu", 'i'), InlineData("u-sd-chzh", 'u')]
+        [InlineData(GrandfatheredAmi, 'i'), InlineData(GrandfatheredBnn, 'i'), InlineData(GrandfatheredDefault, 'i'), InlineData(GrandfatheredEnochian, 'i'), InlineData(GrandfatheredHak, 'i'),
+         InlineData(GrandfatheredKlingon, 'i'), InlineData(GrandfatheredLux, 'i'), InlineData(GrandfatheredMingo, 'i'), InlineData(GrandfatheredNavajo, 'i'), InlineData(GrandfatheredPwn, 'i'),
+         InlineData(GrandfatheredTao, 'i'), InlineData(GrandfatheredTay, 'i'), InlineData(GrandfatheredTsu, 'i'), InlineData(SubdivisionExtension, 'u')]
         public void Singleton_OnInstanceWithValidSubtag_ReturnsSingletonComponentOfSubtag(string testSubtag, char expectedResult)
         {
             // arrange
@@ -60,7 +134,7 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData(""), InlineData("-a"), InlineData(" -a"), InlineData(" \t-a-b")]
+        [InlineData(""), InlineData(EmptyFirstSegment), InlineData(" -a"), InlineData(" \t-a-b")]
         public void Singleton_OnInstanceWithEmptyOrWhitespaceFirstSegment_ReturnsNull(string testSubtag)
         {
             // arrange
@@ -74,7 +148,7 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData("a", 'a'), InlineData("a-", 'a'), InlineData("a--b", 'a'), InlineData(" x-y", ' '), InlineData("ab-c", 'a')]
+        [InlineData("a", 'a'), InlineData(EmptyLastSegment, 'a'), InlineData(EmptyMiddleSegment, 'a'), InlineData(" x-y", ' '), InlineData("ab-c", 'a')]
         public void Singleton_OnInstanceWithNonWhitespaceFirstSegment_ReturnsFirstCharacter(string testSubtag, char expectedResult)
         {
             // arrange
@@ -87,8 +161,31 @@ namespace DataStandardizer.LanguageTag.Tests
             testResult.Should().Be(expectedResult);
         }
 
+        /// <summary>
+        /// Subtags with empty segments, each with every segment after its first. The last has 40 segments after its singleton, more than
+        /// a subtag would be split into without growing its buffer.
+        /// </summary>
+        public static TheoryData<string, string[]> SubtagsWithEmptySegments
+        {
+            get
+            {
+                const int manySegmentCount = 40;
+                var manySegments = Enumerable.Range(0, manySegmentCount).Select(index => "s" + index).ToArray();
+                return new TheoryData<string, string[]>
+                {
+                    { "", new string[0] },
+                    { "a", new string[0] },
+                    { EmptyLastSegment, new[] { "" } },
+                    { EmptyFirstSegment, new[] { "a" } },
+                    { EmptyMiddleSegment, new[] { "", "b" } },
+                    { "-", new[] { "" } },
+                    { "x-" + string.Join("-", manySegments), manySegments }
+                };
+            }
+        }
+
         [Theory]
-        [ClassData(typeof(Subtags_OnInstanceWithEmptySegments_TestCaseFactory))]
+        [MemberData(nameof(SubtagsWithEmptySegments))]
         public void Subtags_OnInstanceWithEmptySegments_ReturnsEverySegmentAfterTheFirst(string testSubtag, string[] expectedResult)
         {
             // arrange
@@ -99,25 +196,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().Equal(expectedResult);
-        }
-
-        private class Subtags_OnInstanceWithEmptySegments_TestCaseFactory : IEnumerable<object[]>
-        {
-            public IEnumerator<object[]> GetEnumerator()
-            {
-                yield return new object[] { "", new string[0] };
-                yield return new object[] { "a", new string[0] };
-                yield return new object[] { "a-", new[] { "" } };
-                yield return new object[] { "-a", new[] { "a" } };
-                yield return new object[] { "a--b", new[] { "", "b" } };
-                yield return new object[] { "-", new[] { "" } };
-                yield return new object[] { "x-" + string.Join("-", Enumerable.Range(0, 40).Select(i => "s" + i)), Enumerable.Range(0, 40).Select(i => "s" + i).ToArray() };
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
         }
 
         [Fact]
@@ -133,8 +211,26 @@ namespace DataStandardizer.LanguageTag.Tests
             testAction.Should().Throw<InvalidOperationException>();
         }
 
+        public static TheoryData<string, string[]> SubtagsWithComponents => new TheoryData<string, string[]>
+        {
+            { GrandfatheredAmi, new[] { "ami" } },
+            { GrandfatheredBnn, new[] { "bnn" } },
+            { GrandfatheredDefault, new[] { "default" } },
+            { GrandfatheredEnochian, new[] { "enochian" } },
+            { GrandfatheredHak, new[] { "hak" } },
+            { GrandfatheredKlingon, new[] { "klingon" } },
+            { GrandfatheredLux, new[] { "lux" } },
+            { GrandfatheredMingo, new[] { "mingo" } },
+            { GrandfatheredNavajo, new[] { "navajo" } },
+            { GrandfatheredPwn, new[] { "pwn" } },
+            { GrandfatheredTao, new[] { "tao" } },
+            { GrandfatheredTay, new[] { "tay" } },
+            { GrandfatheredTsu, new[] { "tsu" } },
+            { SubdivisionExtension, new[] { "sd", "chzh" } }
+        };
+
         [Theory]
-        [ClassData(typeof(Subtags_OnInstanceWithValidSubtag_TestCaseFactory))]
+        [MemberData(nameof(SubtagsWithComponents))]
         public void Subtags_OnInstanceWithValidSubtag_ReturnsSubtagComponentsOfSubtag(string testSubtag, string[] expectedResult)
         {
             // arrange
@@ -144,99 +240,111 @@ namespace DataStandardizer.LanguageTag.Tests
             var testResult = keyedSubtag.Subtags;
 
             // assert
-            testResult.Should().BeEquivalentTo(expectedResult, "{0} are the subtag components of the {1} subtag", string.Join(", ", expectedResult), testSubtag);
-        }
-
-        private class Subtags_OnInstanceWithValidSubtag_TestCaseFactory : IEnumerable<object[]>
-        {
-            public IEnumerator<object[]> GetEnumerator()
-            {
-                yield return new object[] { "i-ami", new[] { "ami" } };
-                yield return new object[] { "i-bnn", new[] { "bnn" } };
-                yield return new object[] { "i-default", new[] { "default" } };
-                yield return new object[] { "i-enochian", new[] { "enochian" } };
-                yield return new object[] { "i-hak", new[] { "hak" } };
-                yield return new object[] { "i-klingon", new[] { "klingon" } };
-                yield return new object[] { "i-lux", new[] { "lux" } };
-                yield return new object[] { "i-mingo", new[] { "mingo" } };
-                yield return new object[] { "i-navajo", new[] { "navajo" } };
-                yield return new object[] { "i-pwn", new[] { "pwn" } };
-                yield return new object[] { "i-tao", new[] { "tao" } };
-                yield return new object[] { "i-tay", new[] { "tay" } };
-                yield return new object[] { "i-tsu", new[] { "tsu" } };
-                yield return new object[] { "u-sd-chzh", new[] { "sd", "chzh" } };
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
+            testResult.Should().Equal(expectedResult, "the subtag components of {0} are the segments after its singleton", testSubtag);
         }
 
         [Theory]
-        [InlineData("u-co-phonebk", "U-CO-PHONEBK"), InlineData("x-whatever", "X-WhatEver"), InlineData("t-hi-latn", "T-hi-Latn")]
-        public void Equals_OnInstancesDifferingOnlyInCase_ReturnsTrue(string testSubtag, string otherSubtag)
+        [MemberData(nameof(InstancesDifferingOnlyInCase), DisableDiscoveryEnumeration = true)]
+        public void Equals_OnInstancesDifferingOnlyInCase_ReturnsTrue(string operationName, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool> operation, Bcp47KeyedSubtag keyedSubtag, Bcp47KeyedSubtag otherKeyedSubtag)
+        {
+            // act
+            var testResult = operation(keyedSubtag, otherKeyedSubtag);
+
+            // assert
+            testResult.Should().BeTrue("subtags are case-insensitive (RFC 5646 §2.1.1), so {0} finds {1} and {2} equal", operationName, keyedSubtag, otherKeyedSubtag);
+        }
+
+        [Theory]
+        [InlineData(PhonebookCollationExtension, PhonebookCollationExtensionUpperCase), InlineData("x-whatever", "X-WhatEver")]
+        public void InequalityOperator_OnInstancesDifferingOnlyInCase_ReturnsFalse(string testSubtag, string otherSubtag)
         {
             // arrange
             var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
             var otherKeyedSubtag = new Bcp47KeyedSubtag(otherSubtag);
 
             // act
-            var testResult = keyedSubtag.Equals(otherKeyedSubtag);
+            var testResult = keyedSubtag != otherKeyedSubtag;
 
             // assert
-            testResult.Should().BeTrue("subtags are case-insensitive (RFC 5646 section 2.1.1)");
-            (keyedSubtag == otherKeyedSubtag).Should().BeTrue();
-            (keyedSubtag != otherKeyedSubtag).Should().BeFalse();
-            keyedSubtag.Equals((object)otherKeyedSubtag).Should().BeTrue();
-            keyedSubtag.GetHashCode().Should().Be(otherKeyedSubtag.GetHashCode(), "equal instances have equal hash codes");
+            testResult.Should().BeFalse("subtags are case-insensitive (RFC 5646 §2.1.1)");
         }
 
-        [Fact]
-        public void Equals_OnInstancesWithDifferentSubtags_ReturnsFalse()
+        [Theory]
+        [InlineData(PhonebookCollationExtension, PhonebookCollationExtensionUpperCase), InlineData("x-whatever", "X-WhatEver"), InlineData("t-hi-latn", "T-hi-Latn")]
+        public void GetHashCode_OnInstancesDifferingOnlyInCase_ReturnsEqualHashCodes(string testSubtag, string otherSubtag)
         {
             // arrange
-            var keyedSubtag = new Bcp47KeyedSubtag("u-co-phonebk");
-            var otherKeyedSubtag = new Bcp47KeyedSubtag("u-co-pinyin");
+            var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
+            var otherHashCode = new Bcp47KeyedSubtag(otherSubtag).GetHashCode();
 
             // act
-            var testResult = keyedSubtag.Equals(otherKeyedSubtag);
+            var testResult = keyedSubtag.GetHashCode();
 
             // assert
-            testResult.Should().BeFalse();
-            (keyedSubtag == otherKeyedSubtag).Should().BeFalse();
+            testResult.Should().Be(otherHashCode, "equal instances have equal hash codes");
+        }
+
+        [Theory]
+        [MemberData(nameof(InstancesWithDifferentSubtags), DisableDiscoveryEnumeration = true)]
+        public void Equals_OnInstancesWithDifferentSubtags_ReturnsFalse(string operationName, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool> operation, Bcp47KeyedSubtag keyedSubtag, Bcp47KeyedSubtag otherKeyedSubtag)
+        {
+            // act
+            var testResult = operation(keyedSubtag, otherKeyedSubtag);
+
+            // assert
+            testResult.Should().BeFalse("{0} must find {1} and {2} different", operationName, keyedSubtag, otherKeyedSubtag);
+        }
+
+        [Theory]
+        [MemberData(nameof(UninitializedInstances), DisableDiscoveryEnumeration = true)]
+        public void Equals_OnUninitializedInstances_ReturnsTrue(string operationName, Func<Bcp47KeyedSubtag, Bcp47KeyedSubtag, bool> operation, Bcp47KeyedSubtag keyedSubtag, Bcp47KeyedSubtag otherKeyedSubtag)
+        {
+            // act
+            var testResult = operation(keyedSubtag, otherKeyedSubtag);
+
+            // assert
+            testResult.Should().BeTrue("{0} must find two uninitialized instances equal", operationName);
         }
 
         [Fact]
-        public void Equals_OnUninitializedInstances_ReturnsTrue()
+        public void GetHashCode_OnUninitializedInstances_ReturnsEqualHashCodes()
         {
             // arrange
             var keyedSubtag = new Bcp47KeyedSubtag();
-            var otherKeyedSubtag = new Bcp47KeyedSubtag();
+            var otherHashCode = new Bcp47KeyedSubtag().GetHashCode();
 
             // act
-            var testResult = keyedSubtag.Equals(otherKeyedSubtag);
+            var testResult = keyedSubtag.GetHashCode();
 
             // assert
-            testResult.Should().BeTrue();
-            keyedSubtag.GetHashCode().Should().Be(otherKeyedSubtag.GetHashCode());
-            keyedSubtag.Equals(new Bcp47KeyedSubtag("u-co-phonebk")).Should().BeFalse();
+            testResult.Should().Be(otherHashCode);
         }
 
         [Fact]
         public void ExtensionSubtags_OnTagsDifferingOnlyInCase_AreEqual()
         {
             // arrange
-            var languageTag = Bcp47LanguageTag.Create("en-u-co-phonebk");
-            var otherLanguageTag = Bcp47LanguageTag.Create("en-U-CO-PHONEBK");
+            var extensionSubtag = Bcp47LanguageTag.Create("en-u-co-phonebk").ExtensionSubtags[0];
+            var otherExtensionSubtag = Bcp47LanguageTag.Create("en-U-CO-PHONEBK").ExtensionSubtags[0];
 
             // act
-            var testResult = languageTag.ExtensionSubtags[0] == otherLanguageTag.ExtensionSubtags[0];
+            var testResult = extensionSubtag == otherExtensionSubtag;
 
             // assert
-            languageTag.Should().Be(otherLanguageTag);
             testResult.Should().BeTrue("extension subtags compare the way their tags do");
-            ((string)otherLanguageTag.ExtensionSubtags[0]).Should().Be("U-CO-PHONEBK", "the subtag keeps the case it was written in");
+        }
+
+        [Fact]
+        public void ExtensionSubtags_OnTagInUpperCase_KeepsTheCaseOfTheSubtag()
+        {
+            // arrange
+            var languageTag = Bcp47LanguageTag.Create("EN-U-CO-PHONEBK");
+
+            // act
+            string testResult = languageTag.ExtensionSubtags[0];
+
+            // assert
+            testResult.Should().Be(PhonebookCollationExtensionUpperCase, "the subtag keeps the case it was written in");
         }
     }
 }

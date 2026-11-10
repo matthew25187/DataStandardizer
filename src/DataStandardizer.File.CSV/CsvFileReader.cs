@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Text;
-#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations;
-#endif
 
 namespace DataStandardizer.File.CSV
 {
@@ -47,19 +45,26 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private static readonly Encoding DefaultEncoding = Encoding.UTF8;
 
+        private static readonly char[] NoCharacters = new char[0];
+        private static readonly string[] NoFieldNames = new string[0];
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
         private FieldPlan? _fieldPlan;
+        private ExceptionDispatchInfo? _headerFailure;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
-        private List<KeyValuePair<string, int>>? _invalidFieldValues;
+        private List<KeyValuePair<int, int>>? _invalidFieldValues;
+        private Dictionary<int, string>? _invalidRawFieldValues;
         private readonly TextReader _reader = null!;
 #else
-        [CanBeNull] private CsvContext _context;
-        [CanBeNull] private FieldPlan _fieldPlan;
-        [CanBeNull] private IReadOnlyList<string> _headerFieldNames;
-        [CanBeNull] private CsvFileHeaderLine _headerLine;
-        [CanBeNull] private List<KeyValuePair<string, int>> _invalidFieldValues;
+        [MaybeNull] private CsvContext _context;
+        [MaybeNull] private FieldPlan _fieldPlan;
+        [MaybeNull] private ExceptionDispatchInfo _headerFailure;
+        [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
+        [MaybeNull] private CsvFileHeaderLine _headerLine;
+        [MaybeNull] private List<KeyValuePair<int, int>> _invalidFieldValues;
+        [MaybeNull] private Dictionary<int, string> _invalidRawFieldValues;
         [NotNull] private readonly TextReader _reader;
 #endif
 #if NET8_0_OR_GREATER
@@ -67,7 +72,7 @@ namespace DataStandardizer.File.CSV
         private char _unquotedStopDelimiter;
         private char _unquotedStopTerminatorStart;
 #endif
-        private char[] _buffer = Array.Empty<char>();
+        private char[] _buffer = NoCharacters;
         private int _bufferEnd;
         private int _bufferLength;
         private int _bufferPosition;
@@ -75,6 +80,8 @@ namespace DataStandardizer.File.CSV
         private bool _endOfStream;
         private int _expectedFieldCount;
         private readonly StringBuilder _fieldValueBuilder = new StringBuilder();
+        private int _fieldValueBuilderWhiteSpaceLength;
+        private bool _fieldValueBuilderHasNonWhiteSpace;
         private int _fieldValueStart;
         private bool _headerLineIgnored;
         private readonly bool _isInternalReader;
@@ -143,7 +150,7 @@ namespace DataStandardizer.File.CSV
 
         public CsvFileReader(TextReader reader, CsvFileOptions options) : this(reader)
         {
-            _options = options;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
 
             if (_options.Encoding != null)
             {
@@ -196,7 +203,7 @@ namespace DataStandardizer.File.CSV
             if (_bufferLength > 0)
             {
                 ArrayPool<char>.Shared.Return(_buffer);
-                _buffer = Array.Empty<char>();
+                _buffer = NoCharacters;
                 _bufferLength = 0;
             }
         }
@@ -214,135 +221,205 @@ namespace DataStandardizer.File.CSV
         /// Duplicate field names were detected.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
-        /// <exception cref="InvalidOperationException">The terminator line break option is empty.</exception>
+        /// <exception cref="InvalidOperationException">The terminator line break option is empty.
+        /// -or-
+        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Records can't be read without valid field names.  When reading the header line, or getting field names from the
+        /// <see cref="CsvFileOptions.HeaderHandler"/> delegate, throws an exception, every later call throws the same
+        /// exception and reads no further lines.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ICsvFileLine? ReadLine()
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public ICsvFileLine ReadLine()
 #endif
         {
             ThrowIfDisposed();
 
+            _headerFailure?.Throw();
+
+            // Read a header line from the CSV file.
+            // ref. RFC 4180§2¶3
+            if ((_options.HeaderHandling == CsvFileHeaderHandling.Use && _headerLine is null) ||
+                (_options.HeaderHandling == CsvFileHeaderHandling.Ignore && !_headerLineIgnored))
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                CsvFileHeaderLine? headerLine;
+#else
+                CsvFileHeaderLine headerLine;
+#endif
+                try
+                {
+                    headerLine = ReadHeaderLine();
+                }
+                catch (Exception exception)
+                {
+                    _headerFailure = ExceptionDispatchInfo.Capture(exception);
+                    throw;
+                }
+
+                if (_options.HeaderHandling == CsvFileHeaderHandling.Use)
+                {
+                    return headerLine;
+                }
+            }
+
             var rawFieldValues = _rawFieldValues;
             while (TryReadRecord(rawFieldValues))
             {
-                if (rawFieldValues.Count == 0)
+                ThrowIfNoFields(rawFieldValues);
+
+                var recordLine = new TRecordLine();
+                recordLine.EnsureFieldCapacity(rawFieldValues.Count);
+                ICsvFileLine csvLine = recordLine;
+
+                if (_headerFieldNames is null)
                 {
-                    // ref. RFC 4180§2¶4
-                    var dataItems = new Dictionary<string, object> { { DataItemName.ActualFieldCount, rawFieldValues.Count } };
-                    throw BuildException("Expected one or more fields.", dataItems);
+                    try
+                    {
+                        _headerFieldNames = GetHeaderFieldNames();
+                    }
+                    catch (Exception exception)
+                    {
+                        _headerFailure = ExceptionDispatchInfo.Capture(exception);
+                        throw;
+                    }
                 }
 
-                ICsvFileLine csvLine;
-
-                // Read a header line from the CSV file.
-                // ref. RFC 4180§2¶3
-                switch (_options.HeaderHandling)
+                var fieldPlan = GetFieldPlan(recordLine);
+                var fieldNames = fieldPlan.GetFieldNames(rawFieldValues.Count);
+                for (var fieldIndex = 0; fieldIndex < rawFieldValues.Count; fieldIndex++)
                 {
-                    case CsvFileHeaderHandling.Use when _headerLine is null:
+                    csvLine.Add(fieldNames[fieldIndex], rawFieldValues[fieldIndex]);
+                }
+
+                if (_expectedFieldCount == 0)
+                {
+                    _expectedFieldCount = csvLine.Count;
+                }
+
+                if (csvLine.Count != _expectedFieldCount)
+                {
+                    if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> inconsistentFieldCountHandler)
                     {
-                        var headerLine = new CsvFileHeaderLine();
-                        headerLine.EnsureFieldCapacity(rawFieldValues.Count);
-                        csvLine = _headerLine = headerLine;
-
-                        // Make sure all field names are unique.
-                        var duplicateFieldNames = GetDuplicateFieldNames(rawFieldValues);
-                        if (duplicateFieldNames.Length > 0)
+                        var context = new CsvFieldContext<TRecordLine>(_options)
                         {
-                            var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
-                            var dataItems = new Dictionary<string, object>
-                            {
-                                { DataItemName.FieldNames, duplicateFieldNames }
-                            };
-                            throw BuildException(message, dataItems);
-                        }
-
-                        // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
-                        foreach (var fieldValue in rawFieldValues)
-                        {
-                            csvLine.Add(fieldValue, fieldValue);
-                        }
-
-                        _expectedFieldCount = csvLine.Count;
-                    }
-                        break;
-                    case CsvFileHeaderHandling.Ignore when !_headerLineIgnored:
-                        _headerLineIgnored = true;
+                            Model = recordLine,
+                            HeaderLine = _headerLine
+                        };
+                        inconsistentFieldCountHandler(context);
                         continue;
-
-                    default:
-                    {
-                        var recordLine = new TRecordLine();
-                        recordLine.EnsureFieldCapacity(rawFieldValues.Count);
-                        csvLine = recordLine;
-
-                        if (_headerFieldNames is null)
-                        {
-                            _headerFieldNames = _headerLine?.FieldNames;
-                            if (_headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
-                            {
-                                _headerFieldNames = headerHandler(_headerLine);
-
-                                // Check for duplicate names.
-                                var duplicateFieldNames = GetDuplicateFieldNames(_headerFieldNames);
-                                if (duplicateFieldNames.Length > 0)
-                                {
-                                    var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
-                                    var dataItems = new Dictionary<string, object> { { DataItemName.FieldNames, duplicateFieldNames } };
-                                    throw BuildException(message, dataItems);
-                                }
-                            }
-                        }
-
-                        var fieldPlan = GetFieldPlan((TRecordLine)csvLine);
-                        var fieldNames = fieldPlan.GetFieldNames(rawFieldValues.Count);
-                        for (var fieldIndex = 0; fieldIndex < rawFieldValues.Count; fieldIndex++)
-                        {
-                            csvLine.Add(fieldNames[fieldIndex], rawFieldValues[fieldIndex]);
-                        }
-
-                        if (_expectedFieldCount == 0)
-                        {
-                            _expectedFieldCount = csvLine.Count;
-                        }
-
-                        if (csvLine.Count != _expectedFieldCount)
-                        {
-                            if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> inconsistentFieldCountHandler)
-                            {
-                                var context = new CsvFieldContext<TRecordLine>(_options)
-                                {
-                                    Model = (TRecordLine)csvLine,
-                                    HeaderLine = _headerLine
-                                };
-                                inconsistentFieldCountHandler(context);
-                                continue;
-                            }
-
-                            var message = string.Format(ErrorMessage.FieldCountMismatchTemplate, csvLine.Count, _expectedFieldCount);
-                            var dataItems = new Dictionary<string, object>
-                            {
-                                { DataItemName.ExpectedFieldCount, _expectedFieldCount },
-                                { DataItemName.ActualFieldCount, csvLine.Count }
-                            };
-                            throw BuildException(message, dataItems);
-                        }
-
-                        // Map CSV fields to model properties.
-                        if (fieldPlan.Mapper.Count > 0)
-                        {
-                            MapCsvFieldsToProperties((TRecordLine)csvLine, fieldPlan);
-                        }
-
                     }
-                        break;
+
+                    var message = string.Format(ErrorMessage.FieldCountMismatchTemplate, csvLine.Count, _expectedFieldCount);
+                    var dataItems = new Dictionary<string, object>
+                    {
+                        { DataItemName.ExpectedFieldCount, _expectedFieldCount },
+                        { DataItemName.ActualFieldCount, csvLine.Count }
+                    };
+                    throw BuildException(message, dataItems);
                 }
 
-                return csvLine;
+                // Map CSV fields to model properties.
+                if (fieldPlan.Mapper.Count > 0)
+                {
+                    MapCsvFieldsToProperties(recordLine, fieldPlan);
+                }
+
+                return recordLine;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Reads the first line of the file as the header line, and either keeps it or, when the header line is ignored, discards it.
+        /// </summary>
+        /// <returns>The header line, if it is used; <c>null</c> if it is ignored or the stream is empty.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private CsvFileHeaderLine? ReadHeaderLine()
+#else
+        [return: MaybeNull]
+        private CsvFileHeaderLine ReadHeaderLine()
+#endif
+        {
+            var rawFieldValues = _rawFieldValues;
+            if (!TryReadRecord(rawFieldValues)) return null;
+
+            ThrowIfNoFields(rawFieldValues);
+
+            if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore)
+            {
+                _headerLineIgnored = true;
+                return null;
+            }
+
+            // Make sure all field names are unique.
+            ThrowIfDuplicateFieldNames(rawFieldValues);
+
+            var headerLine = new CsvFileHeaderLine();
+            headerLine.EnsureFieldCapacity(rawFieldValues.Count);
+
+            // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
+            foreach (var fieldValue in rawFieldValues)
+            {
+                headerLine.Add(fieldValue, fieldValue);
+            }
+
+            _expectedFieldCount = rawFieldValues.Count;
+            _headerLine = headerLine;
+            return headerLine;
+        }
+
+        /// <summary>
+        /// Gets the field names that records are read with: those of the header line, if there is one, or else those the header handler gives.
+        /// </summary>
+        /// <returns>The field names; <c>null</c> if there is neither a header line nor a header handler.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private IReadOnlyList<string>? GetHeaderFieldNames()
+#else
+        [return: MaybeNull]
+        private IReadOnlyList<string> GetHeaderFieldNames()
+#endif
+        {
+            var headerFieldNames = _headerLine?.FieldNames;
+            if (headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
+            {
+                headerFieldNames = headerHandler(_headerLine);
+                if (headerFieldNames is null)
+                {
+                    throw new InvalidOperationException("The header handler returned null instead of a list of field names.");
+                }
+
+                // Check for duplicate names.
+                ThrowIfDuplicateFieldNames(headerFieldNames);
+            }
+
+            return headerFieldNames;
+        }
+
+        private static void ThrowIfNoFields(List<string> rawFieldValues)
+        {
+            if (rawFieldValues.Count == 0)
+            {
+                // ref. RFC 4180§2¶4
+                var dataItems = new Dictionary<string, object> { { DataItemName.ActualFieldCount, rawFieldValues.Count } };
+                throw BuildException("Expected one or more fields.", dataItems);
+            }
+        }
+
+        private void ThrowIfDuplicateFieldNames(IEnumerable<string> fieldNames)
+        {
+            var duplicateFieldNames = GetDuplicateFieldNames(fieldNames);
+            if (duplicateFieldNames.Length > 0)
+            {
+                var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
+                var dataItems = new Dictionary<string, object> { { DataItemName.FieldNames, duplicateFieldNames } };
+                throw BuildException(message, dataItems);
+            }
         }
 
         /// <summary>
@@ -356,7 +433,7 @@ namespace DataStandardizer.File.CSV
                 ThrowIfDisposed();
 
 #pragma warning disable IDE0074
-                return _context ?? (_context = new CsvContext(ImperativeMappers, _options));
+                return _context ?? (_context = new CsvContext(RegisteredMappers, _options));
 #pragma warning restore IDE0074
             }
         }
@@ -369,7 +446,7 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
                 return [];
 #else
-                return Array.Empty<string>();
+                return NoFieldNames;
 #endif
             }
 
@@ -386,14 +463,14 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private FieldPlan GetFieldPlan(TRecordLine recordLine)
         {
-            var mapperCacheVersion = MapperCacheVersion;
+            var mapperVersion = MapperVersion;
             var fieldPlan = _fieldPlan;
-            if (fieldPlan != null && fieldPlan.MapperCacheVersion == mapperCacheVersion && ReferenceEquals(fieldPlan.HeaderFieldNames, _headerFieldNames))
+            if (fieldPlan != null && fieldPlan.MapperVersion == mapperVersion && ReferenceEquals(fieldPlan.HeaderFieldNames, _headerFieldNames))
             {
                 return fieldPlan;
             }
 
-            fieldPlan = new FieldPlan(mapperCacheVersion, GetMapper(recordLine), _headerFieldNames);
+            fieldPlan = new FieldPlan(mapperVersion, GetMapper(recordLine, out _), _headerFieldNames);
             _fieldPlan = fieldPlan;
             return fieldPlan;
         }
@@ -437,7 +514,7 @@ namespace DataStandardizer.File.CSV
                     var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                     {
                         Model = recordLine,
-                        FieldIndex = fieldMappingPlan.FieldIndex,
+                        FieldIndex = GetFieldPosition(csvLine, fieldKey),
                         FieldName = mappedFieldName,
                         HeaderLine = _headerLine
                     };
@@ -449,23 +526,12 @@ namespace DataStandardizer.File.CSV
                             continue;
                         }
 
-                        var rawFieldValue = csvLine[fieldKey] as string ?? string.Empty;
-                        var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
-                        var dataItems = new Dictionary<string, object>
-                        {
-                            { DataItemName.PropertyName, fieldMapping.Key },
-                            { DataItemName.FieldValue, rawFieldValue }
-                        };
-                        if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
-                        {
-                            dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
-                        }
-
-                        throw BuildException(message, dataItems);
+                        var rawFieldValue = csvLine[fieldKey] is string stringFieldValue ? stringFieldValue : string.Empty;
+                        throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, null);
                     }
                 }
 
-                // Get the mapped field value the same way as GetCsvLineMappedFieldValue, then deserialize it.
+                // Get the mapped field value, then deserialize it.
                 var fieldValue = csvLine[valueKey];
                 if (fieldMapping.Value.ConstantValue != null)
                 {
@@ -476,8 +542,60 @@ namespace DataStandardizer.File.CSV
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
                 }
 
-                csvLine[fieldKey] = fieldMappingPlan.Accessor.Deserialize(this, _headerLine, recordLine, options, fieldMapping, fieldValue);
+                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, fieldValue, out var propertyValue, out var error))
+                {
+                    // Only a string is converted, so a value that fails to convert is always one.
+                    var rawFieldValue = fieldValue as string ?? string.Empty;
+                    if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
+                    {
+                        // A constant or generated value didn't come from a field, so has no position.
+                        var isFieldValue = fieldMapping.Value.ConstantValue is null && fieldMapping.Value.VariableValueGenerator is null;
+                        var fieldContext = new CsvFieldContext<TRecordLine>(_options)
+                        {
+                            Model = recordLine,
+                            FieldIndex = isFieldValue ? GetFieldPosition(csvLine, valueKey) : null,
+                            FieldName = mappedFieldName,
+                            HeaderLine = _headerLine,
+                            RawFieldValue = rawFieldValue
+                        };
+                        badValueHandler(fieldContext);
+                        continue;
+                    }
+
+                    throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, error);
+                }
+
+                csvLine[fieldKey] = propertyValue;
             }
+        }
+
+        /// <summary>
+        /// Gets the position of a field in a line, or <c>null</c> if the line has no such field.
+        /// </summary>
+        private static int? GetFieldPosition(ICsvFileLine csvLine, string fieldName)
+        {
+            var fieldIndex = csvLine.IndexOf(fieldName);
+            return fieldIndex < 0 ? (int?)null : fieldIndex;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static CsvFileException BuildInvalidMappedValueException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string rawFieldValue, Exception? innerException)
+#else
+        private static CsvFileException BuildInvalidMappedValueException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string rawFieldValue, [AllowNull] Exception innerException)
+#endif
+        {
+            var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
+            var dataItems = new Dictionary<string, object>
+            {
+                { DataItemName.PropertyName, fieldMapping.Key },
+                { DataItemName.FieldValue, rawFieldValue }
+            };
+            if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
+            {
+                dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
+            }
+
+            return BuildException(message, dataItems, innerException);
         }
 
         /// <summary>
@@ -494,6 +612,7 @@ namespace DataStandardizer.File.CSV
         {
             fieldValues.Clear();
             _invalidFieldValues?.Clear();
+            _invalidRawFieldValues?.Clear();
 
             var fieldDelimiter = _options.FieldDelimiterCharacter;
             var terminator = _options.TerminatorLineBreak;
@@ -506,7 +625,7 @@ namespace DataStandardizer.File.CSV
             var unquotedStopCharacters = GetUnquotedStopCharacters(fieldDelimiter, terminatorStart);
 #endif
 
-            _fieldValueBuilder.Clear();
+            ClearFieldValueBuilder();
             _fieldValueStart = _bufferPosition;
 
             // A final record without a terminator is returned, but an empty remainder of the stream is not.
@@ -527,7 +646,7 @@ namespace DataStandardizer.File.CSV
                         if (EnsureAvailable(1)) continue;
 
                         // An unterminated quote runs to the end of the stream.
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         break;
                     }
 
@@ -549,7 +668,7 @@ namespace DataStandardizer.File.CSV
                     inQuotes = false;
                     if (!hasNextCharacter)
                     {
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         _bufferPosition++;
                         break;
                     }
@@ -557,14 +676,14 @@ namespace DataStandardizer.File.CSV
                     var nextCharacter = buffer[_bufferPosition + 1];
                     if (nextCharacter == terminatorStart && IsTerminatorAt(1, terminator))
                     {
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         _bufferPosition += 1 + terminator.Length;
                         break;
                     }
 
                     if (nextCharacter == fieldDelimiter)
                     {
-                        AddDelimitedFieldValue(fieldValues, isInvalidValue);
+                        AddFieldValue(fieldValues, isInvalidValue);
                         fieldIndex++;
                         quotedValue = isInvalidValue = false;
                         _bufferPosition += 2;
@@ -592,7 +711,7 @@ namespace DataStandardizer.File.CSV
                         _bufferPosition = _bufferEnd;
                         if (EnsureAvailable(1)) continue;
 
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         break;
                     }
 
@@ -600,7 +719,7 @@ namespace DataStandardizer.File.CSV
                 }
                 else if (!EnsureAvailable(1))
                 {
-                    fieldValues.Add(TakeFieldValue());
+                    AddFieldValue(fieldValues, isInvalidValue);
                     break;
                 }
 
@@ -610,7 +729,7 @@ namespace DataStandardizer.File.CSV
                 // ref. RFC 4180§2¶1
                 if (character == terminatorStart && IsTerminatorAt(0, terminator))
                 {
-                    fieldValues.Add(TakeFieldValue());
+                    AddFieldValue(fieldValues, isInvalidValue);
                     _bufferPosition += terminator.Length;
                     break;
                 }
@@ -625,7 +744,7 @@ namespace DataStandardizer.File.CSV
                     // ref. RFC 4180§2¶5
                     if (!IsPendingFieldValueWhiteSpace())
                     {
-                        AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
+                        AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                         isInvalidValue = true;
                     }
 
@@ -637,7 +756,7 @@ namespace DataStandardizer.File.CSV
 
                 if (character == fieldDelimiter)
                 {
-                    AddDelimitedFieldValue(fieldValues, isInvalidValue);
+                    AddFieldValue(fieldValues, isInvalidValue);
                     fieldIndex++;
                     quotedValue = isInvalidValue = false;
                     _bufferPosition++;
@@ -651,16 +770,19 @@ namespace DataStandardizer.File.CSV
                 // ref. RFC 4180§2¶5
                 if (quotedValue && !char.IsWhiteSpace(character))
                 {
-                    AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
+                    AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                     isInvalidValue = true;
                 }
             }
 
-            if (_invalidFieldValues != null)
+            if (_invalidFieldValues != null && _invalidRawFieldValues != null)
             {
                 foreach (var invalidFieldValue in _invalidFieldValues)
                 {
-                    HandleInvalidFieldValue(invalidFieldValue.Key, invalidFieldValue.Value);
+                    // The raw value at a violation is the start of the whole raw value, which only grows.  Taking it here, one at a time, keeps the
+                    // record's memory linear in its length, however many violations there are.
+                    var rawFieldValue = _invalidRawFieldValues[invalidFieldValue.Key].Substring(0, invalidFieldValue.Value);
+                    HandleInvalidFieldValue(rawFieldValue, invalidFieldValue.Key);
                 }
             }
 
@@ -676,11 +798,24 @@ namespace DataStandardizer.File.CSV
             return true;
         }
 
-        private void AddDelimitedFieldValue(List<string> fieldValues, bool isInvalidValue)
+        /// <summary>
+        /// Ends the current field, whether a delimiter or the end of the record ends it, and adds its value to the record.
+        /// </summary>
+        /// <remarks>
+        /// A value that failed validation is added as an empty value, wherever it is in the record, and its text is discarded.  This method doesn't
+        /// report the value: <see cref="AddInvalidFieldValue"/> records what the bad value handler is given, as each violation is found.
+        /// </remarks>
+        private void AddFieldValue(List<string> fieldValues, bool isInvalidValue)
         {
             if (isInvalidValue)
             {
-                _fieldValueBuilder.Clear();
+                // The raw value is kept for reporting, and the value in the record is empty.
+                if (_invalidRawFieldValues is null)
+                {
+                    _invalidRawFieldValues = new Dictionary<int, string>();
+                }
+
+                _invalidRawFieldValues[fieldValues.Count] = TakeFieldValue();
                 fieldValues.Add(string.Empty);
                 return;
             }
@@ -688,14 +823,24 @@ namespace DataStandardizer.File.CSV
             fieldValues.Add(TakeFieldValue());
         }
 
-        private void AddInvalidFieldValue(string rawFieldValue, int fieldIndex)
+        /// <summary>
+        /// Records a violation in a field, as the length of the field's raw value at the point of it.
+        /// </summary>
+        private void AddInvalidFieldValue(int rawFieldValueLength, int fieldIndex)
         {
             if (_invalidFieldValues is null)
             {
-                _invalidFieldValues = new List<KeyValuePair<string, int>>();
+                _invalidFieldValues = new List<KeyValuePair<int, int>>();
             }
 
-            _invalidFieldValues.Add(new KeyValuePair<string, int>(rawFieldValue, fieldIndex));
+            _invalidFieldValues.Add(new KeyValuePair<int, int>(fieldIndex, rawFieldValueLength));
+        }
+
+        private void ClearFieldValueBuilder()
+        {
+            _fieldValueBuilder.Clear();
+            _fieldValueBuilderWhiteSpaceLength = 0;
+            _fieldValueBuilderHasNonWhiteSpace = false;
         }
 
         /// <summary>
@@ -804,10 +949,19 @@ namespace DataStandardizer.File.CSV
 
         private bool IsPendingFieldValueWhiteSpace()
         {
-            for (int index = 0; index < _fieldValueBuilder.Length; index++)
+            // The builder only grows until it is cleared, so what an earlier check found is kept, and each character is checked once.
+            if (_fieldValueBuilderHasNonWhiteSpace) return false;
+
+            for (int index = _fieldValueBuilderWhiteSpaceLength; index < _fieldValueBuilder.Length; index++)
             {
-                if (!char.IsWhiteSpace(_fieldValueBuilder[index])) return false;
+                if (!char.IsWhiteSpace(_fieldValueBuilder[index]))
+                {
+                    _fieldValueBuilderHasNonWhiteSpace = true;
+                    return false;
+                }
             }
+
+            _fieldValueBuilderWhiteSpaceLength = _fieldValueBuilder.Length;
 
             var buffer = _buffer;
             for (int index = _fieldValueStart; index < _bufferPosition; index++)
@@ -833,12 +987,11 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the field value read so far without consuming it.
+        /// Gets the length of the field value read so far.
         /// </summary>
-        private string PeekFieldValue()
+        private int GetPendingFieldValueLength()
         {
-            var pendingValue = new string(_buffer, _fieldValueStart, _bufferPosition - _fieldValueStart);
-            return _fieldValueBuilder.Length == 0 ? pendingValue : _fieldValueBuilder + pendingValue;
+            return _fieldValueBuilder.Length + _bufferPosition - _fieldValueStart;
         }
 
         /// <summary>
@@ -853,7 +1006,7 @@ namespace DataStandardizer.File.CSV
             }
 
             var fieldValue = _fieldValueBuilder.Append(_buffer, _fieldValueStart, length).ToString();
-            _fieldValueBuilder.Clear();
+            ClearFieldValueBuilder();
             return fieldValue;
         }
 
@@ -861,39 +1014,41 @@ namespace DataStandardizer.File.CSV
         /// Field names and per-mapping work for one mapper and set of header field names, worked out once rather than on every line.
         /// </summary>
         /// <remarks>
-        /// Mappers are shared by every reader and writer, so the plan only reads from the mapper and its field mappings and never writes to them.
+        /// A declarative mapper is shared by every reader and writer, so the plan only reads from the mapper and its field mappings and never writes to them.
         /// </remarks>
         private sealed class FieldPlan
         {
+            private static readonly FieldMappingPlan[] NoMappings = new FieldMappingPlan[0];
+
             private readonly string[] _headerFieldNames;
             private readonly string[] _mapperFieldNames;
-            private string[] _fieldNames = Array.Empty<string>();
+            private string[] _fieldNames = NoFieldNames;
             private int _mappedFieldCount = -1;
-            private FieldMappingPlan[] _mappings = Array.Empty<FieldMappingPlan>();
+            private FieldMappingPlan[] _mappings = NoMappings;
             private bool _mappingsAreStatic;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal FieldPlan(int mapperCacheVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames)
+            internal FieldPlan(int mapperVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames)
 #else
-            internal FieldPlan(int mapperCacheVersion, [NotNull] ICsvFileMapper mapper, [CanBeNull] IReadOnlyList<string> headerFieldNames)
+            internal FieldPlan(int mapperVersion, [DisallowNull] ICsvFileMapper mapper, [AllowNull] IReadOnlyList<string> headerFieldNames)
 #endif
             {
-                MapperCacheVersion = mapperCacheVersion;
+                MapperVersion = mapperVersion;
                 Mapper = mapper;
                 HeaderFieldNames = headerFieldNames;
-                _headerFieldNames = headerFieldNames?.ToArray() ?? Array.Empty<string>();
-                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : Array.Empty<string>();
+                _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
+                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : NoFieldNames;
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal IReadOnlyList<string>? HeaderFieldNames { get; }
 #else
-            [CanBeNull] internal IReadOnlyList<string> HeaderFieldNames { get; }
+            [MaybeNull] internal IReadOnlyList<string> HeaderFieldNames { get; }
 #endif
 
             internal ICsvFileMapper Mapper { get; }
 
-            internal int MapperCacheVersion { get; }
+            internal int MapperVersion { get; }
 
             /// <summary>
             /// Gets the names of the fields on a line.  Each is the header name, then the mapper name by index, then <c>Field N</c> (1-based).
@@ -942,17 +1097,9 @@ namespace DataStandardizer.File.CSV
                 var lineFieldNames = GetFieldNames(fieldCount).Take(fieldCount).ToArray();
                 var lineFieldNameSet = new HashSet<string>(lineFieldNames, StringComparer.Ordinal);
 
-                // Merge the mapper field names with the line's other field names.  The first occurrence of a name gives its index.
+                // Merge the mapper field names with the line's other field names.
                 var mapperFieldNameSet = new HashSet<string>(_mapperFieldNames, StringComparer.Ordinal);
                 var mergedFieldNames = _mapperFieldNames.Concat(lineFieldNames.Where(fieldName => !mapperFieldNameSet.Contains(fieldName))).ToArray();
-                var mergedFieldIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
-                for (var fieldIndex = 0; fieldIndex < mergedFieldNames.Length; fieldIndex++)
-                {
-                    if (!mergedFieldIndexes.ContainsKey(mergedFieldNames[fieldIndex]))
-                    {
-                        mergedFieldIndexes.Add(mergedFieldNames[fieldIndex], fieldIndex);
-                    }
-                }
 
                 // The planned keys hold unless a mapping stores its value in a field the line does not have, which adds that field to the line.
                 var isStatic = true;
@@ -985,7 +1132,7 @@ namespace DataStandardizer.File.CSV
 
                     // The merged list holds the field name of every mapping, so the mapped field name is always found.
                     var accessor = FieldValueAccessor.For(fieldMapping.Value.PropertyType);
-                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, mergedFieldIndexes[mappedFieldName], fieldKey, valueKey, isSkipped, accessor));
+                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, fieldKey, valueKey, isSkipped, accessor));
                 }
 
                 _mappings = mappings.ToArray();
@@ -1007,12 +1154,11 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private sealed class FieldMappingPlan
         {
-            internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, int fieldIndex, string fieldKey, string valueKey, bool isSkipped,
+            internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, string fieldKey, string valueKey, bool isSkipped,
                 FieldValueAccessor accessor)
             {
                 Mapping = mapping;
                 FieldName = fieldName;
-                FieldIndex = fieldIndex;
                 FieldKey = fieldKey;
                 ValueKey = valueKey;
                 IsSkipped = isSkipped;
@@ -1023,11 +1169,6 @@ namespace DataStandardizer.File.CSV
             /// Gets the accessor that generates and deserializes values of the property type.
             /// </summary>
             internal FieldValueAccessor Accessor { get; }
-
-            /// <summary>
-            /// Gets the index of the mapped field in the merged list of mapper and line field names.
-            /// </summary>
-            internal int FieldIndex { get; }
 
             /// <summary>
             /// Gets the key of the field the deserialized value is stored in.

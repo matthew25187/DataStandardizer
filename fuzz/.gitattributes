@@ -1,0 +1,2 @@
+# The seeds are exact bytes.  iCalendar requires CRLF line breaks, which end-of-line conversion would change.
+**/Corpus/** -text

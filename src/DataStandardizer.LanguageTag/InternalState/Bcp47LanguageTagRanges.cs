@@ -6,20 +6,20 @@
     internal enum Bcp47ParseStatus
     {
         /// <summary>
-        /// The string is not a language tag.
+        /// The string is not a language tag, or the classifier rejected one of its subtags.
         /// </summary>
         Invalid,
 
         /// <summary>
-        /// The string has the syntax of a language tag but repeats a variant subtag or an extension singleton (ref. RFC 5646 §2.2.5¶5, §2.2.6¶3),
-        /// so it is not well-formed. The subtags are still decomposed.
+        /// The classifier accepted every subtag, but the string repeats a variant subtag or an extension singleton (ref. RFC 5646 §2.2.5¶5, §2.2.6¶3).
+        /// The string is well-formed but not valid (ref. RFC 5646 §2.2.9). The subtags are still decomposed.
         /// </summary>
         RepeatedSubtag,
 
         /// <summary>
-        /// The string is a well-formed language tag.
+        /// The classifier accepted every subtag, and the string repeats none of the subtags that must not repeat.
         /// </summary>
-        WellFormed
+        Accepted
     }
 
     /// <summary>

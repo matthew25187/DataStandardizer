@@ -70,12 +70,13 @@ built in code, has 0 for both.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `GetParameter(string name)` | `IcalContentLineParameter?` | The first parameter with that name, compared case-insensitively (ordinal), or `null` if there is none. Throws `ArgumentNullException` if `name` is `null`. |
+| `GetFormatType()` | `MimeMediaType?` | The media type in the `FMTTYPE` parameter (RFC 5545 §3.2.8), or `null` if there is none. The value must be a type and subtype whose names follow RFC 4288 §4.2, so it can't have media type parameters. Throws `IcalFileException` if the line has more than one `FMTTYPE` parameter, or the parameter has more than one value or a value that isn't valid; its `Data` holds `LineNumber`, `PhysicalLineNumber` and `PropertyName`. To read a value that doesn't follow this, use `GetParameter`. A value in double quotes gives the same media type, though RFC 5545 §3.2.8 has no quoted form; `IcalReader` and `IcalWriter` reject one unless `IcalOptions.AllowQuotedParameterValues` is set. |
 | `GetTextValue()` | `string` | The value with RFC 5545 §3.3.11 TEXT escaping removed: `\\`, `\;` and `\,` become the escaped character, and `\n` or `\N` a line feed. Returns `Value` itself when it holds no backslash. Use it only for a single TEXT value; for a list of TEXT values, split `Value` on unescaped commas first. Throws `IcalFileException` if a backslash does not start a valid escape sequence; its `Data` holds `LineNumber`, `PhysicalLineNumber` (the physical line of the bad escape) and `PropertyName`. |
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-The nullable reference annotations apply to the `netstandard2.1`, `net8.0`, and
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+The nullable reference annotations apply to the `netstandard2.1` and
 `net10.0` builds.
 
 ## See also

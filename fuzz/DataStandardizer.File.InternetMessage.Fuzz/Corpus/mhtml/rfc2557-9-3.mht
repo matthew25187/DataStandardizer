@@ -1,0 +1,32 @@
+From: foo1@bar.net
+To: foo2@bar.net
+Subject: A simple example
+Mime-Version: 1.0
+Content-Location: http://www.ietf.cnri.reston.va.us/
+Content-Type: multipart/related; boundary="boundary-example";
+        type="text/html"
+
+--boundary-example
+Content-Type: text/html; charset="ISO-8859-1"
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+
+<IMG SRC="images/ietflogo1.gif" ALT="IETF logo1">
+--boundary-example
+Content-Location:
+         http://www.ietf.cnri.reston.va.us/images/ietflogo1.gif
+Content-Type: IMAGE/GIF
+Content-Transfer-Encoding: BASE64
+
+logo1
+--boundary-example
+Content-Location: images/ietflogo2.gif
+Content-Transfer-Encoding: BASE64
+
+logo2
+--boundary-example
+Content-Location:
+         http://www.ietf.cnri.reston.va.us/images/ietflogo3.gif
+Content-Transfer-Encoding: BASE64
+
+logo3
+--boundary-example--

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -51,6 +52,85 @@ namespace DataStandardizer.File.iCal
             IcalPropertyNames.Completed, IcalPropertyNames.Created, IcalPropertyNames.DtStamp, IcalPropertyNames.LastModified,
             IcalPropertyNames.Trigger
         };
+
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with one value.  <c>FMTTYPE</c> is left out, as it has a check of its own.
+        /// </summary>
+        private static readonly string[] SingleValueParameters =
+        {
+            IcalParameterNames.AlternateRepresentation, IcalParameterNames.CommonName, IcalParameterNames.CalendarUserType,
+            IcalParameterNames.Directory, IcalParameterNames.Encoding, IcalParameterNames.FreeBusyType, IcalParameterNames.Language,
+            IcalParameterNames.ParticipationStatus, IcalParameterNames.Range, IcalParameterNames.Related, IcalParameterNames.RelationshipType,
+            IcalParameterNames.Role, IcalParameterNames.Rsvp, IcalParameterNames.SentBy, IcalParameterNames.TimeZoneId, IcalParameterNames.Value,
+            IcalParameterNames.Email, IcalParameterNames.Label
+        };
+
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with a list of values.
+        /// </summary>
+        private static readonly string[] MultipleValueParameters =
+        {
+            IcalParameterNames.DelegatedFrom, IcalParameterNames.DelegatedTo, IcalParameterNames.Member, IcalParameterNames.Display,
+            IcalParameterNames.Feature
+        };
+
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with a grammar that has no <c>quoted-string</c>.  The others are <c>ALTREP</c>,
+        /// <c>DELEGATED-FROM</c>, <c>DELEGATED-TO</c>, <c>DIR</c>, <c>MEMBER</c> and <c>SENT-BY</c>, whose grammar has <c>DQUOTE</c>, and
+        /// <c>CN</c>, <c>EMAIL</c> and <c>LABEL</c>, whose value is a <c>param-value</c>.
+        /// </summary>
+        private static readonly string[] UnquotedParameters =
+        {
+            // ref. RFC 5545§3.2.3: cutypeparam = "CUTYPE" "=" ("INDIVIDUAL" / "GROUP" / "RESOURCE" / "ROOM" / "UNKNOWN" / x-name / iana-token)
+            IcalParameterNames.CalendarUserType,
+
+            // ref. RFC 5545§3.2.7: encodingparam = "ENCODING" "=" ( "8BIT" / "BASE64" )
+            IcalParameterNames.Encoding,
+
+            // ref. RFC 5545§3.2.8: fmttypeparam = "FMTTYPE" "=" type-name "/" subtype-name
+            IcalParameterNames.FormatType,
+
+            // ref. RFC 5545§3.2.9: fbtypeparam = "FBTYPE" "=" ("FREE" / "BUSY" / "BUSY-UNAVAILABLE" / "BUSY-TENTATIVE" / x-name / iana-token)
+            IcalParameterNames.FreeBusyType,
+
+            // ref. RFC 5545§3.2.10: languageparam = "LANGUAGE" "=" language
+            IcalParameterNames.Language,
+
+            // ref. RFC 5545§3.2.12: partstatparam = "PARTSTAT" "=" (partstat-event / partstat-todo / partstat-jour)
+            IcalParameterNames.ParticipationStatus,
+
+            // ref. RFC 5545§3.2.13: rangeparam = "RANGE" "=" "THISANDFUTURE"
+            IcalParameterNames.Range,
+
+            // ref. RFC 5545§3.2.14: trigrelparam = "RELATED" "=" ( "START" / "END" )
+            IcalParameterNames.Related,
+
+            // ref. RFC 5545§3.2.15: reltypeparam = "RELTYPE" "=" ("PARENT" / "CHILD" / "SIBLING" / iana-token / x-name)
+            IcalParameterNames.RelationshipType,
+
+            // ref. RFC 5545§3.2.16: roleparam = "ROLE" "=" ("CHAIR" / "REQ-PARTICIPANT" / "OPT-PARTICIPANT" / "NON-PARTICIPANT" / x-name / iana-token)
+            IcalParameterNames.Role,
+
+            // ref. RFC 5545§3.2.17: rsvpparam = "RSVP" "=" ("TRUE" / "FALSE")
+            IcalParameterNames.Rsvp,
+
+            // ref. RFC 5545§3.2.19: tzidparam = "TZID" "=" [tzidprefix] paramtext
+            IcalParameterNames.TimeZoneId,
+
+            // ref. RFC 5545§3.2.20: valuetypeparam = "VALUE" "=" valuetype
+            IcalParameterNames.Value,
+
+            // ref. RFC 7986§6.1: displayparam = "DISPLAY" "=" displayval *("," displayval)
+            IcalParameterNames.Display,
+
+            // ref. RFC 7986§6.3: featureparam = "FEATURE" "=" featuretext *("," featuretext)
+            IcalParameterNames.Feature
+        };
+
+        /// <summary>
+        /// The characters other than DQUOTE that <c>paramtext</c> excludes (RFC 5545 §3.1), so that a value with one must be quoted.
+        /// </summary>
+        private static readonly char[] ParamtextExcludedCharacters = { ':', ';', ',' };
 
         private static readonly Dictionary<string, ComponentRule> Rules = new Dictionary<string, ComponentRule>(StringComparer.OrdinalIgnoreCase)
         {
@@ -202,6 +282,8 @@ namespace DataStandardizer.File.iCal
                     return options.AllowUndefinedTimeZones;
                 case IcalDiagnosticKind.InvalidValue:
                     return options.AllowInvalidValues;
+                case IcalDiagnosticKind.QuotedParameterValue:
+                    return options.AllowQuotedParameterValues;
                 default:
                     return false;
             }
@@ -298,6 +380,9 @@ namespace DataStandardizer.File.iCal
             foreach (var property in component.Properties)
             {
                 ValidateValue(property, path, context);
+                ValidateFormatType(property, path, context);
+                ValidateParameters(property, path, context);
+                ValidateParameterQuoting(property, path, context);
                 if (context.IsCalendar)
                 {
                     ValidateTimeZoneReference(property, path, context);
@@ -726,7 +811,7 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.Recur:
                     return IcalRecurrenceRule.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Text:
-                    return IcalEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
+                    return ContentLineEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
                 case IcalValueType.Time:
                     return IcalTime.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Uri:
@@ -786,6 +871,103 @@ namespace DataStandardizer.File.iCal
                     string.Format(CultureInfo.InvariantCulture, "The {0} property must be from {1} to {2}.", property.Name.ToUpperInvariant(), minimum,
                         maximum), context);
             }
+        }
+
+        /// <summary>
+        /// Checks the <c>FMTTYPE</c> parameter of any property, including one RFC 5545 and RFC 7986 do not define: RFC 5545 §3.2.8 sets its syntax.
+        /// RFC 5545 §3.8.1.1 and RFC 7986 §5.10 allow it once on ATTACH and IMAGE, but §3.8.8.2 sets no such rule for a non-standard property.
+        /// </summary>
+        private static void ValidateFormatType(IcalContentLine property, string path, Context context)
+        {
+            var count = 0;
+            var isValid = true;
+            foreach (var parameter in property.ParameterArray)
+            {
+                if (!IsName(parameter.Name, IcalParameterNames.FormatType)) continue;
+
+                count++;
+                isValid &= parameter.ValueArray.Length == 1 && IcalPropertyValue.TryParseFormatType(parameter.ValueArray[0].AsSpan(), out _);
+            }
+
+            if (isValid && (count < 2 || !IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan()))) return;
+
+            AddInvalidValue(property, path, IcalPropertyValue.BuildInvalidFormatTypeMessage(property.Name.ToUpperInvariant()), context);
+        }
+
+        /// <summary>
+        /// Checks how many values each parameter RFC 5545 and RFC 7986 define has, and, on a property they define, how often it occurs.
+        /// </summary>
+        private static void ValidateParameters(IcalContentLine property, string path, Context context)
+        {
+            var parameters = property.ParameterArray;
+
+            // Only a line with two or more parameters can repeat one, and few do, so most lines allocate nothing here.
+            var seen = parameters.Length > 1 && IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan())
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : null;
+            foreach (var parameter in parameters)
+            {
+                var isSingleValue = SingleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase);
+                if (!isSingleValue && !MultipleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
+
+                // ref. RFC 5545§3.2: the grammar of each of these parameters has one value, so a comma in it must be in a quoted-string.
+                if (isSingleValue && parameter.ValueArray.Length > 1)
+                {
+                    AddInvalidValue(property, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} parameter of the {1} property can have only one value.",
+                            parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
+                }
+
+                // ref. RFC 5545§3.8: each property's parameters "MUST NOT occur more than once".  §3.8.8.2 sets no such rule for a non-standard one.
+                if (seen != null && !seen.Add(parameter.Name))
+                {
+                    AddInvalidValue(property, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} parameter appears more than once in the {1} property.",
+                            parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks that no parameter in <see cref="UnquotedParameters"/> has a quoted value, on any property, including one RFC 5545 and RFC 7986
+        /// do not define: the grammar of a parameter is the same wherever it appears.
+        /// </summary>
+        /// <remarks>
+        /// A line that keeps its parameters as they were read is written as read, so its values are quoted where they were.  Any other line,
+        /// such as one built in code, or one a typed property setter made from a kept parameter, is formatted afresh, and
+        /// <see cref="IcalWriter"/> quotes a value of it that has a character <c>paramtext</c> excludes.
+        /// </remarks>
+        private static void ValidateParameterQuoting(IcalContentLine property, string path, Context context)
+        {
+            var isAsRead = property.RawParameters != null;
+            foreach (var parameter in property.ParameterArray)
+            {
+                var isQuoted = isAsRead ? parameter.HasQuotedValue : NeedsQuotes(parameter.ValueArray);
+                if (!isQuoted || !UnquotedParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
+
+                var message = isAsRead
+                    ? "The {0} parameter of the {1} property has a value in double quotes, which the grammar of the parameter does not allow."
+                    : "The {0} parameter of the {1} property has a value with a ':', ';' or ',', which would have to be written in double quotes, " +
+                      "and the grammar of the parameter does not allow them.";
+                context.Add(IcalDiagnosticKind.QuotedParameterValue,
+                    string.Format(CultureInfo.InvariantCulture, message, parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()),
+                    path, property.Name, property.LineNumber);
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether a writer formatting the values afresh would quote any of them.  This must match the rule of
+        /// <c>ContentLineFormatter</c>, which quotes a value with a character that <c>paramtext</c> excludes.
+        /// </summary>
+        private static bool NeedsQuotes(string[] values)
+        {
+            foreach (var value in values)
+            {
+                // ref. RFC 5545§3.1: paramtext = *SAFE-CHAR, which excludes DQUOTE, ";", ":" and ","; caret encoding replaces any DQUOTE.
+                if (value.IndexOfAny(ParamtextExcludedCharacters) >= 0) return true;
+            }
+
+            return false;
         }
 
         /// <summary>

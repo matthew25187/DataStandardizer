@@ -17,96 +17,100 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     public class IcalContentLineReaderAsyncTests
     {
+        private const string LineA = "A:1";
+        private const string LineB = "B:2";
+        private const string LineC = "C:3";
+        private const string CanceledMessage = "*canceled*";
+
+        // The number of characters that AsyncOnlyTextReader gives each read, so that a read ends inside lines, folds and line breaks.
+        private const int CharactersPerRead = 7;
+
+        // The size of the blocks that the reader reads from a stream, small enough to end inside a line.
+        private const int SmallStreamBufferSize = 5;
+
+        // The members that a reader rejects after a read was canceled.
+        public static TheoryData<Func<IcalContentLineReader, object>> MembersAfterCancellation => new TheoryData<Func<IcalContentLineReader, object>>
+        {
+            reader => reader.ReadLineAsync(),
+            reader => reader.ReadLine(),
+        };
+
+        // The members that a reader rejects while a read is in progress.
+        public static TheoryData<Func<IcalContentLineReader, object>> MembersWhileReadInProgress => new TheoryData<Func<IcalContentLineReader, object>>
+        {
+            reader => reader.ReadLineAsync(),
+            reader => reader.ReadContentLineAsync(),
+            reader => reader.ReadLine(),
+            reader => reader.ReadContentLine(),
+        };
+
+        public static TheoryData<Func<IcalContentLineReader, object>> MembersAfterDisposeAsync => new TheoryData<Func<IcalContentLineReader, object>>
+        {
+            reader => reader.ReadLineAsync(),
+            reader => reader.ReadContentLineAsync(),
+            reader => reader.ReadLinesAsync(),
+            reader => reader.CurrentLine.Name.Length,
+            reader => reader.LinesRead,
+        };
+
+        public static TheoryData<string, Func<IcalContentLineReader, Task>> Disposals => new TheoryData<string, Func<IcalContentLineReader, Task>>
+        {
+            { nameof(IcalContentLineReader.Dispose), reader => DisposeSynchronously(reader) },
+            { nameof(IcalContentLineReader.DisposeAsync), reader => reader.DisposeAsync().AsTask() },
+        };
+
         #region Sync and async parity
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public async Task ReadLinesAsync_EveryFixture_MatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadLinesAsync_EveryFixture_ReadsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            var text = RfcFixtures.All[fixtureName];
-            using (var syncReader = CreateReader(text, bufferSize: bufferSize))
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
+            var reader = CreateAsyncOnlyReader(RfcFixtures.All[fixtureName], bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var asyncReader = CreateAsyncOnlyReader(text, bufferSize);
-                try
-                {
-                    var expected = ReadAll(syncReader).Select(LineSnapshot.FromLine).ToList();
+                // act
+                var testResult = LineSnapshot.DescribeNumbered(await ReadAllAsync(reader));
 
-                    // act
-                    var testResult = (await ReadAllAsync(asyncReader)).Select(LineSnapshot.FromLine).ToList();
-
-                    // assert
-                    testResult.Should().NotBeEmpty();
-                    testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                    asyncReader.LinesRead.Should().Be(syncReader.LinesRead);
-                    asyncReader.PhysicalLinesRead.Should().Be(syncReader.PhysicalLinesRead);
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
         }
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public async Task ReadContentLineAsync_EveryFixture_ViewMatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadContentLineAsync_EveryFixture_ViewsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            var text = RfcFixtures.All[fixtureName];
-            using (var syncReader = CreateReader(text, bufferSize: bufferSize))
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
+            var reader = CreateAsyncOnlyReader(RfcFixtures.All[fixtureName], bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var asyncReader = CreateAsyncOnlyReader(text, bufferSize);
-                try
-                {
-                    var expected = new List<LineSnapshot>();
-                    while (syncReader.ReadContentLine())
-                    {
-                        expected.Add(LineSnapshot.FromView(syncReader.CurrentLine));
-                    }
+                // act
+                var testResult = LineSnapshot.DescribeNumbered(await ReadAllViewsAsync(reader));
 
-                    // act
-                    var testResult = new List<LineSnapshot>();
-                    while (await asyncReader.ReadContentLineAsync())
-                    {
-                        testResult.Add(LineSnapshot.FromView(asyncReader.CurrentLine));
-                    }
-
-                    // assert
-                    testResult.Should().NotBeEmpty();
-                    testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
         }
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public async Task ReadLinesAsync_EveryFixtureFromStream_MatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadLinesAsync_EveryFixtureFromStream_ReadsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
             var data = Encoding.UTF8.GetBytes(RfcFixtures.All[fixtureName]);
-            using (var syncReader = CreateStreamReader(data, streamBufferSize: 5, bufferSize: bufferSize))
+            var reader = new IcalContentLineReader(new AsyncOnlyStream(data), new IcalOptions(), SmallStreamBufferSize, bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var asyncReader = new IcalContentLineReader(new AsyncOnlyStream(data), new IcalOptions(), 5, bufferSize);
-                try
-                {
-                    var expected = ReadAll(syncReader).Select(LineSnapshot.FromLine).ToList();
+                // act
+                var testResult = LineSnapshot.DescribeNumbered(await ReadAllAsync(reader));
 
-                    // act
-                    var testResult = (await ReadAllAsync(asyncReader)).Select(LineSnapshot.FromLine).ToList();
-
-                    // assert
-                    testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
         }
 
         [Theory]
@@ -114,54 +118,74 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadLineAsync_FoldInsideUtf8Sequence_RestoresCharacter(int streamBufferSize, int bufferSize)
         {
             // arrange
-            // "€" is E2 82 AC and "😀" is F0 9F 98 80.  Fold after the first octet of one and inside the other twice.
-            var data = new[]
-            {
-                Encoding.UTF8.GetBytes("SUMMARY:caf"), new byte[] { 0xE2 }, Encoding.ASCII.GetBytes("\r\n "), new byte[] { 0x82, 0xAC },
-                Encoding.UTF8.GetBytes(" "), new byte[] { 0xF0, 0x9F }, Encoding.ASCII.GetBytes("\r\n\t"), new byte[] { 0x98 }, Encoding.ASCII.GetBytes("\r\n "), new byte[] { 0x80 },
-                Encoding.UTF8.GetBytes("!\r\nX-NEXT:é\r\n")
-            }.SelectMany(part => part).ToArray();
-            var reader = new IcalContentLineReader(new AsyncOnlyStream(data), new IcalOptions(), streamBufferSize, bufferSize);
-            try
+            var reader = new IcalContentLineReader(new AsyncOnlyStream(IcalContentLineReaderTests.FoldsInsideUtf8Sequences), new IcalOptions(),
+                streamBufferSize, bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
                 var testResult = await ReadAllAsync(reader);
 
                 // assert
                 testResult.Should().HaveCount(2);
-                testResult[0].Value.Should().Be("caf€ 😀!");
-                testResult[1].Value.Should().Be("é");
+                testResult[0].Value.Should().Be(IcalContentLineReaderTests.FoldsInsideUtf8SequencesValue);
+                testResult[1].Value.Should().Be("\xE9");
                 testResult[1].PhysicalLineNumber.Should().Be(5);
                 reader.PhysicalLinesRead.Should().Be(5);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
-        public async Task ReadLineAsync_SyntaxError_FaultsTaskAndReaderCanContinue()
+        public async Task ReadLineAsync_SyntaxError_FaultsTask()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1", "BAD", "C:3"));
-            try
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, "BAD", LineC));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                (await reader.ReadLineAsync()).Name.Should().Be("A");
+                await reader.ReadLineAsync();
 
                 // act
-                var readTask = reader.ReadLineAsync();
-                Func<Task> testAction = async () => await readTask;
+                Func<Task> testAction = () => reader.ReadLineAsync().AsTask();
 
                 // assert
                 await testAction.Should().ThrowAsync<IcalFileException>();
-                (await reader.ReadLineAsync()).Name.Should().Be("C");
-                (await reader.ReadLineAsync()).Should().BeNull();
-            }
-            finally
+            });
+        }
+
+        [Fact]
+        public async Task ReadLineAsync_AfterSyntaxError_ReadsTheNextLine()
+        {
+            // arrange
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, "BAD", LineC));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                await reader.DisposeAsync();
-            }
+                await reader.ReadLineAsync();
+                await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
+
+                // act
+                var testResult = await reader.ReadLineAsync();
+
+                // assert
+                testResult.Name.Should().Be("C");
+            });
+        }
+
+        [Fact]
+        public async Task ReadLineAsync_AfterTheLineAfterASyntaxError_ReturnsNull()
+        {
+            // arrange
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, "BAD", LineC));
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                await reader.ReadLineAsync();
+                await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
+                await reader.ReadLineAsync();
+
+                // act
+                var testResult = await reader.ReadLineAsync();
+
+                // assert
+                testResult.Should().BeNull();
+            });
         }
 
         [Fact]
@@ -169,35 +193,45 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader("SUMMARY:a\nX-B:d\r\n");
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                Func<Task> firstAction = async () => await reader.ReadLineAsync();
-                await firstAction.Should().ThrowAsync<IcalFileException>();
+                await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
 
                 // act
-                Action readLineAction = () => reader.ReadLineAsync();
-                Action readContentLineAction = () => reader.ReadContentLineAsync();
+                Action testAction = () => reader.ReadLineAsync();
 
                 // assert
-                readLineAction.Should().Throw<InvalidOperationException>();
-                readContentLineAction.Should().Throw<InvalidOperationException>();
-            }
-            finally
+                testAction.Should().Throw<InvalidOperationException>();
+            });
+        }
+
+        [Fact]
+        public async Task ReadContentLineAsync_AfterLineBreakError_ThrowsInvalidOperation()
+        {
+            // arrange
+            var reader = CreateAsyncOnlyReader("SUMMARY:a\nX-B:d\r\n");
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                await reader.DisposeAsync();
-            }
+                await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
+
+                // act
+                Action testAction = () => reader.ReadContentLineAsync();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            });
         }
 
         [Fact]
         public async Task ReadContentLineAsync_LineAlreadyBuffered_CompletesSynchronously()
         {
             // arrange
-            var source = new GatedTextReader(Crlf("A:1", "B:2", "C:3"));
+            var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 source.OpenGate();
-                (await reader.ReadContentLineAsync()).Should().BeTrue();
+                await reader.ReadContentLineAsync();
                 source.CloseGate();
 
                 // act
@@ -205,79 +239,77 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.IsCompletedSuccessfully.Should().BeTrue();
-                (await testResult).Should().BeTrue();
+                testResult.Result.Should().BeTrue();
                 reader.CurrentLine.Name.ToString().Should().Be("B");
                 source.ReadsCompleted.Should().Be(1);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         #endregion
 
         #region One read at a time
 
-        [Fact]
-        public async Task ReadLineAsync_WhileReadInProgress_ThrowsInvalidOperation()
+        [Theory]
+        [MemberData(nameof(MembersWhileReadInProgress), DisableDiscoveryEnumeration = true)]
+        public async Task Member_WhileReadInProgress_ThrowsInvalidOperation(Func<IcalContentLineReader, object> member)
         {
             // arrange
-            var source = new GatedTextReader(Crlf("A:1", "B:2", "C:3"));
+            var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
             var reader = new IcalContentLineReader(source);
-            try
+            var firstRead = reader.ReadLineAsync();
+            await source.ReadStarted;
+            await AsyncDisposal.FinallyAsync(() =>
+            {
+                // act
+                Action testAction = () => member(reader);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage("*in progress*");
+            }, async () =>
+            {
+                source.OpenGate();
+                await firstRead;
+                await reader.DisposeAsync();
+            });
+        }
+
+        [Fact]
+        public async Task ReadLineAsync_OtherReadRejectedWhileInProgress_ReadsTheLine()
+        {
+            // arrange
+            var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
+            var reader = new IcalContentLineReader(source);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 var firstRead = reader.ReadLineAsync();
                 await source.ReadStarted;
+                Record.Exception(() => reader.ReadLine());
+                source.OpenGate();
 
                 // act
-                var testActions = new Action[]
-                {
-                    () => reader.ReadLineAsync(),
-                    () => reader.ReadContentLineAsync(),
-                    () => reader.ReadLine(),
-                    () => reader.ReadContentLine()
-                };
+                var testResult = await firstRead;
 
                 // assert
-                foreach (var testAction in testActions)
-                {
-                    testAction.Should().Throw<InvalidOperationException>().WithMessage("*in progress*");
-                }
-
-                source.OpenGate();
-                (await firstRead).Name.Should().Be("A");
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+                testResult.Name.Should().Be("A");
+            });
         }
 
         [Fact]
         public async Task ReadLine_SyncAndAsyncOneAfterAnother_ReadsEveryLine()
         {
             // arrange
-            var source = new GatedTextReader(Crlf("A:1", "B:2", "C:3"));
+            var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 source.OpenGate();
 
                 // act
-                var first = await reader.ReadLineAsync();
-                var second = reader.ReadLine();
-                var third = await reader.ReadLineAsync();
-                var end = await reader.ReadLineAsync();
+                var testResult = await ReadAsyncThenSyncAsync(reader);
 
                 // assert
-                new[] { first, second, third }.Select(line => line.Name).Should().Equal("A", "B", "C");
-                end.Should().BeNull();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+                testResult.Select(line => line?.Name).Should().Equal("A", "B", "C", null);
+            });
         }
 
         #endregion
@@ -285,101 +317,148 @@ namespace DataStandardizer.File.iCal.Tests
         #region Cancellation
 
         [Fact]
-        public async Task ReadLineAsync_CanceledBeforeRead_FaultsReader()
+        public async Task ReadLineAsync_CanceledBeforeRead_IsCanceled()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1", "B:2"));
-            try
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
+            await AsyncDisposal.UsingAsync(reader, () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
                     cancellationTokenSource.Cancel();
 
                     // act
-                    var readTask = reader.ReadLineAsync(cancellationTokenSource.Token);
+                    var testResult = reader.ReadLineAsync(cancellationTokenSource.Token);
 
                     // assert
-                    readTask.IsCanceled.Should().BeTrue();
-                    AssertFaultedByCancellation(reader);
+                    testResult.IsCanceled.Should().BeTrue();
                 }
-            }
-            finally
+            });
+        }
+
+        [Theory]
+        [MemberData(nameof(MembersAfterCancellation), DisableDiscoveryEnumeration = true)]
+        public async Task Member_AfterCancellationBeforeRead_ThrowsInvalidOperation(Func<IcalContentLineReader, object> member)
+        {
+            // arrange
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
+            await AsyncDisposal.UsingAsync(reader, () =>
             {
-                await reader.DisposeAsync();
-            }
+                using (var cancellationTokenSource = new CancellationTokenSource())
+                {
+                    cancellationTokenSource.Cancel();
+                    _ = reader.ReadLineAsync(cancellationTokenSource.Token);
+
+                    // act
+                    Action testAction = () => member(reader);
+
+                    // assert
+                    testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
+                }
+            });
         }
 
         // On .NET Framework, TextReader.ReadAsync takes no cancellation token, so a read in progress cannot be canceled.
 #if NETCOREAPP2_1_OR_GREATER
         [Fact]
-        public async Task ReadLineAsync_CanceledWhileInProgress_FaultsReader()
+        public async Task ReadLineAsync_CanceledWhileInProgress_ThrowsOperationCanceled()
         {
             // arrange
-            var source = new GatedTextReader(Crlf("A:1", "B:2"));
+            var source = new GatedTextReader(Crlf(LineA, LineB));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
                     var readTask = reader.ReadLineAsync(cancellationTokenSource.Token);
                     await source.ReadStarted;
+                    cancellationTokenSource.Cancel();
 
                     // act
-                    cancellationTokenSource.Cancel();
-                    Func<Task> testAction = async () => await readTask;
+                    Func<Task> testAction = () => readTask.AsTask();
 
                     // assert
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
-                    AssertFaultedByCancellation(reader);
                 }
-            }
-            finally
+            });
+        }
+
+        [Theory]
+        [MemberData(nameof(MembersAfterCancellation), DisableDiscoveryEnumeration = true)]
+        public async Task Member_AfterCancellationWhileInProgress_ThrowsInvalidOperation(Func<IcalContentLineReader, object> member)
+        {
+            // arrange
+            var source = new GatedTextReader(Crlf(LineA, LineB));
+            var reader = new IcalContentLineReader(source);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                await reader.DisposeAsync();
-            }
+                using (var cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var readTask = reader.ReadLineAsync(cancellationTokenSource.Token);
+                    await source.ReadStarted;
+                    cancellationTokenSource.Cancel();
+                    await Record.ExceptionAsync(() => readTask.AsTask());
+
+                    // act
+                    Action testAction = () => member(reader);
+
+                    // assert
+                    testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
+                }
+            });
         }
 #endif
 
         [Fact]
-        public async Task ReadLinesAsync_EnumeratorTokenCanceled_FaultsReader()
+        public async Task ReadLinesAsync_EnumeratorTokenCanceled_ThrowsOperationCanceled()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1", "B:2"));
-            try
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
+            using (var cancellationTokenSource = new CancellationTokenSource())
             {
-                using (var cancellationTokenSource = new CancellationTokenSource())
+                var enumerator = reader.ReadLinesAsync().GetAsyncEnumerator(cancellationTokenSource.Token);
+                await enumerator.MoveNextAsync();
+                cancellationTokenSource.Cancel();
+                await AsyncDisposal.FinallyAsync(async () =>
                 {
-                    var enumerator = reader.ReadLinesAsync().GetAsyncEnumerator(cancellationTokenSource.Token);
-                    try
-                    {
-                        (await enumerator.MoveNextAsync()).Should().BeTrue();
-                        cancellationTokenSource.Cancel();
+                    // act
+                    Func<Task> testAction = () => enumerator.MoveNextAsync().AsTask();
 
-                        // act
-                        Func<Task> testAction = async () => await enumerator.MoveNextAsync();
-
-                        // assert
-                        await testAction.Should().ThrowAsync<OperationCanceledException>();
-                        AssertFaultedByCancellation(reader);
-                    }
-                    finally
-                    {
-                        await enumerator.DisposeAsync();
-                    }
-                }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
+                    // assert
+                    await testAction.Should().ThrowAsync<OperationCanceledException>();
+                }, async () =>
+                {
+                    await enumerator.DisposeAsync();
+                    await reader.DisposeAsync();
+                });
             }
         }
 
-        private static void AssertFaultedByCancellation(IcalContentLineReader reader)
+        [Theory]
+        [MemberData(nameof(MembersAfterCancellation), DisableDiscoveryEnumeration = true)]
+        public async Task Member_AfterEnumeratorTokenCanceled_ThrowsInvalidOperation(Func<IcalContentLineReader, object> member)
         {
-            Action readLineAsyncAction = () => reader.ReadLineAsync();
-            Action readLineAction = () => reader.ReadLine();
-            readLineAsyncAction.Should().Throw<InvalidOperationException>().WithMessage("*canceled*");
-            readLineAction.Should().Throw<InvalidOperationException>().WithMessage("*canceled*");
+            // arrange
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var enumerator = reader.ReadLinesAsync().GetAsyncEnumerator(cancellationTokenSource.Token);
+                await enumerator.MoveNextAsync();
+                cancellationTokenSource.Cancel();
+                await Record.ExceptionAsync(() => enumerator.MoveNextAsync().AsTask());
+                await AsyncDisposal.FinallyAsync(() =>
+                {
+                    // act
+                    Action testAction = () => member(reader);
+
+                    // assert
+                    testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
+                }, async () =>
+                {
+                    await enumerator.DisposeAsync();
+                    await reader.DisposeAsync();
+                });
+            }
         }
 
         #endregion
@@ -387,32 +466,64 @@ namespace DataStandardizer.File.iCal.Tests
         #region Disposal
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task Dispose_WhileReadInProgress_CompletesReadWithObjectDisposed(bool disposeAsync)
+        [MemberData(nameof(Disposals), DisableDiscoveryEnumeration = true)]
+        public async Task Dispose_WhileReadInProgress_LeavesTheBlockWithTheRead(string disposal, Func<IcalContentLineReader, Task> dispose)
         {
             // arrange
-            var source = new GatedTextReader(Crlf("A:1", "B:2"));
+            _ = disposal;
+            var source = new GatedTextReader(Crlf(LineA, LineB));
             var reader = new IcalContentLineReader(source);
             var readTask = reader.ReadLineAsync();
             await source.ReadStarted;
-            var scanner = ReaderInspector.GetScanner(reader);
+            var scanner = reader.Scanner;
 
             // act
-            if (disposeAsync)
-            {
-                await reader.DisposeAsync();
-            }
-            else
-            {
-                reader.Dispose();
-            }
+            await dispose(reader);
 
             // assert
             scanner.Buffer.Should().NotBeEmpty("the read in progress still owns the block");
             source.OpenGate();
-            Func<Task> testAction = async () => await readTask;
+            await Record.ExceptionAsync(() => readTask.AsTask());
+        }
+
+        [Theory]
+        [MemberData(nameof(Disposals), DisableDiscoveryEnumeration = true)]
+        public async Task Dispose_WhileReadInProgress_CompletesReadWithObjectDisposed(string disposal, Func<IcalContentLineReader, Task> dispose)
+        {
+            // arrange
+            _ = disposal;
+            var source = new GatedTextReader(Crlf(LineA, LineB));
+            var reader = new IcalContentLineReader(source);
+            var readTask = reader.ReadLineAsync();
+            await source.ReadStarted;
+            await dispose(reader);
+            source.OpenGate();
+
+            // act
+            Func<Task> testAction = () => readTask.AsTask();
+
+            // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Disposals), DisableDiscoveryEnumeration = true)]
+        public async Task Dispose_WhileReadInProgress_ReturnsTheBlockOnceTheReadHasFinished(string disposal, Func<IcalContentLineReader, Task> dispose)
+        {
+            // arrange
+            _ = disposal;
+            var source = new GatedTextReader(Crlf(LineA, LineB));
+            var reader = new IcalContentLineReader(source);
+            var readTask = reader.ReadLineAsync();
+            await source.ReadStarted;
+            var scanner = reader.Scanner;
+            await dispose(reader);
+            source.OpenGate();
+
+            // act
+            await Record.ExceptionAsync(() => readTask.AsTask());
+
+            // assert
             scanner.Buffer.Should().BeEmpty("the block is returned once the read has finished");
         }
 
@@ -420,12 +531,12 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task DisposeAsync_CalledTwice_DoesNotThrow()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1"));
+            var reader = CreateAsyncOnlyReader(Crlf(LineA));
             await reader.ReadLineAsync();
             await reader.DisposeAsync();
 
             // act
-            Func<Task> testAction = async () => await reader.DisposeAsync();
+            Func<Task> testAction = () => reader.DisposeAsync().AsTask();
 
             // assert
             await testAction.Should().NotThrowAsync();
@@ -435,11 +546,11 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task DisposeAsync_AfterDispose_DoesNotThrow()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1"));
+            var reader = CreateAsyncOnlyReader(Crlf(LineA));
             reader.Dispose();
 
             // act
-            Func<Task> testAction = async () => await reader.DisposeAsync();
+            Func<Task> testAction = () => reader.DisposeAsync().AsTask();
 
             // assert
             await testAction.Should().NotThrowAsync();
@@ -449,11 +560,11 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task DisposeAsync_InternalStream_IsReleasedAndCallerStreamLeftOpen()
         {
             // arrange
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(Crlf("A:1"))))
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(Crlf(LineA))))
             {
                 var reader = new IcalContentLineReader(stream);
                 await reader.ReadLineAsync();
-                var scanner = ReaderInspector.GetScanner(reader);
+                var scanner = reader.Scanner;
 
                 // act
                 await reader.DisposeAsync();
@@ -464,35 +575,26 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        [Fact]
-        public async Task AsyncMembers_AfterDisposeAsync_ThrowObjectDisposedSynchronously()
+        [Theory]
+        [MemberData(nameof(MembersAfterDisposeAsync), DisableDiscoveryEnumeration = true)]
+        public async Task Member_AfterDisposeAsync_ThrowsObjectDisposedSynchronously(Func<IcalContentLineReader, object> member)
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1"));
+            var reader = CreateAsyncOnlyReader(Crlf(LineA));
             await reader.DisposeAsync();
 
             // act
-            var testActions = new Action[]
-            {
-                () => reader.ReadLineAsync(),
-                () => reader.ReadContentLineAsync(),
-                () => reader.ReadLinesAsync(),
-                () => _ = reader.CurrentLine,
-                () => _ = reader.LinesRead
-            };
+            Action testAction = () => member(reader);
 
             // assert
-            foreach (var testAction in testActions)
-            {
-                testAction.Should().Throw<ObjectDisposedException>().Which.ObjectName.Should().Be(nameof(IcalContentLineReader));
-            }
+            testAction.Should().Throw<ObjectDisposedException>().Which.ObjectName.Should().Be(nameof(IcalContentLineReader));
         }
 
         [Fact]
         public async Task ReadLineAsync_DisposedAfterCancellation_ThrowsObjectDisposed()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1"));
+            var reader = CreateAsyncOnlyReader(Crlf(LineA));
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
                 cancellationTokenSource.Cancel();
@@ -511,22 +613,174 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadLinesAsync_DisposedDuringEnumeration_ThrowsObjectDisposed()
         {
             // arrange
-            var reader = CreateAsyncOnlyReader(Crlf("A:1", "B:2"));
+            var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
             var enumerator = reader.ReadLinesAsync().GetAsyncEnumerator();
-            try
+            await AsyncDisposal.UsingAsync(enumerator, async () =>
             {
                 await enumerator.MoveNextAsync();
                 await reader.DisposeAsync();
 
                 // act
-                Func<Task> testAction = async () => await enumerator.MoveNextAsync();
+                Func<Task> testAction = () => enumerator.MoveNextAsync().AsTask();
 
                 // assert
                 await testAction.Should().ThrowAsync<ObjectDisposedException>();
-            }
-            finally
+            });
+        }
+
+        #endregion
+
+        #region Cancellation precedence
+
+        private const string SourceFailureMessage = "*failure reading*";
+
+        // Each asynchronous read.
+        private static readonly (string Name, Func<IcalContentLineReader, CancellationToken, Task> Run)[] AsyncReads =
+        {
+            ("ReadLineAsync", (reader, token) => reader.ReadLineAsync(token).AsTask()),
+            ("ReadContentLineAsync", (reader, token) => reader.ReadContentLineAsync(token).AsTask()),
+            ("ReadLinesAsync", (reader, token) => AsyncEnumerables.ToListAsync(reader.ReadLinesAsync(token))),
+        };
+
+        // Each way the text reader can report a failure.
+        private static readonly FailureTiming[] FailureTimings =
+        {
+            FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
+        };
+
+        // Each read that returns a task, with each way the text reader can report a failure, each OperationCanceledException it can fail with
+        // while the caller's token isn't canceled, and the exception the task then faults with.  A canceled task carries no exception of its own,
+        // so awaiting it gives a TaskCanceledException, whatever exception the text reader was given.  ReadLinesAsync is left out: an async
+        // iterator reports any OperationCanceledException as a cancellation of its MoveNextAsync.
+        public static TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming, Func<Exception>, Type> ReadsWithSourceCancellationFaults()
+        {
+            var exceptions = new (string, Func<Exception>)[]
             {
-                await enumerator.DisposeAsync();
+                ("no token", () => new OperationCanceledException()),
+                ("another, canceled token", () => new OperationCanceledException(new CancellationToken(true))),
+            };
+            var data = new TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming, Func<Exception>, Type>();
+            foreach (var (name, run) in AsyncReads.Take(2))
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    foreach (var (exceptionName, createException) in exceptions)
+                    {
+                        var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
+                        data.Add(name + ", " + timing + ", " + exceptionName, run, timing, createException, expectedType);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        // Each asynchronous read, with each way the text reader can report a failure.
+        public static TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming> ReadsWithSourceFailures()
+        {
+            var data = new TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming>();
+            foreach (var (name, run) in AsyncReads)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    data.Add(name + ", " + timing, run, timing);
+                }
+            }
+
+            return data;
+        }
+
+        // Each read that returns a task, with each way the text reader can report a failure.
+        public static TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming> TaskReadsWithSourceFailures()
+        {
+            var data = new TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming>();
+            foreach (var (name, run) in AsyncReads.Take(2))
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    data.Add(name + ", " + timing, run, timing);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(ReadsWithSourceCancellationFaults), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncRead_TextReaderFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing, Func<Exception> createException, Type expectedExceptionType)
+        {
+            // arrange
+            _ = scenario;
+            var reader = new IcalContentLineReader(new FailingTextReader(createException, timing));
+
+            // act: wait for the read to finish without throwing, so that its status can be checked.
+            var task = run(reader, CancellationToken.None);
+            await Task.WhenAny(task);
+
+            // assert
+            task.IsFaulted.Should().BeTrue();
+            task.Exception.InnerException.Should().BeOfType(expectedExceptionType);
+        }
+
+        [Theory]
+        [MemberData(nameof(ReadsWithSourceFailures), DisableDiscoveryEnumeration = true)]
+        public async Task ReadLine_AfterOperationCanceledWhileTokenIsNotCanceled_ThrowsInvalidOperationForTheSource(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            var reader = new IcalContentLineReader(new FailingTextReader(() => new OperationCanceledException(), timing));
+            await Record.ExceptionAsync(() => run(reader, CancellationToken.None));
+
+            // act
+            Action testAction = () => reader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(SourceFailureMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(TaskReadsWithSourceFailures), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncRead_TokenCanceledAndTextReaderFailsWithCancellationOfAnotherToken_CancelsTask(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            var source = new FailingTextReader(() => new OperationCanceledException(new CancellationToken(true)), timing);
+            var reader = new IcalContentLineReader(source);
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                source.OnFailure = cancellationTokenSource.Cancel;
+
+                // act: wait for the read to finish without throwing, so that its status can be checked.
+                var task = run(reader, cancellationTokenSource.Token);
+                await Task.WhenAny(task);
+
+                // assert
+                task.IsCanceled.Should().BeTrue();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ReadsWithSourceFailures), DisableDiscoveryEnumeration = true)]
+        public async Task ReadLine_AfterTokenCanceledAndTextReaderFailsWithCancellationOfNoToken_ThrowsInvalidOperationForTheCancellation(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            var source = new FailingTextReader(() => new OperationCanceledException(), timing);
+            var reader = new IcalContentLineReader(source);
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                source.OnFailure = cancellationTokenSource.Cancel;
+                await Record.ExceptionAsync(() => run(reader, cancellationTokenSource.Token));
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
             }
         }
 
@@ -534,15 +788,44 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static IcalContentLineReader CreateAsyncOnlyReader(string text, int bufferSize = 16 * 1024)
         {
-            // A few characters per read, so a read ends inside lines, folds and line breaks.
-            return new IcalContentLineReader(new AsyncOnlyTextReader(text, 7), new IcalOptions(), bufferSize);
+            return new IcalContentLineReader(new AsyncOnlyTextReader(text, CharactersPerRead), new IcalOptions(), bufferSize);
+        }
+
+        private static Task DisposeSynchronously(IcalContentLineReader reader)
+        {
+            reader.Dispose();
+            return Task.CompletedTask;
         }
 
         private static async Task<List<IcalContentLine>> ReadAllAsync(IcalContentLineReader reader)
         {
-            var lines = await AsyncEnumerables.ToListAsync(reader.ReadLinesAsync());
+            return await AsyncEnumerables.ToListAsync(reader.ReadLinesAsync());
+        }
 
-            return lines;
+        /// <summary>
+        /// Reads every line through the view that <see cref="IcalContentLineReader.ReadContentLineAsync"/> exposes.
+        /// </summary>
+        private static async Task<List<LineSnapshot>> ReadAllViewsAsync(IcalContentLineReader reader)
+        {
+            var views = new List<LineSnapshot>();
+            while (await reader.ReadContentLineAsync())
+            {
+                views.Add(LineSnapshot.FromView(reader.CurrentLine));
+            }
+
+            return views;
+        }
+
+        /// <summary>
+        /// Reads a line asynchronously, the next synchronously, and the two after that asynchronously.
+        /// </summary>
+        private static async Task<IcalContentLine[]> ReadAsyncThenSyncAsync(IcalContentLineReader reader)
+        {
+            var first = await reader.ReadLineAsync();
+            var second = reader.ReadLine();
+            var third = await reader.ReadLineAsync();
+            var end = await reader.ReadLineAsync();
+            return new[] { first, second, third, end };
         }
     }
 }

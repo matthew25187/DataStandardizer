@@ -2,8 +2,10 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.Language\\DataStandardizer.Language.csproj",
+      "tests\\DataStandardizer.Language.IntegrationTests\\DataStandardizer.Language.IntegrationTests.csproj",
       "tests\\DataStandardizer.Language.Tests\\DataStandardizer.Language.Tests.csproj"
     ]
   }

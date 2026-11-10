@@ -54,11 +54,11 @@ implemented.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
-`CurrentTelephony` requires .NET Standard 2.0 or later (`net8.0`, `net10.0`,
-`netstandard2.0`); it is not available on the `netstandard1.0` target. On the
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.
+`CurrentTelephony` requires .NET Standard 2.0 or later (`net10.0`,
+`netstandard2.0`); it is not available on the `netstandard1.1` target. On the
 .NET Standard targets the `formatType` parameter and the return value of
-`GetFormat` are non-nullable; on `net8.0`/`net10.0` they are nullable
+`GetFormat` are non-nullable; on `net10.0` they are nullable
 (`Type?` / `object?`).
 
 ## See also
@@ -67,4 +67,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [ItuE164InternationalNumber](ItuE164InternationalNumber.md)
 - [ItuE164InternationalNumberFormatInfo](ItuE164InternationalNumberFormatInfo.md)
 - [Communication API reference](index.md)
-</content>

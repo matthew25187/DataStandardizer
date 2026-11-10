@@ -28,6 +28,12 @@ covering the years 1980–2107. Modelled by [Chronology](../packages/chronology/
 numbering plan — the structure of international telephone numbers. Modelled by
 [Communication](../packages/communication/index.md).
 
+**MIME**
+: Multipurpose Internet Mail Extensions: the standards for media types, transfer
+encodings and text that isn't US-ASCII in internet messages, chiefly RFC 2045,
+RFC 2046 and RFC 2047. Its building blocks are modelled by
+[Communication](../packages/communication/index.md).
+
 **RFC 4180**
 : The specification of the common format and MIME type for Comma-Separated Values
 (CSV) files. Implemented by [File.CSV](../packages/file-csv/index.md).
