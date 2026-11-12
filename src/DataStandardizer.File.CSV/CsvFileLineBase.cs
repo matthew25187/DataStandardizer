@@ -111,7 +111,7 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// The key is the name given by <see cref="CsvFieldAttribute"/>, else the property name.  On a line filled through a mapping that maps
         /// the property to a field with another name, it is that field's name instead, unless the line has no such field but does have one with
-        /// the property key, which is the field the reader then reads the value from and stores it in.
+        /// the property key.
         /// </remarks>
         protected string GetPropertyKey(string propertyName)
         {

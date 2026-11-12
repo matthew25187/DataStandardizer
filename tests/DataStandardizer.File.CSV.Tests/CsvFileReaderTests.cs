@@ -118,6 +118,14 @@ namespace DataStandardizer.File.CSV.Tests
         // The value a constant mapping gives a field that the line it reads doesn't have.
         private const string AddedFieldValue = "Added";
 
+        // A file with a column named like the property key of a required mapping, but not the field it's mapped to.
+        private const string PropertyKeyIdHeaderFile = "Id,person_name\r\n5,bob";
+
+        // Files whose header has none of the fields that a test's mappings are mapped to by name.
+        private const string OneFieldHeaderFile = "x\r\na";
+        private const string TwoFieldHeaderFile = "x,y\r\na,b";
+        private const string MissingIndexedDescriptionMessage = "Found no field at index 2 for required property 'Description' in a record of 2 fields.";
+
         // Files whose fields are mapped by index to properties whose names the files don't use.
         private const string XFieldName = "x";
         private const string YFieldName = "y";
@@ -1459,6 +1467,78 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_RequiredIndexMappingPastLastFieldWithFieldOfSameName_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RequiredPastLastIdLine>(new StringReader(IdNamedHeaderFile), options))
+            {
+                csvReader.RegisterMapper<RequiredPastLastIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingIndexedIdMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RequiredNameMappingWithPropertyKeyColumn_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(PropertyKeyIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingPersonIdMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingAddsFieldBeforeRequiredIndexMappingPastLastField_ReportsRecordFieldCount()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<AddedFieldPastLastLine>(new StringReader(TwoFieldHeaderFile), options))
+            {
+                csvReader.RegisterMapper<AddedFieldPastLastLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingIndexedDescriptionMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_GeneratedNameMappingMissingFromHeader_AddsFieldWithGeneratedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<GeneratedMissingFieldLine>(new StringReader(OneFieldHeaderFile), options))
+            {
+                csvReader.RegisterMapper<GeneratedMissingFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(XFieldName, ExtraFieldName);
+                testResult.Values.Should().Equal(IndexedFieldValue1, AddedFieldValue);
+            }
+        }
+
+        [Fact]
         public void ReadLine_RequiredNameMappingMissingFromHeader_ThrowsCsvFileException()
         {
             // arrange
@@ -2056,6 +2136,38 @@ namespace DataStandardizer.File.CSV.Tests
                     .Property(x => x.Id)
                     .HasFieldIndex(PastLastFieldIndex)
                     .HasConstantValue(IndexedId);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="AddedFieldPastLastLineMapper"/> maps, with a constant value, to a field the line doesn't have, and whose
+        /// Description it then maps to a position past the last field of a two-field line.
+        /// </summary>
+        private sealed class AddedFieldPastLastLine : TestLine
+        {
+        }
+
+        private sealed class AddedFieldPastLastLineMapper : CsvFileMapperBase<AddedFieldPastLastLine>
+        {
+            public AddedFieldPastLastLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName).HasConstantValue(AddedFieldValue);
+                this.Map().Property(x => x.Description).HasFieldIndex(2);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="GeneratedMissingFieldLineMapper"/> maps, with a generated value, to a field the line doesn't have.
+        /// </summary>
+        private sealed class GeneratedMissingFieldLine : TestLine
+        {
+        }
+
+        private sealed class GeneratedMissingFieldLineMapper : CsvFileMapperBase<GeneratedMissingFieldLine>
+        {
+            public GeneratedMissingFieldLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName).HasVariableValue(() => AddedFieldValue);
             }
         }
 

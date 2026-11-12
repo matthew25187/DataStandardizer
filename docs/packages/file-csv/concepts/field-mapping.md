@@ -135,12 +135,14 @@ converter delegate's context gets the name of the field the index picked.
 A record with no field at that position has no field for the mapping, even if
 another of its fields has the mapping's name.
 
-A mapping whose field the record doesn't have, by name or by index, has nothing
-to read. If the mapping is optional, it's skipped and the property isn't set. If
-it's required, the reader throws `CsvFileException`. A mapping with a constant
-or generated value reads no field, so its value is added to the line under the
-mapping's name. If that mapping is by index and the record already has a field
-with that name, the reader throws `CsvFileException` rather than overwrite it.
+A mapping reads only the field it's mapped to. A mapping whose field the record
+doesn't have, by name or by index, has nothing to read, even if the record has a
+field named like the property. If the mapping is optional, it's skipped and the
+property isn't set, even if it has a constant or generated value. If it's
+required, the reader throws `CsvFileException`, unless it has a constant or
+generated value. That value is added to the line under the mapping's name. If
+the mapping is by index and the record already has a field with that name, the
+reader throws `CsvFileException` rather than overwrite it.
 
 A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
 yet, so it holds the value under the property key: the name given by
