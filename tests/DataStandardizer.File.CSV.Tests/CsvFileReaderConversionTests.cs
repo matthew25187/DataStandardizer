@@ -57,6 +57,16 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private const int AmountFieldPosition = 1;
 
+        /// <summary>
+        /// The name of the second field in the header of <see cref="AmountSecondFile"/>.
+        /// </summary>
+        private const string AmountFieldName = "Amount";
+
+        /// <summary>
+        /// The text of the <c>Amount</c> field in the record line of <see cref="AmountSecondFile"/>.
+        /// </summary>
+        private const string AmountFieldText = "abc";
+
         public static TheoryData<string, Func<string, object>, string, object> ParsedValueCases => new TheoryData<string, Func<string, object>, string, object>
         {
             { "int", ReadValue<int>, "-42", -42 },
@@ -324,6 +334,129 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_FromStringConverterOnNamedFieldAfterUnmappedField_GivesConverterRawFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ContextCapturingLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<NamedContextCapturingLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (ContextCapturingLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Context.RawFieldValue.Should().Be(AmountFieldText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnNamedFieldAfterUnmappedField_GivesConverterFieldPosition()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ContextCapturingLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<NamedContextCapturingLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (ContextCapturingLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Context.FieldIndex.Should().Be(AmountFieldPosition);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnIndexedField_GivesConverterHeaderFieldName()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ContextCapturingLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<IndexedContextCapturingLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (ContextCapturingLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Context.FieldName.Should().Be(AmountFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ValidatorRejectsValueAfterUnmappedField_CallsHandlerWithRawFieldValue()
+        {
+            // arrange
+            var rawFieldValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<ValidatedAmountLine>(context => rawFieldValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<ValidatedAmountLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<ValidatedAmountLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                rawFieldValues.Should().Equal(AmountFieldText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ValidatorOnFieldAnEarlierMappingConverted_CallsHandlerWithFieldAsRead()
+        {
+            // arrange
+            var badValues = new List<KeyValuePair<int?, string>>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedAmountLine>(context => badValues.Add(new KeyValuePair<int?, string>(context.FieldIndex, context.RawFieldValue)))
+            };
+            using (var csvReader = new CsvFileReader<SharedAmountLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<SharedAmountLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(new[] { new KeyValuePair<int?, string>(AmountFieldPosition, AmountFieldText) });
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ValidatorOnFieldAnEarlierConstantAdded_CallsHandlerWithNoField()
+        {
+            // arrange
+            var badValues = new List<KeyValuePair<int?, string>>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<AddedFieldLine>(context => badValues.Add(new KeyValuePair<int?, string>(context.FieldIndex, context.RawFieldValue)))
+            };
+            using (var csvReader = new CsvFileReader<AddedFieldLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<AddedFieldLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(new[] { new KeyValuePair<int?, string>(null, null) });
+            }
+        }
+
+        [Fact]
         public void ReadLine_TypeWithoutParser_ReadsDefaultValue()
         {
             // act
@@ -495,6 +628,116 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map()
                     .Property(x => x.Amount)
                     .HasFieldName("Amount")
+                    .ConvertUsing(typeof(StringConverter))
+                    .ValidateUsing(_ => false);
+            }
+        }
+
+        /// <summary>
+        /// A line whose one property holds the context its converter was given.
+        /// </summary>
+        private sealed class ContextCapturingLine : CsvFileRecordLine
+        {
+            public CsvFieldContext<ContextCapturingLine> Context
+            {
+                get => GetPropertyValue<CsvFieldContext<ContextCapturingLine>>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class NamedContextCapturingLineMapper : CsvFileMapperBase<ContextCapturingLine>
+        {
+            public NamedContextCapturingLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Context)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<ContextCapturingLine, CsvFieldContext<ContextCapturingLine>>(context => context));
+            }
+        }
+
+        private sealed class IndexedContextCapturingLineMapper : CsvFileMapperBase<ContextCapturingLine>
+        {
+            public IndexedContextCapturingLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Context)
+                    .HasFieldIndex(AmountFieldPosition)
+                    .ConvertUsing(new CsvFieldConvertFromString<ContextCapturingLine, CsvFieldContext<ContextCapturingLine>>(context => context));
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties mapped to the <c>Amount</c> field.
+        /// </summary>
+        private sealed class SharedAmountLine : CsvFileRecordLine
+        {
+            public int Converted
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Validated
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Converts the <c>Amount</c> field to a number first, so the line holds the number under that name, and then rejects the field.
+        /// </summary>
+        private sealed class SharedAmountLineMapper : CsvFileMapperBase<SharedAmountLine>
+        {
+            public SharedAmountLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Converted)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<SharedAmountLine, int>(_ => DelegateConvertedValue));
+                this.Map()
+                    .Property(x => x.Validated)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(typeof(StringConverter))
+                    .ValidateUsing(_ => false);
+            }
+        }
+
+        /// <summary>
+        /// A line with a constant and a validated property mapped to a field the file doesn't have.
+        /// </summary>
+        private sealed class AddedFieldLine : CsvFileRecordLine
+        {
+            public string Constant
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Validated
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Adds the <c>Extra</c> field to the line with a constant value first, and then rejects that field.
+        /// </summary>
+        private sealed class AddedFieldLineMapper : CsvFileMapperBase<AddedFieldLine>
+        {
+            public const string AddedFieldName = "Extra";
+
+            public AddedFieldLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Constant)
+                    .HasFieldName(AddedFieldName)
+                    .HasConstantValue("x");
+                this.Map()
+                    .Property(x => x.Validated)
+                    .HasFieldName(AddedFieldName)
                     .ConvertUsing(typeof(StringConverter))
                     .ValidateUsing(_ => false);
             }

@@ -530,12 +530,15 @@ namespace DataStandardizer.File.CSV
                 // Validate CSV field value.
                 if (fieldMapping.Value.Validator is CsvFieldValidate<TRecordLine> validator)
                 {
+                    var readFieldIndex = GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount);
+                    var readFieldValue = GetReadFieldValue(readFieldIndex);
                     var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                     {
                         Model = recordLine,
-                        FieldIndex = GetFieldPosition(csvLine, mappedFieldName),
+                        FieldIndex = readFieldIndex,
                         FieldName = mappedFieldName,
-                        HeaderLine = _headerLine
+                        HeaderLine = _headerLine,
+                        RawFieldValue = readFieldValue
                     };
                     if (!validator(fieldContext))
                     {
@@ -545,7 +548,7 @@ namespace DataStandardizer.File.CSV
                             continue;
                         }
 
-                        var rawFieldValue = csvLine[mappedFieldName] is string stringFieldValue ? stringFieldValue : string.Empty;
+                        var rawFieldValue = readFieldValue ?? string.Empty;
                         throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, null);
                     }
                 }
@@ -561,19 +564,22 @@ namespace DataStandardizer.File.CSV
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
                 }
 
-                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldValue, out var propertyValue,
+                // A constant or generated value didn't come from a field, so has no position.  The position is only looked up for a converter delegate.
+                var isFieldValue = !FieldPlan.SuppliesValue(fieldMapping.Value);
+                var fieldIndex = isFieldValue && fieldMapping.Value.FromStringConverter != null
+                    ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount)
+                    : null;
+                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, fieldValue, out var propertyValue,
                         out var error))
                 {
                     // Only a string is converted, so a value that fails to convert is always one.
                     var rawFieldValue = fieldValue as string ?? string.Empty;
                     if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
                     {
-                        // A constant or generated value didn't come from a field, so has no position.
-                        var isFieldValue = !FieldPlan.SuppliesValue(fieldMapping.Value);
                         var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                         {
                             Model = recordLine,
-                            FieldIndex = isFieldValue ? GetFieldPosition(csvLine, mappedFieldName) : null,
+                            FieldIndex = isFieldValue ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount) : null,
                             FieldName = mappedFieldName,
                             HeaderLine = _headerLine,
                             RawFieldValue = rawFieldValue
@@ -590,12 +596,33 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the position of a field in a line, or <c>null</c> if the line has no such field.
+        /// Gets the position of the field a mapping resolved to among the fields read from the file, or <c>null</c> if the mapping is past the last
+        /// field, or its field is one that an earlier mapping's constant or generated value added to the line.
         /// </summary>
-        private static int? GetFieldPosition(ICsvFileLine csvLine, string fieldName)
+        private static int? GetReadFieldPosition(ICsvFileLine csvLine, FieldMappingPlan fieldMappingPlan, int recordFieldCount)
         {
-            var fieldIndex = csvLine.IndexOf(fieldName);
-            return fieldIndex < 0 ? (int?)null : fieldIndex;
+            if (fieldMappingPlan.IsPastLastField)
+            {
+                return null;
+            }
+
+            var fieldIndex = csvLine.IndexOf(fieldMappingPlan.FieldName);
+            return fieldIndex < 0 || fieldIndex >= recordFieldCount ? (int?)null : fieldIndex;
+        }
+
+        /// <summary>
+        /// Gets the text of a field as it was read from the file, which an earlier mapping of the same field doesn't change, or <c>null</c> if there
+        /// is no such field.
+        /// </summary>
+        /// <remarks>The line's fields were added in the order they were read, so a field's position in the line is its position in the record.</remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private string? GetReadFieldValue(int? readFieldIndex)
+#else
+        [return: MaybeNull]
+        private string GetReadFieldValue(int? readFieldIndex)
+#endif
+        {
+            return readFieldIndex is int fieldIndex ? _rawFieldValues[fieldIndex] : null;
         }
 
         private static CsvFileException BuildIndexedFieldNameTakenException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string fieldName, int fieldCount)

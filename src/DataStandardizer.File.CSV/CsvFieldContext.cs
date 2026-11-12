@@ -23,6 +23,10 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the index of the CSV field.
         /// </summary>
+        /// <remarks>
+        /// When reading, this is the position of the field in the record as read from the file, whether the mapping names the field or gives its
+        /// index; <c>null</c> when the file has no such field.  When writing, it is the index configured on the mapping.
+        /// </remarks>
         public int? FieldIndex
         {
             get;
@@ -34,8 +38,9 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the name of rhe CSV field.
+        /// Gets the name of the CSV field.
         /// </summary>
+        /// <remarks>When reading, this is the name of the field that the mapping resolved to on the line.</remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? FieldName
         {
@@ -94,6 +99,10 @@ internal set;
         /// <summary>
         /// Gets the raw value of the CSV field.
         /// </summary>
+        /// <remarks>
+        /// A validator is given the field's text as read from the file, and a converter the text it converts.  <c>null</c> when there is no such
+        /// text.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? RawFieldValue
         {
