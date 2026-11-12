@@ -20,6 +20,7 @@ namespace DataStandardizer.File.CSV
         {
             internal const string ActualFieldCount = "ActualFieldCount";
             internal const string ExpectedFieldCount = "ExpectedFieldCount";
+            internal const string FieldName = "FieldName";
             internal const string FieldValue = "FieldValue";
         }
         private const char QuoteCharacter = '"';
@@ -191,8 +192,9 @@ namespace DataStandardizer.File.CSV
         /// written for it, and the lines after it are checked against the same field count as before it.
         /// <para>
         /// Without a header line or a mapper, the fields written are those of the first record line written.  A later record line with a field
-        /// that isn't one of them has more fields than the previous record line, so it is handled or throws in the same way, rather than being
-        /// written without that field.  A later record line that lacks one of them is written with a blank value for it.
+        /// that isn't one of them is inconsistent with the record lines before it, even if it has as many fields, so it is handled or throws in
+        /// the same way, rather than being written without that field.  A later record line that lacks one of them is written with a blank
+        /// value for it.
         /// </para>
         /// </remarks>
         public void WriteLine(ICsvFileLine csvLine)
@@ -316,10 +318,22 @@ namespace DataStandardizer.File.CSV
         {
             ICsvFileLine csvLine = recordLine;
 
-            // Without a header line, the fields to output are those of the first record line written.  A later line with a field that isn't one of
-            // them adds it, so the line's field count differs and it is checked as inconsistent below, rather than being written without that field.
-            if (_headerLineFieldNames.Length == 0 && HasFieldNameNotSeen(csvLine))
+            fieldValueCount = 0;
+
+            // Without a header line, the fields seen on the record lines are kept, so the fields of a line that has no mapping can be output.
+            if (_headerLineFieldNames.Length == 0 && TryGetFieldNameNotSeen(csvLine, out var fieldNameNotSeen))
             {
+                // Without a mapping either, the fields to output are those of the first record line written.  A later line with a field that isn't
+                // one of them would lose that field's value, so it is inconsistent, though it may have as many fields as the lines before it.
+                // ref. RFC 4180§2¶4
+                if (_previousLineFieldCount > 0 && GetFieldPlan(recordLine).IsLineFieldNamesOutput)
+                {
+                    return csvLine.Count != _previousLineFieldCount
+                        ? HandleInconsistentFieldCount(recordLine, csvLine.Count)
+                        : HandleInconsistentLine(recordLine, $"Field '{fieldNameNotSeen}' is not one of the {_previousLineFieldCount} fields of the first record line.",
+                            new Dictionary<string, object> { { DataItemName.ExpectedFieldCount, _previousLineFieldCount }, { DataItemName.FieldName, fieldNameNotSeen } });
+                }
+
                 AddLineFieldNames(csvLine);
             }
 
@@ -329,22 +343,11 @@ namespace DataStandardizer.File.CSV
             // ref. RFC 4180§2¶4
             if (_previousLineFieldCount > 0 && fields.Length != _previousLineFieldCount)
             {
-                if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> fieldCountHandler)
-                {
-                    var context = new CsvFieldContext<TRecordLine>(_options) { HeaderLine = _headerLine, Model = recordLine };
-                    fieldCountHandler(context);
-                    fieldValueCount = 0;
-                    return false;
-                }
-
-                var message = $"Expected {_previousLineFieldCount} fields; found {fields.Length} fields.";
-                var dataItems = new Dictionary<string, object> { { DataItemName.ExpectedFieldCount, _previousLineFieldCount }, { DataItemName.ActualFieldCount, fields.Length } };
-                throw BuildException(message, dataItems);
+                return HandleInconsistentFieldCount(recordLine, fields.Length);
             }
 
             // Extract serialized field values.
             var fieldValues = GetFieldValueBuffer(fields.Length);
-            fieldValueCount = 0;
             var fieldIndex = 0;
             foreach (var field in fields)
             {
@@ -393,34 +396,56 @@ namespace DataStandardizer.File.CSV
             return true;
         }
 
-        /// <summary>
-        /// Gets a flag indicating if a record line has a field whose name isn't one of the field names seen so far.
-        /// </summary>
-        private bool HasFieldNameNotSeen(ICsvFileLine csvLine)
+        private bool HandleInconsistentFieldCount(TRecordLine recordLine, int fieldCount)
         {
-            var lineFieldNames = csvLine.Keys;
-            if (lineFieldNames.Count > _fieldNames.Length)
+            var message = $"Expected {_previousLineFieldCount} fields; found {fieldCount} fields.";
+            var dataItems = new Dictionary<string, object> { { DataItemName.ExpectedFieldCount, _previousLineFieldCount }, { DataItemName.ActualFieldCount, fieldCount } };
+            return HandleInconsistentLine(recordLine, message, dataItems);
+        }
+
+        /// <summary>
+        /// Calls the inconsistent field count handler for a record line, or throws if it isn't set.
+        /// </summary>
+        /// <returns><c>false</c>, as the line is not to be written.</returns>
+        /// <exception cref="CsvFileException">The inconsistent field count handler isn't set.</exception>
+        private bool HandleInconsistentLine(TRecordLine recordLine, string message, Dictionary<string, object> dataItems)
+        {
+            if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> fieldCountHandler)
             {
-                return true;
+                var context = new CsvFieldContext<TRecordLine>(_options) { HeaderLine = _headerLine, Model = recordLine };
+                fieldCountHandler(context);
+                return false;
             }
 
+            throw BuildException(message, dataItems);
+        }
+
+        /// <summary>
+        /// Gets the first field of a record line whose name isn't one of the field names seen so far, if there is one.
+        /// </summary>
+        private bool TryGetFieldNameNotSeen(ICsvFileLine csvLine, out string fieldNameNotSeen)
+        {
             // A line usually has the same fields in the same order as the lines before it, so the name at the same position is compared first.
+            var lineFieldNames = csvLine.Keys;
             for (var fieldIndex = 0; fieldIndex < lineFieldNames.Count; fieldIndex++)
             {
                 var fieldName = lineFieldNames[fieldIndex];
-                if (!string.Equals(fieldName, _fieldNames[fieldIndex], StringComparison.Ordinal) && !_fieldNameSet.Contains(fieldName))
+                if ((fieldIndex >= _fieldNames.Length || !string.Equals(fieldName, _fieldNames[fieldIndex], StringComparison.Ordinal))
+                    && !_fieldNameSet.Contains(fieldName))
                 {
+                    fieldNameNotSeen = fieldName;
                     return true;
                 }
             }
 
+            fieldNameNotSeen = string.Empty;
             return false;
         }
 
         private void AddLineFieldNames(ICsvFileLine csvLine)
         {
             var fieldNames = new List<string>(_fieldNames);
-            var knownFieldNames = new HashSet<string>(_fieldNames, StringComparer.Ordinal);
+            var knownFieldNames = new HashSet<string>(_fieldNameSet, StringComparer.Ordinal);
             var lineFieldNames = csvLine.Keys;
             for (var fieldIndex = 0; fieldIndex < lineFieldNames.Count; fieldIndex++)
             {
@@ -853,6 +878,7 @@ namespace DataStandardizer.File.CSV
                 else
                 {
                     fieldNames = lineFieldNames;
+                    IsLineFieldNamesOutput = true;
                 }
 
                 // Where more than one mapping has the same field name, the first is used.
@@ -882,6 +908,11 @@ namespace DataStandardizer.File.CSV
             internal FieldWritePlan[] Fields { get; }
 
             internal string[] HeaderLineFieldNames { get; }
+
+            /// <summary>
+            /// Gets a flag indicating if the fields to output are the record line field names, there being neither a header line nor mappings.
+            /// </summary>
+            internal bool IsLineFieldNamesOutput { get; }
 
             internal string[] LineFieldNames { get; }
 

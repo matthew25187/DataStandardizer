@@ -106,6 +106,12 @@ namespace DataStandardizer.File.CSV.Tests
 
         private const string OptionsParameterName = "options";
 
+        // Keys of the CsvFileException data items that describe a record line with a field the first record line doesn't have, and the field
+        // count of the first record line of the tests that check them.
+        private const string FieldNameDataItem = "FieldName";
+        private const string ExpectedFieldCountDataItem = "ExpectedFieldCount";
+        private const int FirstLineFieldCount = 2;
+
         [Fact]
         public void WriteLine_HeaderLineAndQuoteHandlingAlways_WritesHeaderLineWithAllValuesQuoted()
         {
@@ -932,7 +938,7 @@ namespace DataStandardizer.File.CSV.Tests
         public void WriteLine_RecordLineWithSameFieldCountAndAnotherFieldNameAndNoFieldCountDelegate_ThrowsCsvFileException()
         {
             // arrange
-            // Without a header line, the first line sets the fields written, so the second line's Description field makes it a line of 3 fields.
+            // Without a header line, the first line sets the fields written, so the second line's Description field isn't one of them.
             var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
             var recordLine2 = new UnmappedLine { Id = 2, Description = SecondDescription };
 
@@ -946,7 +952,38 @@ namespace DataStandardizer.File.CSV.Tests
                 Action testAction = () => csvWriter.WriteLine(recordLine2);
 
                 // assert
-                testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
+                var exception = testAction.Should().Throw<CsvFileException>()
+                    .WithMessage("Field 'Description' is not one of the 2 fields of the first record line.").Which;
+                exception.Data[FieldNameDataItem].Should().Be(nameof(UnmappedLine.Description));
+                exception.Data[ExpectedFieldCountDataItem].Should().Be(FirstLineFieldCount);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithFewerFieldsAndAnotherFieldName_ThrowsCsvFileException()
+        {
+            // arrange
+            // The second line has a field that the first line doesn't, as well as fewer fields, so its field count is reported.
+            ICsvFileLine recordLine1 = new CsvFileRecordLine();
+            recordLine1.Add(FieldName1, NumberValue);
+            recordLine1.Add(FieldName2, TextValue);
+            recordLine1.Add(FieldName3, TextValue);
+
+            ICsvFileLine recordLine2 = new CsvFileRecordLine();
+            recordLine2.Add(FieldName1, NumberValue);
+            recordLine2.Add(FieldName4, TextValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(recordLine2);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage("Expected 3 fields; found 2 fields.");
             }
         }
 
@@ -1012,9 +1049,9 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
             {
                 csvWriter.WriteLine(recordLine1);
+                csvWriter.WriteLine(recordLine2);
 
                 // act
-                csvWriter.WriteLine(recordLine2);
                 csvWriter.WriteLine(recordLine3);
 
                 // assert
