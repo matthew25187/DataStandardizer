@@ -522,12 +522,18 @@ namespace DataStandardizer.File.CSV
             {
                 return null; // if there is no field value then there is nothing to serialize
             }
-            else if (mappedFieldValue is string serializedFieldValue)
+
+            // A string is written as it is, unless it is the line's value and a converter that converts to a string is configured: such a converter
+            // is given the value even when it is a string.  A constant or generated string is always written as it is.
+            var typeConverter = ResolveTypeConverter(field);
+            if (mappedFieldValue is string serializedFieldValue
+                && (fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null
+                    || (field.Converter is null && (typeConverter is null || !typeConverter.CanConvertTo(typeof(string))))))
             {
-                return serializedFieldValue; // if the field value is already of the target type then just return it
+                return serializedFieldValue;
             }
 
-            return ConvertFieldValueToString(_headerLine, recordLine, _options, field.Mapping, field.Converter, ResolveTypeConverter(field), mappedFieldValue);
+            return ConvertFieldValueToString(_headerLine, recordLine, _options, field.Mapping, field.Converter, typeConverter, mappedFieldValue);
         }
 
         /// <summary>
@@ -556,7 +562,7 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Converts a mapped field value that is not already a string: with the mapping's converter if it has one, else its type converter if that can
+        /// Converts a mapped field value: with the mapping's converter if it has one, else its type converter if that can
         /// convert to a string, else with <see cref="FormatFieldValue"/>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

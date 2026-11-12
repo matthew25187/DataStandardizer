@@ -26,6 +26,26 @@ namespace DataStandardizer.File.CSV.Tests
         private const int TypeConvertedValue = 7;
 
         /// <summary>
+        /// A field value with spaces around it, which a string property read without a converter keeps as it is.
+        /// </summary>
+        private const string PaddedText = "\"  bob  \"";
+
+        /// <summary>
+        /// The text of <see cref="PaddedText"/> as it is read, without the quotes.
+        /// </summary>
+        private const string PaddedFieldText = "  bob  ";
+
+        /// <summary>
+        /// The value the converters of <see cref="DelegateConvertedTextLineMapper"/> and <see cref="FixedStringConverter"/> convert every field value to.
+        /// </summary>
+        private const string ConvertedText = "CONVERTED";
+
+        /// <summary>
+        /// The constant value of <see cref="ConstantTextLine.Value"/>.
+        /// </summary>
+        private const string ConstantText = "constant";
+
+        /// <summary>
         /// The value the converter delegate of <see cref="DelegateConvertedLineMapper"/> converts every field value to.
         /// </summary>
         private const int DelegateConvertedValue = 9;
@@ -484,6 +504,96 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_StringPropertyWithoutConverter_ReadsFieldText()
+        {
+            // act
+            var testResult = ReadValue<string>(PaddedText);
+
+            // assert
+            testResult.Should().Be(PaddedFieldText);
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnStringProperty_ReadsConvertedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<DelegateConvertedTextLine>(new StringReader(PaddedText), options))
+            {
+                csvReader.RegisterMapper<DelegateConvertedTextLineMapper>();
+
+                // act
+                var testResult = (DelegateConvertedTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(ConvertedText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TypeConverterOnStringProperty_ReadsConvertedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<TypeConvertedTextLine>(new StringReader(PaddedText), options))
+            {
+                // act
+                var testResult = (TypeConvertedTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(ConvertedText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TypeConverterNotFromStringOnStringProperty_ReadsFieldText()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<ToStringOnlyConvertedTextLine>(new StringReader(PaddedText), options))
+            {
+                // act
+                var testResult = (ToStringOnlyConvertedTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(PaddedFieldText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnFieldAnEarlierMappingConverted_GivesConverterFieldAsRead()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTextLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<SharedTextLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (SharedTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Second.Should().Be(AmountFieldText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ConstantValueOfPropertyTypeWithTypeConverter_ReadsConstantValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<ConstantTextLine>(new StringReader(PaddedText), options))
+            {
+                // act
+                var testResult = (ConstantTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(ConstantText);
+            }
+        }
+
+        [Fact]
         public void ReadLine_TypeConverterConfigured_TakesPrecedenceOverBuiltInParse()
         {
             // arrange
@@ -783,6 +893,116 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldIndex(0)
                     .ConvertUsing(new CsvFieldConvertFromString<DelegateConvertedLine, int>(_ => DelegateConvertedValue));
             }
+        }
+
+        private sealed class DelegateConvertedTextLine : CsvFileRecordLine
+        {
+            public string Value
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class DelegateConvertedTextLineMapper : CsvFileMapperBase<DelegateConvertedTextLine>
+        {
+            public DelegateConvertedTextLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Value)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(new CsvFieldConvertFromString<DelegateConvertedTextLine, string>(_ => ConvertedText));
+            }
+        }
+
+        private sealed class TypeConvertedTextLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(FixedStringConverter))]
+            public string Value
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ConstantTextLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = ConstantText)]
+            [TypeConverter(typeof(FixedStringConverter))]
+            public string Value
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ToStringOnlyConvertedTextLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(ToStringOnlyConverter))]
+            public string Value
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two string properties mapped to the <c>Amount</c> field.
+        /// </summary>
+        private sealed class SharedTextLine : CsvFileRecordLine
+        {
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Converts the <c>Amount</c> field to <see cref="ConvertedText"/> first, so the line holds that under the field's name, and then reads the
+        /// field again with a converter that gives the text it is given.
+        /// </summary>
+        private sealed class SharedTextLineMapper : CsvFileMapperBase<SharedTextLine>
+        {
+            public SharedTextLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.First)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<SharedTextLine, string>(_ => ConvertedText));
+                this.Map()
+                    .Property(x => x.Second)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<SharedTextLine, string>(context => context.RawFieldValue));
+            }
+        }
+
+        /// <summary>
+        /// Converts every value to <see cref="ConvertedText"/>, and doesn't convert from a string.
+        /// </summary>
+        private sealed class ToStringOnlyConverter : TypeConverter
+        {
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) => destinationType == typeof(string);
+
+            public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType) => ConvertedText;
+        }
+
+        /// <summary>
+        /// Converts every string to <see cref="ConvertedText"/>.
+        /// </summary>
+        private sealed class FixedStringConverter : TypeConverter
+        {
+            public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType) => sourceType == typeof(string);
+
+            public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value) => ConvertedText;
         }
 
         /// <summary>

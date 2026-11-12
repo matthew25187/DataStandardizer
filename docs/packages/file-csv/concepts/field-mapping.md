@@ -160,9 +160,19 @@ property type. The first of these that applies to the mapping is used:
 3. The reader's built-in parse for the property type, described below.
 4. Otherwise the property gets the default value of its type.
 
-A value that is already of the property type, such as a string for a `string`
-property, a constant value of the property type, or a generated value, is used as
-it is.
+A constant value of the property type, or a generated value, is used as it is.
+A field's text is given to a configured converter even when the property is a
+`string`, or another type a string can be assigned to, such as `object`, so a
+converter can trim or normalise a string column. The converter gets the text as
+it was read from the file, even when an earlier mapping of the same field has
+converted it. A `TypeConverter` that doesn't convert from a string isn't used
+for such a property, and the property gets the field's text as it is, as it
+does with no converter configured.
+
+The writer works the same way. A `CsvFieldConvertToString` delegate configured
+for a mapping, or a `TypeConverter` that converts to a string, is given the
+line's value even when it's a string. A constant or generated string is written
+as it is, and so is a string when no such converter is configured.
 
 So a numeric, date, time, `Guid`, `bool` or enum property needs no converter. The
 built-in parse handles these types, and their `Nullable<T>` forms, in the same way

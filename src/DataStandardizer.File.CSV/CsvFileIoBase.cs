@@ -292,8 +292,12 @@ namespace DataStandardizer.File.CSV
             {
                 error = null;
 
-                // A value that is already of the property type needs no conversion.
-                if (fieldValue is T)
+                // A value of the property type is used as it is, unless it is a field's text and a converter that converts from a string is configured:
+                // such a converter is given the text even when the property is a string.  A constant or generated value is always used as it is.
+                var fieldMapping = propertyFieldMapping.Value;
+                if (fieldValue is T
+                    && (fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null || !(fieldValue is string)
+                        || !HasFromStringConverter(fieldMapping)))
                 {
                     value = fieldValue;
                     return true;
@@ -307,7 +311,6 @@ namespace DataStandardizer.File.CSV
                     return true;
                 }
 
-                var fieldMapping = propertyFieldMapping.Value;
                 if (fieldMapping.FromStringConverter != null)
                 {
                     var converter = (CsvFieldConvertFromString<TRecordLine, T>)fieldMapping.FromStringConverter;
@@ -383,6 +386,26 @@ namespace DataStandardizer.File.CSV
 
                 value = null;
                 return false;
+            }
+
+            /// <summary>
+            /// Gets a flag indicating if a mapping has a converter delegate, or a type converter that converts from a string.
+            /// </summary>
+            private static bool HasFromStringConverter(CsvFieldMapping fieldMapping)
+            {
+                if (fieldMapping.FromStringConverter != null)
+                {
+                    return true;
+                }
+
+                var typeConverterType = fieldMapping.TypeConverterType;
+                if (typeConverterType is null)
+                {
+                    return false;
+                }
+
+                var typeConverter = CsvMapperCache.GetTypeConverter(typeConverterType);
+                return typeConverter != null && typeConverter.CanConvertFrom(typeof(string));
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
