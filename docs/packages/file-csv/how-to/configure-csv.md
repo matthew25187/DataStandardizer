@@ -34,9 +34,9 @@ If a handler is not specified, the reader or writer will throw a
 `CsvFileException` when a bad value is encountered.
 
 When a reader finds a field that breaks the quoting rules of RFC 4180 section 2,
-such as an unquoted field that holds a quote, or text after a closing quote, it
-calls the handler once for each violation it finds, so one field can lead to
-several calls. Each call's `RawFieldValue` holds the field's text read up to that
+such as an unquoted field that holds a quote, text after a closing quote, or a
+quote that the file never closes, it calls the handler once for each violation
+it finds, so one field can lead to several calls. Each call's `RawFieldValue` holds the field's text read up to that
 violation, with quotes removed, not the whole field: for `"a"bc` the handler is
 called with `ab` and then `abc`. Once the handler returns, the reader uses an
 empty value for that field, wherever it is in the record. A header field gets an

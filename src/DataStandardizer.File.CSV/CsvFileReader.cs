@@ -702,8 +702,10 @@ namespace DataStandardizer.File.CSV
                         _bufferPosition = _bufferEnd;
                         if (EnsureAvailable(1)) continue;
 
-                        // An unterminated quote runs to the end of the stream.
-                        AddFieldValue(fieldValues, isInvalidValue);
+                        // An escaped field ends with a closing quote, so a stream that ends inside one breaks the grammar.
+                        // ref. RFC 4180§2 (escaped)
+                        AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
+                        AddFieldValue(fieldValues, isInvalidValue: true);
                         break;
                     }
 
