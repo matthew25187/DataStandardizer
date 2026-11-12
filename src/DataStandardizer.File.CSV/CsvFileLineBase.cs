@@ -93,8 +93,9 @@ namespace DataStandardizer.File.CSV
         /// Sets the field names that the line's properties are mapped to, so a property mapped to a field with another name
         /// reads and writes that field.  Set by the reader, and by <see cref="CsvExtensions.ToCsvLine"/>, from their mapper.
         /// </summary>
-        /// <param name="mappedFieldNames">The field names keyed by property key, as <see cref="CsvMappingService.GetMappedFieldNames"/>
-        /// returns them, or <c>null</c> if no property is mapped to a field with another name.</param>
+        /// <param name="mappedFieldNames">The field names keyed by property key, or <c>null</c> if no property is mapped to a field with another
+        /// name.  <see cref="CsvExtensions.ToCsvLine"/> takes them from <see cref="CsvMappingService.GetMappedFieldNames"/>; the reader works them
+        /// out for each field count, so a property mapped by index has the name of the field at that position.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal void SetMappedFieldNames(Dictionary<string, string>? mappedFieldNames)
 #else

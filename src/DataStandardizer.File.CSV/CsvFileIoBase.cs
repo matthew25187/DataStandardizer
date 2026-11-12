@@ -219,22 +219,25 @@ namespace DataStandardizer.File.CSV
             /// <summary>
             /// Converts a mapped field value to the property type.
             /// </summary>
+            /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
             /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
             /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
             /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
             internal abstract bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                object? fieldValue, out object? value, out Exception? error);
+                string fieldName, object? fieldValue, out object? value, out Exception? error);
 
             internal abstract object? Generate(Delegate generator);
 #else
             /// <summary>
             /// Converts a mapped field value to the property type.
             /// </summary>
+            /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
             /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
             /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
             /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
             internal abstract bool TryDeserialize([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
-                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] object fieldValue, [MaybeNull] out object value, [MaybeNull] out Exception error);
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [DisallowNull] string fieldName, [AllowNull] object fieldValue, [MaybeNull] out object value,
+                [MaybeNull] out Exception error);
 
             [return: MaybeNull]
             internal abstract object Generate([DisallowNull] Delegate generator);
@@ -264,7 +267,7 @@ namespace DataStandardizer.File.CSV
             }
 
             internal override bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                object? fieldValue, out object? value, out Exception? error)
+                string fieldName, object? fieldValue, out object? value, out Exception? error)
 #else
             [MaybeNull] private object _parser;
 
@@ -282,7 +285,7 @@ namespace DataStandardizer.File.CSV
             }
 
             internal override bool TryDeserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                object fieldValue, out object value, out Exception error)
+                string fieldName, object fieldValue, out object value, out Exception error)
 #endif
             {
                 error = null;
@@ -310,7 +313,7 @@ namespace DataStandardizer.File.CSV
                     {
                         HeaderLine = headerLine,
                         Model = recordLine,
-                        FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
+                        FieldName = fieldName,
                         FieldIndex = fieldMapping.FieldIndex
                     };
                     value = converter(context);

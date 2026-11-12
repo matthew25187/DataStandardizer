@@ -130,8 +130,13 @@ or the mapper's other mappings call it. The value is held under that field's
 name, so with the header `x,y,z` the property mapped to index 2 reads and
 writes `z`. Without a header line, the field is named after the mapping: its
 field name if it has one, else the property name. A
-record with no field at that position is treated like one that is missing the
-field by name.
+converter delegate's context gets the name of the field the index picked.
+
+A record with no field at that position has no field for the mapping, even if
+another of its fields has the mapping's name. An optional mapping is skipped. A
+required one gets the value a missing field gives, added under the mapping's
+name, and the reader throws `CsvFileException` if the record already has a
+field with that name.
 
 A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
 yet, so it holds the value under the property key: the name given by
