@@ -64,6 +64,7 @@ namespace DataStandardizer.File.CSV
         private char[] _fieldValueCharacters = NoCharacters;
 #endif
         private string[] _fieldNames = NoFieldNames;
+        private HashSet<string> _fieldNameSet = new HashSet<string>(StringComparer.Ordinal);
         private string[] _fieldValues = NoFieldNames;
         private string[] _headerLineFieldNames = NoFieldNames;
         private readonly bool _isInternalWriter;
@@ -188,6 +189,11 @@ namespace DataStandardizer.File.CSV
         /// A record line that has a different number of fields from the previous record line breaks RFC 4180§2¶4.  When
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> is set, it is called for the line, and the line is skipped: nothing is
         /// written for it, and the lines after it are checked against the same field count as before it.
+        /// <para>
+        /// Without a header line or a mapper, the fields written are those of the first record line written.  A later record line with a field
+        /// that isn't one of them has more fields than the previous record line, so it is handled or throws in the same way, rather than being
+        /// written without that field.  A later record line that lacks one of them is written with a blank value for it.
+        /// </para>
         /// </remarks>
         public void WriteLine(ICsvFileLine csvLine)
         {
@@ -287,6 +293,7 @@ namespace DataStandardizer.File.CSV
         private bool TryGetRecordLineFieldValues(TRecordLine recordLine, int lastFieldIndex, out int fieldValueCount)
         {
             var previousFieldNames = _fieldNames;
+            var previousFieldNameSet = _fieldNameSet;
             var previousFieldPlan = _fieldPlan;
             var isWritten = false;
             try
@@ -299,6 +306,7 @@ namespace DataStandardizer.File.CSV
                 if (!isWritten)
                 {
                     _fieldNames = previousFieldNames;
+                    _fieldNameSet = previousFieldNameSet;
                     _fieldPlan = previousFieldPlan;
                 }
             }
@@ -308,8 +316,9 @@ namespace DataStandardizer.File.CSV
         {
             ICsvFileLine csvLine = recordLine;
 
-            // Without a header line, the fields to output include every field seen so far on a record line.
-            if (_headerLineFieldNames.Length == 0 && csvLine.Count > _fieldNames.Length)
+            // Without a header line, the fields to output are those of the first record line written.  A later line with a field that isn't one of
+            // them adds it, so the line's field count differs and it is checked as inconsistent below, rather than being written without that field.
+            if (_headerLineFieldNames.Length == 0 && HasFieldNameNotSeen(csvLine))
             {
                 AddLineFieldNames(csvLine);
             }
@@ -384,10 +393,34 @@ namespace DataStandardizer.File.CSV
             return true;
         }
 
+        /// <summary>
+        /// Gets a flag indicating if a record line has a field whose name isn't one of the field names seen so far.
+        /// </summary>
+        private bool HasFieldNameNotSeen(ICsvFileLine csvLine)
+        {
+            var lineFieldNames = csvLine.Keys;
+            if (lineFieldNames.Count > _fieldNames.Length)
+            {
+                return true;
+            }
+
+            // A line usually has the same fields in the same order as the lines before it, so the name at the same position is compared first.
+            for (var fieldIndex = 0; fieldIndex < lineFieldNames.Count; fieldIndex++)
+            {
+                var fieldName = lineFieldNames[fieldIndex];
+                if (!string.Equals(fieldName, _fieldNames[fieldIndex], StringComparison.Ordinal) && !_fieldNameSet.Contains(fieldName))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private void AddLineFieldNames(ICsvFileLine csvLine)
         {
             var fieldNames = new List<string>(_fieldNames);
-            var knownFieldNames = new HashSet<string>(_fieldNames);
+            var knownFieldNames = new HashSet<string>(_fieldNames, StringComparer.Ordinal);
             var lineFieldNames = csvLine.Keys;
             for (var fieldIndex = 0; fieldIndex < lineFieldNames.Count; fieldIndex++)
             {
@@ -399,6 +432,7 @@ namespace DataStandardizer.File.CSV
             }
 
             _fieldNames = fieldNames.ToArray();
+            _fieldNameSet = knownFieldNames;
         }
 
         /// <summary>

@@ -929,6 +929,121 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_RecordLineWithSameFieldCountAndAnotherFieldNameAndNoFieldCountDelegate_ThrowsCsvFileException()
+        {
+            // arrange
+            // Without a header line, the first line sets the fields written, so the second line's Description field makes it a line of 3 fields.
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Description = SecondDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(recordLine2);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithSameFieldCountAndAnotherFieldNameAndFieldCountDelegate_CallsFieldCountDelegate()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Description = SecondDescription };
+
+            var handled = false;
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<UnmappedLine>(_ => handled = true) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                csvWriter.WriteLine(recordLine2);
+
+                // assert
+                handled.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithSameFieldCountAndAnotherFieldNameHandledByFieldCountDelegate_WritesNothing()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Description = SecondDescription };
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<UnmappedLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                csvWriter.WriteLine(recordLine2);
+
+                // assert
+                buffer.ToString().Should().Be(FirstRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineAfterLineWithAnotherFieldNameHandledByFieldCountDelegate_WritesFieldsOfFirstLine()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Description = SecondDescription };
+            var recordLine3 = new UnmappedLine { Id = 3, Name = ThirdName };
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<UnmappedLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                csvWriter.WriteLine(recordLine2);
+                csvWriter.WriteLine(recordLine3);
+
+                // assert
+                buffer.ToString().Should().Be(FirstAndThirdRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineLackingAFieldOfFirstLine_WritesBlankValueForField()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2 };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                csvWriter.WriteLine(recordLine2);
+
+                // assert
+                buffer.ToString().Should().Be("1,One\r\n2,\r\n");
+            }
+        }
+
+        [Fact]
         public void Constructor_FilePathWithNullOptions_ThrowsArgumentNullException()
         {
             // arrange

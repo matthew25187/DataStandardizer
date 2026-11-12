@@ -58,6 +58,12 @@ line's and `InconsistentFieldCountHandler` is set, the handler is called and the
 is skipped. Nothing is written for it, and the lines after it are checked against the
 same field count as before it. The reader skips a handled line in the same way.
 
+**Fields without a header line.** Without a header line or a mapper, the fields
+written are those of the first record line written. A later record line with a field
+that isn't one of them counts as having an inconsistent field count, so it is handled
+or throws `CsvFileException` rather than being written without that field. A later
+record line that lacks one of them is written with a blank value for it.
+
 ## Constructors
 
 | Constructor | Notes |
