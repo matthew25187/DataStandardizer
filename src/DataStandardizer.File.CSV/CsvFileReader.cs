@@ -569,7 +569,7 @@ namespace DataStandardizer.File.CSV
                 var fieldIndex = isFieldValue && fieldMapping.Value.FromStringConverter != null
                     ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount)
                     : null;
-                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, fieldValue, out var propertyValue,
+                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, isFieldValue, fieldValue, out var propertyValue,
                         out var error))
                 {
                     // Only a string is converted, so a value that fails to convert is always one.

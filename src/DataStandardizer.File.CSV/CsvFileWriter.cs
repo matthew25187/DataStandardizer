@@ -522,9 +522,9 @@ namespace DataStandardizer.File.CSV
             {
                 return null; // if there is no field value then there is nothing to serialize
             }
-            else if (mappedFieldValue is string serializedFieldValue)
+            else if (mappedFieldValue is string serializedFieldValue && field.Converter is null && fieldMapping.TypeConverterType is null)
             {
-                return serializedFieldValue; // if the field value is already of the target type then just return it
+                return serializedFieldValue; // a string needs no conversion, unless a converter is configured, which is given every value
             }
 
             return ConvertFieldValueToString(_headerLine, recordLine, _options, field.Mapping, field.Converter, ResolveTypeConverter(field), mappedFieldValue);
@@ -556,7 +556,7 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Converts a mapped field value that is not already a string: with the mapping's converter if it has one, else its type converter if that can
+        /// Converts a mapped field value: with the mapping's converter if it has one, else its type converter if that can
         /// convert to a string, else with <see cref="FormatFieldValue"/>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

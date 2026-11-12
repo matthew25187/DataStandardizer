@@ -99,6 +99,13 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ChangedRecordLine = "6,bob\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string RenamedNameLine = "bob\r\n";
+
+        /// <summary>
+        /// The text the converters of <see cref="DelegateConvertedNameLineMapper"/> and <see cref="FixedStringConverter"/> write for every value.
+        /// </summary>
+        private const string ConvertedName = "CONVERTED";
+
+        private const string ConvertedNameRecordLine = "5,CONVERTED\r\n";
         private const string ConvertedRecordLine = "#5,bob\r\n";
 
         // The record line that is read and then written.
@@ -617,6 +624,46 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_ToStringConverterOnStringProperty_WritesConvertedValue()
+        {
+            // arrange
+            var testLine = new RenamedBuilderLine { Id = RenamedId, Name = RenamedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<DelegateConvertedNameLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ConvertedNameRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_TypeConverterOnStringProperty_WritesConvertedValue()
+        {
+            // arrange
+            var testLine = new RenamedBuilderLine { Id = RenamedId, Name = RenamedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<TypeConvertedNameLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ConvertedNameRecordLine);
             }
         }
 
@@ -2089,6 +2136,46 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldName(PersonIdFieldName)
                     .ConvertUsing(new CsvFieldConvertToString<RenamedBuilderLine>(context => string.Empty));
             }
+        }
+
+        /// <summary>
+        /// Maps Id and Name to fields with other names, with a converter that writes <see cref="ConvertedName"/> for Name.
+        /// </summary>
+        private sealed class DelegateConvertedNameLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public DelegateConvertedNameLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PersonNameFieldName)
+                    .ConvertUsing(new CsvFieldConvertToString<RenamedBuilderLine>(_ => ConvertedName));
+            }
+        }
+
+        /// <summary>
+        /// Maps Id and Name to fields with other names, with <see cref="FixedStringConverter"/> as the type converter of Name.
+        /// </summary>
+        private sealed class TypeConvertedNameLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public TypeConvertedNameLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PersonNameFieldName)
+                    .ConvertUsing(typeof(FixedStringConverter));
+            }
+        }
+
+        /// <summary>
+        /// Converts every value to <see cref="ConvertedName"/>.
+        /// </summary>
+        private sealed class FixedStringConverter : TypeConverter
+        {
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) => destinationType == typeof(string);
+
+            public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType) => ConvertedName;
         }
 
         /// <summary>
