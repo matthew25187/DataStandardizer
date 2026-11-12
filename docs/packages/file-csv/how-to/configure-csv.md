@@ -196,5 +196,12 @@ lines are terminated when written to a CSV file by a writer.
 A carriage return or line feed that isn't part of the terminator can only be in a
 quoted field. In an unquoted field the reader reports it as a
 [bad value](#bad-value-handler), as RFC 4180 section 2 allows no line break in a
-non-escaped field. So a file whose lines end with `\r\n`, read with
-`TerminatorLineBreak = "\n"`, has a bad value at the end of each line.
+non-escaped field. So set this option to the line break the file uses:
+
+- A file whose lines end with `\r\n`, read with `TerminatorLineBreak = "\n"`,
+  has a bad value at the end of each line.
+- A file whose lines end with `\n`, read with the default `"\r\n"`, has no
+  terminator, so the whole file is one record, with a bad value at each line
+  break.
+- A file whose lines end with `\r\n`, read with `TerminatorLineBreak = "\r"`,
+  has a bad value at the start of each line after the first.

@@ -37,7 +37,8 @@ namespace DataStandardizer.File.CSV.Tests
         private static readonly string[] Terminators = new string[] { CrLf, "\n", "\r" };
         private static readonly int[] BufferSizes = new int[] { 1, 2, 3, 5, DefaultBufferSize };
 
-        // Each terminator with each CR or LF that isn't the terminator, which a non-escaped field can't hold (RFC 4180 section 2, TEXTDATA).
+        // Each terminator, as the key, with each CR or LF that isn't the terminator, as the value, which replaces LineBreakPlaceholder.  A
+        // non-escaped field can't hold a CR or LF (RFC 4180 section 2, TEXTDATA).
         private static readonly KeyValuePair<string, string>[] BareLineBreaks = new KeyValuePair<string, string>[]
         {
             new KeyValuePair<string, string>(CrLf, "\r"),
@@ -53,20 +54,45 @@ namespace DataStandardizer.File.CSV.Tests
 
         // One row for each way a record can end on an invalid field, read by both invalid last field theories.  The rows that end with a terminator
         // have a record after it, to show where the stream is left.
-        private static readonly InvalidLastFieldValue[] InvalidLastFieldValues = new InvalidLastFieldValue[]
+        private static readonly InvalidFieldCase[] InvalidLastFieldValues = new InvalidFieldCase[]
         {
             // Unterminated quote at the end of the stream.
-            new InvalidLastFieldValue("a,\"b", new[] { new[] { "a", "" } }, new BadValue("b", 1)),
+            new InvalidFieldCase("a,\"b", new[] { new[] { "a", "" } }, new BadValue("b", 1)),
             // Text before an unterminated quote at the end of the stream: one violation at the quote, and another at the end of the stream.
-            new InvalidLastFieldValue("a,x\"b", new[] { new[] { "a", "" } }, new BadValue("x", 1), new BadValue("xb", 1)),
+            new InvalidFieldCase("a,x\"b", new[] { new[] { "a", "" } }, new BadValue("x", 1), new BadValue("xb", 1)),
             // Closing quote at the end of the stream.
-            new InvalidLastFieldValue("a,x\"b\"", new[] { new[] { "a", "" } }, new BadValue("x", 1)),
+            new InvalidFieldCase("a,x\"b\"", new[] { new[] { "a", "" } }, new BadValue("x", 1)),
             // Closing quote followed by the terminator.
-            new InvalidLastFieldValue("a,x\"b\"\nd", new[] { new[] { "a", "" }, new[] { "d" } }, new BadValue("x", 1)),
+            new InvalidFieldCase("a,x\"b\"\nd", new[] { new[] { "a", "" }, new[] { "d" } }, new BadValue("x", 1)),
             // Text after the closing quote, then the end of the stream.
-            new InvalidLastFieldValue("a,\"b\"c", new[] { new[] { "a", "" } }, new BadValue("bc", 1)),
+            new InvalidFieldCase("a,\"b\"c", new[] { new[] { "a", "" } }, new BadValue("bc", 1)),
             // Text after the closing quote, then the terminator.
-            new InvalidLastFieldValue("a,\"b\"c\nd", new[] { new[] { "a", "" }, new[] { "d" } }, new BadValue("bc", 1)),
+            new InvalidFieldCase("a,\"b\"c\nd", new[] { new[] { "a", "" }, new[] { "d" } }, new BadValue("bc", 1)),
+        };
+
+        // One row for each place in an unquoted field that a CR or LF that isn't the terminator can be, read by both bare line break theories.
+        private static readonly InvalidFieldCase[] BareLineBreakInUnquotedFieldValues = new InvalidFieldCase[]
+        {
+            // Inside the field.
+            new InvalidFieldCase("a,b" + LineBreakPlaceholder + "c\nd", new[] { new[] { "a", "" }, new[] { "d" } }, new BadValue("b" + LineBreakPlaceholder, 1)),
+            // Just before a delimiter.
+            new InvalidFieldCase("a,b" + LineBreakPlaceholder + ",c\nd", new[] { new[] { "a", "", "c" }, new[] { "d" } },
+                new BadValue("b" + LineBreakPlaceholder, 1)),
+            // Just before the terminator.
+            new InvalidFieldCase("a,b" + LineBreakPlaceholder + "\nd", new[] { new[] { "a", "" }, new[] { "d" } }, new BadValue("b" + LineBreakPlaceholder, 1)),
+            // At the end of the stream.
+            new InvalidFieldCase("a,b" + LineBreakPlaceholder, new[] { new[] { "a", "" } }, new BadValue("b" + LineBreakPlaceholder, 1)),
+        };
+
+        // One row for each way a CR or LF that isn't the terminator can follow a closing quote, read by both line break after closing quote
+        // theories.
+        private static readonly InvalidFieldCase[] LineBreakAfterClosingQuoteValues = new InvalidFieldCase[]
+        {
+            // Then more text: the line break and the character after it are each a violation.
+            new InvalidFieldCase("a,\"b\"" + LineBreakPlaceholder + "c\nd", new[] { new[] { "a", "" }, new[] { "d" } },
+                new BadValue("b" + LineBreakPlaceholder, 1), new BadValue("b" + LineBreakPlaceholder + "c", 1)),
+            // Then the end of the stream.
+            new InvalidFieldCase("a,\"b\"" + LineBreakPlaceholder, new[] { new[] { "a", "" } }, new BadValue("b" + LineBreakPlaceholder, 1)),
         };
 
         public static TheoryData<char, string, int> Formats()
@@ -115,13 +141,7 @@ namespace DataStandardizer.File.CSV.Tests
 
         public static TheoryData<string, char, string, int, string[][]> InvalidLastFieldValueCases()
         {
-            var data = new TheoryData<string, char, string, int, string[][]>();
-            foreach (var invalidLastFieldValue in InvalidLastFieldValues)
-            {
-                AddRecordCases(data, Terminators, invalidLastFieldValue.Input, invalidLastFieldValue.ExpectedRecords);
-            }
-
-            return data;
+            return InvalidFieldRecordCases(WithoutLineBreak(Terminators), InvalidLastFieldValues);
         }
 
         public static TheoryData<string, char, string, int, string[][]> RecordAfterNonWhiteSpaceBeforeOpeningQuoteCases =>
@@ -149,9 +169,9 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int, string[][]> UnterminatedQuoteCases =>
             RecordCases(UnterminatedQuoteInput, new[] { "a", "b" }, new[] { "c", "" });
 
-        // The raw value runs to the end of the stream, so it holds a delimiter and terminators and is translated like the input.
+        // The raw value runs to the end of the stream, so it holds a delimiter and terminators, which are translated like the input.
         public static TheoryData<string, char, string, int, BadValue[]> UnterminatedQuoteBadValueCases =>
-            TranslatedBadValueCases(UnterminatedQuoteInput, new BadValue("d\ne,f\n", 1));
+            BadValueCases(UnterminatedQuoteInput, new BadValue("d\ne,f\n", 1));
 
         public static TheoryData<string, char, string, int> UnhandledUnterminatedQuoteCases =>
             InputCases(UnhandledUnterminatedQuoteInput);
@@ -160,22 +180,24 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int, string[][]> CarriageReturnWithoutLineFeedInsideQuotesCases =>
             RecordCases(new[] { CrLf }, "\"a\rb\",c\n\"d\r\"", new[] { "a\rb", "c" }, new[] { "d\r" });
 
+        // A lone first character of a terminator that isn't CR or LF is ordinary content in an unquoted field.
+        public static TheoryData<string, char, string, int, string[][]> LoneTerminatorStartInUnquotedFieldCases =>
+            RecordCases(new[] { PipePairTerminator }, "a|b\nc", new[] { "a|b" }, new[] { "c" });
+
         public static TheoryData<string, char, string, int, string[][]> BareLineBreakInUnquotedFieldCases =>
-            LineBreakRecordCases(BareLineBreakInUnquotedFieldTemplate, new[] { "a", "" }, new[] { "d" });
+            InvalidFieldRecordCases(BareLineBreaks, BareLineBreakInUnquotedFieldValues);
 
         public static TheoryData<string, char, string, int, BadValue[]> BareLineBreakInUnquotedFieldBadValueCases =>
-            LineBreakBadValueCases(BareLineBreakInUnquotedFieldTemplate, new BadValue("b" + LineBreakPlaceholder, 1));
+            InvalidFieldBadValueCases(BareLineBreaks, BareLineBreakInUnquotedFieldValues);
 
         public static TheoryData<string, char, string, int> UnhandledBareLineBreakInUnquotedFieldCases =>
-            LineBreakInputCases(BareLineBreakInUnquotedFieldTemplate);
+            InputCases(BareLineBreaks, UnhandledBareLineBreakInUnquotedFieldInput);
 
         public static TheoryData<string, char, string, int, string[][]> LineBreakAfterClosingQuoteCases =>
-            LineBreakRecordCases(LineBreakAfterClosingQuoteTemplate, new[] { "a", "" }, new[] { "d" });
+            InvalidFieldRecordCases(BareLineBreaks, LineBreakAfterClosingQuoteValues);
 
-        // The line break and the character after it are each a violation.
         public static TheoryData<string, char, string, int, BadValue[]> LineBreakAfterClosingQuoteBadValueCases =>
-            LineBreakBadValueCases(LineBreakAfterClosingQuoteTemplate, new BadValue("b" + LineBreakPlaceholder, 1),
-                new BadValue("b" + LineBreakPlaceholder + "c", 1));
+            InvalidFieldBadValueCases(BareLineBreaks, LineBreakAfterClosingQuoteValues);
 
         public static TheoryData<string, char, string, int, BadValue[]> WhiteSpaceBeforeOpeningQuoteBadValueCases =>
             BadValueCases(WhiteSpaceBeforeOpeningQuoteInput, new BadValue(" ", 1));
@@ -190,23 +212,17 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int, BadValue[]> NonWhiteSpaceAfterClosingQuoteBadValueCases =>
             BadValueCases(NonWhiteSpaceAfterClosingQuoteInput, new BadValue("ab", 0), new BadValue("abc", 0), new BadValue("abc ", 0));
 
-        // The whitespace and the second opening quote are each a violation.
+        // The whitespace after the closing quote is the violation.  The second opening quote, past it, isn't reported again.
         public static TheoryData<string, char, string, int, BadValue[]> SecondQuotedSectionAfterQuotedValueBadValueCases =>
-            BadValueCases(SecondQuotedSectionAfterQuotedValueInput, new BadValue("a ", 0), new BadValue("a ", 0));
+            BadValueCases(SecondQuotedSectionAfterQuotedValueInput, new BadValue("a ", 0));
 
-        // An empty quoted value is no exception: the whitespace and the second opening quote are each a violation.
+        // An empty quoted value is no exception.
         public static TheoryData<string, char, string, int, BadValue[]> SecondQuotedSectionAfterEmptyQuotedValueBadValueCases =>
-            BadValueCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new BadValue(" ", 0), new BadValue(" ", 0));
+            BadValueCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new BadValue(" ", 0));
 
         public static TheoryData<string, char, string, int, BadValue[]> InvalidLastFieldValueBadValueCases()
         {
-            var data = new TheoryData<string, char, string, int, BadValue[]>();
-            foreach (var invalidLastFieldValue in InvalidLastFieldValues)
-            {
-                AddBadValueCases(data, invalidLastFieldValue.Input, invalidLastFieldValue.ExpectedBadValues);
-            }
-
-            return data;
+            return InvalidFieldBadValueCases(WithoutLineBreak(Terminators), InvalidLastFieldValues);
         }
 
         public static TheoryData<string, char, string, int> UnhandledNonWhiteSpaceBeforeOpeningQuoteCases =>
@@ -235,11 +251,13 @@ namespace DataStandardizer.File.CSV.Tests
         private const string UnterminatedQuoteInput = "a,b\nc,\"d\ne,f\n";
         private const string UnhandledUnterminatedQuoteInput = "a,\"b\nc,d\n";
 
-        // Inputs with a line break that isn't the terminator, written with LineBreakPlaceholder in its place.  The line break cases give each
-        // terminator each line break that isn't it.
-        private const string BareLineBreakInUnquotedFieldTemplate = "a,b" + LineBreakPlaceholder + "c\nd";
-        private const string LineBreakAfterClosingQuoteTemplate = "a,\"b\"" + LineBreakPlaceholder + "c\nd";
+        private const string UnhandledBareLineBreakInUnquotedFieldInput = "a,b" + LineBreakPlaceholder + "c\nd";
+
+        // Stands in an input for a line break that isn't the terminator.  The line break cases put each of BareLineBreaks in its place.
         private const string LineBreakPlaceholder = "~";
+
+        // A two-character terminator whose first character isn't CR or LF.
+        private const string PipePairTerminator = "||";
 
         [Theory]
         [MemberData(nameof(Formats))]
@@ -797,6 +815,22 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
+        [MemberData(nameof(LoneTerminatorStartInUnquotedFieldCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_LoneTerminatorStartInUnquotedField_KeepsCharacterInFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+
+                // act
+                var testResult = ReadAllRecords(csvReader);
+
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
         [MemberData(nameof(BareLineBreakInUnquotedFieldCases), DisableDiscoveryEnumeration = true)]
         public void TryReadRecord_BareLineBreakInUnquotedField_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
@@ -906,11 +940,11 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// A record that ends on an invalid field, the records expected from it and the bad values expected for it.
+        /// An input with an invalid field, the records expected from it and the bad values expected for it.
         /// </summary>
-        private sealed class InvalidLastFieldValue
+        private sealed class InvalidFieldCase
         {
-            public InvalidLastFieldValue(string input, string[][] expectedRecords, params BadValue[] expectedBadValues)
+            public InvalidFieldCase(string input, string[][] expectedRecords, params BadValue[] expectedBadValues)
             {
                 Input = input;
                 ExpectedRecords = expectedRecords;
@@ -925,6 +959,12 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
+        /// Pairs each terminator with an empty line break, for inputs with no <see cref="LineBreakPlaceholder"/>.
+        /// </summary>
+        private static KeyValuePair<string, string>[] WithoutLineBreak(string[] terminators) =>
+            terminators.Select(terminator => new KeyValuePair<string, string>(terminator, string.Empty)).ToArray();
+
+        /// <summary>
         /// Makes one case for each delimiter, terminator and buffer size, from an input and the records expected from it.
         /// </summary>
         private static TheoryData<string, char, string, int, string[][]> RecordCases(string input, params string[][] expectedRecords) =>
@@ -933,49 +973,40 @@ namespace DataStandardizer.File.CSV.Tests
         private static TheoryData<string, char, string, int, string[][]> RecordCases(string[] terminators, string input, params string[][] expectedRecords)
         {
             var data = new TheoryData<string, char, string, int, string[][]>();
-            AddRecordCases(data, terminators, input, expectedRecords);
+            AddRecordCases(data, WithoutLineBreak(terminators), input, expectedRecords);
 
             return data;
-        }
-
-        private static void AddRecordCases(TheoryData<string, char, string, int, string[][]> data, string[] terminators, string input, string[][] expectedRecords)
-        {
-            foreach (var delimiter in Delimiters)
-            {
-                foreach (var terminator in terminators)
-                {
-                    var translatedRecords = expectedRecords
-                        .Select(fieldValues => fieldValues.Select(fieldValue => Translate(fieldValue, delimiter, terminator)).ToArray())
-                        .ToArray();
-                    foreach (var bufferSize in BufferSizes)
-                    {
-                        data.Add(Translate(input, delimiter, terminator), delimiter, terminator, bufferSize, translatedRecords);
-                    }
-                }
-            }
         }
 
         /// <summary>
-        /// Makes one case for each delimiter, terminator and buffer size, from an input and the bad values expected from it.  The expected raw field
-        /// values hold no delimiter or terminator, so they aren't translated.
+        /// Makes one case for each row, delimiter, terminator and line break pair, and buffer size, from the input and records of each row.
         /// </summary>
-        private static TheoryData<string, char, string, int, BadValue[]> BadValueCases(string input, params BadValue[] expectedBadValues)
+        private static TheoryData<string, char, string, int, string[][]> InvalidFieldRecordCases(KeyValuePair<string, string>[] terminatorsAndLineBreaks,
+            InvalidFieldCase[] invalidFieldCases)
         {
-            var data = new TheoryData<string, char, string, int, BadValue[]>();
-            AddBadValueCases(data, input, expectedBadValues);
+            var data = new TheoryData<string, char, string, int, string[][]>();
+            foreach (var invalidFieldCase in invalidFieldCases)
+            {
+                AddRecordCases(data, terminatorsAndLineBreaks, invalidFieldCase.Input, invalidFieldCase.ExpectedRecords);
+            }
 
             return data;
         }
 
-        private static void AddBadValueCases(TheoryData<string, char, string, int, BadValue[]> data, string input, BadValue[] expectedBadValues)
+        private static void AddRecordCases(TheoryData<string, char, string, int, string[][]> data, KeyValuePair<string, string>[] terminatorsAndLineBreaks,
+            string input, string[][] expectedRecords)
         {
             foreach (var delimiter in Delimiters)
             {
-                foreach (var terminator in Terminators)
+                foreach (var terminatorAndLineBreak in terminatorsAndLineBreaks)
                 {
+                    var translatedInput = Translate(input, delimiter, terminatorAndLineBreak);
+                    var translatedRecords = expectedRecords
+                        .Select(fieldValues => fieldValues.Select(fieldValue => Translate(fieldValue, delimiter, terminatorAndLineBreak)).ToArray())
+                        .ToArray();
                     foreach (var bufferSize in BufferSizes)
                     {
-                        data.Add(Translate(input, delimiter, terminator), delimiter, terminator, bufferSize, expectedBadValues);
+                        data.Add(translatedInput, delimiter, terminatorAndLineBreak.Key, bufferSize, translatedRecords);
                     }
                 }
             }
@@ -985,39 +1016,64 @@ namespace DataStandardizer.File.CSV.Tests
         /// Makes one case for each delimiter, terminator and buffer size, from an input and the bad values expected from it.  The expected raw field
         /// values are translated like the input.
         /// </summary>
-        private static TheoryData<string, char, string, int, BadValue[]> TranslatedBadValueCases(string input, params BadValue[] expectedBadValues)
+        private static TheoryData<string, char, string, int, BadValue[]> BadValueCases(string input, params BadValue[] expectedBadValues)
         {
             var data = new TheoryData<string, char, string, int, BadValue[]>();
-            foreach (var delimiter in Delimiters)
+            AddBadValueCases(data, WithoutLineBreak(Terminators), input, expectedBadValues);
+
+            return data;
+        }
+
+        /// <summary>
+        /// Makes one case for each row, delimiter, terminator and line break pair, and buffer size, from the input and bad values of each row.
+        /// </summary>
+        private static TheoryData<string, char, string, int, BadValue[]> InvalidFieldBadValueCases(KeyValuePair<string, string>[] terminatorsAndLineBreaks,
+            InvalidFieldCase[] invalidFieldCases)
+        {
+            var data = new TheoryData<string, char, string, int, BadValue[]>();
+            foreach (var invalidFieldCase in invalidFieldCases)
             {
-                foreach (var terminator in Terminators)
-                {
-                    var translatedBadValues = expectedBadValues
-                        .Select(badValue => new BadValue(Translate(badValue.RawFieldValue, delimiter, terminator), badValue.FieldIndex))
-                        .ToArray();
-                    foreach (var bufferSize in BufferSizes)
-                    {
-                        data.Add(Translate(input, delimiter, terminator), delimiter, terminator, bufferSize, translatedBadValues);
-                    }
-                }
+                AddBadValueCases(data, terminatorsAndLineBreaks, invalidFieldCase.Input, invalidFieldCase.ExpectedBadValues);
             }
 
             return data;
+        }
+
+        private static void AddBadValueCases(TheoryData<string, char, string, int, BadValue[]> data, KeyValuePair<string, string>[] terminatorsAndLineBreaks,
+            string input, BadValue[] expectedBadValues)
+        {
+            foreach (var delimiter in Delimiters)
+            {
+                foreach (var terminatorAndLineBreak in terminatorsAndLineBreaks)
+                {
+                    var translatedInput = Translate(input, delimiter, terminatorAndLineBreak);
+                    var translatedBadValues = expectedBadValues
+                        .Select(badValue => new BadValue(Translate(badValue.RawFieldValue, delimiter, terminatorAndLineBreak), badValue.FieldIndex))
+                        .ToArray();
+                    foreach (var bufferSize in BufferSizes)
+                    {
+                        data.Add(translatedInput, delimiter, terminatorAndLineBreak.Key, bufferSize, translatedBadValues);
+                    }
+                }
+            }
         }
 
         /// <summary>
         /// Makes one case for each delimiter, terminator and buffer size, from an input.
         /// </summary>
-        private static TheoryData<string, char, string, int> InputCases(string input)
+        private static TheoryData<string, char, string, int> InputCases(string input) => InputCases(WithoutLineBreak(Terminators), input);
+
+        private static TheoryData<string, char, string, int> InputCases(KeyValuePair<string, string>[] terminatorsAndLineBreaks, string input)
         {
             var data = new TheoryData<string, char, string, int>();
             foreach (var delimiter in Delimiters)
             {
-                foreach (var terminator in Terminators)
+                foreach (var terminatorAndLineBreak in terminatorsAndLineBreaks)
                 {
+                    var translatedInput = Translate(input, delimiter, terminatorAndLineBreak);
                     foreach (var bufferSize in BufferSizes)
                     {
-                        data.Add(Translate(input, delimiter, terminator), delimiter, terminator, bufferSize);
+                        data.Add(translatedInput, delimiter, terminatorAndLineBreak.Key, bufferSize);
                     }
                 }
             }
@@ -1026,84 +1082,11 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Makes one case for each delimiter, terminator, line break that isn't the terminator, and buffer size, from an input and the records
-        /// expected from it.  The line break replaces <see cref="LineBreakPlaceholder"/> in the input once it is translated.
+        /// Translates a template written with <c>,</c> as the delimiter and <c>\n</c> as the terminator, then puts the line break of the pair in
+        /// place of <see cref="LineBreakPlaceholder"/>, so a line break isn't translated as the terminator.
         /// </summary>
-        private static TheoryData<string, char, string, int, string[][]> LineBreakRecordCases(string template, params string[][] expectedRecords)
-        {
-            var data = new TheoryData<string, char, string, int, string[][]>();
-            foreach (var terminatorAndLineBreak in BareLineBreaks)
-            {
-                var terminator = terminatorAndLineBreak.Key;
-                foreach (var delimiter in Delimiters)
-                {
-                    var input = Translate(template, delimiter, terminator).Replace(LineBreakPlaceholder, terminatorAndLineBreak.Value);
-                    var translatedRecords = expectedRecords
-                        .Select(fieldValues => fieldValues.Select(fieldValue => Translate(fieldValue, delimiter, terminator)).ToArray())
-                        .ToArray();
-                    foreach (var bufferSize in BufferSizes)
-                    {
-                        data.Add(input, delimiter, terminator, bufferSize, translatedRecords);
-                    }
-                }
-            }
-
-            return data;
-        }
-
-        /// <summary>
-        /// Makes one case for each delimiter, terminator, line break that isn't the terminator, and buffer size, from an input and the bad values
-        /// expected from it.  The line break replaces <see cref="LineBreakPlaceholder"/> in the input once it is translated, and in the expected raw
-        /// field values, which hold no delimiter or terminator.
-        /// </summary>
-        private static TheoryData<string, char, string, int, BadValue[]> LineBreakBadValueCases(string template, params BadValue[] expectedBadValues)
-        {
-            var data = new TheoryData<string, char, string, int, BadValue[]>();
-            foreach (var terminatorAndLineBreak in BareLineBreaks)
-            {
-                var terminator = terminatorAndLineBreak.Key;
-                var lineBreak = terminatorAndLineBreak.Value;
-                var translatedBadValues = expectedBadValues
-                    .Select(badValue => new BadValue(badValue.RawFieldValue.Replace(LineBreakPlaceholder, lineBreak), badValue.FieldIndex))
-                    .ToArray();
-                foreach (var delimiter in Delimiters)
-                {
-                    var input = Translate(template, delimiter, terminator).Replace(LineBreakPlaceholder, lineBreak);
-                    foreach (var bufferSize in BufferSizes)
-                    {
-                        data.Add(input, delimiter, terminator, bufferSize, translatedBadValues);
-                    }
-                }
-            }
-
-            return data;
-        }
-
-        /// <summary>
-        /// Makes one case for each delimiter, terminator, line break that isn't the terminator, and buffer size, from an input.  The line break
-        /// replaces <see cref="LineBreakPlaceholder"/> once the input is translated.
-        /// </summary>
-        private static TheoryData<string, char, string, int> LineBreakInputCases(string template)
-        {
-            var data = new TheoryData<string, char, string, int>();
-            foreach (var terminatorAndLineBreak in BareLineBreaks)
-            {
-                var terminator = terminatorAndLineBreak.Key;
-                foreach (var delimiter in Delimiters)
-                {
-                    var input = Translate(template, delimiter, terminator).Replace(LineBreakPlaceholder, terminatorAndLineBreak.Value);
-                    foreach (var bufferSize in BufferSizes)
-                    {
-                        data.Add(input, delimiter, terminator, bufferSize);
-                    }
-                }
-            }
-
-            return data;
-        }
-
-        private static string Translate(string template, char delimiter, string terminator) =>
-            template.Replace(',', delimiter).Replace("\n", terminator);
+        private static string Translate(string template, char delimiter, KeyValuePair<string, string> terminatorAndLineBreak) =>
+            template.Replace(',', delimiter).Replace("\n", terminatorAndLineBreak.Key).Replace(LineBreakPlaceholder, terminatorAndLineBreak.Value);
 
         private static CsvFieldBadValue<CsvFileRecordLine> CollectBadValues(List<BadValue> badValues) =>
             context => badValues.Add(new BadValue(context.RawFieldValue, context.FieldIndex));
