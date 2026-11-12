@@ -46,7 +46,9 @@ namespace DataStandardizer.File.CSV.Tests
         private static readonly InvalidLastFieldValue[] InvalidLastFieldValues = new InvalidLastFieldValue[]
         {
             // Unterminated quote at the end of the stream.
-            new InvalidLastFieldValue("a,x\"b", new[] { new[] { "a", "" } }, new BadValue("x", 1)),
+            new InvalidLastFieldValue("a,\"b", new[] { new[] { "a", "" } }, new BadValue("b", 1)),
+            // Text before an unterminated quote at the end of the stream: one violation at the quote, and another at the end of the stream.
+            new InvalidLastFieldValue("a,x\"b", new[] { new[] { "a", "" } }, new BadValue("x", 1), new BadValue("xb", 1)),
             // Closing quote at the end of the stream.
             new InvalidLastFieldValue("a,x\"b\"", new[] { new[] { "a", "" } }, new BadValue("x", 1)),
             // Closing quote followed by the terminator.
@@ -132,7 +134,16 @@ namespace DataStandardizer.File.CSV.Tests
             RecordCases("a,b\nc,\"d\"", new[] { "a", "b" }, new[] { "c", "d" });
 
         public static TheoryData<string, char, string, int, string[][]> UnterminatedQuoteCases =>
-            RecordCases("a,b\nc,\"d\ne,f\n", new[] { "a", "b" }, new[] { "c", "d\ne,f\n" });
+            RecordCases(UnterminatedQuoteInput, new[] { "a", "b" }, new[] { "c", "" });
+
+        public static TheoryData<string, char, string, int, string[][]> AllowedUnterminatedQuoteCases =>
+            RecordCases(UnterminatedQuoteInput, new[] { "a", "b" }, new[] { "c", "d\ne,f\n" });
+
+        public static TheoryData<string, char, string, int, BadValue[]> AllowedUnterminatedQuoteBadValueCases =>
+            BadValueCases(UnterminatedQuoteInput);
+
+        public static TheoryData<string, char, string, int> UnhandledUnterminatedQuoteCases =>
+            InputCases(UnhandledUnterminatedQuoteInput);
 
         // With a two-character terminator, a lone first character is ordinary content, inside or after a quoted value.
         public static TheoryData<string, char, string, int, string[][]> CarriageReturnWithoutLineFeedCases =>
@@ -178,6 +189,8 @@ namespace DataStandardizer.File.CSV.Tests
         private const string SecondQuotedSectionAfterEmptyQuotedValueInput = "\"\" \"b\",c\n";
         private const string UnhandledNonWhiteSpaceBeforeOpeningQuoteInput = "a,x\"b\n\",c\nd";
         private const string UnhandledNonWhiteSpaceAfterClosingQuoteInput = "a,b,\"c\"d\ne";
+        private const string UnterminatedQuoteInput = "a,b\nc,\"d\ne,f\n";
+        private const string UnhandledUnterminatedQuoteInput = "a,\"b\nc,d\n";
 
         [Theory]
         [MemberData(nameof(Formats))]
@@ -597,10 +610,10 @@ namespace DataStandardizer.File.CSV.Tests
 
         [Theory]
         [MemberData(nameof(UnterminatedQuoteCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_UnterminatedQuote_RunsToEndOfStream(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        public void TryReadRecord_UnterminatedQuote_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
             {
 
                 // act
@@ -608,6 +621,60 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UnhandledUnterminatedQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_UnterminatedQuoteWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator, int bufferSize)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                var fieldValues = new List<string>();
+
+                // act
+                Action testAction = () => csvReader.TryReadRecord(fieldValues);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .WithMessage("Encountered invalid value at field index 1.")
+                    .Which.Data[FieldIndexDataItem].Should().Be(1);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(AllowedUnterminatedQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_UnterminatedQuoteWithAllowUnterminatedQuotedFields_RunsToEndOfStream(string input, char delimiter, string terminator, int bufferSize,
+            string[][] expectedRecords)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, allowUnterminatedQuotedFields: true))
+            {
+
+                // act
+                var testResult = ReadAllRecords(csvReader);
+
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(AllowedUnterminatedQuoteBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_UnterminatedQuoteWithAllowUnterminatedQuotedFields_DoesNotCallBadValueHandler(string input, char delimiter, string terminator,
+            int bufferSize, BadValue[] expectedBadValues)
+        {
+            // arrange
+            var badValues = new List<BadValue>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues), allowUnterminatedQuotedFields: true))
+            {
+
+                // act
+                _ = ReadAllRecords(csvReader);
+
+                // assert
+                badValues.Should().Equal(expectedBadValues);
             }
         }
 
@@ -754,10 +821,11 @@ namespace DataStandardizer.File.CSV.Tests
             context => badValues.Add(new BadValue(context.RawFieldValue, context.FieldIndex));
 
         private static CsvFileReader<CsvFileRecordLine> CreateReader(string input, char delimiter, string terminator, int bufferSize,
-            CsvFieldBadValue<CsvFileRecordLine> badValueHandler = null)
+            CsvFieldBadValue<CsvFileRecordLine> badValueHandler = null, bool allowUnterminatedQuotedFields = false)
         {
             var options = new CsvFileOptions
             {
+                AllowUnterminatedQuotedFields = allowUnterminatedQuotedFields,
                 FieldDelimiterCharacter = delimiter,
                 TerminatorLineBreak = terminator,
                 BadValueHandler = badValueHandler

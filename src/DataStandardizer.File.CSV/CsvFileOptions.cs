@@ -10,6 +10,17 @@ namespace DataStandardizer.File.CSV
     public interface ICsvFileOptions
     {
         /// <summary>
+        /// Gets a flag indicating if a quoted field that the stream ends inside, with no closing quote, is accepted.
+        /// </summary>
+        /// <remarks>
+        /// Applies to reading lines only.  Accepting the field relaxes RFC 4180§2, whose grammar ends an escaped field with a closing DQUOTE
+        /// (<c>escaped = DQUOTE *(TEXTDATA / COMMA / CR / LF / 2DQUOTE) DQUOTE</c>).  When the flag is set, the field runs to the end of the stream
+        /// and its value is everything after the opening quote, delimiters and line breaks included.  When it isn't set, the field is a bad value:
+        /// it is passed to <see cref="BadValueHandler"/>, or throws <see cref="CsvFileException"/> when no handler is set.
+        /// </remarks>
+        bool AllowUnterminatedQuotedFields { get; }
+
+        /// <summary>
         /// Gets the <see cref="CsvFieldBadValue{TModel}"/> delegate that will be called when a bad value is found in a CSV field.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -121,6 +132,16 @@ namespace DataStandardizer.File.CSV
 #endif
         : ICsvFileOptions
     {
+        public bool AllowUnterminatedQuotedFields
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = false;
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 
         public Delegate? BadValueHandler
