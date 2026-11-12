@@ -14,24 +14,6 @@ Various options can be specified to configure the behaviour of a reader or
 writer. If you don't specify any custom configuration options, default options
 will be used that are compatible with the requirements of RFC 4180.
 
-## Allow unterminated quoted fields
-
-**Default:** `false`
-
-RFC 4180 section 2 ends a quoted field with a closing quote. By default, a
-reader treats a quoted field that the file ends inside as a bad value: it calls
-the [bad value handler](#bad-value-handler), or throws `CsvFileException` when
-there is none.
-
-```csharp
-var options = new CsvFileOptions { AllowUnterminatedQuotedFields = true };
-```
-
-With this option set, the reader accepts the field instead. Its value is
-everything after the opening quote up to the end of the file, delimiters and
-line breaks included, so the rest of the file becomes one field. The option
-applies to reading only.
-
 ## Bad value handler
 
 **Default:** `null`

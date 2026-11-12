@@ -31,7 +31,6 @@ build an instance.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `AllowUnterminatedQuotedFields` | `bool AllowUnterminatedQuotedFields { get; }` | Accept a quoted field the file ends inside (reading only). |
 | `BadValueHandler` | `Delegate? BadValueHandler { get; }` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate. |
 | `Culture` | `CultureInfo? Culture { get; }` | Culture for value (de)serialization. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; }` | Replacement for line breaks embedded in field values. |

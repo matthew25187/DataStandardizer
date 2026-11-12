@@ -702,16 +702,10 @@ namespace DataStandardizer.File.CSV
                         _bufferPosition = _bufferEnd;
                         if (EnsureAvailable(1)) continue;
 
-                        // An escaped field ends with a closing quote, so a stream that ends inside one breaks the grammar.  The opt-in accepts the
-                        // field, which then runs to the end of the stream.
+                        // An escaped field ends with a closing quote, so a stream that ends inside one breaks the grammar.
                         // ref. RFC 4180§2 (escaped)
-                        if (!_options.AllowUnterminatedQuotedFields)
-                        {
-                            AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
-                            isInvalidValue = true;
-                        }
-
-                        AddFieldValue(fieldValues, isInvalidValue);
+                        AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
+                        AddFieldValue(fieldValues, isInvalidValue: true);
                         break;
                     }
 

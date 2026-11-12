@@ -83,7 +83,6 @@ namespace DataStandardizer.File.CSV.Tests
 
         // A record whose last field opens a quote that the file never closes, which the escaped rule of RFC 4180 section 2 doesn't allow.
         private const string UnterminatedQuoteFile = "One,\"Two\r\nThree,Four\r\n";
-        private const string UnterminatedQuoteFieldValue = "Two\r\nThree,Four\r\n";
         private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
         private const string InvalidConvertedFieldMappedLine = "x\"1\",One";
 
@@ -454,22 +453,6 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
-            }
-        }
-
-        [Fact]
-        public void ReadLine_UnterminatedQuotedFieldWithAllowUnterminatedQuotedFields_ReadsFieldToEndOfFile()
-        {
-            // arrange
-            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, AllowUnterminatedQuotedFields = true };
-            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(UnterminatedQuoteFile), options))
-            {
-
-                // act
-                var testResult = csvReader.ReadLine();
-
-                // assert
-                testResult.Values.Should().Equal(FirstName, UnterminatedQuoteFieldValue);
             }
         }
 

@@ -45,7 +45,6 @@ RFC 4180 defaults.
 
 | Property | Signature | Default | Notes |
 | --- | --- | --- | --- |
-| `AllowUnterminatedQuotedFields` | `bool AllowUnterminatedQuotedFields { get; init; }` | `false` | Accept a quoted field the file ends inside, which relaxes RFC 4180 section 2 (reading only). `get; set;` on .NET Standard. |
 | `BadValueHandler` | `Delegate? BadValueHandler { get; init; }` | `null` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate. `get; set;` on .NET Standard. |
 | `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. When `null`, values are converted with the invariant culture, never the current culture. `get; set;` on .NET Standard. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; init; }` | `null` | Replacement for line breaks embedded in field values. `get; set;` on .NET Standard. |
