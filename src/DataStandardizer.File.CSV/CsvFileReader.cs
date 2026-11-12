@@ -326,8 +326,6 @@ namespace DataStandardizer.File.CSV
                 // Map CSV fields to model properties.
                 if (fieldPlan.Mapper.Count > 0)
                 {
-                    // The mapped values stay under their field names, so a property mapped to a field with another name reads that field.
-                    recordLine.SetMappedFieldNames(fieldPlan.MappedFieldNames);
                     MapCsvFieldsToProperties(recordLine, fieldPlan);
                 }
 
@@ -483,11 +481,14 @@ namespace DataStandardizer.File.CSV
             var options = (CsvFileOptions)_options;
 
             var isStatic = fieldPlan.GetMappings(csvLine.Count, out var fieldMappingPlans);
+
+            // The mapped values stay under their field names, so a property mapped to a field with another name, or by index, reads that field.
+            recordLine.SetMappedFieldNames(fieldPlan.MappedFieldNames);
             foreach (var fieldMappingPlan in fieldMappingPlans)
             {
                 var fieldMapping = fieldMappingPlan.Mapping;
                 var mappedFieldName = fieldMappingPlan.FieldName;
-                string fieldKey, valueKey;
+                string fieldKey;
                 if (isStatic)
                 {
                     if (fieldMappingPlan.IsSkipped)
@@ -496,7 +497,6 @@ namespace DataStandardizer.File.CSV
                     }
 
                     fieldKey = fieldMappingPlan.FieldKey;
-                    valueKey = fieldMappingPlan.ValueKey;
                 }
                 else
                 {
@@ -507,7 +507,6 @@ namespace DataStandardizer.File.CSV
                     }
 
                     fieldKey = FieldPlan.GetFieldKey(csvLine.Contains, mappedFieldName, fieldMapping.Key);
-                    valueKey = FieldPlan.GetFieldKey(csvLine.Contains, CsvMappingService.GetFieldNameFromMapping(fieldMapping), fieldMapping.Key);
                 }
 
                 // Validate CSV field value.
@@ -534,7 +533,7 @@ namespace DataStandardizer.File.CSV
                 }
 
                 // Get the mapped field value, then deserialize it.
-                var fieldValue = csvLine[valueKey];
+                var fieldValue = csvLine[fieldKey];
                 if (fieldMapping.Value.ConstantValue != null)
                 {
                     fieldValue = fieldMapping.Value.ConstantValue;
@@ -555,7 +554,7 @@ namespace DataStandardizer.File.CSV
                         var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                         {
                             Model = recordLine,
-                            FieldIndex = isFieldValue ? GetFieldPosition(csvLine, valueKey) : null,
+                            FieldIndex = isFieldValue ? GetFieldPosition(csvLine, fieldKey) : null,
                             FieldName = mappedFieldName,
                             HeaderLine = _headerLine,
                             RawFieldValue = rawFieldValue
@@ -1021,9 +1020,10 @@ namespace DataStandardizer.File.CSV
         private sealed class FieldPlan
         {
             private static readonly FieldMappingPlan[] NoMappings = new FieldMappingPlan[0];
+            private static readonly Dictionary<int, string> NoMapperFieldNames = new Dictionary<int, string>();
 
             private readonly string[] _headerFieldNames;
-            private readonly string[] _mapperFieldNames;
+            private readonly Dictionary<int, string> _mapperFieldNames;
             private string[] _fieldNames = NoFieldNames;
             private int _mappedFieldCount = -1;
             private FieldMappingPlan[] _mappings = NoMappings;
@@ -1039,18 +1039,17 @@ namespace DataStandardizer.File.CSV
                 Mapper = mapper;
                 HeaderFieldNames = headerFieldNames;
                 _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
-                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : NoFieldNames;
-                MappedFieldNames = CsvMappingService.GetMappedFieldNames(mapper);
+                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetFieldNamesByPosition(mapper) : NoMapperFieldNames;
             }
 
             /// <summary>
             /// Gets the field name of each mapping that maps a property to a field with another name, keyed by property key, or <c>null</c> if there
-            /// are none.  Every line read with the plan shares it, so it is never changed.
+            /// are none, for the field count the mappings were last worked out for.  Every line read with them shares it, so it is never changed.
             /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal Dictionary<string, string>? MappedFieldNames { get; }
+            internal Dictionary<string, string>? MappedFieldNames { get; private set; }
 #else
-            [MaybeNull] internal Dictionary<string, string> MappedFieldNames { get; }
+            [MaybeNull] internal Dictionary<string, string> MappedFieldNames { get; private set; }
 #endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1064,7 +1063,8 @@ namespace DataStandardizer.File.CSV
             internal int MapperVersion { get; }
 
             /// <summary>
-            /// Gets the names of the fields on a line.  Each is the header name, then the mapper name by index, then <c>Field N</c> (1-based).
+            /// Gets the names of the fields on a line.  Each is the header name, then the field name of the mapping at its position, then
+            /// <c>Field N</c> (1-based).
             /// </summary>
             /// <returns>An array of at least <paramref name="fieldCount"/> names.</returns>
             internal string[] GetFieldNames(int fieldCount)
@@ -1079,9 +1079,13 @@ namespace DataStandardizer.File.CSV
                 Array.Copy(_fieldNames, fieldNames, _fieldNames.Length);
                 for (var fieldIndex = _fieldNames.Length; fieldIndex < fieldCount; fieldIndex++)
                 {
-                    fieldNames[fieldIndex] = (fieldIndex < _headerFieldNames.Length ? _headerFieldNames[fieldIndex] : null)
-                                             ?? (fieldIndex < _mapperFieldNames.Length ? _mapperFieldNames[fieldIndex] : null)
-                                             ?? $"Field {fieldIndex + 1}";
+                    var fieldName = fieldIndex < _headerFieldNames.Length ? _headerFieldNames[fieldIndex] : null;
+                    if (fieldName is null && !_mapperFieldNames.TryGetValue(fieldIndex, out fieldName))
+                    {
+                        fieldName = $"Field {fieldIndex + 1}";
+                    }
+
+                    fieldNames[fieldIndex] = fieldName;
                 }
 
                 _fieldNames = fieldNames;
@@ -1110,44 +1114,45 @@ namespace DataStandardizer.File.CSV
                 var lineFieldNames = GetFieldNames(fieldCount).Take(fieldCount).ToArray();
                 var lineFieldNameSet = new HashSet<string>(lineFieldNames, StringComparer.Ordinal);
 
-                // Merge the mapper field names with the line's other field names.
-                var mapperFieldNameSet = new HashSet<string>(_mapperFieldNames, StringComparer.Ordinal);
-                var mergedFieldNames = _mapperFieldNames.Concat(lineFieldNames.Where(fieldName => !mapperFieldNameSet.Contains(fieldName))).ToArray();
-
                 // The planned keys hold unless a mapping stores its value in a field the line does not have, which adds that field to the line.
                 var isStatic = true;
                 var mappings = new List<FieldMappingPlan>(Mapper.Count);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                Dictionary<string, string>? mappedFieldNames = null;
+#else
+                Dictionary<string, string> mappedFieldNames = null;
+#endif
                 foreach (var fieldMapping in Mapper)
                 {
-                    // Determine the name of the field the property is mapped to.
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    string? mappedFieldName = null;
-#else
-                    string mappedFieldName = null;
-#endif
-                    if (fieldMapping.Value.FieldIndex.HasValue && fieldMapping.Value.FieldIndex.Value < mergedFieldNames.Length)
+                    // A field index addresses the field at that position on the line, whatever its name.  A line without that position has no
+                    // field for the mapping, so it is treated like a field that is missing by name.
+                    var fieldIndex = fieldMapping.Value.FieldIndex;
+                    var mappedFieldName = fieldIndex.HasValue && fieldIndex.Value < fieldCount
+                        ? lineFieldNames[fieldIndex.Value]
+                        : CsvMappingService.GetFieldNameFromMapping(fieldMapping);
+                    if (!string.Equals(mappedFieldName, fieldMapping.Key, StringComparison.Ordinal))
                     {
-                        mappedFieldName = mergedFieldNames[fieldMapping.Value.FieldIndex.Value];
-                    }
+                        if (mappedFieldNames is null)
+                        {
+                            mappedFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
+                        }
 
-                    if (mappedFieldName is null)
-                    {
-                        mappedFieldName = CsvMappingService.GetFieldNameFromMapping(fieldMapping);
+                        mappedFieldNames[fieldMapping.Key] = mappedFieldName;
                     }
 
                     var isSkipped = !lineFieldNameSet.Contains(mappedFieldName) && fieldMapping.Value.IsOptional;
                     var fieldKey = GetFieldKey(lineFieldNameSet.Contains, mappedFieldName, fieldMapping.Key);
-                    var valueKey = GetFieldKey(lineFieldNameSet.Contains, CsvMappingService.GetFieldNameFromMapping(fieldMapping), fieldMapping.Key);
                     if (!isSkipped && !lineFieldNameSet.Contains(fieldKey))
                     {
                         isStatic = false;
                     }
 
-                    // The merged list holds the field name of every mapping, so the mapped field name is always found.
                     var accessor = FieldValueAccessor.For(fieldMapping.Value.PropertyType);
-                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, fieldKey, valueKey, isSkipped, accessor));
+                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, fieldKey, isSkipped, accessor));
                 }
 
+                // Lines already read keep the field names they were read with, so this is a new dictionary rather than a change to the old one.
+                MappedFieldNames = mappedFieldNames;
                 _mappings = mappings.ToArray();
                 _mappingsAreStatic = isStatic;
                 _mappedFieldCount = fieldCount;
@@ -1167,13 +1172,12 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private sealed class FieldMappingPlan
         {
-            internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, string fieldKey, string valueKey, bool isSkipped,
+            internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, string fieldKey, bool isSkipped,
                 FieldValueAccessor accessor)
             {
                 Mapping = mapping;
                 FieldName = fieldName;
                 FieldKey = fieldKey;
-                ValueKey = valueKey;
                 IsSkipped = isSkipped;
                 Accessor = accessor;
             }
@@ -1184,7 +1188,7 @@ namespace DataStandardizer.File.CSV
             internal FieldValueAccessor Accessor { get; }
 
             /// <summary>
-            /// Gets the key of the field the deserialized value is stored in.
+            /// Gets the key of the field the value is read from and the deserialized value is stored in.
             /// </summary>
             internal string FieldKey { get; }
 
@@ -1199,11 +1203,6 @@ namespace DataStandardizer.File.CSV
             internal bool IsSkipped { get; }
 
             internal KeyValuePair<string, CsvFieldMapping> Mapping { get; }
-
-            /// <summary>
-            /// Gets the key of the field the value to deserialize is read from.
-            /// </summary>
-            internal string ValueKey { get; }
         }
     }
 }
