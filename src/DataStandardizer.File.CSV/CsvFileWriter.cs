@@ -211,21 +211,16 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentException($"Expected a {nameof(CsvFileHeaderLine)} or a {typeof(TRecordLine).Name}; found a {csvLine.GetType().Name}.", nameof(csvLine));
             }
 
-            // Check the line for the last non-empty field value.
-            var lastFieldIndex = -1;
-            if (_options.SuppressTrailingBlankFields)
-            {
-                lastFieldIndex = GetLastNonEmptyFieldIndex(csvLine);
-            }
-
             // Extract the serialized field values that will comprise the CSV line.  All of them are extracted before any is
             // written, so a line that fails part way through writes nothing.
             int fieldValueCount;
             if (csvLine is CsvFileHeaderLine headerLine)
             {
+                // The header line's fields are written in the line's own order, so its last non-empty field is found on the line.
+                var lastFieldIndex = _options.SuppressTrailingBlankFields ? GetLastNonEmptyFieldIndex(csvLine) : -1;
                 fieldValueCount = GetHeaderLineFieldValues(headerLine, lastFieldIndex);
             }
-            else if (!TryGetRecordLineFieldValues((TRecordLine)csvLine, lastFieldIndex, out fieldValueCount))
+            else if (!TryGetRecordLineFieldValues((TRecordLine)csvLine, out fieldValueCount))
             {
                 // The inconsistent field count handler handled the line, so it is skipped, as the reader skips it.
                 return;
@@ -292,7 +287,7 @@ namespace DataStandardizer.File.CSV
         /// A line that is not written, because it is handled or because getting its values fails, leaves the field names and field plan as they
         /// were, so it doesn't add its fields to the lines written after it.
         /// </remarks>
-        private bool TryGetRecordLineFieldValues(TRecordLine recordLine, int lastFieldIndex, out int fieldValueCount)
+        private bool TryGetRecordLineFieldValues(TRecordLine recordLine, out int fieldValueCount)
         {
             var previousFieldNames = _fieldNames;
             var previousFieldNameSet = _fieldNameSet;
@@ -300,7 +295,7 @@ namespace DataStandardizer.File.CSV
             var isWritten = false;
             try
             {
-                isWritten = TryGetFieldValuesOfRecordLine(recordLine, lastFieldIndex, out fieldValueCount);
+                isWritten = TryGetFieldValuesOfRecordLine(recordLine, out fieldValueCount);
                 return isWritten;
             }
             finally
@@ -314,7 +309,7 @@ namespace DataStandardizer.File.CSV
             }
         }
 
-        private bool TryGetFieldValuesOfRecordLine(TRecordLine recordLine, int lastFieldIndex, out int fieldValueCount)
+        private bool TryGetFieldValuesOfRecordLine(TRecordLine recordLine, out int fieldValueCount)
         {
             ICsvFileLine csvLine = recordLine;
 
@@ -348,7 +343,6 @@ namespace DataStandardizer.File.CSV
 
             // Extract serialized field values.
             var fieldValues = GetFieldValueBuffer(fields.Length);
-            var fieldIndex = 0;
             foreach (var field in fields)
             {
                 // A line read or converted with the mapping holds a mapped value under the field name.  A line built from the model holds it under
@@ -372,12 +366,6 @@ namespace DataStandardizer.File.CSV
                     continue;
                 }
 
-                // If the remaining field values are empty, stop here.
-                if (lastFieldIndex > -1 && fieldIndex++ > lastFieldIndex)
-                {
-                    break;
-                }
-
                 // Convert the field value to a string.
                 var rawFieldValue = SerializeFieldValue(recordLine, field, fieldKey);
 
@@ -388,6 +376,15 @@ namespace DataStandardizer.File.CSV
                 }
 
                 fieldValues[fieldValueCount++] = rawFieldValue ?? string.Empty;
+            }
+
+            // The fields are in output order, which may differ from the order of the line's own fields, so the trailing blank values are
+            // trimmed from the values to write rather than looked for on the line.  A line whose values are all blank is written whole.
+            // N.B. Whitespace alone does not count as being "empty" as spaces are permitted.
+            // ref. RFC 4180§2¶4
+            if (_options.SuppressTrailingBlankFields)
+            {
+                fieldValueCount = GetTrimmedFieldValueCount(fieldValues, fieldValueCount);
             }
 
             // The line's field count becomes the one later lines are checked against only once every value has been extracted, so a line that
@@ -823,6 +820,19 @@ namespace DataStandardizer.File.CSV
             _writer.Write(fieldValueCharacters, segmentStart, fieldValue.Length - segmentStart);
         }
 #endif
+
+        private static int GetTrimmedFieldValueCount(string[] fieldValues, int fieldValueCount)
+        {
+            for (var fieldIndex = fieldValueCount - 1; fieldIndex >= 0; fieldIndex--)
+            {
+                if (fieldValues[fieldIndex].Length > 0)
+                {
+                    return fieldIndex + 1;
+                }
+            }
+
+            return fieldValueCount;
+        }
 
         private int GetLastNonEmptyFieldIndex(ICsvFileLine csvLine)
         {

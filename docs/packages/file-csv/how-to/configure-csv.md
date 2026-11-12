@@ -166,7 +166,14 @@ by RFC 4180 (`Required`).
 **Default:** `false`
 
 You can suppress the output of trailing empty fields on lines written to a CSV
-file.
+file. A line written this way can have fewer fields than the lines around it,
+which RFC 4180 section 2, rule 4, says a file should not have, so the option is
+off by default.
+
+A field is blank when the text written for it is empty; whitespace is not blank.
+Trailing fields are the last ones in the order the line is written: header line
+order, else mapper order, else the order of the first record line. A record line
+whose fields are all blank is still written with all of them.
 
 ```csharp
 var options = new CsvFileOptions { SuppressTrailingBlankFields = true };
