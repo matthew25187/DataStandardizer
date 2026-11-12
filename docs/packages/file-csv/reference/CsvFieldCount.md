@@ -28,6 +28,10 @@ Assigned to [CsvFileOptions.InconsistentFieldCountHandler](CsvFileOptions.md). T
 `context` carries the offending line's model and header. See
 [CsvFieldContext](CsvFieldContext.md).
 
+The line the delegate is called for is skipped. A reader doesn't return it, and a
+writer writes nothing for it. Lines after it are checked against the same field count
+as before it.
+
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.

@@ -50,7 +50,13 @@ is still checked against the previous line.
 
 **Failed lines.** All of a line's field values are converted before any of them is
 written. If a converter, value generator or type converter throws, or `WriteLine`
-throws `CsvFileException`, nothing from that line is written.
+throws `CsvFileException`, nothing from that line is written, and the lines after it
+are written as if it had never been passed to `WriteLine`.
+
+**Handled lines.** When a record line's field count differs from the previous record
+line's and `InconsistentFieldCountHandler` is set, the handler is called and the line
+is skipped. Nothing is written for it, and the lines after it are checked against the
+same field count as before it. The reader skips a handled line in the same way.
 
 ## Constructors
 
@@ -70,7 +76,7 @@ throws `CsvFileException`, nothing from that line is written.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or inconsistent field count, or `ObjectDisposedException` after `Dispose`. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name, or on an inconsistent field count when no `InconsistentFieldCountHandler` is set, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

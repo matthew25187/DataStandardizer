@@ -70,6 +70,10 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the <see cref="CsvFieldCount{TModel}"/> delegate that will be called when a line has a field count inconsistent with other lines in the CSV file.
         /// </summary>
+        /// <remarks>
+        /// The line the delegate is called for is skipped: a reader doesn't return it, and a writer writes nothing for it.  When the delegate isn't set,
+        /// an inconsistent field count throws <see cref="CsvFileException"/>.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? InconsistentFieldCountHandler { get; }
 #else

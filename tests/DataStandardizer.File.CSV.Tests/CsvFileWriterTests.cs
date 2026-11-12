@@ -76,6 +76,8 @@ namespace DataStandardizer.File.CSV.Tests
 
         // Lines written.
         private const string SingleNumberLine = "1\r\n";
+        private const string FirstRecordLine = "1,One\r\n";
+        private const string FirstAndThirdRecordLines = "1,One\r\n3,Three\r\n";
 
         // Field names that differ from the property keys they are mapped to, the values written to them, and the line
         // that results.
@@ -383,7 +385,7 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testLine);
 
                 // assert
-                buffer.ToString().Should().Be("1,One\r\n");
+                buffer.ToString().Should().Be(FirstRecordLine);
             }
         }
 
@@ -825,7 +827,7 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(recordLine2);
 
                 // assert
-                buffer.ToString().Should().Be("1,One\r\n");
+                buffer.ToString().Should().Be(FirstRecordLine);
             }
         }
 
@@ -844,13 +846,64 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
             {
                 csvWriter.WriteLine(recordLine1);
-                csvWriter.WriteLine(recordLine2);
 
                 // act
+                csvWriter.WriteLine(recordLine2);
                 csvWriter.WriteLine(recordLine3);
 
                 // assert
-                buffer.ToString().Should().Be("1,One\r\n3,Three\r\n");
+                buffer.ToString().Should().Be(FirstAndThirdRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineAfterLineWithInconsistentFieldCountAndNoFieldCountDelegate_WritesFieldsOfLinesWritten()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Name = SecondName, Description = SecondDescription };
+            var recordLine3 = new UnmappedLine { Id = 3, Name = ThirdName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                _ = Record.Exception(() => csvWriter.WriteLine(recordLine2));
+                csvWriter.WriteLine(recordLine3);
+
+                // assert
+                buffer.ToString().Should().Be(FirstAndThirdRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineAfterLineWhoseValueFailsToFormat_WritesFieldsOfLinesWritten()
+        {
+            // arrange
+            // Without a header line, the fields written are those of the record lines.  The first line isn't written, so the second line's
+            // fields are the only ones.
+            ICsvFileLine recordLine1 = new CsvFileRecordLine();
+            recordLine1.Add(FieldName1, NumberValue);
+            recordLine1.Add(FieldName2, TextValue);
+            recordLine1.Add(FieldName3, new UnformattableValue());
+
+            ICsvFileLine recordLine2 = new CsvFileRecordLine();
+            recordLine2.Add(FieldName1, NumberValue);
+            recordLine2.Add(FieldName2, TextValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                // act
+                _ = Record.Exception(() => csvWriter.WriteLine(recordLine1));
+                csvWriter.WriteLine(recordLine2);
+
+                // assert
+                buffer.ToString().Should().Be("1,Two\r\n");
             }
         }
 
@@ -1659,6 +1712,14 @@ namespace DataStandardizer.File.CSV.Tests
 
         private sealed class ThrowingConverterLine : TestLine
         {
+        }
+
+        /// <summary>
+        /// A field value that can't be formatted as text.
+        /// </summary>
+        private sealed class UnformattableValue
+        {
+            public override string ToString() => throw new InvalidOperationException();
         }
 
         private sealed class ConstantAndVariableLine : TestLine

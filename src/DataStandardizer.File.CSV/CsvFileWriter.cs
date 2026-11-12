@@ -180,9 +180,15 @@ namespace DataStandardizer.File.CSV
         /// <paramref name="csvLine"/> is neither a <see cref="CsvFileHeaderLine"/> nor a <typeparamref name="TRecordLine"/>.  Nothing is written.
         /// </exception>
         /// <exception cref="CsvFileException">
-        /// Invalid field name detected.
+        /// Invalid field name detected, or a record line has a different number of fields from the previous record line and
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
+        /// <remarks>
+        /// A record line that has a different number of fields from the previous record line breaks RFC 4180§2¶4.  When
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> is set, it is called for the line, and the line is skipped: nothing is
+        /// written for it, and the lines after it are checked against the same field count as before it.
+        /// </remarks>
         public void WriteLine(ICsvFileLine csvLine)
         {
             ThrowIfDisposed();
@@ -206,15 +212,19 @@ namespace DataStandardizer.File.CSV
 
             // Extract the serialized field values that will comprise the CSV line.  All of them are extracted before any is
             // written, so a line that fails part way through writes nothing.
-            var fieldValueCount = csvLine is CsvFileHeaderLine headerLine
-                ? GetHeaderLineFieldValues(headerLine, lastFieldIndex)
-                : GetRecordLineFieldValues((TRecordLine)csvLine, lastFieldIndex);
-
-            // Write line to CSV output, unless the inconsistent field count handler handled it, in which case the line is skipped as the reader skips it.
-            if (fieldValueCount != HandledLineFieldValueCount)
+            int fieldValueCount;
+            if (csvLine is CsvFileHeaderLine headerLine)
             {
-                WriteFieldValues(fieldValueCount);
+                fieldValueCount = GetHeaderLineFieldValues(headerLine, lastFieldIndex);
             }
+            else if (!TryGetRecordLineFieldValues((TRecordLine)csvLine, lastFieldIndex, out fieldValueCount))
+            {
+                // The inconsistent field count handler handled the line, so it is skipped, as the reader skips it.
+                return;
+            }
+
+            // Write line to CSV output.
+            WriteFieldValues(fieldValueCount);
         }
 
         private int GetHeaderLineFieldValues(CsvFileHeaderLine headerLine, int lastFieldIndex)
@@ -265,17 +275,40 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Field value count returned for a record line that the inconsistent field count handler handled, which is not written.
+        /// Gets the serialized field values of a record line.
         /// </summary>
-        private const int HandledLineFieldValueCount = -1;
+        /// <returns>
+        /// <c>true</c> if the line is to be written; <c>false</c> if the inconsistent field count handler handled it.
+        /// </returns>
+        /// <remarks>
+        /// A line that is not written, because it is handled or because getting its values fails, leaves the field names and field plan as they
+        /// were, so it doesn't add its fields to the lines written after it.
+        /// </remarks>
+        private bool TryGetRecordLineFieldValues(TRecordLine recordLine, int lastFieldIndex, out int fieldValueCount)
+        {
+            var previousFieldNames = _fieldNames;
+            var previousFieldPlan = _fieldPlan;
+            var isWritten = false;
+            try
+            {
+                isWritten = TryGetFieldValuesOfRecordLine(recordLine, lastFieldIndex, out fieldValueCount);
+                return isWritten;
+            }
+            finally
+            {
+                if (!isWritten)
+                {
+                    _fieldNames = previousFieldNames;
+                    _fieldPlan = previousFieldPlan;
+                }
+            }
+        }
 
-        private int GetRecordLineFieldValues(TRecordLine recordLine, int lastFieldIndex)
+        private bool TryGetFieldValuesOfRecordLine(TRecordLine recordLine, int lastFieldIndex, out int fieldValueCount)
         {
             ICsvFileLine csvLine = recordLine;
 
-            // Without a header line, the fields to output include every field seen so far on a record line.  A line that is not written doesn't
-            // add its fields, so the previous field names are kept to be restored.
-            var previousFieldNames = _fieldNames;
+            // Without a header line, the fields to output include every field seen so far on a record line.
             if (_headerLineFieldNames.Length == 0 && csvLine.Count > _fieldNames.Length)
             {
                 AddLineFieldNames(csvLine);
@@ -287,13 +320,12 @@ namespace DataStandardizer.File.CSV
             // ref. RFC 4180§2¶4
             if (_previousLineFieldCount > 0 && fields.Length != _previousLineFieldCount)
             {
-                _fieldNames = previousFieldNames;
-
                 if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> fieldCountHandler)
                 {
                     var context = new CsvFieldContext<TRecordLine>(_options) { HeaderLine = _headerLine, Model = recordLine };
                     fieldCountHandler(context);
-                    return HandledLineFieldValueCount;
+                    fieldValueCount = 0;
+                    return false;
                 }
 
                 var message = $"Expected {_previousLineFieldCount} fields; found {fields.Length} fields.";
@@ -301,11 +333,9 @@ namespace DataStandardizer.File.CSV
                 throw BuildException(message, dataItems);
             }
 
-            _previousLineFieldCount = fields.Length;
-
             // Extract serialized field values.
             var fieldValues = GetFieldValueBuffer(fields.Length);
-            var fieldValueCount = 0;
+            fieldValueCount = 0;
             var fieldIndex = 0;
             foreach (var field in fields)
             {
@@ -348,7 +378,10 @@ namespace DataStandardizer.File.CSV
                 fieldValues[fieldValueCount++] = rawFieldValue ?? string.Empty;
             }
 
-            return fieldValueCount;
+            // The line's field count becomes the one later lines are checked against only once every value has been extracted, so a line that
+            // fails part way through doesn't set it.
+            _previousLineFieldCount = fields.Length;
+            return true;
         }
 
         private void AddLineFieldNames(ICsvFileLine csvLine)
