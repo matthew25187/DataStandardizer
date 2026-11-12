@@ -97,6 +97,7 @@ namespace DataStandardizer.File.CSV.Tests
         // Field names that differ from the property keys they are mapped to, and files that use them.
         private const string PersonIdFieldName = "person_id";
         private const string PersonNameFieldName = "person_name";
+        private const string PersonKeyFieldName = "pid";
         private const int RenamedId = 5;
         private const string RenamedName = "bob";
         private const int SecondRenamedId = 6;
@@ -104,6 +105,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedHeaderFile = "person_id,person_name\r\n5,bob";
         private const string RenamedRecordFile = "5,bob";
         private const string TwoRenamedRecordsWithHeaderFile = "person_id,person_name\r\n5,bob\r\n6,amy";
+        private const string RenamedIdHeaderFile = "person_id\r\n5";
+
+        // A file with a column named like the property key that another field is mapped to.
+        private const string CompanyName = "Acme";
+        private const string PropertyKeyColumnFile = "Name,person_name\r\nAcme,bob";
 
         // NumbersLine and TwoNumberLinesFile in ASCII.
         private static readonly byte[] NumbersLineBytes = new byte[] { 0x31, 0x2C, 0x32, 0x2C, 0x33 };
@@ -1197,8 +1203,8 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Id.Should().Be(1);
-                ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, DescriptionFieldName }, config => config.WithStrictOrdering());
-                testResult.ValidatedFieldNames.Should().Equal(NameFieldName);
+                ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, ExtraFieldName }, config => config.WithStrictOrdering());
+                testResult.ValidatedFieldNames.Should().Equal(ExtraFieldName);
             }
         }
 
@@ -1256,7 +1262,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MappingRenamesHeaderField_RenamesFieldToPropertyKeyInPlace()
+        public void ReadLine_MappingRenamesHeaderField_KeepsFieldNamesAsKeys()
         {
             // arrange
             var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
@@ -1268,7 +1274,79 @@ namespace DataStandardizer.File.CSV.Tests
                 ICsvFileLine testResult = csvReader.ReadLine();
 
                 // assert
-                testResult.Keys.Should().BeEquivalentTo(new[] { IdFieldName, NameFieldName }, config => config.WithStrictOrdering());
+                testResult.Keys.Should().BeEquivalentTo(new[] { PersonIdFieldName, PersonNameFieldName }, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Fact]
+        public void ReadLine_LaterMappingFieldNamedLikeEarlierPropertyKey_KeepsEarlierPropertyValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<LegacyIdLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as LegacyIdLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.LegacyId.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderHasColumnNamedLikePropertyKey_KeepsColumnValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(PropertyKeyColumnFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Name.Should().Be(RenamedName);
+                ((ICsvFileLine)testResult)[NameFieldName].Should().Be(CompanyName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoMappingsWithSameFieldName_BothPropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Copy.Should().Be(RenamedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_BuilderMapperRenamesFieldOfPropertyWithCsvFieldAttribute_PropertyReturnsFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<KeyedBuilderLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<KeyedBuilderLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as KeyedBuilderLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
             }
         }
 
@@ -1627,6 +1705,68 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        /// <summary>
+        /// A line with an optional mapping whose field name is the property key of the line's other mapping.
+        /// </summary>
+        private sealed class LegacyIdLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(IdFieldName, IsOptional = true)]
+            public string LegacyId
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties mapped to the same field.
+        /// </summary>
+        private sealed class SharedFieldLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Copy
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose property has a key from <see cref="CsvFieldAttribute"/>, which <see cref="KeyedBuilderLineMapper"/>
+        /// maps to a field with another name.
+        /// </summary>
+        private sealed class KeyedBuilderLine : CsvFileRecordLine
+        {
+            [CsvField(PersonKeyFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class KeyedBuilderLineMapper : CsvFileMapperBase<KeyedBuilderLine>
+        {
+            public KeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
         private sealed class AddedFieldLine : TestLine
         {
             /// <summary>
@@ -1813,9 +1953,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Maps Name to a field the line does not have, so storing its value adds a field with Name's property key, which
-        /// the optional Description mapping then finds.  Storing Description's value renames that field to Description's
-        /// property key.
+        /// Maps Name to a field the line does not have, so storing its value adds the field, which the optional
+        /// Description mapping then finds.
         /// </summary>
         private sealed class AddedFieldLineMapper : CsvFileMapperBase<AddedFieldLine>
         {
@@ -1828,7 +1967,7 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName);
                 this.Map()
                     .Property(x => x.Description)
-                    .HasFieldName(NameFieldName)
+                    .HasFieldName(ExtraFieldName)
                     .ConvertUsing(typeof(StringConverter))
                     .ValidateUsing(context =>
                     {

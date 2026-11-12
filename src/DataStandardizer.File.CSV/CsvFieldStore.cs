@@ -20,7 +20,7 @@ namespace DataStandardizer.File.CSV
     /// <para>
     /// The entries array holds the fields in position order and is the source of truth for position.  The name lookup maps each
     /// field name to its position, and is updated for the fields after the position that <see cref="Insert"/> or
-    /// <see cref="RemoveAt"/> changes.  Renaming a field with <see cref="SetAt(int, string, TValue)"/> keeps its position.
+    /// <see cref="RemoveAt"/> changes.
     /// </para>
     /// <para>
     /// The value type is a type parameter so that the store needs no nullable annotations, which the C# 7.3 builds can't use.
@@ -95,31 +95,6 @@ namespace DataStandardizer.File.CSV
         {
             CheckIndex(index);
             _entries[index].Value = value;
-        }
-
-        public void SetAt(int index, string key, TValue value)
-        {
-            CheckIndex(index);
-            CheckKey(key);
-
-            // The same key keeps its place in the name lookup, so only the value changes, as with SetAt(index, value).
-            var oldKey = _entries[index].Key;
-            if (string.Equals(oldKey, key, StringComparison.Ordinal))
-            {
-                _entries[index].Value = value;
-                return;
-            }
-
-            if (_positions.ContainsKey(key))
-            {
-                throw new ArgumentException("An item with the same key has already been added.", nameof(key));
-            }
-
-            _positions.Remove(oldKey);
-            _positions.Add(key, index);
-            _entries[index].Key = key;
-            _entries[index].Value = value;
-            _version++;
         }
 
         public int IndexOf(string key)

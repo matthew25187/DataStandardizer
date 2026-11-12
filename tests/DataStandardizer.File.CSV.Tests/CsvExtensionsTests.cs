@@ -15,6 +15,13 @@ namespace DataStandardizer.File.CSV.Tests
     {
         private const int TestMappingConstantValue = 100;
 
+        // Field names that differ from the property keys they are mapped to, the values in them, and a file that holds them.
+        private const string PersonIdFieldName = "person_id";
+        private const string PersonNameFieldName = "person_name";
+        private const int RenamedId = 5;
+        private const string RenamedName = "bob";
+        private const string RenamedRecordFile = "5,bob";
+
         [Fact]
         public void CreateMapper_DeclarativeMappingFieldIndex_ReturnsFieldMappingWithIndex()
         {
@@ -213,6 +220,88 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             testResult.Name.Should().BeNull();
+        }
+
+        [Fact]
+        public void ToObject_LineReadWithRenamingMapper_CopiesFieldValuesToCustomObject()
+        {
+            // arrange
+            RenamedLine testLine;
+            using (var csvReader = new CsvFileReader<RenamedLine>(new StringReader(RenamedRecordFile)))
+            {
+                csvReader.RegisterMapper<RenamedLineMapper>();
+                testLine = (RenamedLine)csvReader.ReadLine();
+            }
+
+            var mapper = new PersonModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.PersonId.Should().Be(RenamedId);
+            testResult.PersonName.Should().Be(RenamedName);
+        }
+
+        [Fact]
+        public void ToCsvLine_RenamingMapper_PropertiesReturnModelValues()
+        {
+            // arrange
+            var testModel = new TestModel { Id = RenamedId, Name = RenamedName };
+
+            var mapper = new RenamedLineMapper();
+
+            // act
+            var testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+            testResult.Name.Should().Be(RenamedName);
+        }
+
+        /// <summary>
+        /// A line whose properties <see cref="RenamedLineMapper"/> maps to fields with other names.
+        /// </summary>
+        private class RenamedLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class RenamedLineMapper : CsvFileMapperBase<RenamedLine>
+        {
+            public RenamedLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// A custom model whose property names differ from both the field names and the properties of <see cref="RenamedLine"/>.
+        /// </summary>
+        private class PersonModel
+        {
+            public int PersonId { get; set; }
+            public string PersonName { get; set; }
+        }
+
+        private class PersonModelMapper : CsvFileCustomMapperBase<PersonModel>
+        {
+            public PersonModelMapper()
+            {
+                this.Map().Property(x => x.PersonId).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.PersonName).HasFieldName(PersonNameFieldName);
+            }
         }
 
         private class TestLine : CsvFileRecordLine

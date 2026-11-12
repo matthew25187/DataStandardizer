@@ -85,9 +85,21 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedName = "bob";
         private const string RenamedRecordLine = "5,bob\r\n";
 
-        // Values held under the field names of a line that also holds values under the property keys.
-        private const int StaleId = 9;
-        private const string StaleName = "stale";
+        // Values held under the field names of a line that also holds values under the property keys, and the line that
+        // results.
+        private const int FieldNameId = 9;
+        private const string FieldNameName = "amy";
+        private const string FieldNameRecordLine = "9,amy\r\n";
+
+        // A property key given by CsvFieldAttribute, and a value that replaces RenamedId on a line read from a file.
+        private const string PersonKeyFieldName = "pid";
+        private const int ChangedId = 6;
+        private const string ChangedRecordLine = "6,bob\r\n";
+        private const string RenamedIdLine = "5\r\n";
+        private const string ConvertedRecordLine = "#5,bob\r\n";
+
+        // The record line that is read and then written.
+        private const string RenamedRecordFile = "5,bob";
         private const string FirstLongRecordLine = "1,One,This is the first record\r\n";
 
         private const string OptionsParameterName = "options";
@@ -1213,12 +1225,12 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void WriteLine_RenamedMappingAndLineWithPropertyKeysAndFieldNames_WritesPropertyValues()
+        public void WriteLine_RenamedMappingAndLineWithPropertyKeysAndFieldNames_WritesFieldNameValues()
         {
             // arrange
             var testLine = new RenamedAttributeLine { Id = RenamedId, Name = RenamedName };
-            testLine.Add(PersonIdFieldName, StaleId);
-            testLine.Add(PersonNameFieldName, StaleName);
+            testLine.Add(PersonIdFieldName, FieldNameId);
+            testLine.Add(PersonNameFieldName, FieldNameName);
 
             var buffer = new StringBuilder();
             using (var stringWriter = new StringWriter(buffer))
@@ -1229,7 +1241,103 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testLine);
 
                 // assert
+                buffer.ToString().Should().Be(FieldNameRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_LineReadWithRenamingMapperAndNoWriterMapper_WritesFieldValues()
+        {
+            // arrange
+            RenamedBuilderLine testLine;
+            using (var csvReader = new CsvFileReader<RenamedBuilderLine>(new StringReader(RenamedRecordFile)))
+            {
+                csvReader.RegisterMapper<RenamedBuilderLineMapper>();
+                testLine = (RenamedBuilderLine)csvReader.ReadLine();
+            }
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
                 buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_LineReadWithRenamingMapperAndPropertyChanged_WritesChangedValue()
+        {
+            // arrange
+            RenamedBuilderLine testLine;
+            using (var csvReader = new CsvFileReader<RenamedBuilderLine>(new StringReader(RenamedRecordFile)))
+            {
+                csvReader.RegisterMapper<RenamedBuilderLineMapper>();
+                testLine = (RenamedBuilderLine)csvReader.ReadLine();
+            }
+
+            testLine.Id = ChangedId;
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<RenamedBuilderLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ChangedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_LineReadWithRenamingMapperAndConverterReadingContextField_WritesConvertedValue()
+        {
+            // arrange
+            RenamedBuilderLine testLine;
+            using (var csvReader = new CsvFileReader<RenamedBuilderLine>(new StringReader(RenamedRecordFile)))
+            {
+                csvReader.RegisterMapper<FieldReadingConverterLineMapper>();
+                testLine = (RenamedBuilderLine)csvReader.ReadLine();
+            }
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<FieldReadingConverterLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ConvertedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_BuilderMapperRenamesFieldOfPropertyWithCsvFieldAttribute_WritesPropertyValue()
+        {
+            // arrange
+            var testLine = new KeyedBuilderLine { Id = RenamedId };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<KeyedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<KeyedBuilderLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedIdLine);
             }
         }
 
@@ -1553,6 +1661,44 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
                 this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps Id to a field with another name, with a converter that reads the value from the line by the field name the
+        /// context gives, and prefixes it with <c>#</c>.
+        /// </summary>
+        private sealed class FieldReadingConverterLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public FieldReadingConverterLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldName(PersonIdFieldName)
+                    .ConvertUsing(new CsvFieldConvertToString<RenamedBuilderLine>(context => "#" + ((ICsvFileLine)context.Model)[context.FieldName]));
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// A line whose property has a key from <see cref="CsvFieldAttribute"/>, which <see cref="KeyedBuilderLineMapper"/>
+        /// maps to a field with another name.
+        /// </summary>
+        private sealed class KeyedBuilderLine : CsvFileRecordLine
+        {
+            [CsvField(PersonKeyFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class KeyedBuilderLineMapper : CsvFileMapperBase<KeyedBuilderLine>
+        {
+            public KeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
             }
         }
 

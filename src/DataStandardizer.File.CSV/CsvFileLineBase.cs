@@ -81,20 +81,65 @@ namespace DataStandardizer.File.CSV
         }
 #endif
 
-        /// <summary>
-        /// Replaces the name and value of the field at a position, keeping its place on the line.
-        /// </summary>
-        /// <exception cref="ArgumentException">Another field on the line already has the name.</exception>
+        // The field names of the mappings that map a property to a field with another name, keyed by property key, or null if
+        // the line was not filled through such a mapping.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal void SetFieldAt(int index, string fieldName, object? value)
+        private Dictionary<string, string>? _mappedFieldNames;
 #else
-        internal void SetFieldAt(int index, string fieldName, [AllowNull] object value)
+        private Dictionary<string, string> _mappedFieldNames;
+#endif
+
+        /// <summary>
+        /// Sets the field names that the line's properties are mapped to, so a property mapped to a field with another name
+        /// reads and writes that field.  Set by the reader, and by <see cref="CsvExtensions.ToCsvLine"/>, from their mapper.
+        /// </summary>
+        /// <param name="mappedFieldNames">The field names keyed by property key, as <see cref="CsvMappingService.GetMappedFieldNames"/>
+        /// returns them, or <c>null</c> if no property is mapped to a field with another name.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal void SetMappedFieldNames(Dictionary<string, string>? mappedFieldNames)
+#else
+        internal void SetMappedFieldNames([AllowNull] Dictionary<string, string> mappedFieldNames)
 #endif
         {
-            _fieldBag.SetAt(index, fieldName, value);
+            _mappedFieldNames = mappedFieldNames;
         }
 
+        /// <summary>
+        /// Gets the key of the field that a property reads and writes.
+        /// </summary>
+        /// <remarks>
+        /// The key is the name given by <see cref="CsvFieldAttribute"/>, else the property name.  On a line filled through a mapping that maps
+        /// the property to a field with another name, it is that field's name instead, unless the line has no such field but does have one with
+        /// the property key, which is where the reader stores the value when the field is missing.
+        /// </remarks>
         protected string GetPropertyKey(string propertyName)
+        {
+            var propertyKey = GetDeclaredPropertyKey(propertyName);
+            var mappedFieldNames = _mappedFieldNames;
+            if (mappedFieldNames is null)
+            {
+                return propertyKey;
+            }
+
+            // A builder mapper is keyed by property name, and an attribute mapper by the property key.
+            if (mappedFieldNames.TryGetValue(propertyName, out var mappedFieldName) || mappedFieldNames.TryGetValue(propertyKey, out mappedFieldName))
+            {
+                if (_fieldBag.ContainsKey(mappedFieldName) || !_fieldBag.ContainsKey(propertyKey))
+                {
+                    return mappedFieldName;
+                }
+            }
+
+            return propertyKey;
+        }
+
+        /// <summary>
+        /// Gets the key a mapping's property key resolves to on this line, for the writer to look a value up by when the line has no field with
+        /// the mapped field name.
+        /// </summary>
+        internal string ResolveMappedPropertyKey(string mappingKey) => GetDeclaredPropertyKey(mappingKey);
+
+        private string GetDeclaredPropertyKey(string propertyName)
         {
             var lineType = this.GetType();
             if (!PropertyKeyCache.TryGetValue(lineType, out var propertyKeys))

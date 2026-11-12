@@ -297,11 +297,22 @@ namespace DataStandardizer.File.CSV
             var fieldIndex = 0;
             foreach (var field in fields)
             {
-                // A mapped value is held under the property key, which the line's property and the reader use, else under the field name.
-                var fieldKey = field.PropertyKey != null && csvLine.Contains(field.PropertyKey) ? field.PropertyKey : field.FieldName;
+                // A line read or converted with the mapping holds a mapped value under the field name.  A line built from the model holds it under
+                // the key that the property resolves to on the line, which differs from the field name when the field is renamed.
+                var fieldKey = field.FieldName;
+                var hasField = csvLine.Contains(fieldKey);
+                if (!hasField && field.IsMapped)
+                {
+                    var propertyKey = recordLine.ResolveMappedPropertyKey(field.Mapping.Key);
+                    if (csvLine.Contains(propertyKey))
+                    {
+                        fieldKey = propertyKey;
+                        hasField = true;
+                    }
+                }
 
                 // If a value has not been set for the current field, add a blank value.
-                if (!csvLine.Contains(fieldKey))
+                if (!hasField)
                 {
                     fieldValues[fieldValueCount++] = string.Empty;
                     continue;
@@ -819,11 +830,6 @@ namespace DataStandardizer.File.CSV
                 IsMapped = !string.IsNullOrEmpty(mapping.Key);
                 if (IsMapped)
                 {
-                    if (!string.Equals(mapping.Key, fieldName, StringComparison.Ordinal))
-                    {
-                        PropertyKey = mapping.Key;
-                    }
-
                     Converter = mapping.Value.ToStringConverter as CsvFieldConvertToString<TRecordLine>;
                     if (mapping.Value.VariableValueGenerator != null)
                     {
@@ -851,19 +857,10 @@ namespace DataStandardizer.File.CSV
 #endif
 
             /// <summary>
-            /// Gets the name of the field, which is also the key of its value on a record line that has no field with the property key.
+            /// Gets the name of the field, which is also the key of its value on a record line, unless the line was built from a model whose
+            /// property is mapped to a field with another name.
             /// </summary>
             internal string FieldName { get; }
-
-            /// <summary>
-            /// Gets the property key of the mapping if it differs from the field name, or <c>null</c> if it is the same or the field has no mapping.
-            /// A line built from the model, or read with the mapping, holds the value under this key.
-            /// </summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal string? PropertyKey { get; }
-#else
-            [MaybeNull] internal string PropertyKey { get; }
-#endif
 
             /// <summary>
             /// Gets a flag indicating if the field has a mapping.

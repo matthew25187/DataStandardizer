@@ -326,6 +326,8 @@ namespace DataStandardizer.File.CSV
                 // Map CSV fields to model properties.
                 if (fieldPlan.Mapper.Count > 0)
                 {
+                    // The mapped values stay under their field names, so a property mapped to a field with another name reads that field.
+                    recordLine.SetMappedFieldNames(fieldPlan.MappedFieldNames);
                     MapCsvFieldsToProperties(recordLine, fieldPlan);
                 }
 
@@ -565,35 +567,8 @@ namespace DataStandardizer.File.CSV
                     throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, error);
                 }
 
-                StoreMappedValue(recordLine, fieldKey, fieldMapping.Key, propertyValue);
+                csvLine[fieldKey] = propertyValue;
             }
-        }
-
-        /// <summary>
-        /// Stores a converted value under the property key, which is the key that the line's property reads and that the writer looks up first.
-        /// </summary>
-        /// <remarks>
-        /// A field whose name differs from the property key is renamed to it in place, so the line keeps one field per value and its positions.
-        /// If the line already has a field with the property key, the value is stored there.
-        /// </remarks>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static void StoreMappedValue(TRecordLine recordLine, string fieldKey, string propertyKey, object? propertyValue)
-#else
-        private static void StoreMappedValue(TRecordLine recordLine, string fieldKey, string propertyKey, [AllowNull] object propertyValue)
-#endif
-        {
-            ICsvFileLine csvLine = recordLine;
-            if (!string.Equals(fieldKey, propertyKey, StringComparison.Ordinal) && !csvLine.Contains(propertyKey))
-            {
-                var fieldIndex = csvLine.IndexOf(fieldKey);
-                if (fieldIndex >= 0)
-                {
-                    recordLine.SetFieldAt(fieldIndex, propertyKey, propertyValue);
-                    return;
-                }
-            }
-
-            csvLine[propertyKey] = propertyValue;
         }
 
         /// <summary>
@@ -1065,7 +1040,18 @@ namespace DataStandardizer.File.CSV
                 HeaderFieldNames = headerFieldNames;
                 _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
                 _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : NoFieldNames;
+                MappedFieldNames = CsvMappingService.GetMappedFieldNames(mapper);
             }
+
+            /// <summary>
+            /// Gets the field name of each mapping that maps a property to a field with another name, keyed by property key, or <c>null</c> if there
+            /// are none.  Every line read with the plan shares it, so it is never changed.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal Dictionary<string, string>? MappedFieldNames { get; }
+#else
+            [MaybeNull] internal Dictionary<string, string> MappedFieldNames { get; }
+#endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal IReadOnlyList<string>? HeaderFieldNames { get; }
@@ -1128,8 +1114,7 @@ namespace DataStandardizer.File.CSV
                 var mapperFieldNameSet = new HashSet<string>(_mapperFieldNames, StringComparer.Ordinal);
                 var mergedFieldNames = _mapperFieldNames.Concat(lineFieldNames.Where(fieldName => !mapperFieldNameSet.Contains(fieldName))).ToArray();
 
-                // The planned keys hold unless a mapping changes the line's field names: a value is stored under the property key, so a mapping
-                // whose field key differs from it renames that field or adds one, and one whose field the line does not have adds it.
+                // The planned keys hold unless a mapping stores its value in a field the line does not have, which adds that field to the line.
                 var isStatic = true;
                 var mappings = new List<FieldMappingPlan>(Mapper.Count);
                 foreach (var fieldMapping in Mapper)
@@ -1153,7 +1138,7 @@ namespace DataStandardizer.File.CSV
                     var isSkipped = !lineFieldNameSet.Contains(mappedFieldName) && fieldMapping.Value.IsOptional;
                     var fieldKey = GetFieldKey(lineFieldNameSet.Contains, mappedFieldName, fieldMapping.Key);
                     var valueKey = GetFieldKey(lineFieldNameSet.Contains, CsvMappingService.GetFieldNameFromMapping(fieldMapping), fieldMapping.Key);
-                    if (!isSkipped && (!string.Equals(fieldKey, fieldMapping.Key, StringComparison.Ordinal) || !lineFieldNameSet.Contains(fieldKey)))
+                    if (!isSkipped && !lineFieldNameSet.Contains(fieldKey))
                     {
                         isStatic = false;
                     }
@@ -1199,8 +1184,7 @@ namespace DataStandardizer.File.CSV
             internal FieldValueAccessor Accessor { get; }
 
             /// <summary>
-            /// Gets the key of the mapped field on the line.  The deserialized value is stored under the property key, which replaces this key
-            /// in place when the two differ.
+            /// Gets the key of the field the deserialized value is stored in.
             /// </summary>
             internal string FieldKey { get; }
 
