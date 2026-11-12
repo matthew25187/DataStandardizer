@@ -62,6 +62,12 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ValueWithDelimiter = "Left,Right";
         private const string FirstAttributeValue = "1st";
         private const string SecondAttributeValue = "2nd";
+
+        // The record a line mapped to put SecondAttributeValue ahead of FirstAttributeValue writes.
+        private const string ReversedAttributeRecord = "2nd,1st\r\n";
+
+        // The record a line mapped to put FirstAttributeValue ahead of SecondAttributeValue writes.
+        private const string OrderedAttributeRecord = "1st,2nd\r\n";
         private const string HtmlLineBreak = "<br>";
         private const string FirstId = "1";
         private const string SecondId = "2";
@@ -424,7 +430,7 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testLine);
 
                 // assert
-                buffer.ToString().Should().Be("2nd,1st\r\n");
+                buffer.ToString().Should().Be(ReversedAttributeRecord);
             }
         }
 
@@ -1986,6 +1992,42 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Fact]
+        public void WriteLine_AttributeMappingOnBaseLineType_WritesFieldsInMappedOrder()
+        {
+            // arrange
+            ICsvFileLine testLine = new InheritedAttributeMappedLine { First = FirstAttributeValue, Second = SecondAttributeValue };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<InheritedAttributeMappedLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ReversedAttributeRecord);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_DerivedLineAddsMappedProperty_WritesInheritedFieldFirst()
+        {
+            // arrange
+            ICsvFileLine testLine = new OrderedDerivedLine { First = FirstAttributeValue, Second = SecondAttributeValue };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<OrderedDerivedLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(OrderedAttributeRecord);
+            }
+        }
+
         /// <summary>
         /// Creates a culture that formats numbers with the given negative sign and decimal separator, and is otherwise the
         /// invariant culture, so that the result doesn't depend on the culture data of the machine.
@@ -2015,6 +2057,59 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private class MixedLine : CsvFileRecordLine
         {
+        }
+
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields in the opposite order, for <see cref="InheritedAttributeMappedLine"/> to inherit.
+        /// </summary>
+        private class ReversedAttributeBaseLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(1)]
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(0)]
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line that inherits every mapped property from <see cref="ReversedAttributeBaseLine"/>.
+        /// </summary>
+        private sealed class InheritedAttributeMappedLine : ReversedAttributeBaseLine
+        {
+        }
+
+        /// <summary>
+        /// A line with a property mapped, by attribute, to a field with no index, for <see cref="OrderedDerivedLine"/> to inherit.
+        /// </summary>
+        private class OrderedBaseLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(nameof(First))]
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line that adds a property mapped to a field with no index to the one it inherits from <see cref="OrderedBaseLine"/>.
+        /// </summary>
+        private sealed class OrderedDerivedLine : OrderedBaseLine
+        {
+            [CsvFieldMapping(nameof(Second))]
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
         }
 
         private sealed class AttributeMappedLine : MixedLine
