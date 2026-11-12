@@ -52,6 +52,37 @@ namespace DataStandardizer.File.CSV
 
         internal static string[] GetSortedFieldNamesFromMapper(ICsvFileMapper mapper)
         {
+            return GetFieldPositions(mapper)
+                .OrderBy(item => item.Item2)
+                .Select(item => GetFieldNameFromMapping(new KeyValuePair<string, CsvFieldMapping>(item.Item1, mapper[item.Item1])))
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Gets the field name of each mapping at the zero-based position of the field it is mapped to.
+        /// </summary>
+        /// <returns>The field names keyed by position.  A position no mapping is mapped to has no entry.  Where more than one mapping is mapped to a
+        /// position, the first one's field name is used.</returns>
+        internal static Dictionary<int, string> GetFieldNamesByPosition(ICsvFileMapper mapper)
+        {
+            var fieldNames = new Dictionary<int, string>();
+            foreach (var position in GetFieldPositions(mapper))
+            {
+                if (!fieldNames.ContainsKey(position.Item2))
+                {
+                    fieldNames.Add(position.Item2, GetFieldNameFromMapping(new KeyValuePair<string, CsvFieldMapping>(position.Item1, mapper[position.Item1])));
+                }
+            }
+
+            return fieldNames;
+        }
+
+        /// <summary>
+        /// Gets the property key and field position of each mapping, in mapper order.  A mapping without a field index takes the first position after
+        /// the previous mapping's that no mapping has a field index for.
+        /// </summary>
+        private static Tuple<string, int>[] GetFieldPositions(ICsvFileMapper mapper)
+        {
             var source = mapper
                 .Select(mapping => Tuple.Create(mapping.Key, mapping.Value.FieldIndex))
                 .ToArray();
@@ -75,8 +106,6 @@ namespace DataStandardizer.File.CSV
                     nextAvailableIndex = index + 1;
                     return Tuple.Create(item.Item1, index);
                 })
-                .OrderBy(item => item.Item2)
-                .Select(item => GetFieldNameFromMapping(new KeyValuePair<string, CsvFieldMapping>(item.Item1, mapper[item.Item1])))
                 .ToArray();
         }
     }

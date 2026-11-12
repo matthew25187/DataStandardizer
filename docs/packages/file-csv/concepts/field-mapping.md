@@ -124,6 +124,26 @@ A line the reader returns holds each mapped value under its field name, such as
 properties is mapped to, so `line.Id` reads and writes `person_id`. A line made
 with `ToCsvLine` does the same.
 
+A mapping by index, such as `HasFieldIndex(2)` or `[CsvFieldMapping(2)]`, reads
+the field at that zero-based position of the record, whatever the header line
+or the mapper's other mappings call it. The value is held under that field's
+name, so with the header `x,y,z` the property mapped to index 2 reads and
+writes `z`. Without a header line, the field is named after the mapping: its
+field name if it has one, else the property name. A
+converter delegate's context gets the name of the field the index picked.
+
+A record with no field at that position has no field for the mapping, even if
+another of its fields has the mapping's name.
+
+A mapping reads only the field it's mapped to. A mapping whose field the record
+doesn't have, by name or by index, has nothing to read, even if the record has a
+field named like the property. If the mapping is optional, it's skipped and the
+property isn't set, even if it has a constant or generated value. If it's
+required, the reader throws `CsvFileException`, unless it has a constant or
+generated value. That value is added to the line under the mapping's name. If
+the mapping is by index and the record already has a field with that name, the
+reader throws `CsvFileException` rather than overwrite it.
+
 A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
 yet, so it holds the value under the property key: the name given by
 `[CsvField]`, or else the property name. The writer looks a mapped value up by
