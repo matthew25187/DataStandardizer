@@ -5,6 +5,15 @@
       "subject": "VcardOptions.MaxLineLength is a required property on .NET 10 and later (#788)",
       "notes": []
     },
+    "e1b12df9334010185c5dfbc835996d836d0bde99": {
+      "subject": "CsvFileReader rejects a quoted field that the file ends inside (#877)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileReader` no longer silently accepts a quoted field that the file ends inside (RFC 4180 section 2); it calls `BadValueHandler`, or throws `CsvFileException` when no handler is set"
+        }
+      ]
+    },
     "15bbcad596e44971409db1a463a03bf12c1ec00b": {
       "subject": "CsvFileReader no longer needs memory quadratic in the input for a quoted value followed by many characters (#789)",
       "notes": [

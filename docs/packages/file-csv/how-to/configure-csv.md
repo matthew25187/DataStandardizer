@@ -33,10 +33,11 @@ var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFil
 If a handler is not specified, the reader or writer will throw a
 `CsvFileException` when a bad value is encountered.
 
-When a reader finds a field that breaks the quoting rules of RFC 4180 section 2,
-such as an unquoted field that holds a quote, text after a closing quote, or a
-quote that the file never closes, it calls the handler once for each violation
-it finds, so one field can lead to several calls. Each call's `RawFieldValue` holds the field's text read up to that
+When a reader finds a field that breaks the field rules of RFC 4180 section 2,
+such as an unquoted field that holds a quote or a line break, whitespace or
+other text before an opening quote or after a closing quote, or a quote that the
+file never closes, it calls the handler once for each violation it finds, so one
+field can lead to several calls. Each call's `RawFieldValue` holds the field's text read up to that
 violation, with quotes removed, not the whole field: for `"a"bc` the handler is
 called with `ab` and then `abc`. Once the handler returns, the reader uses an
 empty value for that field, wherever it is in the record. A header field gets an
@@ -191,3 +192,16 @@ var options = new CsvFileOptions { TerminatorLineBreak = "\n" };
 
 This setting applies both to how the reader detects the ends of lines and how
 lines are terminated when written to a CSV file by a writer.
+
+A carriage return or line feed that isn't part of the terminator can only be in a
+quoted field. In an unquoted field the reader reports it as a
+[bad value](#bad-value-handler), as RFC 4180 section 2 allows no line break in a
+non-escaped field. So set this option to the line break the file uses:
+
+- A file whose lines end with `\r\n`, read with `TerminatorLineBreak = "\n"`,
+  has a bad value at the end of each line.
+- A file whose lines end with `\n`, read with the default `"\r\n"`, has no
+  terminator, so the whole file is one record, with a bad value at each line
+  break.
+- A file whose lines end with `\r\n`, read with `TerminatorLineBreak = "\r"`,
+  has a bad value at the start of each line after the first.
