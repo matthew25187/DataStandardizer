@@ -134,7 +134,9 @@ field names.
 **Default:** `null`
 
 A handler can be specified that will be called when there is an inconsistent
-number of fields across multiple lines.
+number of fields across multiple lines. The line it is called for is skipped: a
+reader doesn't return it, and a writer writes nothing for it. Without a handler, an
+inconsistent field count throws `CsvFileException`.
 
 ```csharp
 void HandleInconsistentFieldCount(CsvFieldContext<CsvFileRecordLine> ctx)
