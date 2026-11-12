@@ -41,8 +41,8 @@ publicly read-only.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `FieldIndex` | `int? FieldIndex { get; }` | The index of the field. |
-| `FieldName` | `string? FieldName { get; }` | The name of the field. |
+| `FieldIndex` | `int? FieldIndex { get; }` | The index of the field. When reading, its position in the line, and `null` when the value didn't come from a field. |
+| `FieldName` | `string? FieldName { get; }` | The name of the field. When reading, the name of the field in the line, which a mapping by index resolves through the header. |
 | `HeaderLine` | `CsvFileHeaderLine? HeaderLine { get; }` | The header line, if any. |
 | `Model` | `TModel? Model { get; }` | The line model being read or written. |
 | `Options` | `ICsvFileOptions Options { get; }` | The options configuring the reader or writer. |

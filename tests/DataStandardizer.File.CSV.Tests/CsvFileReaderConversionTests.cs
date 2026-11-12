@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -56,6 +56,16 @@ namespace DataStandardizer.File.CSV.Tests
         /// The position of the <c>Amount</c> field in the lines of <see cref="AmountSecondFile"/>.
         /// </summary>
         private const int AmountFieldPosition = 1;
+
+        /// <summary>
+        /// The name of the second field in the header of <see cref="AmountSecondFile"/>.
+        /// </summary>
+        private const string AmountFieldName = "Amount";
+
+        /// <summary>
+        /// The text of the <c>Amount</c> field in the record line of <see cref="AmountSecondFile"/>.
+        /// </summary>
+        private const string AmountFieldText = "abc";
 
         public static TheoryData<string, Func<string, object>, string, object> ParsedValueCases => new TheoryData<string, Func<string, object>, string, object>
         {
@@ -324,6 +334,83 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_FromStringConverterOnNamedFieldAfterUnmappedField_GivesConverterRawFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ContextCapturingLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<NamedContextCapturingLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (ContextCapturingLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Context.RawFieldValue.Should().Be(AmountFieldText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnNamedFieldAfterUnmappedField_GivesConverterFieldPosition()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ContextCapturingLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<NamedContextCapturingLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (ContextCapturingLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Context.FieldIndex.Should().Be(AmountFieldPosition);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnIndexedField_GivesConverterHeaderFieldName()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ContextCapturingLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<IndexedContextCapturingLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (ContextCapturingLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Context.FieldName.Should().Be(AmountFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ValidatorRejectsValueAfterUnmappedField_CallsHandlerWithRawFieldValue()
+        {
+            // arrange
+            var rawFieldValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<ValidatedAmountLine>(context => rawFieldValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<ValidatedAmountLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<ValidatedAmountLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                rawFieldValues.Should().Equal(AmountFieldText);
+            }
+        }
+
+        [Fact]
         public void ReadLine_TypeWithoutParser_ReadsDefaultValue()
         {
             // act
@@ -497,6 +584,40 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldName("Amount")
                     .ConvertUsing(typeof(StringConverter))
                     .ValidateUsing(_ => false);
+            }
+        }
+
+        /// <summary>
+        /// A line whose one property holds the context its converter was given.
+        /// </summary>
+        private sealed class ContextCapturingLine : CsvFileRecordLine
+        {
+            public CsvFieldContext<ContextCapturingLine> Context
+            {
+                get => GetPropertyValue<CsvFieldContext<ContextCapturingLine>>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class NamedContextCapturingLineMapper : CsvFileMapperBase<ContextCapturingLine>
+        {
+            public NamedContextCapturingLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Context)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<ContextCapturingLine, CsvFieldContext<ContextCapturingLine>>(context => context));
+            }
+        }
+
+        private sealed class IndexedContextCapturingLineMapper : CsvFileMapperBase<ContextCapturingLine>
+        {
+            public IndexedContextCapturingLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Context)
+                    .HasFieldIndex(AmountFieldPosition)
+                    .ConvertUsing(new CsvFieldConvertFromString<ContextCapturingLine, CsvFieldContext<ContextCapturingLine>>(context => context));
             }
         }
 

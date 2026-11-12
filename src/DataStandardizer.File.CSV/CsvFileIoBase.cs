@@ -220,11 +220,12 @@ namespace DataStandardizer.File.CSV
             /// Converts a mapped field value to the property type.
             /// </summary>
             /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
+            /// <param name="fieldIndex">The position of that field on the line, which a converter delegate is given; <c>null</c> for a constant or generated value, which has no field.</param>
             /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
             /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
             /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
             internal abstract bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                string fieldName, object? fieldValue, out object? value, out Exception? error);
+                string fieldName, int? fieldIndex, object? fieldValue, out object? value, out Exception? error);
 
             internal abstract object? Generate(Delegate generator);
 #else
@@ -232,11 +233,12 @@ namespace DataStandardizer.File.CSV
             /// Converts a mapped field value to the property type.
             /// </summary>
             /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
+            /// <param name="fieldIndex">The position of that field on the line, which a converter delegate is given; <c>null</c> for a constant or generated value, which has no field.</param>
             /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
             /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
             /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
             internal abstract bool TryDeserialize([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
-                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [DisallowNull] string fieldName, [AllowNull] object fieldValue, [MaybeNull] out object value,
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [DisallowNull] string fieldName, int? fieldIndex, [AllowNull] object fieldValue, [MaybeNull] out object value,
                 [MaybeNull] out Exception error);
 
             [return: MaybeNull]
@@ -267,7 +269,7 @@ namespace DataStandardizer.File.CSV
             }
 
             internal override bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                string fieldName, object? fieldValue, out object? value, out Exception? error)
+                string fieldName, int? fieldIndex, object? fieldValue, out object? value, out Exception? error)
 #else
             [MaybeNull] private object _parser;
 
@@ -285,7 +287,7 @@ namespace DataStandardizer.File.CSV
             }
 
             internal override bool TryDeserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                string fieldName, object fieldValue, out object value, out Exception error)
+                string fieldName, int? fieldIndex, object fieldValue, out object value, out Exception error)
 #endif
             {
                 error = null;
@@ -314,7 +316,8 @@ namespace DataStandardizer.File.CSV
                         HeaderLine = headerLine,
                         Model = recordLine,
                         FieldName = fieldName,
-                        FieldIndex = fieldMapping.FieldIndex
+                        FieldIndex = fieldIndex,
+                        RawFieldValue = serializedFieldValue
                     };
                     value = converter(context);
                     return true;

@@ -527,15 +527,20 @@ namespace DataStandardizer.File.CSV
                     }
                 }
 
+                // The field the mapping resolved to on this line, if it has one, and its text as read.
+                var lineFieldIndex = fieldMappingPlan.IsPastLastField ? null : GetFieldPosition(csvLine, mappedFieldName);
+                var lineFieldValue = lineFieldIndex is null ? null : csvLine[mappedFieldName];
+
                 // Validate CSV field value.
                 if (fieldMapping.Value.Validator is CsvFieldValidate<TRecordLine> validator)
                 {
                     var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                     {
                         Model = recordLine,
-                        FieldIndex = GetFieldPosition(csvLine, mappedFieldName),
+                        FieldIndex = lineFieldIndex,
                         FieldName = mappedFieldName,
-                        HeaderLine = _headerLine
+                        HeaderLine = _headerLine,
+                        RawFieldValue = lineFieldValue as string
                     };
                     if (!validator(fieldContext))
                     {
@@ -545,35 +550,36 @@ namespace DataStandardizer.File.CSV
                             continue;
                         }
 
-                        var rawFieldValue = csvLine[mappedFieldName] is string stringFieldValue ? stringFieldValue : string.Empty;
+                        var rawFieldValue = lineFieldValue as string ?? string.Empty;
                         throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, null);
                     }
                 }
 
-                // Get the mapped field value, then deserialize it.
-                var fieldValue = fieldMappingPlan.IsPastLastField ? null : csvLine[mappedFieldName];
+                // Get the mapped field value, then deserialize it.  A constant or generated value didn't come from a field, so has no position.
+                var fieldValue = lineFieldValue;
+                var fieldIndex = lineFieldIndex;
                 if (fieldMapping.Value.ConstantValue != null)
                 {
                     fieldValue = fieldMapping.Value.ConstantValue;
+                    fieldIndex = null;
                 }
                 else if (fieldMapping.Value.VariableValueGenerator != null)
                 {
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
+                    fieldIndex = null;
                 }
 
-                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldValue, out var propertyValue,
+                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, fieldValue, out var propertyValue,
                         out var error))
                 {
                     // Only a string is converted, so a value that fails to convert is always one.
                     var rawFieldValue = fieldValue as string ?? string.Empty;
                     if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
                     {
-                        // A constant or generated value didn't come from a field, so has no position.
-                        var isFieldValue = !FieldPlan.SuppliesValue(fieldMapping.Value);
                         var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                         {
                             Model = recordLine,
-                            FieldIndex = isFieldValue ? GetFieldPosition(csvLine, mappedFieldName) : null,
+                            FieldIndex = fieldIndex,
                             FieldName = mappedFieldName,
                             HeaderLine = _headerLine,
                             RawFieldValue = rawFieldValue
