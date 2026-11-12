@@ -116,6 +116,16 @@ on a validation failure the value is routed to the configured bad-value handler
 or, if none, surfaces as a `CsvFileException`. An exception thrown by a converter
 or generator delegate propagates unchanged.
 
+## Where a mapped value is held
+
+A line holds each mapped value under the property key, which is the property
+name or the name given by `[CsvField]`. That is the key the line's typed
+properties use, so a mapping whose field name differs from the property name,
+such as `[CsvFieldMapping("person_id")] int Id`, still round-trips. The reader
+renames the field it read, `person_id`, to the property key, `Id`, in the same
+position on the line. The writer looks the value up by the property key, and if
+the line has no field with that key, by the field name.
+
 ## Converting field values
 
 When a reader maps a field to a property, it converts the field's text to the

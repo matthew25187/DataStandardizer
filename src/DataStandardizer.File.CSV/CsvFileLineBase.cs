@@ -81,6 +81,19 @@ namespace DataStandardizer.File.CSV
         }
 #endif
 
+        /// <summary>
+        /// Replaces the name and value of the field at a position, keeping its place on the line.
+        /// </summary>
+        /// <exception cref="ArgumentException">Another field on the line already has the name.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal void SetFieldAt(int index, string fieldName, object? value)
+#else
+        internal void SetFieldAt(int index, string fieldName, [AllowNull] object value)
+#endif
+        {
+            _fieldBag.SetAt(index, fieldName, value);
+        }
+
         protected string GetPropertyKey(string propertyName)
         {
             var lineType = this.GetType();

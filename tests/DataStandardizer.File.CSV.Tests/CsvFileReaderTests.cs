@@ -94,6 +94,17 @@ namespace DataStandardizer.File.CSV.Tests
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
 
+        // Field names that differ from the property keys they are mapped to, and files that use them.
+        private const string PersonIdFieldName = "person_id";
+        private const string PersonNameFieldName = "person_name";
+        private const int RenamedId = 5;
+        private const string RenamedName = "bob";
+        private const int SecondRenamedId = 6;
+        private const string SecondRenamedName = "amy";
+        private const string RenamedHeaderFile = "person_id,person_name\r\n5,bob";
+        private const string RenamedRecordFile = "5,bob";
+        private const string TwoRenamedRecordsWithHeaderFile = "person_id,person_name\r\n5,bob\r\n6,amy";
+
         // NumbersLine and TwoNumberLinesFile in ASCII.
         private static readonly byte[] NumbersLineBytes = new byte[] { 0x31, 0x2C, 0x32, 0x2C, 0x33 };
         private static readonly byte[] TwoNumberLinesBytes = new byte[] { 0x31, 0x2C, 0x32, 0x2C, 0x33, 0x0D, 0x0A, 0x34, 0x2C, 0x35, 0x2C, 0x36 };
@@ -1186,8 +1197,97 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Id.Should().Be(1);
-                ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, ExtraFieldName }, config => config.WithStrictOrdering());
-                testResult.ValidatedFieldNames.Should().Equal(ExtraFieldName);
+                ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, DescriptionFieldName }, config => config.WithStrictOrdering());
+                testResult.ValidatedFieldNames.Should().Equal(NameFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AttributeMappingRenamesHeaderField_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_BuilderMapperRenamesHeaderField_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedBuilderLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.RegisterMapper<RenamedBuilderLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedBuilderLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AttributeMappingRenamesFieldWithoutHeader_PropertiesReturnFieldValues()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(RenamedRecordFile)))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingRenamesHeaderField_RenamesFieldToPropertyKeyInPlace()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().BeEquivalentTo(new[] { IdFieldName, NameFieldName }, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SecondLineWithRenamedHeaderField_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(TwoRenamedRecordsWithHeaderFile), options))
+            {
+                csvReader.ReadLine();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(SecondRenamedId);
+                testResult.Name.Should().Be(SecondRenamedName);
             }
         }
 
@@ -1480,6 +1580,53 @@ namespace DataStandardizer.File.CSV.Tests
         {
         }
 
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields with other names.
+        /// </summary>
+        private sealed class RenamedAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose properties <see cref="RenamedBuilderLineMapper"/> maps to fields with other names.
+        /// </summary>
+        private sealed class RenamedBuilderLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class RenamedBuilderLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public RenamedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
         private sealed class AddedFieldLine : TestLine
         {
             /// <summary>
@@ -1666,8 +1813,9 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Maps Name to a field the line does not have, so storing its value adds the field, which the optional
-        /// Description mapping then finds.
+        /// Maps Name to a field the line does not have, so storing its value adds a field with Name's property key, which
+        /// the optional Description mapping then finds.  Storing Description's value renames that field to Description's
+        /// property key.
         /// </summary>
         private sealed class AddedFieldLineMapper : CsvFileMapperBase<AddedFieldLine>
         {
@@ -1680,7 +1828,7 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName);
                 this.Map()
                     .Property(x => x.Description)
-                    .HasFieldName(ExtraFieldName)
+                    .HasFieldName(NameFieldName)
                     .ConvertUsing(typeof(StringConverter))
                     .ValidateUsing(context =>
                     {

@@ -76,6 +76,18 @@ namespace DataStandardizer.File.CSV.Tests
 
         // Lines written.
         private const string SingleNumberLine = "1\r\n";
+
+        // Field names that differ from the property keys they are mapped to, the values written to them, and the line
+        // that results.
+        private const string PersonIdFieldName = "person_id";
+        private const string PersonNameFieldName = "person_name";
+        private const int RenamedId = 5;
+        private const string RenamedName = "bob";
+        private const string RenamedRecordLine = "5,bob\r\n";
+
+        // Values held under the field names of a line that also holds values under the property keys.
+        private const int StaleId = 9;
+        private const string StaleName = "stale";
         private const string FirstLongRecordLine = "1,One,This is the first record\r\n";
 
         private const string OptionsParameterName = "options";
@@ -1141,6 +1153,87 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_AttributeMappingRenamesField_WritesPropertyValues()
+        {
+            // arrange
+            var testLine = new RenamedAttributeLine { Id = RenamedId, Name = RenamedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedAttributeLine>(stringWriter))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_BuilderMapperRenamesField_WritesPropertyValues()
+        {
+            // arrange
+            var testLine = new RenamedBuilderLine { Id = RenamedId, Name = RenamedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<RenamedBuilderLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RenamedMappingAndLineWithFieldNamesOnly_WritesFieldValues()
+        {
+            // arrange
+            var testLine = new RenamedAttributeLine();
+            testLine.Add(PersonIdFieldName, RenamedId);
+            testLine.Add(PersonNameFieldName, RenamedName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedAttributeLine>(stringWriter))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RenamedMappingAndLineWithPropertyKeysAndFieldNames_WritesPropertyValues()
+        {
+            // arrange
+            var testLine = new RenamedAttributeLine { Id = RenamedId, Name = RenamedName };
+            testLine.Add(PersonIdFieldName, StaleId);
+            testLine.Add(PersonNameFieldName, StaleName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedAttributeLine>(stringWriter))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
         public void WriteLine_MapperRegisteredAfterFirstLine_WritesLaterLinesInOrderByMapping()
         {
             // arrange
@@ -1414,6 +1507,53 @@ namespace DataStandardizer.File.CSV.Tests
 
         private sealed class ConstantAndVariableLine : TestLine
         {
+        }
+
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields with other names.
+        /// </summary>
+        private sealed class RenamedAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose properties <see cref="RenamedBuilderLineMapper"/> maps to fields with other names.
+        /// </summary>
+        private sealed class RenamedBuilderLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class RenamedBuilderLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public RenamedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
         }
 
         private sealed class IdConverterLine : TestLine

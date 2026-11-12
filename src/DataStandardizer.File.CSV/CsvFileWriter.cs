@@ -297,8 +297,11 @@ namespace DataStandardizer.File.CSV
             var fieldIndex = 0;
             foreach (var field in fields)
             {
+                // A mapped value is held under the property key, which the line's property and the reader use, else under the field name.
+                var fieldKey = field.PropertyKey != null && csvLine.Contains(field.PropertyKey) ? field.PropertyKey : field.FieldName;
+
                 // If a value has not been set for the current field, add a blank value.
-                if (!csvLine.Contains(field.FieldName))
+                if (!csvLine.Contains(fieldKey))
                 {
                     fieldValues[fieldValueCount++] = string.Empty;
                     continue;
@@ -311,7 +314,7 @@ namespace DataStandardizer.File.CSV
                 }
 
                 // Convert the field value to a string.
-                var rawFieldValue = SerializeFieldValue(recordLine, field);
+                var rawFieldValue = SerializeFieldValue(recordLine, field, fieldKey);
 
                 // Apply embedded line break on field value.  A value without a line break is unchanged by this, so is skipped.
                 if (_options.EmbeddedLineBreak != null && !string.IsNullOrEmpty(rawFieldValue) && rawFieldValue.IndexOfAny(LineBreakCharacters) >= 0)
@@ -366,20 +369,20 @@ namespace DataStandardizer.File.CSV
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private string? SerializeFieldValue(TRecordLine recordLine, FieldWritePlan field)
+        private string? SerializeFieldValue(TRecordLine recordLine, FieldWritePlan field, string fieldKey)
 #else
         [return: MaybeNull]
-        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field)
+        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field, [DisallowNull] string fieldKey)
 #endif
         {
             ICsvFileLine csvLine = recordLine;
             if (!field.IsMapped)
             {
-                var fieldValue = csvLine[field.FieldName];
+                var fieldValue = csvLine[fieldKey];
                 return fieldValue is null ? null : fieldValue is string stringFieldValue ? stringFieldValue : FormatFieldValue(fieldValue, _options);
             }
 
-            // Get the mapped field value.  The line has a field with the mapped field name, so the value is read by that name.
+            // Get the mapped field value.  The line has a field with the given key, so the value is read by that key.
             var fieldMapping = field.Mapping.Value;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             object? mappedFieldValue;
@@ -400,7 +403,7 @@ namespace DataStandardizer.File.CSV
             }
             else
             {
-                mappedFieldValue = csvLine[field.FieldName];
+                mappedFieldValue = csvLine[fieldKey];
             }
 
             if (mappedFieldValue is null)
@@ -816,6 +819,11 @@ namespace DataStandardizer.File.CSV
                 IsMapped = !string.IsNullOrEmpty(mapping.Key);
                 if (IsMapped)
                 {
+                    if (!string.Equals(mapping.Key, fieldName, StringComparison.Ordinal))
+                    {
+                        PropertyKey = mapping.Key;
+                    }
+
                     Converter = mapping.Value.ToStringConverter as CsvFieldConvertToString<TRecordLine>;
                     if (mapping.Value.VariableValueGenerator != null)
                     {
@@ -843,9 +851,19 @@ namespace DataStandardizer.File.CSV
 #endif
 
             /// <summary>
-            /// Gets the name of the field, which is also the key of its value on a record line.
+            /// Gets the name of the field, which is also the key of its value on a record line that has no field with the property key.
             /// </summary>
             internal string FieldName { get; }
+
+            /// <summary>
+            /// Gets the property key of the mapping if it differs from the field name, or <c>null</c> if it is the same or the field has no mapping.
+            /// A line built from the model, or read with the mapping, holds the value under this key.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal string? PropertyKey { get; }
+#else
+            [MaybeNull] internal string PropertyKey { get; }
+#endif
 
             /// <summary>
             /// Gets a flag indicating if the field has a mapping.
