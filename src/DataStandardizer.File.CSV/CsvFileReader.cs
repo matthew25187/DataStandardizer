@@ -32,6 +32,8 @@ namespace DataStandardizer.File.CSV
             internal const string FieldCountMismatchTemplate = "Found {0} of {1} expected fields.";
             internal const string IndexedFieldNameTakenTemplate =
                 "Found no field at index {0} for property '{1}' in a record of {2} fields, and the record already has a field named '{3}'.";
+            internal const string MissingIndexedFieldTemplate = "Found no field at index {0} for required property '{1}' in a record of {2} fields.";
+            internal const string MissingNamedFieldTemplate = "Found no field named '{0}' for required property '{1}'.";
         }
         private const int DefaultBufferSize = 16 * 1024;
         private const char QuoteCharacter = '"';
@@ -493,11 +495,17 @@ namespace DataStandardizer.File.CSV
                 string fieldKey;
                 if (fieldMappingPlan.IsPastLastField)
                 {
-                    // The record has no field at the mapping's index, so the mapping reads no field.  Its value is added under the mapping's name,
-                    // unless the record already has a field with that name, which the value would overwrite.
+                    // The record has no field at the mapping's index, so the mapping reads no field.  An optional mapping is skipped, and a required
+                    // one is an error unless it supplies its own value.  That value is added under the mapping's name, unless the record already has a
+                    // field with that name, which the value would overwrite.
                     if (fieldMapping.Value.IsOptional)
                     {
                         continue;
+                    }
+
+                    if (fieldMappingPlan.IsMissing)
+                    {
+                        throw BuildMissingFieldException(fieldMapping, mappedFieldName, csvLine.Count);
                     }
 
                     if (fieldMappingPlan.IsFieldNameTaken)
@@ -525,6 +533,10 @@ namespace DataStandardizer.File.CSV
                     }
 
                     fieldKey = FieldPlan.GetFieldKey(csvLine.Contains, mappedFieldName, fieldMapping.Key);
+                    if (!csvLine.Contains(fieldKey) && !FieldPlan.SuppliesValue(fieldMapping.Value))
+                    {
+                        throw BuildMissingFieldException(fieldMapping, mappedFieldName, csvLine.Count);
+                    }
                 }
 
                 // Validate CSV field value.
@@ -610,6 +622,28 @@ namespace DataStandardizer.File.CSV
                 { DataItemName.FieldName, fieldName },
                 { DataItemName.ActualFieldCount, fieldCount }
             };
+            return BuildException(message, dataItems);
+        }
+
+        private static CsvFileException BuildMissingFieldException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string fieldName, int fieldCount)
+        {
+            var dataItems = new Dictionary<string, object>
+            {
+                { DataItemName.PropertyName, fieldMapping.Key },
+                { DataItemName.FieldName, fieldName },
+                { DataItemName.ActualFieldCount, fieldCount }
+            };
+            string message;
+            if (fieldMapping.Value.FieldIndex is int fieldIndex)
+            {
+                message = string.Format(ErrorMessage.MissingIndexedFieldTemplate, fieldIndex, fieldMapping.Key, fieldCount);
+                dataItems.Add(DataItemName.FieldIndex, fieldIndex);
+            }
+            else
+            {
+                message = string.Format(ErrorMessage.MissingNamedFieldTemplate, fieldName, fieldMapping.Key);
+            }
+
             return BuildException(message, dataItems);
         }
 
@@ -1183,13 +1217,17 @@ namespace DataStandardizer.File.CSV
                         ? fieldMapping.Value.IsOptional
                         : !lineFieldNameSet.Contains(mappedFieldName) && fieldMapping.Value.IsOptional;
                     var fieldKey = isPastLastField ? mappedFieldName : GetFieldKey(lineFieldNameSet.Contains, mappedFieldName, fieldMapping.Key);
-                    if (!isSkipped && !lineFieldNameSet.Contains(fieldKey))
+                    var hasField = !isPastLastField && lineFieldNameSet.Contains(fieldKey);
+
+                    // A required mapping with no field to read is an error, unless it supplies its own value.
+                    var isMissing = !isSkipped && !hasField && !SuppliesValue(fieldMapping.Value);
+                    if (!isSkipped && !hasField)
                     {
                         isStatic = false;
                     }
 
                     var accessor = FieldValueAccessor.For(fieldMapping.Value.PropertyType);
-                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, fieldKey, isSkipped, isPastLastField, isFieldNameTaken, accessor));
+                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, fieldKey, isSkipped, isPastLastField, isFieldNameTaken, isMissing, accessor));
                 }
 
                 // Lines already read keep the field names they were read with, so this is a new dictionary rather than a change to the old one.
@@ -1197,6 +1235,14 @@ namespace DataStandardizer.File.CSV
                 _mappings = mappings.ToArray();
                 _mappingsAreStatic = isStatic;
                 _mappedFieldCount = fieldCount;
+            }
+
+            /// <summary>
+            /// Gets a flag indicating if a mapping gives its property a constant or generated value, rather than reading it from a field.
+            /// </summary>
+            internal static bool SuppliesValue(CsvFieldMapping fieldMapping)
+            {
+                return fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null;
             }
 
             /// <summary>
@@ -1214,7 +1260,7 @@ namespace DataStandardizer.File.CSV
         private sealed class FieldMappingPlan
         {
             internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, string fieldKey, bool isSkipped, bool isPastLastField,
-                bool isFieldNameTaken, FieldValueAccessor accessor)
+                bool isFieldNameTaken, bool isMissing, FieldValueAccessor accessor)
             {
                 Mapping = mapping;
                 FieldName = fieldName;
@@ -1222,8 +1268,14 @@ namespace DataStandardizer.File.CSV
                 IsSkipped = isSkipped;
                 IsPastLastField = isPastLastField;
                 IsFieldNameTaken = isFieldNameTaken;
+                IsMissing = isMissing;
                 Accessor = accessor;
             }
+
+            /// <summary>
+            /// Gets a flag indicating if the mapping is required, reads its value from a field, and the line has no field for it.
+            /// </summary>
+            internal bool IsMissing { get; }
 
             /// <summary>
             /// Gets the accessor that generates and deserializes values of the property type.
@@ -1251,7 +1303,8 @@ namespace DataStandardizer.File.CSV
             internal bool IsPastLastField { get; }
 
             /// <summary>
-            /// Gets a flag indicating if the mapping is past the last field of the line and the line already has a field with the mapping's name.
+            /// Gets a flag indicating if the mapping is past the last field of the line, supplies its own value, and the line already has a field
+            /// with the mapping's name.
             /// </summary>
             internal bool IsFieldNameTaken { get; }
 
