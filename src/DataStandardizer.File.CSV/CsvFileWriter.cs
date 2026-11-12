@@ -210,8 +210,11 @@ namespace DataStandardizer.File.CSV
                 ? GetHeaderLineFieldValues(headerLine, lastFieldIndex)
                 : GetRecordLineFieldValues((TRecordLine)csvLine, lastFieldIndex);
 
-            // Write line to CSV output.
-            WriteFieldValues(fieldValueCount);
+            // Write line to CSV output, unless the inconsistent field count handler handled it, in which case the line is skipped as the reader skips it.
+            if (fieldValueCount != HandledLineFieldValueCount)
+            {
+                WriteFieldValues(fieldValueCount);
+            }
         }
 
         private int GetHeaderLineFieldValues(CsvFileHeaderLine headerLine, int lastFieldIndex)
@@ -261,11 +264,18 @@ namespace DataStandardizer.File.CSV
             return fieldValueCount;
         }
 
+        /// <summary>
+        /// Field value count returned for a record line that the inconsistent field count handler handled, which is not written.
+        /// </summary>
+        private const int HandledLineFieldValueCount = -1;
+
         private int GetRecordLineFieldValues(TRecordLine recordLine, int lastFieldIndex)
         {
             ICsvFileLine csvLine = recordLine;
 
-            // Without a header line, the fields to output include every field seen so far on a record line.
+            // Without a header line, the fields to output include every field seen so far on a record line.  A line that is not written doesn't
+            // add its fields, so the previous field names are kept to be restored.
+            var previousFieldNames = _fieldNames;
             if (_headerLineFieldNames.Length == 0 && csvLine.Count > _fieldNames.Length)
             {
                 AddLineFieldNames(csvLine);
@@ -277,11 +287,13 @@ namespace DataStandardizer.File.CSV
             // ref. RFC 4180§2¶4
             if (_previousLineFieldCount > 0 && fields.Length != _previousLineFieldCount)
             {
+                _fieldNames = previousFieldNames;
+
                 if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> fieldCountHandler)
                 {
                     var context = new CsvFieldContext<TRecordLine>(_options) { HeaderLine = _headerLine, Model = recordLine };
                     fieldCountHandler(context);
-                    return 0;
+                    return HandledLineFieldValueCount;
                 }
 
                 var message = $"Expected {_previousLineFieldCount} fields; found {fields.Length} fields.";

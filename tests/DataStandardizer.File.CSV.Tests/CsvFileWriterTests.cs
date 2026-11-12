@@ -807,6 +807,54 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_RecordLineHandledByFieldCountDelegate_WritesNothing()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Name = SecondName, Description = SecondDescription };
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<UnmappedLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                csvWriter.WriteLine(recordLine2);
+
+                // assert
+                buffer.ToString().Should().Be("1,One\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineAfterLineHandledByFieldCountDelegate_WritesFieldsOfLinesWritten()
+        {
+            // arrange
+            var recordLine1 = new UnmappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new UnmappedLine { Id = 2, Name = SecondName, Description = SecondDescription };
+            var recordLine3 = new UnmappedLine { Id = 3, Name = ThirdName };
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<UnmappedLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(recordLine1);
+                csvWriter.WriteLine(recordLine2);
+
+                // act
+                csvWriter.WriteLine(recordLine3);
+
+                // assert
+                buffer.ToString().Should().Be("1,One\r\n3,Three\r\n");
+            }
+        }
+
+        [Fact]
         public void WriteLine_RecordLinesWithInconsistentFieldCountsAndNoFieldCountDelegate_ThrowsCsvFileException()
         {
             // arrange
