@@ -119,6 +119,12 @@ public class PersonRecordLine : CsvFileRecordLine
 }
 ```
 
+`GetPropertyValue<T>` returns the field's value if it is a `T`, and the default
+value of `T` if the line has no such field or its value is `null`. It throws an
+`InvalidCastException` for a value of any other type. A reader stores the text of
+a field that no mapping converts, so a property of any type other than `string`,
+such as `Id` here, needs a mapping to be read from a file.
+
 `CsvFileReader<TRecordLine>` is generic over your record type
 (`where TRecordLine : CsvFileRecordLine, new()`), so each line it returns is
 already an instance of your model with its fields populated. The single

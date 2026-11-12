@@ -693,3 +693,50 @@ invalid last field name is now an empty name, where version 1.x used its text, s
 `Id,x"Name"` gives the field names `Id` and an empty name. If the header already
 has an empty name, such as `,x"Name"`, the two names are duplicates and the reader
 throws a `CsvFileException` for the duplicate field names.
+
+## File.CSV typed property values
+
+A property of a record line model that calls `GetPropertyValue<T>` reads the
+value its field holds. A reader stores a field's text, as a `string`, unless a
+mapping converts it to the property's type.
+
+In version 1.x, `GetPropertyValue<T>` returned the default value of `T` when the
+field held a value of another type. A property of any type other than `string`
+with no mapping, such as an `int Id` with only a `[CsvField]` attribute or no
+attribute at all, silently read as `0` whatever the file held.
+
+In version 2.0, `GetPropertyValue<T>` throws an `InvalidCastException` when the
+field holds a value of another type. A field that the line doesn't have, or whose
+value is `null`, still gives the default value of `T`.
+
+To read such a property from a file, map it, for example with a
+`[CsvFieldMapping]` attribute, which maps it to the field with the property's
+name, or with `[CsvFieldMapping("person_id")]` in place of
+`[CsvField("person_id")]`. The reader then converts the field's text to the
+property's type, as
+[File.CSV conversion of mapped properties](#filecsv-conversion-of-mapped-properties)
+describes.
+
+```csharp
+// Before
+[CsvField("person_id")]
+public int Id
+{
+    get => GetPropertyValue<int>();
+    set => SetPropertyValue(value);
+}
+
+// After
+[CsvFieldMapping("person_id")]
+public int Id
+{
+    get => GetPropertyValue<int>();
+    set => SetPropertyValue(value);
+}
+```
+
+When the bad-value handler is called for a mapped field, the line now holds the
+default value of the property type for the field once the handler returns, so the
+property still reads as its default value. The field keeps its value if it is a
+value of the property type: its text, for a `string` property, or a value the
+handler set on the line. In version 1.x, the line kept the field's text.

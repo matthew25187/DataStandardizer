@@ -220,7 +220,10 @@ value. So is a field a `TypeConverter` throws for, whether it's configured on th
 mapping or found by `TypeDescriptor`. If `CsvFileOptions.BadValueHandler` is set,
 the reader calls it, with the field's text in `RawFieldValue` and its position in
 the line in `FieldIndex`, and carries on with the property left at its default
-value. `FieldIndex` is `null` for a constant or generated value, which has no
+value. The line holds that default value for the field too, unless the field
+holds a value of the property type when the handler returns: the field's text,
+for a `string` property, or a value the handler set on the line, which the
+property then reads. The same applies to a value that a validator rejects. `FieldIndex` is `null` for a constant or generated value, which has no
 field. Otherwise it throws a `CsvFileException`
 whose `Data` holds the `Property` and `FieldValue`, and the `FieldName` when the
 mapping names one. When a `TypeConverter` threw, its exception is the

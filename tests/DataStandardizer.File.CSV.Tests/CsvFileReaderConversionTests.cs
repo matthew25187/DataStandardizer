@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -86,6 +86,16 @@ namespace DataStandardizer.File.CSV.Tests
         /// The text of the <c>Amount</c> field in the record line of <see cref="AmountSecondFile"/>.
         /// </summary>
         private const string AmountFieldText = "abc";
+
+        /// <summary>
+        /// A file whose header names the field <c>Id</c>, with one record whose <c>Id</c> is an integer.
+        /// </summary>
+        private const string IdFile = "Id\r\n5\r\n";
+
+        /// <summary>
+        /// The value a bad-value handler sets on the line in place of a value that failed to convert.
+        /// </summary>
+        private const int HandlerFallbackValue = 3;
 
         public static TheoryData<string, Func<string, object>, string, object> ParsedValueCases => new TheoryData<string, Func<string, object>, string, object>
         {
@@ -251,6 +261,82 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             testResult.Should().Be(0);
+        }
+
+        [Fact]
+        public void ReadLine_MalformedValueWithBadValueHandler_LineHoldsDefaultValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<ValueLine<int>>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<ValueLine<int>>(new StringReader(MalformedInteger), options))
+            {
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult[ValuePropertyName].Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_BadValueHandlerSetsValueOfPropertyType_ReadsHandlerValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<ValueLine<int>>(context => context.Model.Value = HandlerFallbackValue)
+            };
+
+            // act
+            var testResult = ReadValue<int>(MalformedInteger, options);
+
+            // assert
+            testResult.Should().Be(HandlerFallbackValue);
+        }
+
+        [Fact]
+        public void ReadLine_ValidatorRejectsValueWithBadValueHandler_ReadsDefaultValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<RejectedAmountLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<RejectedAmountLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<RejectedAmountLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (RejectedAmountLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Amount.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void GetPropertyValue_UnmappedNonStringPropertyOfReadLine_ThrowsInvalidCastException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<UnmappedIdLine>(new StringReader(IdFile), options))
+            {
+                _ = csvReader.ReadLine();
+                var testLine = (UnmappedIdLine)csvReader.ReadLine();
+
+                // act
+                Action testAction = () => _ = testLine.Id;
+
+                // assert
+                testAction.Should().Throw<InvalidCastException>();
+            }
         }
 
         [Fact]
@@ -728,6 +814,39 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 get => GetPropertyValue<string>();
                 set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with an <see cref="int"/> property that no mapping names, so the reader stores its field's text.
+        /// </summary>
+        private sealed class UnmappedIdLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class RejectedAmountLine : CsvFileRecordLine
+        {
+            public int Amount
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class RejectedAmountLineMapper : CsvFileMapperBase<RejectedAmountLine>
+        {
+            public RejectedAmountLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Amount)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(typeof(Int32Converter))
+                    .ValidateUsing(_ => false);
             }
         }
 

@@ -545,6 +545,7 @@ namespace DataStandardizer.File.CSV
                         if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
                         {
                             badValueHandler(fieldContext);
+                            SetValueAfterBadValue(csvLine, mappedFieldName, fieldMappingPlan);
                             continue;
                         }
 
@@ -591,6 +592,7 @@ namespace DataStandardizer.File.CSV
                             RawFieldValue = rawFieldValue
                         };
                         badValueHandler(fieldContext);
+                        SetValueAfterBadValue(csvLine, mappedFieldName, fieldMappingPlan);
                         continue;
                     }
 
@@ -598,6 +600,18 @@ namespace DataStandardizer.File.CSV
                 }
 
                 csvLine[mappedFieldName] = propertyValue;
+            }
+        }
+
+        /// <summary>
+        /// Replaces a mapped field's value that the bad-value handler was called for with the default value of the property type, unless the
+        /// property can hold it, so the property reads as its default value rather than failing on a value of another type.
+        /// </summary>
+        private static void SetValueAfterBadValue(ICsvFileLine csvLine, string mappedFieldName, FieldMappingPlan fieldMappingPlan)
+        {
+            if (csvLine.TryGetValue(mappedFieldName, out var fieldValue))
+            {
+                csvLine[mappedFieldName] = fieldMappingPlan.Accessor.GetValueAfterBadValue(fieldValue);
             }
         }
 
