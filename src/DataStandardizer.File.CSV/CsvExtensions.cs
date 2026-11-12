@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -17,7 +18,7 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Reflection results for a property declared on a record line or custom model type.
+        /// Reflection results for a property that a record line or custom model type declares or inherits.
         /// </summary>
         private sealed class PropertyBinding
         {
@@ -56,7 +57,7 @@ namespace DataStandardizer.File.CSV
 #endif
         }
 
-        // Declared-property bindings keyed by type, so conversions and mapper creation reflect at most once per type.
+        // Mappable-property bindings keyed by type, so conversions and mapper creation reflect at most once per type.
         private static readonly ConcurrentDictionary<Type, PropertyBinding[]> PropertyBindingCache = new ConcurrentDictionary<Type, PropertyBinding[]>();
 
         /// <summary>
@@ -71,7 +72,64 @@ namespace DataStandardizer.File.CSV
                 return propertyBindings;
             }
 
-            return PropertyBindingCache.GetOrAdd(type, t => t.GetTypeInfo().DeclaredProperties.Select(pi => new PropertyBinding(pi)).ToArray());
+            return PropertyBindingCache.GetOrAdd(type, t => GetMappableProperties(t).Select(pi => new PropertyBinding(pi)).ToArray());
+        }
+
+        /// <summary>
+        /// Gets the properties of a record line or custom model type that mapping considers: those the type declares, and those it inherits.
+        /// </summary>
+        /// <remarks>
+        /// Where a type redeclares a property of its base type, by overriding or hiding it, only the most derived declaration is returned, so a
+        /// property name has one key on a type.  The properties of the line types that this library defines aren't mappable, so they aren't
+        /// returned.
+        /// </remarks>
+        internal static IEnumerable<PropertyInfo> GetMappableProperties(Type type)
+        {
+            var propertyNames = new HashSet<string>(StringComparer.Ordinal);
+            for (var currentType = type; IsMappableType(currentType); currentType = currentType.GetTypeInfo().BaseType)
+            {
+                foreach (var pi in currentType.GetTypeInfo().DeclaredProperties)
+                {
+                    if (propertyNames.Add(pi.Name))
+                    {
+                        yield return pi;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the property with the given name that mapping considers on a record line type, or <c>null</c> if it has none.
+        /// </summary>
+        /// <remarks>
+        /// The property is the one <see cref="GetMappableProperties"/> returns with that name: the most derived declaration of it.
+        /// </remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static PropertyInfo? FindMappableProperty(Type type, string propertyName)
+#else
+        internal static PropertyInfo FindMappableProperty(Type type, string propertyName)
+#endif
+        {
+            for (var currentType = type; IsMappableType(currentType); currentType = currentType.GetTypeInfo().BaseType)
+            {
+                var pi = currentType.GetTypeInfo().GetDeclaredProperty(propertyName);
+                if (!(pi is null))
+                {
+                    return pi;
+                }
+            }
+
+            return null;
+        }
+
+        // The line types that this library defines declare no mappable properties, so the walk up the hierarchy stops at them.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static bool IsMappableType([NotNullWhen(true)] Type? type)
+#else
+        private static bool IsMappableType([NotNullWhen(true)] Type type)
+#endif
+        {
+            return type != null && type != typeof(object) && type != typeof(CsvFileLineBase);
         }
 
         internal static string GetPropertyKey(this PropertyInfo pi)

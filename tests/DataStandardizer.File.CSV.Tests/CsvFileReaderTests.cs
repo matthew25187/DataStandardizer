@@ -1341,6 +1341,24 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_AttributeMappingOnBaseLineType_PropertiesReturnConvertedFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<InheritedAttributeLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as InheritedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
         public void ReadLine_AttributeMappingRenamesHeaderField_PropertiesReturnFieldValues()
         {
             // arrange
@@ -2267,6 +2285,33 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldIndex(PastLastFieldIndex)
                     .IsOptional();
             }
+        }
+
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields with other names, for <see cref="InheritedAttributeLine"/> to inherit.
+        /// </summary>
+        private class RenamedAttributeBaseLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line that inherits every mapped property from <see cref="RenamedAttributeBaseLine"/>.
+        /// </summary>
+        private sealed class InheritedAttributeLine : RenamedAttributeBaseLine
+        {
         }
 
         /// <summary>

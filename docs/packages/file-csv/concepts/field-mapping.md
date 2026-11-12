@@ -33,7 +33,11 @@ is just an `IReadOnlyDictionary<string, CsvFieldMapping>` keyed by property name
 properties (optionally alongside `[TypeConverter]`). These are discovered
 automatically via reflection — no registration needed. Attributes can express a
 useful subset of the configuration: field name or index, optionality, a constant
-value, and a type converter.
+value, and a type converter. A model's inherited properties are mapped with
+their attributes, so a mapping declared on a base class applies to every class
+that derives from it. A property hidden with `new` is mapped by its own
+attributes, and an override keeps the attributes of the property it overrides
+unless it declares its own.
 
 **Imperatively**, by subclassing one of the mapper base classes and chaining the
 fluent builder in the constructor:

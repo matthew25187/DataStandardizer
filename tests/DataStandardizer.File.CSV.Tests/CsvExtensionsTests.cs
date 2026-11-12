@@ -22,6 +22,9 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedName = "bob";
         private const string RenamedRecordFile = "5,bob";
 
+        // A name copied between a line and a custom model through a property the model inherits.
+        private const string InheritedName = "alice";
+
         [Fact]
         public void CreateMapper_DeclarativeMappingFieldIndex_ReturnsFieldMappingWithIndex()
         {
@@ -257,6 +260,84 @@ namespace DataStandardizer.File.CSV.Tests
             // assert
             testResult.Id.Should().Be(RenamedId);
             testResult.Name.Should().Be(RenamedName);
+        }
+
+        [Fact]
+        public void CreateMapper_PropertyMappedOnBaseType_ReturnsFieldMappingWithIndex()
+        {
+            // arrange
+            var testLine = new DerivedMappedLine();
+
+            // act
+            var testResult = testLine.CreateMapper();
+
+            // assert
+            testResult.Should().ContainKey(nameof(TestMappedLine.Id))
+                .WhoseValue.FieldIndex.Should().Be(0);
+        }
+
+        [Fact]
+        public void ToObject_PropertyInheritedByCustomModel_CopiesValueFromLineObjectToCustomObject()
+        {
+            // arrange
+            var testLine = new TestLine { Id = 1, Name = InheritedName };
+
+            var mapper = new DerivedModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Name.Should().Be(InheritedName);
+        }
+
+        [Fact]
+        public void ToCsvLine_PropertyInheritedByCustomModel_CopiesValueFromCustomObjectToLineObject()
+        {
+            // arrange
+            var testModel = new DerivedModel { Id = 1, Name = InheritedName };
+
+            var mapper = new TestLineMapper();
+
+            // act
+            var testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Name.Should().Be(InheritedName);
+        }
+
+        /// <summary>
+        /// A line that inherits every mapped property from <see cref="TestMappedLine"/>.
+        /// </summary>
+        private sealed class DerivedMappedLine : TestMappedLine
+        {
+        }
+
+        private class BaseModel
+        {
+            public string Name { get; set; }
+        }
+
+        /// <summary>
+        /// A custom model that inherits <see cref="BaseModel.Name"/>.
+        /// </summary>
+        private sealed class DerivedModel : BaseModel
+        {
+            public int Id { get; set; }
+        }
+
+        private sealed class DerivedModelMapper : CsvFileCustomMapperBase<DerivedModel>
+        {
+            public DerivedModelMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(nameof(DerivedModel.Name));
+            }
         }
 
         /// <summary>

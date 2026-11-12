@@ -1986,6 +1986,24 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Fact]
+        public void WriteLine_AttributeMappingOnBaseLineType_WritesFieldsInMappedOrder()
+        {
+            // arrange
+            ICsvFileLine testLine = new InheritedAttributeMappedLine { First = FirstAttributeValue, Second = SecondAttributeValue };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<InheritedAttributeMappedLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("2nd,1st\r\n");
+            }
+        }
+
         /// <summary>
         /// Creates a culture that formats numbers with the given negative sign and decimal separator, and is otherwise the
         /// invariant culture, so that the result doesn't depend on the culture data of the machine.
@@ -2014,6 +2032,33 @@ namespace DataStandardizer.File.CSV.Tests
         /// The record-line type of a writer that writes lines of several types.
         /// </summary>
         private class MixedLine : CsvFileRecordLine
+        {
+        }
+
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields in the opposite order, for <see cref="InheritedAttributeMappedLine"/> to inherit.
+        /// </summary>
+        private class ReversedAttributeBaseLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(1)]
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(0)]
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line that inherits every mapped property from <see cref="ReversedAttributeBaseLine"/>.
+        /// </summary>
+        private sealed class InheritedAttributeMappedLine : ReversedAttributeBaseLine
         {
         }
 

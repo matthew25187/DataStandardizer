@@ -164,7 +164,7 @@ namespace DataStandardizer.File.CSV
 
         private static string ResolvePropertyKey(Type lineType, string propertyName)
         {
-            var pi = lineType.GetTypeInfo().GetDeclaredProperty(propertyName);
+            var pi = CsvExtensions.FindMappableProperty(lineType, propertyName);
             var fieldAttribute = pi?.GetCustomAttribute<CsvFieldAttribute>();
             return fieldAttribute?.FieldName ?? pi?.Name ?? propertyName;
         }
