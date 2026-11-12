@@ -89,8 +89,17 @@ namespace DataStandardizer.File.CSV
         CsvFieldQuoteHandling QuoteHandling { get; }
 
         /// <summary>
-        /// Gets a flag indicating if blank fields at the end of a line should be output to a CSV file.
+        /// Gets a flag indicating if blank fields at the end of a line are left out when it is written to a CSV file.
         /// </summary>
+        /// <remarks>
+        /// Applies to writing lines only.  Leaving out the trailing blank fields relaxes RFC 4180§2¶4, which says that each line should contain
+        /// the same number of fields throughout the file.
+        /// <para>
+        /// A field is blank when the text written for it is empty.  A field whose value is whitespace is not blank.  The fields at the end of a record
+        /// line are those last in the order they are written: header line order, else mapper order, else the order of the first record line.  A
+        /// record line whose fields are all blank is written with all of them, so that it isn't written as an empty line.
+        /// </para>
+        /// </remarks>
         bool SuppressTrailingBlankFields { get; }
 
         /// <summary>

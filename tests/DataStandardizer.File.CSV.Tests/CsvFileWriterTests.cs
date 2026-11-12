@@ -98,6 +98,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const int ChangedId = 6;
         private const string ChangedRecordLine = "6,bob\r\n";
         private const string RenamedIdLine = "5\r\n";
+        private const string RenamedNameLine = "bob\r\n";
         private const string ConvertedRecordLine = "#5,bob\r\n";
 
         // The record line that is read and then written.
@@ -486,8 +487,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Record lines whose fields are in a different order from the header line One,Two,Three, or lack one of its fields, and the file that
-        /// results when they are written after it with <see cref="ICsvFileOptions.SuppressTrailingBlankFields"/> set.
+        /// Record lines whose fields are in a different order from the header line One,Two,Three, or lack one of its fields, and the record
+        /// line that results when they are written after it with <see cref="ICsvFileOptions.SuppressTrailingBlankFields"/> set.
         /// </summary>
         public static TheoryData<CsvFileRecordLine, string> RecordLinesInAnotherOrderThanTheHeaderLine
         {
@@ -509,9 +510,9 @@ namespace DataStandardizer.File.CSV.Tests
 
                 return new TheoryData<CsvFileRecordLine, string>
                 {
-                    { lastFieldFirst, "One,Two,Three\r\n,,z\r\n" },
-                    { middleFieldMissing, "One,Two,Three\r\nx\r\n" },
-                    { allFieldsBlank, "One,Two,Three\r\n,,\r\n" }
+                    { lastFieldFirst, ",,z\r\n" },
+                    { middleFieldMissing, "x\r\n" },
+                    { allFieldsBlank, ",,\r\n" }
                 };
             }
         }
@@ -534,12 +535,88 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
             {
                 csvWriter.WriteLine(headerLine);
+                buffer.Clear();
 
                 // act
                 csvWriter.WriteLine(testLine);
 
                 // assert
                 buffer.ToString().Should().Be(expectedResult);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineInAnotherOrderThanFirstRecordLineAndSuppressTrailingBlankFields_TrimsTrailingBlankFieldsInFirstRecordLineOrder()
+        {
+            // arrange
+            ICsvFileLine firstLine = new CsvFileRecordLine();
+            firstLine.Add(FieldName1, NumberValue);
+            firstLine.Add(FieldName2, TextValue);
+            firstLine.Add(FieldName3, ThirdName);
+
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName3, "z");
+            testLine.Add(FieldName1, string.Empty);
+            testLine.Add(FieldName2, string.Empty);
+
+            var options = new CsvFileOptions { SuppressTrailingBlankFields = true };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(firstLine);
+                buffer.Clear();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(",,z\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_TrailingMappedFieldConvertedToEmptyTextAndSuppressTrailingBlankFields_LeavesTheFieldOut()
+        {
+            // arrange
+            var testLine = new RenamedBuilderLine { Id = RenamedId, Name = RenamedName };
+
+            var options = new CsvFileOptions { SuppressTrailingBlankFields = true };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter, options))
+            {
+                csvWriter.RegisterMapper<EmptyIdConverterLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedNameLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_TrailingMappedFieldWithConstantValueAndSuppressTrailingBlankFields_WritesTheConstantValue()
+        {
+            // arrange
+            var testLine = new RenamedBuilderLine { Id = RenamedId, Name = string.Empty };
+
+            var options = new CsvFileOptions { SuppressTrailingBlankFields = true };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter, options))
+            {
+                csvWriter.RegisterMapper<ConstantNameLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedRecordLine);
             }
         }
 
@@ -1996,6 +2073,36 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldName(PersonIdFieldName)
                     .ConvertUsing(new CsvFieldConvertToString<RenamedBuilderLine>(context => "#" + ((ICsvFileLine)context.Model)[context.FieldName]));
                 this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps Name and then Id to fields with other names, with a converter that writes empty text for Id.
+        /// </summary>
+        private sealed class EmptyIdConverterLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public EmptyIdConverterLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldName(PersonIdFieldName)
+                    .ConvertUsing(new CsvFieldConvertToString<RenamedBuilderLine>(context => string.Empty));
+            }
+        }
+
+        /// <summary>
+        /// Maps Id and Name to fields with other names, with <see cref="RenamedName"/> as the constant value of Name.
+        /// </summary>
+        private sealed class ConstantNameLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public ConstantNameLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PersonNameFieldName)
+                    .HasConstantValue(RenamedName);
             }
         }
 
