@@ -31,6 +31,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string CrLf = "\r\n";
 
         private const string FieldIndexDataItem = "FieldIndex";
+        private const string InvalidValueAtFieldIndex1Message = "Encountered invalid value at field index 1.";
 
         private static readonly char[] Delimiters = new char[] { ',', ';' };
         private static readonly string[] Terminators = new string[] { CrLf, "\n", "\r" };
@@ -135,6 +136,10 @@ namespace DataStandardizer.File.CSV.Tests
 
         public static TheoryData<string, char, string, int, string[][]> UnterminatedQuoteCases =>
             RecordCases(UnterminatedQuoteInput, new[] { "a", "b" }, new[] { "c", "" });
+
+        // The raw value runs to the end of the stream, so it holds a delimiter and terminators and is translated like the input.
+        public static TheoryData<string, char, string, int, BadValue[]> UnterminatedQuoteBadValueCases =>
+            TranslatedBadValueCases(UnterminatedQuoteInput, new BadValue("d\ne,f\n", 1));
 
         public static TheoryData<string, char, string, int> UnhandledUnterminatedQuoteCases =>
             InputCases(UnhandledUnterminatedQuoteInput);
@@ -464,7 +469,7 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>()
-                    .WithMessage("Encountered invalid value at field index 1.")
+                    .WithMessage(InvalidValueAtFieldIndex1Message)
                     .Which.Data[FieldIndexDataItem].Should().Be(1);
             }
         }
@@ -632,11 +637,28 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>()
-                    .WithMessage("Encountered invalid value at field index 1.")
+                    .WithMessage(InvalidValueAtFieldIndex1Message)
                     .Which.Data[FieldIndexDataItem].Should().Be(1);
             }
         }
 
+        [Theory]
+        [MemberData(nameof(UnterminatedQuoteBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_UnterminatedQuote_CallsBadValueHandlerWithRestOfStream(string input, char delimiter, string terminator, int bufferSize,
+            BadValue[] expectedBadValues)
+        {
+            // arrange
+            var badValues = new List<BadValue>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
+
+                // act
+                _ = ReadAllRecords(csvReader);
+
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
+        }
 
         [Theory]
         [MemberData(nameof(CarriageReturnWithoutLineFeedCases), DisableDiscoveryEnumeration = true)]
@@ -752,6 +774,30 @@ namespace DataStandardizer.File.CSV.Tests
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Makes one case for each delimiter, terminator and buffer size, from an input and the bad values expected from it.  The expected raw field
+        /// values are translated like the input.
+        /// </summary>
+        private static TheoryData<string, char, string, int, BadValue[]> TranslatedBadValueCases(string input, params BadValue[] expectedBadValues)
+        {
+            var data = new TheoryData<string, char, string, int, BadValue[]>();
+            foreach (var delimiter in Delimiters)
+            {
+                foreach (var terminator in Terminators)
+                {
+                    var translatedBadValues = expectedBadValues
+                        .Select(badValue => new BadValue(Translate(badValue.RawFieldValue, delimiter, terminator), badValue.FieldIndex))
+                        .ToArray();
+                    foreach (var bufferSize in BufferSizes)
+                    {
+                        data.Add(Translate(input, delimiter, terminator), delimiter, terminator, bufferSize, translatedBadValues);
+                    }
+                }
+            }
+
+            return data;
         }
 
         /// <summary>

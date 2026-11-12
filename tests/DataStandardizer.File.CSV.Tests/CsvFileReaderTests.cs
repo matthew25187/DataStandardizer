@@ -80,11 +80,11 @@ namespace DataStandardizer.File.CSV.Tests
         // A record whose last field has text before its opening quote, which RFC 4180 section 2 paragraph 5 doesn't allow.
         private const string InvalidLastFieldLine = "One,x\"Two\"";
         private const string InvalidLastFieldMappedLine = "1,x\"One\"";
+        private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
+        private const string InvalidConvertedFieldMappedLine = "x\"1\",One";
 
         // A record whose last field opens a quote that the file never closes, which the escaped rule of RFC 4180 section 2 doesn't allow.
         private const string UnterminatedQuoteFile = "One,\"Two\r\nThree,Four\r\n";
-        private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
-        private const string InvalidConvertedFieldMappedLine = "x\"1\",One";
 
         private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
         private const string FieldNamesDataItem = "FieldNames";
@@ -453,6 +453,26 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_UnterminatedQuotedFieldWithBadValueHandler_ReadsEmptyFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(UnterminatedQuoteFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Values.Should().Equal(FirstName, string.Empty);
             }
         }
 

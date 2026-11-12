@@ -44,6 +44,11 @@ property bound to the field, gets an empty value. If the property's converter
 rejects an empty value, that is a second bad value, and the handler is called
 again for the field, with an empty `RawFieldValue`.
 
+A quoted field that the file ends inside, with no closing quote, is one of these
+violations. Its `RawFieldValue` holds everything after the opening quote up to
+the end of the file, delimiters and line breaks included, so the records after it
+are never returned.
+
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
