@@ -162,13 +162,17 @@ property type. The first of these that applies to the mapping is used:
 
 A constant value of the property type, or a generated value, is used as it is.
 A field's text is given to a configured converter even when the property is a
-`string`, so a converter can trim or normalise a string column. With no
-converter configured, a `string` property gets the field's text as it is.
+`string`, or another type a string can be assigned to, such as `object`, so a
+converter can trim or normalise a string column. The converter gets the text as
+it was read from the file, even when an earlier mapping of the same field has
+converted it. A `TypeConverter` that doesn't convert from a string isn't used
+for such a property, and the property gets the field's text as it is, as it
+does with no converter configured.
 
-The writer works the same way. A `CsvFieldConvertToString` delegate or a
-`TypeConverter` configured for a mapping is used for every value that isn't
-`null`, a string included. Only with no converter configured is a string
-written as it is.
+The writer works the same way. A `CsvFieldConvertToString` delegate configured
+for a mapping, or a `TypeConverter` that converts to a string, is given the
+line's value even when it's a string. A constant or generated string is written
+as it is, and so is a string when no such converter is configured.
 
 So a numeric, date, time, `Guid`, `bool` or enum property needs no converter. The
 built-in parse handles these types, and their `Nullable<T>` forms, in the same way

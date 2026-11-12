@@ -221,12 +221,11 @@ namespace DataStandardizer.File.CSV
             /// </summary>
             /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
             /// <param name="fieldIndex">The position of that field on the line, which a converter delegate is given; <c>null</c> for a constant or generated value, which has no field.</param>
-            /// <param name="isFieldValue"><c>true</c> if the value was read from a field; <c>false</c> if it is the mapping's constant or generated value.</param>
             /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
             /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
             /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
             internal abstract bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                string fieldName, int? fieldIndex, bool isFieldValue, object? fieldValue, out object? value, out Exception? error);
+                string fieldName, int? fieldIndex, object? fieldValue, out object? value, out Exception? error);
 
             internal abstract object? Generate(Delegate generator);
 #else
@@ -235,12 +234,11 @@ namespace DataStandardizer.File.CSV
             /// </summary>
             /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
             /// <param name="fieldIndex">The position of that field on the line, which a converter delegate is given; <c>null</c> for a constant or generated value, which has no field.</param>
-            /// <param name="isFieldValue"><c>true</c> if the value was read from a field; <c>false</c> if it is the mapping's constant or generated value.</param>
             /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
             /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
             /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
             internal abstract bool TryDeserialize([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
-                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [DisallowNull] string fieldName, int? fieldIndex, bool isFieldValue, [AllowNull] object fieldValue, [MaybeNull] out object value,
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [DisallowNull] string fieldName, int? fieldIndex, [AllowNull] object fieldValue, [MaybeNull] out object value,
                 [MaybeNull] out Exception error);
 
             [return: MaybeNull]
@@ -271,7 +269,7 @@ namespace DataStandardizer.File.CSV
             }
 
             internal override bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                string fieldName, int? fieldIndex, bool isFieldValue, object? fieldValue, out object? value, out Exception? error)
+                string fieldName, int? fieldIndex, object? fieldValue, out object? value, out Exception? error)
 #else
             [MaybeNull] private object _parser;
 
@@ -289,16 +287,17 @@ namespace DataStandardizer.File.CSV
             }
 
             internal override bool TryDeserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-                string fieldName, int? fieldIndex, bool isFieldValue, object fieldValue, out object value, out Exception error)
+                string fieldName, int? fieldIndex, object fieldValue, out object value, out Exception error)
 #endif
             {
                 error = null;
 
-                // A value of the property type is used as it is, unless it is a field's text and a converter is configured: a configured converter is
-                // given the text even when the property is a string.  A constant or generated value is always used as it is.
+                // A value of the property type is used as it is, unless it is a field's text and a converter that converts from a string is configured:
+                // such a converter is given the text even when the property is a string.  A constant or generated value is always used as it is.
                 var fieldMapping = propertyFieldMapping.Value;
                 if (fieldValue is T
-                    && (!isFieldValue || !(fieldValue is string) || (fieldMapping.FromStringConverter is null && fieldMapping.TypeConverterType is null)))
+                    && (fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null || !(fieldValue is string)
+                        || !HasFromStringConverter(fieldMapping)))
                 {
                     value = fieldValue;
                     return true;
@@ -387,6 +386,26 @@ namespace DataStandardizer.File.CSV
 
                 value = null;
                 return false;
+            }
+
+            /// <summary>
+            /// Gets a flag indicating if a mapping has a converter delegate, or a type converter that converts from a string.
+            /// </summary>
+            private static bool HasFromStringConverter(CsvFieldMapping fieldMapping)
+            {
+                if (fieldMapping.FromStringConverter != null)
+                {
+                    return true;
+                }
+
+                var typeConverterType = fieldMapping.TypeConverterType;
+                if (typeConverterType is null)
+                {
+                    return false;
+                }
+
+                var typeConverter = CsvMapperCache.GetTypeConverter(typeConverterType);
+                return typeConverter != null && typeConverter.CanConvertFrom(typeof(string));
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

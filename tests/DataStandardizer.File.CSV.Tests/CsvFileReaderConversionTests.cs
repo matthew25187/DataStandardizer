@@ -546,6 +546,39 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_TypeConverterNotFromStringOnStringProperty_ReadsFieldText()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<ToStringOnlyConvertedTextLine>(new StringReader(PaddedText), options))
+            {
+                // act
+                var testResult = (ToStringOnlyConvertedTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(PaddedFieldText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterOnFieldAnEarlierMappingConverted_GivesConverterFieldAsRead()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTextLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<SharedTextLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                var testResult = (SharedTextLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Second.Should().Be(AmountFieldText);
+            }
+        }
+
+        [Fact]
         public void ReadLine_ConstantValueOfPropertyTypeWithTypeConverter_ReadsConstantValue()
         {
             // arrange
@@ -902,6 +935,64 @@ namespace DataStandardizer.File.CSV.Tests
                 get => GetPropertyValue<string>();
                 set => SetPropertyValue(value);
             }
+        }
+
+        private sealed class ToStringOnlyConvertedTextLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(ToStringOnlyConverter))]
+            public string Value
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two string properties mapped to the <c>Amount</c> field.
+        /// </summary>
+        private sealed class SharedTextLine : CsvFileRecordLine
+        {
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Converts the <c>Amount</c> field to <see cref="ConvertedText"/> first, so the line holds that under the field's name, and then reads the
+        /// field again with a converter that gives the text it is given.
+        /// </summary>
+        private sealed class SharedTextLineMapper : CsvFileMapperBase<SharedTextLine>
+        {
+            public SharedTextLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.First)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<SharedTextLine, string>(_ => ConvertedText));
+                this.Map()
+                    .Property(x => x.Second)
+                    .HasFieldName(AmountFieldName)
+                    .ConvertUsing(new CsvFieldConvertFromString<SharedTextLine, string>(context => context.RawFieldValue));
+            }
+        }
+
+        /// <summary>
+        /// Converts every value to <see cref="ConvertedText"/>, and doesn't convert from a string.
+        /// </summary>
+        private sealed class ToStringOnlyConverter : TypeConverter
+        {
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) => destinationType == typeof(string);
+
+            public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType) => ConvertedText;
         }
 
         /// <summary>

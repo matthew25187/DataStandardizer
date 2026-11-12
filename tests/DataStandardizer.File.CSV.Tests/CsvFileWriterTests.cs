@@ -667,6 +667,44 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Fact]
+        public void WriteLine_TypeConverterNotToStringOnStringProperty_WritesValue()
+        {
+            // arrange
+            var testLine = new RenamedBuilderLine { Id = RenamedId, Name = RenamedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<FromStringOnlyConvertedNameLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_ConstantStringWithTypeConverter_WritesConstantValue()
+        {
+            // arrange
+            var testLine = new ConstantConvertedNameLine { Name = string.Empty };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ConstantConvertedNameLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedNameLine);
+            }
+        }
+
         [Theory]
         [InlineData("\n", "1,Two\n"), InlineData("\r", "1,Two\r")]
         public void WriteLine_RecordLineAndCustomLineBreak_WritesRecordLineTerminatedByLineBreak(string testLineBreak, string expectedResult)
@@ -2166,6 +2204,47 @@ namespace DataStandardizer.File.CSV.Tests
                     .HasFieldName(PersonNameFieldName)
                     .ConvertUsing(typeof(FixedStringConverter));
             }
+        }
+
+        /// <summary>
+        /// Maps Id and Name to fields with other names, with <see cref="FromStringOnlyConverter"/> as the type converter of Name.
+        /// </summary>
+        private sealed class FromStringOnlyConvertedNameLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public FromStringOnlyConvertedNameLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PersonNameFieldName)
+                    .ConvertUsing(typeof(FromStringOnlyConverter));
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name has <see cref="RenamedName"/> as its constant value, and <see cref="FixedStringConverter"/> as its type converter.
+        /// </summary>
+        private sealed class ConstantConvertedNameLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = RenamedName)]
+            [TypeConverter(typeof(FixedStringConverter))]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Converts every string to <see cref="ConvertedName"/>, and doesn't convert to a string.
+        /// </summary>
+        private sealed class FromStringOnlyConverter : TypeConverter
+        {
+            public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType) => sourceType == typeof(string);
+
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) => false;
+
+            public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value) => ConvertedName;
         }
 
         /// <summary>

@@ -522,12 +522,18 @@ namespace DataStandardizer.File.CSV
             {
                 return null; // if there is no field value then there is nothing to serialize
             }
-            else if (mappedFieldValue is string serializedFieldValue && field.Converter is null && fieldMapping.TypeConverterType is null)
+
+            // A string is written as it is, unless it is the line's value and a converter that converts to a string is configured: such a converter
+            // is given the value even when it is a string.  A constant or generated string is always written as it is.
+            var typeConverter = ResolveTypeConverter(field);
+            if (mappedFieldValue is string serializedFieldValue
+                && (fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null
+                    || (field.Converter is null && (typeConverter is null || !typeConverter.CanConvertTo(typeof(string))))))
             {
-                return serializedFieldValue; // a string needs no conversion, unless a converter is configured, which is given every value
+                return serializedFieldValue;
             }
 
-            return ConvertFieldValueToString(_headerLine, recordLine, _options, field.Mapping, field.Converter, ResolveTypeConverter(field), mappedFieldValue);
+            return ConvertFieldValueToString(_headerLine, recordLine, _options, field.Mapping, field.Converter, typeConverter, mappedFieldValue);
         }
 
         /// <summary>

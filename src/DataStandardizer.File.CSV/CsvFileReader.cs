@@ -564,12 +564,18 @@ namespace DataStandardizer.File.CSV
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
                 }
 
-                // A constant or generated value didn't come from a field, so has no position.  The position is only looked up for a converter delegate.
+                // A constant or generated value didn't come from a field, so has no position.  The position is only looked up for a converter, which
+                // is given the field's text as it was read from the file, not a value an earlier mapping of the same field put on the line.
                 var isFieldValue = !FieldPlan.SuppliesValue(fieldMapping.Value);
-                var fieldIndex = isFieldValue && fieldMapping.Value.FromStringConverter != null
+                var fieldIndex = isFieldValue && (fieldMapping.Value.FromStringConverter != null || fieldMapping.Value.TypeConverterType != null)
                     ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount)
                     : null;
-                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, isFieldValue, fieldValue, out var propertyValue,
+                if (fieldIndex.HasValue)
+                {
+                    fieldValue = GetReadFieldValue(fieldIndex);
+                }
+
+                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, fieldValue, out var propertyValue,
                         out var error))
                 {
                     // Only a string is converted, so a value that fails to convert is always one.
