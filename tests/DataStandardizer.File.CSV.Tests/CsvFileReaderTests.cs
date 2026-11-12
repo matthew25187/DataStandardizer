@@ -86,6 +86,12 @@ namespace DataStandardizer.File.CSV.Tests
         // A record whose last field opens a quote that the file never closes, which the escaped rule of RFC 4180 section 2 doesn't allow.
         private const string UnterminatedQuoteFile = "One,\"Two\r\nThree,Four\r\n";
 
+        // Records whose last field breaks the field rules of RFC 4180 section 2: an escaped field is only DQUOTE *(...) DQUOTE, so whitespace
+        // can't come before or after it, and a non-escaped field is TEXTDATA, which holds no CR or LF.
+        private const string WhiteSpaceBeforeOpeningQuoteLine = "One, \"Two\"";
+        private const string WhiteSpaceAfterClosingQuoteLine = "One,\"Two\" ";
+        private const string BareLineFeedLine = "One,Two\nThree";
+
         private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
         private const string FieldNamesDataItem = "FieldNames";
         private const string DuplicateFieldName = "a";
@@ -466,6 +472,48 @@ namespace DataStandardizer.File.CSV.Tests
                 BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
             };
             using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(UnterminatedQuoteFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Values.Should().Equal(FirstName, string.Empty);
+            }
+        }
+
+        [Theory]
+        [InlineData(WhiteSpaceBeforeOpeningQuoteLine)]
+        [InlineData(WhiteSpaceAfterClosingQuoteLine)]
+        [InlineData(BareLineFeedLine)]
+        public void ReadLine_FieldOutsideRfc4180Grammar_ThrowsCsvFileException(string line)
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, BadValueHandler = null };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(line), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Theory]
+        [InlineData(WhiteSpaceBeforeOpeningQuoteLine)]
+        [InlineData(WhiteSpaceAfterClosingQuoteLine)]
+        [InlineData(BareLineFeedLine)]
+        public void ReadLine_FieldOutsideRfc4180GrammarWithBadValueHandler_ReadsEmptyFieldValue(string line)
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(line), options))
             {
 
                 // act

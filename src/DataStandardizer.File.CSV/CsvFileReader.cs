@@ -36,6 +36,8 @@ namespace DataStandardizer.File.CSV
             internal const string MissingNamedFieldTemplate = "Found no field named '{0}' for required property '{1}'.";
         }
         private const int DefaultBufferSize = 16 * 1024;
+        private const char CarriageReturn = '\r';
+        private const char LineFeed = '\n';
         private const char QuoteCharacter = '"';
 
         /// <summary>
@@ -73,9 +75,11 @@ namespace DataStandardizer.File.CSV
 #endif
 #if NET8_0_OR_GREATER
         private SearchValues<char>? _unquotedStopCharacters;
+#else
+        private char[] _unquotedStopCharacters = NoCharacters;
+#endif
         private char _unquotedStopDelimiter;
         private char _unquotedStopTerminatorStart;
-#endif
         private char[] _buffer = NoCharacters;
         private int _bufferEnd;
         private int _bufferLength;
@@ -84,8 +88,6 @@ namespace DataStandardizer.File.CSV
         private bool _endOfStream;
         private int _expectedFieldCount;
         private readonly StringBuilder _fieldValueBuilder = new StringBuilder();
-        private int _fieldValueBuilderWhiteSpaceLength;
-        private bool _fieldValueBuilderHasNonWhiteSpace;
         private int _fieldValueStart;
         private bool _headerLineIgnored;
         private readonly bool _isInternalReader;
@@ -678,11 +680,9 @@ namespace DataStandardizer.File.CSV
 
             var terminatorStart = terminator[0];
             var buffer = EnsureBuffer(terminator.Length);
-#if NET8_0_OR_GREATER
             var unquotedStopCharacters = GetUnquotedStopCharacters(fieldDelimiter, terminatorStart);
-#endif
 
-            ClearFieldValueBuilder();
+            _fieldValueBuilder.Clear();
             _fieldValueStart = _bufferPosition;
 
             // A final record without a terminator is returned, but an empty remainder of the stream is not.
@@ -759,12 +759,8 @@ namespace DataStandardizer.File.CSV
 
                 if (!quotedValue)
                 {
-                    // Skip straight to the next character that could end the field or the record, or open a quote.
-#if NET8_0_OR_GREATER
+                    // Skip straight to the next character that could end the field or the record, open a quote, or break the field.
                     var stopIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOfAny(unquotedStopCharacters);
-#else
-                    var stopIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOfAny(fieldDelimiter, QuoteCharacter, terminatorStart);
-#endif
                     if (stopIndex < 0)
                     {
                         _bufferPosition = _bufferEnd;
@@ -799,9 +795,10 @@ namespace DataStandardizer.File.CSV
                     inQuotes = true;
                     quotedValue = true;
 
-                    // If the field value is not whitespace, the current quote character would be embedded without quoting and thus invalid.
-                    // ref. RFC 4180§2¶5
-                    if (!IsPendingFieldValueWhiteSpace())
+                    // An escaped field starts with its quote, so anything before the quote, whitespace included, leaves the quote embedded in a
+                    // non-escaped field, which can't hold one.
+                    // ref. RFC 4180§2 (escaped, non-escaped), RFC 4180§2¶5
+                    if (GetPendingFieldValueLength() != 0)
                     {
                         AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                         isInvalidValue = true;
@@ -825,9 +822,11 @@ namespace DataStandardizer.File.CSV
 
                 _bufferPosition++;
 
-                // Check for non-whitespace outside a quoted value.
-                // ref. RFC 4180§2¶5
-                if (quotedValue && !char.IsWhiteSpace(character))
+                // Only a delimiter or the end of the record may follow a closing quote, whitespace included.  A non-escaped field is TEXTDATA, which
+                // holds no CR or LF, so a line break that isn't the terminator can only be in a quoted value.  Any other character that stopped the
+                // search, such as a lone first character of a multi-character terminator that isn't CR or LF, is ordinary content.
+                // ref. RFC 4180§2 (escaped, non-escaped), RFC 4180§2¶6
+                if (quotedValue || character == CarriageReturn || character == LineFeed)
                 {
                     AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                     isInvalidValue = true;
@@ -893,13 +892,6 @@ namespace DataStandardizer.File.CSV
             }
 
             _invalidFieldValues.Add(new KeyValuePair<int, int>(fieldIndex, rawFieldValueLength));
-        }
-
-        private void ClearFieldValueBuilder()
-        {
-            _fieldValueBuilder.Clear();
-            _fieldValueBuilderWhiteSpaceLength = 0;
-            _fieldValueBuilderHasNonWhiteSpace = false;
         }
 
         /// <summary>
@@ -973,12 +965,28 @@ namespace DataStandardizer.File.CSV
             return true;
         }
 
+        /// <summary>
+        /// Gets the characters the search through a non-escaped field stops at: the delimiter, a quote, the first character of the terminator, and
+        /// CR and LF, which a non-escaped field can't hold.
+        /// </summary>
 #if NET8_0_OR_GREATER
         private SearchValues<char> GetUnquotedStopCharacters(char fieldDelimiter, char terminatorStart)
         {
             if (_unquotedStopCharacters is null || _unquotedStopDelimiter != fieldDelimiter || _unquotedStopTerminatorStart != terminatorStart)
             {
-                _unquotedStopCharacters = SearchValues.Create([fieldDelimiter, QuoteCharacter, terminatorStart]);
+                _unquotedStopCharacters = SearchValues.Create([fieldDelimiter, QuoteCharacter, terminatorStart, CarriageReturn, LineFeed]);
+                _unquotedStopDelimiter = fieldDelimiter;
+                _unquotedStopTerminatorStart = terminatorStart;
+            }
+
+            return _unquotedStopCharacters;
+        }
+#else
+        private char[] GetUnquotedStopCharacters(char fieldDelimiter, char terminatorStart)
+        {
+            if (_unquotedStopCharacters.Length == 0 || _unquotedStopDelimiter != fieldDelimiter || _unquotedStopTerminatorStart != terminatorStart)
+            {
+                _unquotedStopCharacters = new[] { fieldDelimiter, QuoteCharacter, terminatorStart, CarriageReturn, LineFeed };
                 _unquotedStopDelimiter = fieldDelimiter;
                 _unquotedStopTerminatorStart = terminatorStart;
             }
@@ -1004,31 +1012,6 @@ namespace DataStandardizer.File.CSV
             var message = $"Encountered invalid value at field index {fieldIndex}.";
             var dataItems = new Dictionary<string, object> { { DataItemName.FieldIndex, fieldIndex } };
             throw BuildException(message, dataItems);
-        }
-
-        private bool IsPendingFieldValueWhiteSpace()
-        {
-            // The builder only grows until it is cleared, so what an earlier check found is kept, and each character is checked once.
-            if (_fieldValueBuilderHasNonWhiteSpace) return false;
-
-            for (int index = _fieldValueBuilderWhiteSpaceLength; index < _fieldValueBuilder.Length; index++)
-            {
-                if (!char.IsWhiteSpace(_fieldValueBuilder[index]))
-                {
-                    _fieldValueBuilderHasNonWhiteSpace = true;
-                    return false;
-                }
-            }
-
-            _fieldValueBuilderWhiteSpaceLength = _fieldValueBuilder.Length;
-
-            var buffer = _buffer;
-            for (int index = _fieldValueStart; index < _bufferPosition; index++)
-            {
-                if (!char.IsWhiteSpace(buffer[index])) return false;
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -1065,7 +1048,7 @@ namespace DataStandardizer.File.CSV
             }
 
             var fieldValue = _fieldValueBuilder.Append(_buffer, _fieldValueStart, length).ToString();
-            ClearFieldValueBuilder();
+            _fieldValueBuilder.Clear();
             return fieldValue;
         }
 

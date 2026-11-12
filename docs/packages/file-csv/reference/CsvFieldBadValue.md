@@ -28,7 +28,7 @@ carries the field's identity, raw value, and the model. See
 [CsvFieldContext](CsvFieldContext.md).
 
 A reader calls it for a field it can't read, such as an unquoted field that holds a
-quote, for a field a mapping's validator rejects, and for a field it can't convert
+quote or a line break, for a field a mapping's validator rejects, and for a field it can't convert
 to the mapped property's type. See
 [converting field values](../concepts/field-mapping.md#converting-field-values).
 An exception thrown by a [CsvFieldConvertFromString](CsvFieldConvertFromString.md)
@@ -43,6 +43,11 @@ empty value for the field, wherever it is in the record, so the line, and a mapp
 property bound to the field, gets an empty value. If the property's converter
 rejects an empty value, that is a second bad value, and the handler is called
 again for the field, with an empty `RawFieldValue`.
+
+An escaped field is only a quoted value, so whitespace before its opening quote
+or after its closing quote is a violation, like any other text there. An unquoted
+field can't hold a carriage return or line feed that isn't part of the
+terminator, so each one is a violation too.
 
 A quoted field that the file ends inside, with no closing quote, is one of these
 violations. Its `RawFieldValue` holds everything after the opening quote up to

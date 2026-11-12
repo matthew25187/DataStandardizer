@@ -37,6 +37,15 @@ namespace DataStandardizer.File.CSV.Tests
         private static readonly string[] Terminators = new string[] { CrLf, "\n", "\r" };
         private static readonly int[] BufferSizes = new int[] { 1, 2, 3, 5, DefaultBufferSize };
 
+        // Each terminator with each CR or LF that isn't the terminator, which a non-escaped field can't hold (RFC 4180 section 2, TEXTDATA).
+        private static readonly KeyValuePair<string, string>[] BareLineBreaks = new KeyValuePair<string, string>[]
+        {
+            new KeyValuePair<string, string>(CrLf, "\r"),
+            new KeyValuePair<string, string>(CrLf, "\n"),
+            new KeyValuePair<string, string>("\n", "\r"),
+            new KeyValuePair<string, string>("\r", "\n"),
+        };
+
         // Field values longer than the smaller buffers.  The quoted value has escaped quotes and terminators inside it.
         private static readonly string LongUnquotedValue = new string('u', 100);
         private static readonly string LongQuotedValue = string.Concat(Enumerable.Repeat("q\"\"\nq ", 20));
@@ -86,8 +95,11 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int, string[][]> EmptyQuotedFieldsCases =>
             RecordCases("\"\",x,\"\"\n\"\"", new[] { "", "x", "" }, new[] { "" });
 
-        public static TheoryData<string, char, string, int, string[][]> WhiteSpaceAroundQuotedValueCases =>
-            RecordCases(WhiteSpaceAroundQuotedValueInput, new[] { "  a b  ", "\tc" }, new[] { " d " });
+        public static TheoryData<string, char, string, int, string[][]> WhiteSpaceBeforeOpeningQuoteCases =>
+            RecordCases(WhiteSpaceBeforeOpeningQuoteInput, new[] { "a", "", "c" });
+
+        public static TheoryData<string, char, string, int, string[][]> WhiteSpaceAfterClosingQuoteCases =>
+            RecordCases(WhiteSpaceAfterClosingQuoteInput, new[] { "", "d" });
 
         public static TheoryData<string, char, string, int, string[][]> NonWhiteSpaceBeforeOpeningQuoteCases =>
             RecordCases(NonWhiteSpaceBeforeOpeningQuoteInput, new[] { "a", "", "c" });
@@ -99,7 +111,7 @@ namespace DataStandardizer.File.CSV.Tests
             RecordCases(SecondQuotedSectionAfterQuotedValueInput, new[] { "", "c" });
 
         public static TheoryData<string, char, string, int, string[][]> SecondQuotedSectionAfterEmptyQuotedValueCases =>
-            RecordCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new[] { " b", "c" });
+            RecordCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new[] { "", "c" });
 
         public static TheoryData<string, char, string, int, string[][]> InvalidLastFieldValueCases()
         {
@@ -144,24 +156,47 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int> UnhandledUnterminatedQuoteCases =>
             InputCases(UnhandledUnterminatedQuoteInput);
 
-        // With a two-character terminator, a lone first character is ordinary content, inside or after a quoted value.
-        public static TheoryData<string, char, string, int, string[][]> CarriageReturnWithoutLineFeedCases =>
-            RecordCases(new[] { CrLf }, "a\rb,\"c\"\r,\"d\" \ne\r", new[] { "a\rb", "c\r", "d " }, new[] { "e\r" });
+        // With a two-character terminator, a lone first character inside a quoted value is part of the value.
+        public static TheoryData<string, char, string, int, string[][]> CarriageReturnWithoutLineFeedInsideQuotesCases =>
+            RecordCases(new[] { CrLf }, "\"a\rb\",c\n\"d\r\"", new[] { "a\rb", "c" }, new[] { "d\r" });
 
-        public static TheoryData<string, char, string, int, BadValue[]> WhiteSpaceAroundQuotedValueBadValueCases =>
-            BadValueCases(WhiteSpaceAroundQuotedValueInput);
+        public static TheoryData<string, char, string, int, string[][]> BareLineBreakInUnquotedFieldCases =>
+            LineBreakRecordCases(BareLineBreakInUnquotedFieldTemplate, new[] { "a", "" }, new[] { "d" });
+
+        public static TheoryData<string, char, string, int, BadValue[]> BareLineBreakInUnquotedFieldBadValueCases =>
+            LineBreakBadValueCases(BareLineBreakInUnquotedFieldTemplate, new BadValue("b" + LineBreakPlaceholder, 1));
+
+        public static TheoryData<string, char, string, int> UnhandledBareLineBreakInUnquotedFieldCases =>
+            LineBreakInputCases(BareLineBreakInUnquotedFieldTemplate);
+
+        public static TheoryData<string, char, string, int, string[][]> LineBreakAfterClosingQuoteCases =>
+            LineBreakRecordCases(LineBreakAfterClosingQuoteTemplate, new[] { "a", "" }, new[] { "d" });
+
+        // The line break and the character after it are each a violation.
+        public static TheoryData<string, char, string, int, BadValue[]> LineBreakAfterClosingQuoteBadValueCases =>
+            LineBreakBadValueCases(LineBreakAfterClosingQuoteTemplate, new BadValue("b" + LineBreakPlaceholder, 1),
+                new BadValue("b" + LineBreakPlaceholder + "c", 1));
+
+        public static TheoryData<string, char, string, int, BadValue[]> WhiteSpaceBeforeOpeningQuoteBadValueCases =>
+            BadValueCases(WhiteSpaceBeforeOpeningQuoteInput, new BadValue(" ", 1));
+
+        // Each whitespace character after the closing quote is a violation.
+        public static TheoryData<string, char, string, int, BadValue[]> WhiteSpaceAfterClosingQuoteBadValueCases =>
+            BadValueCases(WhiteSpaceAfterClosingQuoteInput, new BadValue("a ", 0), new BadValue("a \t", 0));
 
         public static TheoryData<string, char, string, int, BadValue[]> NonWhiteSpaceBeforeOpeningQuoteBadValueCases =>
             BadValueCases(NonWhiteSpaceBeforeOpeningQuoteInput, new BadValue("x", 1));
 
         public static TheoryData<string, char, string, int, BadValue[]> NonWhiteSpaceAfterClosingQuoteBadValueCases =>
-            BadValueCases(NonWhiteSpaceAfterClosingQuoteInput, new BadValue("ab", 0), new BadValue("abc", 0));
+            BadValueCases(NonWhiteSpaceAfterClosingQuoteInput, new BadValue("ab", 0), new BadValue("abc", 0), new BadValue("abc ", 0));
 
+        // The whitespace and the second opening quote are each a violation.
         public static TheoryData<string, char, string, int, BadValue[]> SecondQuotedSectionAfterQuotedValueBadValueCases =>
-            BadValueCases(SecondQuotedSectionAfterQuotedValueInput, new BadValue("a ", 0));
+            BadValueCases(SecondQuotedSectionAfterQuotedValueInput, new BadValue("a ", 0), new BadValue("a ", 0));
 
+        // An empty quoted value is no exception: the whitespace and the second opening quote are each a violation.
         public static TheoryData<string, char, string, int, BadValue[]> SecondQuotedSectionAfterEmptyQuotedValueBadValueCases =>
-            BadValueCases(SecondQuotedSectionAfterEmptyQuotedValueInput);
+            BadValueCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new BadValue(" ", 0), new BadValue(" ", 0));
 
         public static TheoryData<string, char, string, int, BadValue[]> InvalidLastFieldValueBadValueCases()
         {
@@ -180,8 +215,17 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int> UnhandledNonWhiteSpaceAfterClosingQuoteCases =>
             InputCases(UnhandledNonWhiteSpaceAfterClosingQuoteInput);
 
+        public static TheoryData<string, char, string, int> UnhandledWhiteSpaceBeforeOpeningQuoteCases =>
+            InputCases(UnhandledWhiteSpaceBeforeOpeningQuoteInput);
+
+        public static TheoryData<string, char, string, int> UnhandledWhiteSpaceAfterClosingQuoteCases =>
+            InputCases(UnhandledWhiteSpaceAfterClosingQuoteInput);
+
         // Inputs used by more than one test.
-        private const string WhiteSpaceAroundQuotedValueInput = "  \"a b\"  ,\t\"c\"\n \"d\" ";
+        private const string WhiteSpaceBeforeOpeningQuoteInput = "a, \"b\",c\n";
+        private const string WhiteSpaceAfterClosingQuoteInput = "\"a\" \t,d\n";
+        private const string UnhandledWhiteSpaceBeforeOpeningQuoteInput = "a, \"b\"\nc";
+        private const string UnhandledWhiteSpaceAfterClosingQuoteInput = "a,\"b\" \nc";
         private const string NonWhiteSpaceBeforeOpeningQuoteInput = "a,x\"b\",c\n";
         private const string NonWhiteSpaceAfterClosingQuoteInput = "\"a\"bc ,d\n";
         private const string SecondQuotedSectionAfterQuotedValueInput = "\"a\" \"b\",c\n";
@@ -190,6 +234,12 @@ namespace DataStandardizer.File.CSV.Tests
         private const string UnhandledNonWhiteSpaceAfterClosingQuoteInput = "a,b,\"c\"d\ne";
         private const string UnterminatedQuoteInput = "a,b\nc,\"d\ne,f\n";
         private const string UnhandledUnterminatedQuoteInput = "a,\"b\nc,d\n";
+
+        // Inputs with a line break that isn't the terminator, written with LineBreakPlaceholder in its place.  The line break cases give each
+        // terminator each line break that isn't it.
+        private const string BareLineBreakInUnquotedFieldTemplate = "a,b" + LineBreakPlaceholder + "c\nd";
+        private const string LineBreakAfterClosingQuoteTemplate = "a,\"b\"" + LineBreakPlaceholder + "c\nd";
+        private const string LineBreakPlaceholder = "~";
 
         [Theory]
         [MemberData(nameof(Formats))]
@@ -256,8 +306,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
-        [MemberData(nameof(WhiteSpaceAroundQuotedValueCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_WhiteSpaceAroundQuotedValue_KeepsWhiteSpace(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        [MemberData(nameof(WhiteSpaceBeforeOpeningQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_WhiteSpaceBeforeOpeningQuote_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
             using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
@@ -272,8 +322,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
-        [MemberData(nameof(WhiteSpaceAroundQuotedValueBadValueCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_WhiteSpaceAroundQuotedValue_DoesNotCallBadValueHandler(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
+        [MemberData(nameof(WhiteSpaceBeforeOpeningQuoteBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_WhiteSpaceBeforeOpeningQuote_CallsBadValueHandler(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
         {
             // arrange
             var badValues = new List<BadValue>();
@@ -285,6 +335,77 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 badValues.Should().Equal(expectedBadValues);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UnhandledWhiteSpaceBeforeOpeningQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_WhiteSpaceBeforeOpeningQuoteWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator, int bufferSize)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                var fieldValues = new List<string>();
+
+                // act
+                Action testAction = () => csvReader.TryReadRecord(fieldValues);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .WithMessage(InvalidValueAtFieldIndex1Message)
+                    .Which.Data[FieldIndexDataItem].Should().Be(1);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(WhiteSpaceAfterClosingQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_WhiteSpaceAfterClosingQuote_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
+
+                // act
+                var testResult = ReadAllRecords(csvReader);
+
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(WhiteSpaceAfterClosingQuoteBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_WhiteSpaceAfterClosingQuote_CallsBadValueHandlerForEachCharacter(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
+        {
+            // arrange
+            var badValues = new List<BadValue>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
+
+                // act
+                _ = ReadAllRecords(csvReader);
+
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UnhandledWhiteSpaceAfterClosingQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_WhiteSpaceAfterClosingQuoteWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator, int bufferSize)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                var fieldValues = new List<string>();
+
+                // act
+                Action testAction = () => csvReader.TryReadRecord(fieldValues);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .WithMessage(InvalidValueAtFieldIndex1Message)
+                    .Which.Data[FieldIndexDataItem].Should().Be(1);
             }
         }
 
@@ -389,10 +510,9 @@ namespace DataStandardizer.File.CSV.Tests
 
         [Theory]
         [MemberData(nameof(SecondQuotedSectionAfterEmptyQuotedValueCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_SecondQuotedSectionAfterEmptyQuotedValue_ReturnsBothSections(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        public void TryReadRecord_SecondQuotedSectionAfterEmptyQuotedValue_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            // Only the field value accumulated so far is checked at an opening quote, and an empty quoted value leaves only whitespace.
             using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
             {
 
@@ -406,7 +526,7 @@ namespace DataStandardizer.File.CSV.Tests
 
         [Theory]
         [MemberData(nameof(SecondQuotedSectionAfterEmptyQuotedValueBadValueCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_SecondQuotedSectionAfterEmptyQuotedValue_DoesNotCallBadValueHandler(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
+        public void TryReadRecord_SecondQuotedSectionAfterEmptyQuotedValue_CallsBadValueHandler(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
         {
             // arrange
             var badValues = new List<BadValue>();
@@ -661,8 +781,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
-        [MemberData(nameof(CarriageReturnWithoutLineFeedCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_CarriageReturnWithoutLineFeed_KeepsCarriageReturnInFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        [MemberData(nameof(CarriageReturnWithoutLineFeedInsideQuotesCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_CarriageReturnWithoutLineFeedInsideQuotes_KeepsCarriageReturnInFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
             using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
@@ -673,6 +793,91 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(BareLineBreakInUnquotedFieldCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_BareLineBreakInUnquotedField_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
+
+                // act
+                var testResult = ReadAllRecords(csvReader);
+
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(BareLineBreakInUnquotedFieldBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_BareLineBreakInUnquotedField_CallsBadValueHandler(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
+        {
+            // arrange
+            var badValues = new List<BadValue>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
+
+                // act
+                _ = ReadAllRecords(csvReader);
+
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UnhandledBareLineBreakInUnquotedFieldCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_BareLineBreakInUnquotedFieldWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator, int bufferSize)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                var fieldValues = new List<string>();
+
+                // act
+                Action testAction = () => csvReader.TryReadRecord(fieldValues);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .WithMessage(InvalidValueAtFieldIndex1Message)
+                    .Which.Data[FieldIndexDataItem].Should().Be(1);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(LineBreakAfterClosingQuoteCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_LineBreakAfterClosingQuote_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        {
+            // arrange
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
+
+                // act
+                var testResult = ReadAllRecords(csvReader);
+
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(LineBreakAfterClosingQuoteBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_LineBreakAfterClosingQuote_CallsBadValueHandlerForEachCharacter(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
+        {
+            // arrange
+            var badValues = new List<BadValue>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
+
+                // act
+                _ = ReadAllRecords(csvReader);
+
+                // assert
+                badValues.Should().Equal(expectedBadValues);
             }
         }
 
@@ -813,6 +1018,83 @@ namespace DataStandardizer.File.CSV.Tests
                     foreach (var bufferSize in BufferSizes)
                     {
                         data.Add(Translate(input, delimiter, terminator), delimiter, terminator, bufferSize);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Makes one case for each delimiter, terminator, line break that isn't the terminator, and buffer size, from an input and the records
+        /// expected from it.  The line break replaces <see cref="LineBreakPlaceholder"/> in the input once it is translated.
+        /// </summary>
+        private static TheoryData<string, char, string, int, string[][]> LineBreakRecordCases(string template, params string[][] expectedRecords)
+        {
+            var data = new TheoryData<string, char, string, int, string[][]>();
+            foreach (var terminatorAndLineBreak in BareLineBreaks)
+            {
+                var terminator = terminatorAndLineBreak.Key;
+                foreach (var delimiter in Delimiters)
+                {
+                    var input = Translate(template, delimiter, terminator).Replace(LineBreakPlaceholder, terminatorAndLineBreak.Value);
+                    var translatedRecords = expectedRecords
+                        .Select(fieldValues => fieldValues.Select(fieldValue => Translate(fieldValue, delimiter, terminator)).ToArray())
+                        .ToArray();
+                    foreach (var bufferSize in BufferSizes)
+                    {
+                        data.Add(input, delimiter, terminator, bufferSize, translatedRecords);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Makes one case for each delimiter, terminator, line break that isn't the terminator, and buffer size, from an input and the bad values
+        /// expected from it.  The line break replaces <see cref="LineBreakPlaceholder"/> in the input once it is translated, and in the expected raw
+        /// field values, which hold no delimiter or terminator.
+        /// </summary>
+        private static TheoryData<string, char, string, int, BadValue[]> LineBreakBadValueCases(string template, params BadValue[] expectedBadValues)
+        {
+            var data = new TheoryData<string, char, string, int, BadValue[]>();
+            foreach (var terminatorAndLineBreak in BareLineBreaks)
+            {
+                var terminator = terminatorAndLineBreak.Key;
+                var lineBreak = terminatorAndLineBreak.Value;
+                var translatedBadValues = expectedBadValues
+                    .Select(badValue => new BadValue(badValue.RawFieldValue.Replace(LineBreakPlaceholder, lineBreak), badValue.FieldIndex))
+                    .ToArray();
+                foreach (var delimiter in Delimiters)
+                {
+                    var input = Translate(template, delimiter, terminator).Replace(LineBreakPlaceholder, lineBreak);
+                    foreach (var bufferSize in BufferSizes)
+                    {
+                        data.Add(input, delimiter, terminator, bufferSize, translatedBadValues);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Makes one case for each delimiter, terminator, line break that isn't the terminator, and buffer size, from an input.  The line break
+        /// replaces <see cref="LineBreakPlaceholder"/> once the input is translated.
+        /// </summary>
+        private static TheoryData<string, char, string, int> LineBreakInputCases(string template)
+        {
+            var data = new TheoryData<string, char, string, int>();
+            foreach (var terminatorAndLineBreak in BareLineBreaks)
+            {
+                var terminator = terminatorAndLineBreak.Key;
+                foreach (var delimiter in Delimiters)
+                {
+                    var input = Translate(template, delimiter, terminator).Replace(LineBreakPlaceholder, terminatorAndLineBreak.Value);
+                    foreach (var bufferSize in BufferSizes)
+                    {
+                        data.Add(input, delimiter, terminator, bufferSize);
                     }
                 }
             }
