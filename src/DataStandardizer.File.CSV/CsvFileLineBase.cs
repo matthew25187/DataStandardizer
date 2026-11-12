@@ -115,7 +115,7 @@ namespace DataStandardizer.File.CSV
         /// </remarks>
         protected string GetPropertyKey(string propertyName)
         {
-            var propertyKey = GetDeclaredPropertyKey(propertyName);
+            var propertyKey = GetCsvFieldKey(propertyName);
             var mappedFieldNames = _mappedFieldNames;
             if (mappedFieldNames is null)
             {
@@ -138,9 +138,9 @@ namespace DataStandardizer.File.CSV
         /// Gets the key a mapping's property key resolves to on this line, for the writer to look a value up by when the line has no field with
         /// the mapped field name.
         /// </summary>
-        internal string ResolveMappedPropertyKey(string mappingKey) => GetDeclaredPropertyKey(mappingKey);
+        internal string ResolveMappedPropertyKey(string mappingKey) => GetCsvFieldKey(mappingKey);
 
-        private string GetDeclaredPropertyKey(string propertyName)
+        private string GetCsvFieldKey(string propertyName)
         {
             var lineType = this.GetType();
             if (!PropertyKeyCache.TryGetValue(lineType, out var propertyKeys))
@@ -164,9 +164,8 @@ namespace DataStandardizer.File.CSV
 
         private static string ResolvePropertyKey(Type lineType, string propertyName)
         {
-            var pi = CsvExtensions.FindMappableProperty(lineType, propertyName);
-            var fieldAttribute = pi?.GetCustomAttribute<CsvFieldAttribute>();
-            return fieldAttribute?.FieldName ?? pi?.Name ?? propertyName;
+            var pi = CsvMappableProperty.FindDeclaration(lineType, propertyName);
+            return pi?.GetPropertyKey() ?? propertyName;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

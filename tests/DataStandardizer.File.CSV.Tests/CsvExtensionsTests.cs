@@ -25,6 +25,9 @@ namespace DataStandardizer.File.CSV.Tests
         // A name copied between a line and a custom model through a property the model inherits.
         private const string InheritedName = "alice";
 
+        // The field index that HidingMappedLine maps its hiding Name property to.
+        private const int HidingNameFieldIndex = 1;
+
         [Fact]
         public void CreateMapper_DeclarativeMappingFieldIndex_ReturnsFieldMappingWithIndex()
         {
@@ -277,6 +280,96 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void CreateMapper_PropertyMappedOnBaseType_ReturnsFieldMappingWithTypeConverterType()
+        {
+            // arrange
+            var testLine = new DerivedMappedLine();
+
+            // act
+            var testResult = testLine.CreateMapper();
+
+            // assert
+            testResult.Should().ContainKey(nameof(TestMappedLine.Id))
+                .WhoseValue.TypeConverterType.Should().Be(typeof(Int32Converter));
+        }
+
+        [Fact]
+        public void CreateMapper_DerivedTypeAddsMappedProperty_ReturnsBaseTypeMappingsFirst()
+        {
+            // arrange
+            var testLine = new ExtendedMappedLine();
+
+            // act
+            var testResult = testLine.CreateMapper();
+
+            // assert
+            testResult.Keys.Should().Equal(
+                nameof(ExtendedMappedLine.Id),
+                nameof(ExtendedMappedLine.Name),
+                nameof(ExtendedMappedLine.Description),
+                nameof(ExtendedMappedLine.Email));
+        }
+
+        [Fact]
+        public void CreateMapper_DerivedTypeHidesMappedPropertyWithOwnMapping_ReturnsHidingFieldMapping()
+        {
+            // arrange
+            var testLine = new HidingMappedLine();
+
+            // act
+            var testResult = testLine.CreateMapper();
+
+            // assert
+            testResult.Should().ContainKey(nameof(HidingMappedLine.Name))
+                .WhoseValue.FieldIndex.Should().Be(HidingNameFieldIndex);
+        }
+
+        [Fact]
+        public void ToObject_OverrideDeclaresOnlyGetter_CopiesValueThroughOverriddenSetter()
+        {
+            // arrange
+            var testLine = new TestLine { Id = 1, Name = InheritedName };
+
+            var mapper = new GetterOverrideModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Name.Should().Be(InheritedName);
+        }
+
+        [Fact]
+        public void ToCsvLine_OverrideDeclaresOnlySetter_CopiesValueThroughOverriddenGetter()
+        {
+            // arrange
+            var testModel = new SetterOverrideModel { Name = InheritedName };
+
+            var mapper = new TestLineMapper();
+
+            // act
+            var testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Name.Should().Be(InheritedName);
+        }
+
+        [Fact]
+        public void ToObject_IntermediateTypeHidesPropertyWithPrivateOne_CopiesValueToAccessibleProperty()
+        {
+            // arrange
+            var testLine = new TestLine { Id = 1, Name = InheritedName };
+
+            var mapper = new PrivateHidingDerivedModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Name.Should().Be(InheritedName);
+        }
+
+        [Fact]
         public void ToObject_PropertyInheritedByCustomModel_CopiesValueFromLineObjectToCustomObject()
         {
             // arrange
@@ -311,6 +404,91 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private sealed class DerivedMappedLine : TestMappedLine
         {
+        }
+
+        /// <summary>
+        /// A line that adds a mapped property to those it inherits from <see cref="TestMappedLine"/>.
+        /// </summary>
+        private sealed class ExtendedMappedLine : TestMappedLine
+        {
+            [CsvFieldMapping("Email", IsOptional = true)]
+            public string Email
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line that hides <see cref="TestMappedLine.Name"/> with a property mapped to another field.
+        /// </summary>
+        private sealed class HidingMappedLine : TestMappedLine
+        {
+            [CsvFieldMapping(HidingNameFieldIndex)]
+            public new string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class VirtualNameModel
+        {
+            public virtual string Name { get; set; }
+        }
+
+        /// <summary>
+        /// A custom model whose override of <see cref="VirtualNameModel.Name"/> declares only a getter.
+        /// </summary>
+        private sealed class GetterOverrideModel : VirtualNameModel
+        {
+            public override string Name => base.Name;
+        }
+
+        private sealed class GetterOverrideModelMapper : CsvFileCustomMapperBase<GetterOverrideModel>
+        {
+            public GetterOverrideModelMapper()
+            {
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(nameof(GetterOverrideModel.Name));
+            }
+        }
+
+        /// <summary>
+        /// A custom model whose override of <see cref="VirtualNameModel.Name"/> declares only a setter.
+        /// </summary>
+        private sealed class SetterOverrideModel : VirtualNameModel
+        {
+            public override string Name
+            {
+                set => base.Name = value;
+            }
+        }
+
+        /// <summary>
+        /// A custom model that hides <see cref="BaseModel.Name"/> with a private property, which its derived types don't inherit.
+        /// </summary>
+        private class PrivateHidingModel : BaseModel
+        {
+            private new string Name { get; set; }
+        }
+
+        /// <summary>
+        /// A custom model whose <c>Name</c> is <see cref="BaseModel.Name"/>, since it doesn't inherit the private one that hides it.
+        /// </summary>
+        private sealed class PrivateHidingDerivedModel : PrivateHidingModel
+        {
+        }
+
+        private sealed class PrivateHidingDerivedModelMapper : CsvFileCustomMapperBase<PrivateHidingDerivedModel>
+        {
+            public PrivateHidingDerivedModelMapper()
+            {
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(nameof(PrivateHidingDerivedModel.Name));
+            }
         }
 
         private class BaseModel

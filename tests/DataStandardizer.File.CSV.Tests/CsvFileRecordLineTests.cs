@@ -18,6 +18,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string BaseFieldName = "BaseField";
         private const string DerivedFieldName = "DerivedField";
         private const string HidingFieldName = "HidingField";
+        private const string OverridingFieldName = "OverridingField";
 
         private const string FirstCode = "A";
         private const string SecondCode = "B";
@@ -101,6 +102,19 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             FieldKeys(testLine).Should().BeEquivalentTo(new[] { BaseFieldName }, options => options.WithStrictOrdering());
+        }
+
+        [Fact]
+        public void SetPropertyValue_DerivedTypeOverridesPropertyWithOwnCsvField_UsesOverridingCsvFieldName()
+        {
+            // arrange
+            var testLine = new OverridingWithFieldLine();
+
+            // act
+            testLine.Virtual = "overridden";
+
+            // assert
+            FieldKeys(testLine).Should().BeEquivalentTo(new[] { OverridingFieldName }, options => options.WithStrictOrdering());
         }
 
         [Fact]
@@ -219,6 +233,16 @@ namespace DataStandardizer.File.CSV.Tests
         {
             [CsvField(BaseFieldName)]
             public virtual string Virtual
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class OverridingWithFieldLine : VirtualLine
+        {
+            [CsvField(OverridingFieldName)]
+            public override string Virtual
             {
                 get => GetPropertyValue<string>();
                 set => SetPropertyValue(value);

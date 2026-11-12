@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -22,12 +21,13 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private sealed class PropertyBinding
         {
-            internal PropertyBinding(PropertyInfo property)
+            internal PropertyBinding(CsvMappableProperty mappableProperty)
             {
+                var property = mappableProperty.Declaration;
                 Property = property;
+                Getter = mappableProperty.Getter;
+                Setter = mappableProperty.Setter;
                 Key = property.GetPropertyKey();
-                CanRead = property.CanRead;
-                CanWrite = property.CanWrite;
                 MappingAttribute = property.GetCustomAttribute<CsvFieldMappingAttribute>();
                 if (MappingAttribute is null)
                 {
@@ -42,15 +42,23 @@ namespace DataStandardizer.File.CSV
 
             internal string Key { get; }
 
-            internal bool CanRead { get; }
-
-            internal bool CanWrite { get; }
-
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            /// <inheritdoc cref="CsvMappableProperty.Getter"/>
+            internal PropertyInfo? Getter { get; }
+
+            /// <inheritdoc cref="CsvMappableProperty.Setter"/>
+            internal PropertyInfo? Setter { get; }
+
             internal CsvFieldMappingAttribute? MappingAttribute { get; }
 
             internal Type? TypeConverterType { get; }
 #else
+            /// <inheritdoc cref="CsvMappableProperty.Getter"/>
+            internal PropertyInfo Getter { get; }
+
+            /// <inheritdoc cref="CsvMappableProperty.Setter"/>
+            internal PropertyInfo Setter { get; }
+
             internal CsvFieldMappingAttribute MappingAttribute { get; }
 
             internal Type TypeConverterType { get; }
@@ -72,64 +80,7 @@ namespace DataStandardizer.File.CSV
                 return propertyBindings;
             }
 
-            return PropertyBindingCache.GetOrAdd(type, t => GetMappableProperties(t).Select(pi => new PropertyBinding(pi)).ToArray());
-        }
-
-        /// <summary>
-        /// Gets the properties of a record line or custom model type that mapping considers: those the type declares, and those it inherits.
-        /// </summary>
-        /// <remarks>
-        /// Where a type redeclares a property of its base type, by overriding or hiding it, only the most derived declaration is returned, so a
-        /// property name has one key on a type.  The properties of the line types that this library defines aren't mappable, so they aren't
-        /// returned.
-        /// </remarks>
-        internal static IEnumerable<PropertyInfo> GetMappableProperties(Type type)
-        {
-            var propertyNames = new HashSet<string>(StringComparer.Ordinal);
-            for (var currentType = type; IsMappableType(currentType); currentType = currentType.GetTypeInfo().BaseType)
-            {
-                foreach (var pi in currentType.GetTypeInfo().DeclaredProperties)
-                {
-                    if (propertyNames.Add(pi.Name))
-                    {
-                        yield return pi;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the property with the given name that mapping considers on a record line type, or <c>null</c> if it has none.
-        /// </summary>
-        /// <remarks>
-        /// The property is the one <see cref="GetMappableProperties"/> returns with that name: the most derived declaration of it.
-        /// </remarks>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal static PropertyInfo? FindMappableProperty(Type type, string propertyName)
-#else
-        internal static PropertyInfo FindMappableProperty(Type type, string propertyName)
-#endif
-        {
-            for (var currentType = type; IsMappableType(currentType); currentType = currentType.GetTypeInfo().BaseType)
-            {
-                var pi = currentType.GetTypeInfo().GetDeclaredProperty(propertyName);
-                if (!(pi is null))
-                {
-                    return pi;
-                }
-            }
-
-            return null;
-        }
-
-        // The line types that this library defines declare no mappable properties, so the walk up the hierarchy stops at them.
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static bool IsMappableType([NotNullWhen(true)] Type? type)
-#else
-        private static bool IsMappableType([NotNullWhen(true)] Type type)
-#endif
-        {
-            return type != null && type != typeof(object) && type != typeof(CsvFileLineBase);
+            return PropertyBindingCache.GetOrAdd(type, t => CsvMappableProperty.GetAll(t).Select(property => new PropertyBinding(property)).ToArray());
         }
 
         internal static string GetPropertyKey(this PropertyInfo pi)
@@ -187,7 +138,7 @@ namespace DataStandardizer.File.CSV
 
             foreach (var propertyBinding in GetPropertyBindings(targetModel.GetType()))
             {
-                if (!propertyBinding.CanWrite)
+                if (!(propertyBinding.Setter is PropertyInfo setter))
                 {
                     continue;
                 }
@@ -223,7 +174,7 @@ namespace DataStandardizer.File.CSV
                 // Copy the field value from the CSV line to the corresponding property on the custom model.
                 // Assumes that the raw string value from the CSV file has already been converted in the CSV line.
                 var fieldValue = csvLine[fieldKey];
-                propertyBinding.Property.SetValue(targetModel, fieldValue);
+                setter.SetValue(targetModel, fieldValue);
             }
 
             return targetModel;
@@ -250,7 +201,7 @@ namespace DataStandardizer.File.CSV
 
             foreach (var propertyBinding in GetPropertyBindings(sourceModel.GetType()))
             {
-                if (!propertyBinding.CanRead)
+                if (!(propertyBinding.Getter is PropertyInfo getter))
                 {
                     continue;
                 }
@@ -265,7 +216,7 @@ namespace DataStandardizer.File.CSV
                 var fieldKey = CsvMappingService.GetFieldNameFromMapping(propertyKey, fieldMapping);
 
                 // Copy the field value from the CSV line to the corresponding property on the custom model.
-                var fieldValue = propertyBinding.Property.GetValue(sourceModel);
+                var fieldValue = getter.GetValue(sourceModel);
                 csvLine[fieldKey] = fieldValue;
             }
 
