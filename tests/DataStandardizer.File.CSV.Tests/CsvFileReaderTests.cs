@@ -45,8 +45,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string PositionalFieldName3 = "Field 3";
         private const string PositionalFieldName4 = "Field 4";
 
-        // The name the reader gives the second field of a line when another field already has the name "Field 2".
+        // The names the reader gives a field when another field already has its positional name.
+        private const string SecondPositionalFieldName1 = "Field 1 (2)";
         private const string SecondPositionalFieldName2 = "Field 2 (2)";
+        private const string SecondPositionalFieldName3 = "Field 3 (2)";
+        private const string ThirdPositionalFieldName3 = "Field 3 (3)";
 
         // Field values of the lines in the test files.
         private const string HeaderValue1 = "One";
@@ -1232,6 +1235,39 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_MappingPastLastFieldNamedLikeAPositionalField_RenamesPositionalField()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<PastLastPositionalNameLine>(new StringReader(TwoShortRecordsFile)))
+            {
+                csvReader.RegisterMapper<PastLastPositionalNameLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as PastLastPositionalNameLine;
+
+                // assert
+                ((ICsvFileLine)testResult).Keys.Should().Equal(SecondPositionalFieldName1, IdFieldName);
+                testResult.Name.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderHandlerNamesTakingPositionalFieldNameAndItsSuffix_NamesFieldWithNextSuffix()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { PositionalFieldName3, SecondPositionalFieldName3 });
+            var options = new CsvFileOptions { HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(NumbersLine), options))
+            {
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(PositionalFieldName3, SecondPositionalFieldName3, ThirdPositionalFieldName3);
+            }
+        }
+
+        [Fact]
         public void ReadLine_SeveralMappedRecordLines_MapsFirstLine()
         {
             // arrange
@@ -2364,6 +2400,29 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map()
                     .Property(x => x.Name)
                     .HasFieldName(PositionalFieldName2);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Id <see cref="PastLastPositionalNameLineMapper"/> maps by index to the second field, and whose optional Name it maps, at the
+        /// third position, under the name the reader gives the first field of a line without a header line.
+        /// </summary>
+        private sealed class PastLastPositionalNameLine : TestLine
+        {
+        }
+
+        private sealed class PastLastPositionalNameLineMapper : CsvFileMapperBase<PastLastPositionalNameLine>
+        {
+            public PastLastPositionalNameLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(1)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PositionalFieldName1)
+                    .IsOptional();
             }
         }
 

@@ -1098,6 +1098,9 @@ namespace DataStandardizer.File.CSV
 
             private readonly string[] _headerFieldNames;
             private readonly Dictionary<int, string> _mapperFieldNames;
+
+            // Every header and mapping name, then each Field N name in the order GetFieldNames gives them out.  It is only ever added to, so
+            // _fieldNames can only be extended, never rebuilt.
             private readonly HashSet<string> _takenFieldNames;
             private string[] _fieldNames = NoFieldNames;
             private int _mappedFieldCount = -1;
@@ -1152,21 +1155,7 @@ namespace DataStandardizer.File.CSV
                 Array.Copy(_fieldNames, fieldNames, _fieldNames.Length);
                 for (var fieldIndex = _fieldNames.Length; fieldIndex < fieldCount; fieldIndex++)
                 {
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    string? fieldName;
-#else
-                    string fieldName;
-#endif
-                    if (fieldIndex < _headerFieldNames.Length)
-                    {
-                        fieldName = _headerFieldNames[fieldIndex];
-                    }
-                    else if (!_mapperFieldNames.TryGetValue(fieldIndex, out fieldName))
-                    {
-                        fieldName = TakePositionalFieldName(fieldIndex);
-                    }
-
-                    fieldNames[fieldIndex] = fieldName;
+                    fieldNames[fieldIndex] = fieldIndex < _headerFieldNames.Length ? _headerFieldNames[fieldIndex] : GetFieldNamePastHeader(fieldIndex);
                 }
 
                 _fieldNames = fieldNames;
@@ -1189,6 +1178,14 @@ namespace DataStandardizer.File.CSV
                 }
 
                 return mapperFieldNames;
+            }
+
+            /// <summary>
+            /// Gets the name of a field past the header: the mapping name kept for its position, or else a <c>Field N</c> name.
+            /// </summary>
+            private string GetFieldNamePastHeader(int fieldIndex)
+            {
+                return _mapperFieldNames.TryGetValue(fieldIndex, out var fieldName) ? fieldName : TakePositionalFieldName(fieldIndex);
             }
 
             /// <summary>
