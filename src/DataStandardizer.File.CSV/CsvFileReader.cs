@@ -1098,6 +1098,10 @@ namespace DataStandardizer.File.CSV
 
             private readonly string[] _headerFieldNames;
             private readonly Dictionary<int, string> _mapperFieldNames;
+
+            // Every header and mapping name, then each Field N name in the order GetFieldNames gives them out.  It is only ever added to, so
+            // _fieldNames can only be extended, never rebuilt.
+            private readonly HashSet<string> _takenFieldNames;
             private string[] _fieldNames = NoFieldNames;
             private int _mappedFieldCount = -1;
             private FieldMappingPlan[] _mappings = NoMappings;
@@ -1118,7 +1122,8 @@ namespace DataStandardizer.File.CSV
                 Mapper = mapper;
                 HeaderFieldNames = headerFieldNames;
                 _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
-                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetFieldNamesByPosition(mapper) : NoMapperFieldNames;
+                _takenFieldNames = new HashSet<string>(_headerFieldNames, StringComparer.Ordinal);
+                _mapperFieldNames = mapper.Count > 0 ? GetMapperFieldNames(mapper, _headerFieldNames.Length, _takenFieldNames) : NoMapperFieldNames;
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1133,9 +1138,11 @@ namespace DataStandardizer.File.CSV
 
             /// <summary>
             /// Gets the names of the fields on a line.  Each is the header name, then the field name of the mapping at its position, then
-            /// <c>Field N</c> (1-based).
+            /// <c>Field N</c> (1-based).  A name already taken by the header or another position is never used again: a mapping's name that is
+            /// taken gives way to <c>Field N</c>, and a <c>Field N</c> that is taken becomes the first of <c>Field N (2)</c>,
+            /// <c>Field N (3)</c> and so on that is free.
             /// </summary>
-            /// <returns>An array of at least <paramref name="fieldCount"/> names.</returns>
+            /// <returns>An array of at least <paramref name="fieldCount"/> unique names.</returns>
             internal string[] GetFieldNames(int fieldCount)
             {
                 if (_fieldNames.Length >= fieldCount)
@@ -1148,18 +1155,52 @@ namespace DataStandardizer.File.CSV
                 Array.Copy(_fieldNames, fieldNames, _fieldNames.Length);
                 for (var fieldIndex = _fieldNames.Length; fieldIndex < fieldCount; fieldIndex++)
                 {
-                    // A field past the header takes the name of the mapping at its position, unless the header already has that name.
-                    var fieldName = fieldIndex < _headerFieldNames.Length ? _headerFieldNames[fieldIndex] : null;
-                    if (fieldName is null && (!_mapperFieldNames.TryGetValue(fieldIndex, out fieldName) || Array.IndexOf(_headerFieldNames, fieldName) >= 0))
-                    {
-                        fieldName = $"Field {fieldIndex + 1}";
-                    }
-
-                    fieldNames[fieldIndex] = fieldName;
+                    fieldNames[fieldIndex] = fieldIndex < _headerFieldNames.Length ? _headerFieldNames[fieldIndex] : GetFieldNamePastHeader(fieldIndex);
                 }
 
                 _fieldNames = fieldNames;
                 return fieldNames;
+            }
+
+            /// <summary>
+            /// Gets the field name of each mapping past the header, by position, that the header and every earlier position don't already have.
+            /// Each name is added to <paramref name="takenFieldNames"/>, so it is kept for its position before any <c>Field N</c> name is chosen.
+            /// </summary>
+            private static Dictionary<int, string> GetMapperFieldNames(ICsvFileMapper mapper, int headerFieldCount, HashSet<string> takenFieldNames)
+            {
+                var mapperFieldNames = new Dictionary<int, string>();
+                foreach (var position in CsvMappingService.GetFieldNamesByPosition(mapper).OrderBy(position => position.Key))
+                {
+                    if (position.Key >= headerFieldCount && takenFieldNames.Add(position.Value))
+                    {
+                        mapperFieldNames.Add(position.Key, position.Value);
+                    }
+                }
+
+                return mapperFieldNames;
+            }
+
+            /// <summary>
+            /// Gets the name of a field past the header: the mapping name kept for its position, or else a <c>Field N</c> name.
+            /// </summary>
+            private string GetFieldNamePastHeader(int fieldIndex)
+            {
+                return _mapperFieldNames.TryGetValue(fieldIndex, out var fieldName) ? fieldName : TakePositionalFieldName(fieldIndex);
+            }
+
+            /// <summary>
+            /// Takes the first of <c>Field N</c>, <c>Field N (2)</c>, <c>Field N (3)</c> and so on that isn't already taken.
+            /// </summary>
+            private string TakePositionalFieldName(int fieldIndex)
+            {
+                var positionalFieldName = $"Field {fieldIndex + 1}";
+                var fieldName = positionalFieldName;
+                for (var suffix = 2; !_takenFieldNames.Add(fieldName); suffix++)
+                {
+                    fieldName = $"{positionalFieldName} ({suffix})";
+                }
+
+                return fieldName;
             }
 
             /// <summary>
@@ -1187,7 +1228,7 @@ namespace DataStandardizer.File.CSV
 
             private void BuildMappings(int fieldCount)
             {
-                // The line's field names are unique, since adding a duplicate to the line would have thrown.
+                // The line's field names are unique, since GetFieldNames never gives two positions the same name.
                 var lineFieldNames = GetFieldNames(fieldCount).Take(fieldCount).ToArray();
                 var lineFieldNameSet = new HashSet<string>(lineFieldNames, StringComparer.Ordinal);
 
