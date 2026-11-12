@@ -485,6 +485,64 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        /// <summary>
+        /// Record lines whose fields are in a different order from the header line One,Two,Three, or lack one of its fields, and the file that
+        /// results when they are written after it with <see cref="ICsvFileOptions.SuppressTrailingBlankFields"/> set.
+        /// </summary>
+        public static TheoryData<CsvFileRecordLine, string> RecordLinesInAnotherOrderThanTheHeaderLine
+        {
+            get
+            {
+                var lastFieldFirst = new CsvFileRecordLine();
+                ((ICsvFileLine)lastFieldFirst).Add(FieldName3, "z");
+                ((ICsvFileLine)lastFieldFirst).Add(FieldName1, string.Empty);
+                ((ICsvFileLine)lastFieldFirst).Add(FieldName2, string.Empty);
+
+                var middleFieldMissing = new CsvFileRecordLine();
+                ((ICsvFileLine)middleFieldMissing).Add(FieldName1, "x");
+                ((ICsvFileLine)middleFieldMissing).Add(FieldName3, string.Empty);
+
+                var allFieldsBlank = new CsvFileRecordLine();
+                ((ICsvFileLine)allFieldsBlank).Add(FieldName2, string.Empty);
+                ((ICsvFileLine)allFieldsBlank).Add(FieldName1, string.Empty);
+                ((ICsvFileLine)allFieldsBlank).Add(FieldName3, string.Empty);
+
+                return new TheoryData<CsvFileRecordLine, string>
+                {
+                    { lastFieldFirst, "One,Two,Three\r\n,,z\r\n" },
+                    { middleFieldMissing, "One,Two,Three\r\nx\r\n" },
+                    { allFieldsBlank, "One,Two,Three\r\n,,\r\n" }
+                };
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RecordLinesInAnotherOrderThanTheHeaderLine))]
+        public void WriteLine_RecordLineInAnotherOrderThanHeaderLineAndSuppressTrailingBlankFields_TrimsTrailingBlankFieldsInHeaderLineOrder(
+            CsvFileRecordLine testLine, string expectedResult)
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(HeaderFieldName1, FieldName1);
+            headerLine.Add(HeaderFieldName2, FieldName2);
+            headerLine.Add(HeaderFieldName3, FieldName3);
+
+            var options = new CsvFileOptions { SuppressTrailingBlankFields = true };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(expectedResult);
+            }
+        }
+
         [Theory]
         [InlineData("\n", "1,Two\n"), InlineData("\r", "1,Two\r")]
         public void WriteLine_RecordLineAndCustomLineBreak_WritesRecordLineTerminatedByLineBreak(string testLineBreak, string expectedResult)
