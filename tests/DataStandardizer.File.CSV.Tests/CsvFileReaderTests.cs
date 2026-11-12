@@ -45,6 +45,9 @@ namespace DataStandardizer.File.CSV.Tests
         private const string PositionalFieldName3 = "Field 3";
         private const string PositionalFieldName4 = "Field 4";
 
+        // The name the reader gives the second field of a line when another field already has the name "Field 2".
+        private const string SecondPositionalFieldName2 = "Field 2 (2)";
+
         // Field values of the lines in the test files.
         private const string HeaderValue1 = "One";
         private const string HeaderValue2 = "Two";
@@ -75,6 +78,10 @@ namespace DataStandardizer.File.CSV.Tests
         private const string IgnoredHeaderFile = "ID,Name,Description\r\n1,One,This is the first";
         private const string ShortRecordAfterHeaderFile = "Field 1,Field 2,Field 3\r\n1,2";
         private const string ShortRecordAfterRecordFile = "1,2,3\r\n4,5";
+
+        // A header line whose last name is the one the reader gives the third field of a record without a header name for it.
+        private const string LongRecordAfterPositionalHeaderNameFile = "A,Field 3\r\n1,2,3";
+
         private const string EmbeddedQuoteLine = "One Two,Three\"Four,Five Six";
 
         // A record whose last field has text before its opening quote, which RFC 4180 section 2 paragraph 5 doesn't allow.
@@ -409,6 +416,44 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(FieldCountMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_LongerRecordLineWhosePositionalFieldNameIsAHeaderName_CallsInconsistentFieldCountHandler()
+        {
+            // arrange
+            var handlerCalled = false;
+            var handler = new CsvFieldCount<CsvFileRecordLine>(_ => handlerCalled = true);
+
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, InconsistentFieldCountHandler = handler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LongRecordAfterPositionalHeaderNameFile), options))
+            {
+                _ = csvReader.ReadLine(); // the header line
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().BeNull();
+                handlerCalled.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_LongerRecordLineWhosePositionalFieldNameIsAHeaderName_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, InconsistentFieldCountHandler = null };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LongRecordAfterPositionalHeaderNameFile), options))
+            {
+                _ = csvReader.ReadLine(); // the header line
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(LongRecordFieldCountMessage);
             }
         }
 
@@ -1166,6 +1211,23 @@ namespace DataStandardizer.File.CSV.Tests
                 ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, NameFieldName, DescriptionFieldName, PositionalFieldName4 }, config => config.WithStrictOrdering());
                 testResult.Id.Should().Be(1);
                 ((ICsvFileLine)testResult)[PositionalFieldName4].Should().Be(ExtraFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingNamedLikeALaterPositionalField_KeepsMappingNameAndRenamesLaterField()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<PositionalNameLine>(new StringReader(NumbersLine)))
+            {
+                csvReader.RegisterMapper<PositionalNameLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as PositionalNameLine;
+
+                // assert
+                ((ICsvFileLine)testResult).Keys.Should().Equal(PositionalFieldName2, SecondPositionalFieldName2, PositionalFieldName3);
+                testResult.Name.Should().Be(RecordValue1);
             }
         }
 
@@ -2284,6 +2346,24 @@ namespace DataStandardizer.File.CSV.Tests
                     .Property(x => x.Description)
                     .HasFieldIndex(PastLastFieldIndex)
                     .IsOptional();
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="PositionalNameLineMapper"/> maps to the first field, under the name the reader gives the second field of a
+        /// line without a header line.
+        /// </summary>
+        private sealed class PositionalNameLine : TestLine
+        {
+        }
+
+        private sealed class PositionalNameLineMapper : CsvFileMapperBase<PositionalNameLine>
+        {
+            public PositionalNameLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PositionalFieldName2);
             }
         }
 
