@@ -297,8 +297,22 @@ namespace DataStandardizer.File.CSV
             var fieldIndex = 0;
             foreach (var field in fields)
             {
+                // A line read or converted with the mapping holds a mapped value under the field name.  A line built from the model holds it under
+                // the key that the property resolves to on the line, which differs from the field name when the field is renamed.
+                var fieldKey = field.FieldName;
+                var hasField = csvLine.Contains(fieldKey);
+                if (!hasField && field.IsMapped)
+                {
+                    var propertyKey = recordLine.ResolveMappedPropertyKey(field.Mapping.Key);
+                    if (csvLine.Contains(propertyKey))
+                    {
+                        fieldKey = propertyKey;
+                        hasField = true;
+                    }
+                }
+
                 // If a value has not been set for the current field, add a blank value.
-                if (!csvLine.Contains(field.FieldName))
+                if (!hasField)
                 {
                     fieldValues[fieldValueCount++] = string.Empty;
                     continue;
@@ -311,7 +325,7 @@ namespace DataStandardizer.File.CSV
                 }
 
                 // Convert the field value to a string.
-                var rawFieldValue = SerializeFieldValue(recordLine, field);
+                var rawFieldValue = SerializeFieldValue(recordLine, field, fieldKey);
 
                 // Apply embedded line break on field value.  A value without a line break is unchanged by this, so is skipped.
                 if (_options.EmbeddedLineBreak != null && !string.IsNullOrEmpty(rawFieldValue) && rawFieldValue.IndexOfAny(LineBreakCharacters) >= 0)
@@ -366,20 +380,20 @@ namespace DataStandardizer.File.CSV
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private string? SerializeFieldValue(TRecordLine recordLine, FieldWritePlan field)
+        private string? SerializeFieldValue(TRecordLine recordLine, FieldWritePlan field, string fieldKey)
 #else
         [return: MaybeNull]
-        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field)
+        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field, [DisallowNull] string fieldKey)
 #endif
         {
             ICsvFileLine csvLine = recordLine;
             if (!field.IsMapped)
             {
-                var fieldValue = csvLine[field.FieldName];
+                var fieldValue = csvLine[fieldKey];
                 return fieldValue is null ? null : fieldValue is string stringFieldValue ? stringFieldValue : FormatFieldValue(fieldValue, _options);
             }
 
-            // Get the mapped field value.  The line has a field with the mapped field name, so the value is read by that name.
+            // Get the mapped field value.  The line has a field with the given key, so the value is read by that key.
             var fieldMapping = field.Mapping.Value;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             object? mappedFieldValue;
@@ -400,7 +414,7 @@ namespace DataStandardizer.File.CSV
             }
             else
             {
-                mappedFieldValue = csvLine[field.FieldName];
+                mappedFieldValue = csvLine[fieldKey];
             }
 
             if (mappedFieldValue is null)
@@ -843,7 +857,8 @@ namespace DataStandardizer.File.CSV
 #endif
 
             /// <summary>
-            /// Gets the name of the field, which is also the key of its value on a record line.
+            /// Gets the name of the field, which is also the key of its value on a record line, unless the line was built from a model whose
+            /// property is mapped to a field with another name.
             /// </summary>
             internal string FieldName { get; }
 

@@ -116,6 +116,19 @@ on a validation failure the value is routed to the configured bad-value handler
 or, if none, surfaces as a `CsvFileException`. An exception thrown by a converter
 or generator delegate propagates unchanged.
 
+## Where a mapped value is held
+
+A line the reader returns holds each mapped value under its field name, such as
+`person_id` for `[CsvFieldMapping("person_id")] int Id`, so
+`line["person_id"]` finds it. The line also remembers which field each of its
+properties is mapped to, so `line.Id` reads and writes `person_id`. A line made
+with `ToCsvLine` does the same.
+
+A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
+yet, so it holds the value under the property key: the name given by
+`[CsvField]`, or else the property name. The writer looks a mapped value up by
+its field name, and if the line has no such field, by the property key.
+
 ## Converting field values
 
 When a reader maps a field to a property, it converts the field's text to the

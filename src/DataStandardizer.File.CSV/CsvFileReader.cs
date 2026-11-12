@@ -326,6 +326,8 @@ namespace DataStandardizer.File.CSV
                 // Map CSV fields to model properties.
                 if (fieldPlan.Mapper.Count > 0)
                 {
+                    // The mapped values stay under their field names, so a property mapped to a field with another name reads that field.
+                    recordLine.SetMappedFieldNames(fieldPlan.MappedFieldNames);
                     MapCsvFieldsToProperties(recordLine, fieldPlan);
                 }
 
@@ -1038,7 +1040,18 @@ namespace DataStandardizer.File.CSV
                 HeaderFieldNames = headerFieldNames;
                 _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
                 _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : NoFieldNames;
+                MappedFieldNames = CsvMappingService.GetMappedFieldNames(mapper);
             }
+
+            /// <summary>
+            /// Gets the field name of each mapping that maps a property to a field with another name, keyed by property key, or <c>null</c> if there
+            /// are none.  Every line read with the plan shares it, so it is never changed.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal Dictionary<string, string>? MappedFieldNames { get; }
+#else
+            [MaybeNull] internal Dictionary<string, string> MappedFieldNames { get; }
+#endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal IReadOnlyList<string>? HeaderFieldNames { get; }

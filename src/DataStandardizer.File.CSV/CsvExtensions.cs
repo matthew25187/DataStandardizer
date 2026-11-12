@@ -187,6 +187,9 @@ namespace DataStandardizer.File.CSV
             ICsvFileLine csvLine = targetLine;
             ICsvFileMapper csvMapper = mapper;
 
+            // The values are stored under their field names, so a property mapped to a field with another name reads that field.
+            targetLine.SetMappedFieldNames(CsvMappingService.GetMappedFieldNames(csvMapper));
+
             foreach (var propertyBinding in GetPropertyBindings(sourceModel.GetType()))
             {
                 if (!propertyBinding.CanRead)
