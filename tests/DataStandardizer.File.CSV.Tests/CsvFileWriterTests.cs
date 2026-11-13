@@ -84,6 +84,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string SingleNumberLine = "1\r\n";
         private const string FirstRecordLine = "1,One\r\n";
         private const string FirstAndThirdRecordLines = "1,One\r\n3,Three\r\n";
+        private const string FirstAndSecondRecordLines = "1,One\r\n2,Two\r\n";
 
         // Field names that differ from the property keys they are mapped to, the values written to them, and the line
         // that results.
@@ -1439,6 +1440,85 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_RecordLineWithEmptyFieldNotInHeaderLine_WritesFieldsOfHeaderLine()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName2, TextValue);
+            recordLine.Add(FieldName3, string.Empty);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldHeaderAndRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_LineReadWithConstantMappingOfFieldNotInHeaderLine_WritesFieldsOfHeaderLine()
+        {
+            // arrange
+            // The reader puts the constant value on the line under the mapped field name, which the file's header line doesn't have.
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            ICsvFileLine headerLine;
+            ConstantDescriptionLine recordLine;
+            using (var csvReader = new CsvFileReader<ConstantDescriptionLine>(new StringReader(TwoFieldHeaderAndRecordLines), options))
+            {
+                csvReader.RegisterMapper<ConstantDescriptionLineMapper>();
+                headerLine = csvReader.ReadLine();
+                recordLine = (ConstantDescriptionLine)csvReader.ReadLine();
+            }
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ConstantDescriptionLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ConstantDescriptionLineMapper>();
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldHeaderAndRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessLinesOfTypesWithOtherAttributeMappings_WritesMappedFieldsOfEachLine()
+        {
+            // arrange
+            // Each line type has its own mapper, which covers all of the line's fields, so neither line has fields to add to the other.
+            var recordLine1 = new IdNameAttributeLine { Id = FirstId, Name = FirstName };
+            var recordLine2 = new CodeTitleAttributeLine { Code = SecondId, Title = SecondName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                csvWriter.WriteLine(recordLine2);
+
+                // assert
+                buffer.ToString().Should().Be(FirstAndSecondRecordLines);
+            }
+        }
+
+        [Fact]
         public void WriteLine_RecordLineLackingAFieldOfHeaderLine_WritesBlankValueForField()
         {
             // arrange
@@ -2457,6 +2537,53 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
+        /// A line whose <see cref="TestLine.Description"/> property <see cref="ConstantDescriptionLineMapper"/> gives a constant value.
+        /// </summary>
+        private sealed class ConstantDescriptionLine : TestLine
+        {
+        }
+
+        /// <summary>
+        /// A line whose two fields are mapped by attribute, to positions that <see cref="CodeTitleAttributeLine"/> maps other properties to.
+        /// </summary>
+        private sealed class IdNameAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            public string Id
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(1)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose two fields are mapped by attribute, to positions that <see cref="IdNameAttributeLine"/> maps other properties to.
+        /// </summary>
+        private sealed class CodeTitleAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(1)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
         /// A line that <see cref="PartlyMappedLineMapper"/> maps only the <see cref="TestLine.Id"/> property of.
         /// </summary>
         private sealed class PartlyMappedLine : TestLine
@@ -2762,6 +2889,17 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map()
                     .Property(x => x.Description)
                     .HasFieldIndex(2);
+            }
+        }
+
+        private sealed class ConstantDescriptionLineMapper : CsvFileMapperBase<ConstantDescriptionLine>
+        {
+            public ConstantDescriptionLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldName(DescriptionFieldName)
+                    .HasConstantValue(FirstDescription);
             }
         }
 

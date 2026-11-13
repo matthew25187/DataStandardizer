@@ -68,11 +68,12 @@ namespace DataStandardizer.File.CSV
         CsvFileHeaderHandling HeaderHandling { get; }
 
         /// <summary>
-        /// Gets the <see cref="CsvFieldCount{TModel}"/> delegate that will be called when a line has a field count inconsistent with other lines in the CSV file.
+        /// Gets the <see cref="CsvFieldCount{TModel}"/> delegate that will be called when a line has a field count inconsistent with other lines in the CSV file,
+        /// or a line to be written has a field with a value that isn't one of the fields written.
         /// </summary>
         /// <remarks>
         /// The line the delegate is called for is skipped: a reader doesn't return it, and a writer writes nothing for it.  When the delegate isn't set,
-        /// an inconsistent field count throws <see cref="CsvFileException"/>.
+        /// an inconsistent line throws <see cref="CsvFileException"/>.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? InconsistentFieldCountHandler { get; }
@@ -96,8 +97,9 @@ namespace DataStandardizer.File.CSV
         /// the same number of fields throughout the file.
         /// <para>
         /// A field is blank when the text written for it is empty.  A field whose value is whitespace is not blank.  The fields at the end of a record
-        /// line are those last in the order they are written: header line order, else mapper order, else the order of the first record line.  A
-        /// record line whose fields are all blank is written with all of them, so that it isn't written as an empty line.
+        /// line are those last in the order they are written: header line order, else mapper order followed by the unmapped fields of the first
+        /// record line, else the order of the first record line.  A record line whose fields are all blank is written with all of them, so that it
+        /// isn't written as an empty line.
         /// </para>
         /// </remarks>
         bool SuppressTrailingBlankFields { get; }
