@@ -198,6 +198,19 @@ namespace DataStandardizer.File.CSV.Tests
             testResult.Should().Be(expected);
         }
 
+        [Fact]
+        public void ReadLine_DateTimeFieldEndingInZWithoutConverter_ReadsUtcTimeAsWritten()
+        {
+            // arrange
+
+            // act
+            var testResult = (DateTime)ReadValue<DateTime>("2024-01-02T03:04:05.6780000Z");
+
+            // assert
+            testResult.Should().Be(new DateTime(2024, 1, 2, 3, 4, 5, 678));
+            testResult.Kind.Should().Be(DateTimeKind.Utc);
+        }
+
         [Theory]
         [MemberData(nameof(EmptyValueCases))]
         public void ReadLine_EmptyFieldWithoutConverter_ReadsDefaultValue(string propertyType, Func<string, object> readValue, object expected)

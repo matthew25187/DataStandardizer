@@ -202,13 +202,16 @@ on every target:
 | `int`, `long`, `short`, `sbyte`, `uint`, `ulong`, `ushort`, `byte` | `TryParse` with `NumberStyles.Integer` |
 | `decimal` | `TryParse` with `NumberStyles.Number` |
 | `double`, `float` | `TryParse` with `NumberStyles.Float \| NumberStyles.AllowThousands`. Infinity and NaN only as the culture's symbols, such as `Infinity`, `-Infinity` and `NaN`, written in the same case. A number too large for the type is a bad value. |
-| `DateTime`, `DateTimeOffset` | `TryParse` with `DateTimeStyles.None` |
+| `DateTime` | `TryParse` with `DateTimeStyles.RoundtripKind` |
+| `DateTimeOffset` | `TryParse` with `DateTimeStyles.None` |
 | `TimeSpan` | `TryParse` |
 | `bool`, `char`, `Guid` | `TryParse`, which doesn't depend on the culture |
 | An enum | `Enum.TryParse`, case-sensitive: a member name, a comma-separated list of names, or a number, which needn't be a defined value. |
 
 These are the styles the types' own `IParsable<T>` implementations use on .NET 7
-and later. On the `net10.0` build, any other type that implements
+and later, except that a `DateTime` keeps the `Kind` it's written with: a time
+ending in `Z` reads as that UTC time, not as the machine's local time. On the
+`net10.0` build, any other type that implements
 `ISpanParsable<T>` or `IParsable<T>` is parsed with it. On every build, a type
 that has none of these is parsed with the `TypeConverter` that
 `TypeDescriptor.GetConverter` returns for it, if that converter converts from a
@@ -217,6 +220,19 @@ string, such as a type with a `[TypeConverter]` attribute on its declaration.
 The culture is the reader's `CsvFileOptions.Culture`, or the invariant culture
 if it isn't set, as it is for a configured `TypeConverter`. The current culture
 is never used.
+
+The writer formats a value it has no converter for so that it reads back as the
+same value, and as the same text on every target:
+
+| Value type | Written with |
+| --- | --- |
+| `DateTime`, `DateTimeOffset`, and on `net10.0` `DateOnly` and `TimeOnly` | The round-trip pattern `"o"`, such as `2024-01-02T03:04:05.6780000Z`, whatever the culture |
+| `double`, `float` | The fewest significant digits that read back as the same value, as `"R"` writes them on .NET Core 3.0 and later, such as `0.30000000000000004` for `0.1 + 0.2` |
+| Any other `IFormattable` | Its general format |
+| Anything else | `ToString()` |
+
+Numbers use the culture's symbols, such as its decimal separator and negative
+sign.
 
 When the reader parses a field itself, because no converter that applies is
 configured, an empty field gives the default value of the property type: `null` for a

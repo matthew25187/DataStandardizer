@@ -17,7 +17,9 @@ namespace DataStandardizer.File.CSV
     /// <list type="number">
     /// <item><description>The integer and floating-point types, <see cref="decimal"/>, <see cref="bool"/>, <see cref="char"/>, <see cref="DateTime"/>,
     /// <see cref="DateTimeOffset"/>, <see cref="TimeSpan"/> and <see cref="Guid"/>, with the number and date styles their
-    /// <c>IParsable&lt;TSelf&gt;</c> implementations use on .NET 7 and later.</description></item>
+    /// <c>IParsable&lt;TSelf&gt;</c> implementations use on .NET 7 and later, except that a <see cref="DateTime"/> keeps the
+    /// <see cref="DateTime.Kind"/> its value is written with (<see cref="DateTimeStyles.RoundtripKind"/>), so that a UTC time ending in <c>Z</c>
+    /// reads as that UTC time and not as the machine's local time.</description></item>
     /// <item><description>Enumerations, with <see cref="Enum.TryParse{TEnum}(string, bool, out TEnum)"/>, case-sensitive.</description></item>
     /// <item><description>On .NET 7 and later, any other type that implements <c>ISpanParsable&lt;TSelf&gt;</c> or <c>IParsable&lt;TSelf&gt;</c>.</description></item>
     /// <item><description>The <see cref="TypeConverter"/> that <see cref="TypeDescriptor.GetConverter(Type)"/> gives for the type, if it converts from
@@ -114,7 +116,7 @@ namespace DataStandardizer.File.CSV
             if (type == typeof(float)) return new DelegateParser<float>(TryParseSingle);
             if (type == typeof(bool)) return new DelegateParser<bool>((string value, CultureInfo culture, out bool result) => bool.TryParse(value, out result));
             if (type == typeof(char)) return new DelegateParser<char>((string value, CultureInfo culture, out char result) => char.TryParse(value, out result));
-            if (type == typeof(DateTime)) return new DelegateParser<DateTime>((string value, CultureInfo culture, out DateTime result) => DateTime.TryParse(value, culture, DateTimeStyles.None, out result));
+            if (type == typeof(DateTime)) return new DelegateParser<DateTime>((string value, CultureInfo culture, out DateTime result) => DateTime.TryParse(value, culture, DateTimeStyles.RoundtripKind, out result));
             if (type == typeof(DateTimeOffset)) return new DelegateParser<DateTimeOffset>((string value, CultureInfo culture, out DateTimeOffset result) => DateTimeOffset.TryParse(value, culture, DateTimeStyles.None, out result));
             if (type == typeof(TimeSpan)) return new DelegateParser<TimeSpan>((string value, CultureInfo culture, out TimeSpan result) => TimeSpan.TryParse(value, culture, out result));
             if (type == typeof(Guid)) return new DelegateParser<Guid>((string value, CultureInfo culture, out Guid result) => Guid.TryParse(value, out result));

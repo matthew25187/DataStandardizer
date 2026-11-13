@@ -58,7 +58,8 @@ second bad value, and the handler is called again for the field, with an empty
 **Default:** `null`
 
 A custom culture can be used to serialize and deserialize CSV field values as
-they are read or written.
+they are read or written. The writer writes dates and times with the round-trip
+pattern `"o"` in every culture, so that they read back unchanged.
 
 ```csharp
 var options = new CsvFileOptions { Culture = new CultureInfo("en-AU") };
