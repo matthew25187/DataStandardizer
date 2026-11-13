@@ -19,14 +19,14 @@ namespace DataStandardizer.File.CSV
     /// replace those of the file's header line.  The delegate can return names based on the header line, or names of its own.
     /// </para>
     /// <para>
-    /// The delegate renames fields; it can't add or remove them.  When there is a header line, the names must be as many as the line's fields,
-    /// and the line sets how many fields each record is expected to have.  The names must not repeat.  A list that breaks either rule makes
-    /// <see cref="CsvFileReader{TRecordLine}.ReadLine"/> throw.
+    /// The delegate renames fields; it can't add or remove them.  The file's header line or, when there is none, its first record sets how many
+    /// fields each record is expected to have, and the names must be as many as that.  The names must not repeat.  A list that breaks either rule
+    /// makes <see cref="CsvFileReader{TRecordLine}.ReadLine"/> throw.
     /// </para>
     /// <para>
     /// With <see cref="CsvFileHeaderHandling.Use"/>, the reader calls the delegate as it reads the header line, and returns a header line with
     /// the names the delegate gave.  With <see cref="CsvFileHeaderHandling.Ignore"/>, it calls the delegate as it reads the header line, and
-    /// doesn't return a header line.  With <see cref="CsvFileHeaderHandling.None"/>, it calls the delegate as it reads the first record.
+    /// doesn't return a header line.  With <see cref="CsvFileHeaderHandling.None"/>, it calls the delegate after it reads the first record and before it returns it.
     /// </para>
     /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

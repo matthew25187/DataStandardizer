@@ -133,13 +133,13 @@ line.
 |-----------------|-------------------|-------------------|------------------------------------|
 | `Use` | The file's header line | As the header line is read | One with the handler's field names |
 | `Ignore` | The file's header line | As the header line is read | None |
-| `None` | `null` | As the first record is read | None |
+| `None` | `null` | After the first record is read, before it's returned | None |
 
-The handler renames fields; it can't add or remove them. When the file has a
-header line, the list must have as many names as the line has fields, or
-`ReadLine` throws `InvalidOperationException`, and the header line still sets how
-many fields each record is expected to have. Names in the list must not repeat,
-or `ReadLine` throws `CsvFileException`.
+The handler renames fields; it can't add or remove them. The file's header line,
+or its first record when there is no header line, sets how many fields each
+record is expected to have. The list must have that many names, or `ReadLine`
+throws `InvalidOperationException`. Names in the list must not repeat, or
+`ReadLine` throws `CsvFileException`.
 
 Header handling decides the field names only when there is no handler.
 

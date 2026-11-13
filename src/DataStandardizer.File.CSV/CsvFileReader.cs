@@ -32,6 +32,8 @@ namespace DataStandardizer.File.CSV
             internal const string FieldCountMismatchTemplate = "Found {0} of {1} expected fields.";
             internal const string HeaderHandlerFieldCountTemplate =
                 "The header handler returned {0} field names for a header line of {1} fields.  It can rename the fields, but not add or remove them.";
+            internal const string HeaderHandlerFirstRecordFieldCountTemplate =
+                "The header handler returned {0} field names for a first record of {1} fields.  It can rename the fields, but not add or remove them.";
             internal const string IndexedFieldNameTakenTemplate =
                 "Found no field at index {0} for property '{1}' in a record of {2} fields, and the record already has a field named '{3}'.";
             internal const string MissingIndexedFieldTemplate = "Found no field at index {0} for required property '{1}' in a record of {2} fields.";
@@ -253,7 +255,7 @@ namespace DataStandardizer.File.CSV
         /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>.
         /// -or-
         /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned a different number of field names from the number of fields
-        /// on the file's header line.
+        /// on the file's header line or, when the file has no header line, on its first record.
         /// </exception>
         /// <remarks>
         /// Records can't be read without valid field names.  When reading the header line, or getting field names from the
@@ -310,7 +312,7 @@ namespace DataStandardizer.File.CSV
                 {
                     try
                     {
-                        _headerFieldNames = GetHeaderFieldNames();
+                        _headerFieldNames = GetHeaderFieldNames(rawFieldValues.Count);
                     }
                     catch (Exception exception)
                     {
@@ -407,6 +409,7 @@ namespace DataStandardizer.File.CSV
 
                 if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore)
                 {
+                    _expectedFieldCount = rawFieldValues.Count;
                     _headerFieldNames = headerFieldNames;
                     _headerLineIgnored = true;
                     return null;
@@ -467,12 +470,15 @@ namespace DataStandardizer.File.CSV
         /// Gets the field names that records are read with when the reader hasn't already got them from the header line: those the
         /// header handler gives for a file without a header line.
         /// </summary>
+        /// <param name="firstRecordFieldCount">The number of fields of the first record, which has been read but not yet processed.</param>
         /// <returns>The field names; <c>null</c> if there is neither a header line nor a header handler.</returns>
+        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>, or a different number of field names from the
+        /// number of fields of the first record.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private IReadOnlyList<string>? GetHeaderFieldNames()
+        private IReadOnlyList<string>? GetHeaderFieldNames(int firstRecordFieldCount)
 #else
         [return: MaybeNull]
-        private IReadOnlyList<string> GetHeaderFieldNames()
+        private IReadOnlyList<string> GetHeaderFieldNames(int firstRecordFieldCount)
 #endif
         {
             if (_headerLine != null)
@@ -480,7 +486,20 @@ namespace DataStandardizer.File.CSV
                 return _headerLine.FieldNames;
             }
 
-            return _options.HeaderHandler is CsvFileHeader headerHandler ? CallHeaderHandler(headerHandler, null) : null;
+            if (!(_options.HeaderHandler is CsvFileHeader headerHandler))
+            {
+                return null;
+            }
+
+            // Without a header line, the first record sets how many fields there are, and the handler names them.
+            var headerFieldNames = CallHeaderHandler(headerHandler, null);
+            if (headerFieldNames.Count != firstRecordFieldCount)
+            {
+                throw new InvalidOperationException(
+                    string.Format(ErrorMessage.HeaderHandlerFirstRecordFieldCountTemplate, headerFieldNames.Count, firstRecordFieldCount));
+            }
+
+            return headerFieldNames;
         }
 
         private static void ThrowIfNoFields(List<string> rawFieldValues)
