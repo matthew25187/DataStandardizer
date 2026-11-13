@@ -296,7 +296,7 @@ namespace DataStandardizer.File.CSV
                 // such a converter is given the text even when the property is a string.  A constant or generated value is always used as it is.
                 var fieldMapping = propertyFieldMapping.Value;
                 if (fieldValue is T
-                    && (fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null || !(fieldValue is string)
+                    && (fieldMapping.SuppliesValue || !(fieldValue is string)
                         || !HasFromStringConverter(fieldMapping)))
                 {
                     value = fieldValue;
