@@ -145,11 +145,13 @@ namespace DataStandardizer.File.CSV.Tests
         private const string DeleteValue = "\x007F";
         private const string LatinSmallLetterEWithAcuteValue = "\x00E9";
         private const string NextLineValue = "\x0085";
+        private const string GrinningFaceValue = "\xD83D\xDE00";
         private const string TabLine = "\x0009\r\n";
         private const string NullLine = "\x0000\r\n";
         private const string DeleteLine = "\x007F\r\n";
         private const string LatinSmallLetterEWithAcuteLine = "\x00E9\r\n";
         private const string NextLineLine = "\x0085\r\n";
+        private const string GrinningFaceLine = "\xD83D\xDE00\r\n";
 
         // What a writer throws for each of the values, as the first field of a line.
         private const string TabMessage = "The value of the field at index 0 holds the character U+0009, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.";
@@ -157,7 +159,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string DeleteMessage = "The value of the field at index 0 holds the character U+007F, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.";
         private const string LatinSmallLetterEWithAcuteMessage = "The value of the field at index 0 holds the character U+00E9, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.";
         private const string NextLineMessage = "The value of the field at index 0 holds the character U+0085, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.";
+        private const string GrinningFaceMessage = "The value of the field at index 0 holds the character U+1F600, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.";
         private const string SecondFieldTabMessage = "The value of the field at index 1 holds the character U+0009, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.";
+
+        // Every flag of CsvExtendedCharacters and a bit it doesn't define.  The undefined bit doesn't stop the flags from allowing a character.
+        private const CsvExtendedCharacters AllFlagsAndUndefinedBit = (CsvExtendedCharacters)7;
 
         // A tab delimiter, a value that holds it, and the line it is written as: quoted, as the delimiter takes the place of COMMA (RFC 4180 section 2).
         private const char TabDelimiter = '\x0009';
@@ -1958,6 +1964,7 @@ namespace DataStandardizer.File.CSV.Tests
         [InlineData(LatinSmallLetterEWithAcuteValue, CsvExtendedCharacters.Control, LatinSmallLetterEWithAcuteMessage)]
         [InlineData(NextLineValue, CsvExtendedCharacters.Control, NextLineMessage)]
         [InlineData(NextLineValue, CsvExtendedCharacters.NonAscii, NextLineMessage)]
+        [InlineData(GrinningFaceValue, CsvExtendedCharacters.None, GrinningFaceMessage)]
         public void WriteLine_RecordValueOutsideTextData_ThrowsCsvFileException(string fieldValue, CsvExtendedCharacters extendedCharacters, string expectedMessage)
         {
             // arrange
@@ -2026,6 +2033,8 @@ namespace DataStandardizer.File.CSV.Tests
         [InlineData(DeleteValue, CsvExtendedCharacters.Control, DeleteLine)]
         [InlineData(LatinSmallLetterEWithAcuteValue, CsvExtendedCharacters.NonAscii, LatinSmallLetterEWithAcuteLine)]
         [InlineData(NextLineValue, CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii, NextLineLine)]
+        [InlineData(NextLineValue, AllFlagsAndUndefinedBit, NextLineLine)]
+        [InlineData(GrinningFaceValue, CsvExtendedCharacters.NonAscii, GrinningFaceLine)]
         public void WriteLine_RecordValueOutsideTextDataWithExtendedCharacters_WritesValue(string fieldValue, CsvExtendedCharacters extendedCharacters,
             string expectedLine)
         {

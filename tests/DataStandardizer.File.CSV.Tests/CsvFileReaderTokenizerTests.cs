@@ -103,6 +103,7 @@ namespace DataStandardizer.File.CSV.Tests
             new KeyValuePair<char, CsvExtendedCharacters>(Delete, CsvExtendedCharacters.Control),
             new KeyValuePair<char, CsvExtendedCharacters>(LatinSmallLetterEWithAcute, CsvExtendedCharacters.NonAscii),
             new KeyValuePair<char, CsvExtendedCharacters>(NextLine, CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii),
+            new KeyValuePair<char, CsvExtendedCharacters>(NextLine, AllFlagsAndUndefinedBit),
         };
 
         // Each character outside TEXTDATA, as the key, with extended characters that don't include all it needs, as the value.  The first rows
@@ -129,9 +130,15 @@ namespace DataStandardizer.File.CSV.Tests
             // Alone in an unquoted field, before a delimiter.
             new InvalidFieldCase("a," + OutsideTextDataPlaceholder + ",c\nd", new[] { new[] { "a", "", "c" }, new[] { "d" } },
                 new BadValue(OutsideTextDataPlaceholder, 1)),
-            // Twice in an unquoted field: each is a violation.
+            // Twice in an unquoted field: only the first is reported, as the value is already invalid.
             new InvalidFieldCase("a,b" + OutsideTextDataPlaceholder + "c" + OutsideTextDataPlaceholder + "\nd", new[] { new[] { "a", "" }, new[] { "d" } },
-                new BadValue("b" + OutsideTextDataPlaceholder, 1), new BadValue("b" + OutsideTextDataPlaceholder + "c" + OutsideTextDataPlaceholder, 1)),
+                new BadValue("b" + OutsideTextDataPlaceholder, 1)),
+            // Twice in a quoted field.
+            new InvalidFieldCase("a,\"b" + OutsideTextDataPlaceholder + "c" + OutsideTextDataPlaceholder + "\"\nd", new[] { new[] { "a", "" }, new[] { "d" } },
+                new BadValue("b" + OutsideTextDataPlaceholder, 1)),
+            // In two fields: each field reports its own.
+            new InvalidFieldCase(OutsideTextDataPlaceholder + "," + OutsideTextDataPlaceholder + "\nd", new[] { new[] { "", "" }, new[] { "d" } },
+                new BadValue(OutsideTextDataPlaceholder, 0), new BadValue(OutsideTextDataPlaceholder, 1)),
             // At the end of the stream.
             new InvalidFieldCase("a,b" + OutsideTextDataPlaceholder, new[] { new[] { "a", "" } }, new BadValue("b" + OutsideTextDataPlaceholder, 1)),
             // Inside a quoted field.
@@ -157,6 +164,17 @@ namespace DataStandardizer.File.CSV.Tests
                 new InvalidFieldCase(AllowedOutsideTextDataInput,
                     new[] { new[] { "a", "b" + OutsideTextDataPlaceholder + "c" }, new[] { "d" + OutsideTextDataPlaceholder } }),
             });
+
+        public static TheoryData<string, char, string, int, BadValue[]> SurrogatePairOutsideTextDataBadValueCases()
+        {
+            var data = BadValueCases(SurrogatePairInUnquotedFieldInput, new BadValue(SurrogatePairBadValue, 1));
+            foreach (var badValueCase in BadValueCases(SurrogatePairInQuotedFieldInput, new BadValue(SurrogatePairBadValue, 1)))
+            {
+                data.Add((string)badValueCase[0], (char)badValueCase[1], (string)badValueCase[2], (int)badValueCase[3], (BadValue[])badValueCase[4]);
+            }
+
+            return data;
+        }
 
         public static TheoryData<char, string, int> Formats()
         {
@@ -330,6 +348,16 @@ namespace DataStandardizer.File.CSV.Tests
 
         // A control character outside US-ASCII (C1), so it needs both kinds of extended character.
         private const char NextLine = '\x0085';
+
+        // A character outside the Basic Multilingual Plane, U+1F600, which is a surrogate pair in UTF-16.  The pair is one character, so it is
+        // reported whole, once.
+        private const string GrinningFace = "\xD83D\xDE00";
+        private const string SurrogatePairInUnquotedFieldInput = "a,b" + GrinningFace + "c" + GrinningFace + "\nd";
+        private const string SurrogatePairInQuotedFieldInput = "a,\"b" + GrinningFace + "c\"\nd";
+        private const string SurrogatePairBadValue = "b" + GrinningFace;
+
+        // Every flag of CsvExtendedCharacters and a bit it doesn't define.  The undefined bit doesn't stop the flags from allowing a character.
+        private const CsvExtendedCharacters AllFlagsAndUndefinedBit = (CsvExtendedCharacters)7;
 
         // Stands in an input for a character outside TEXTDATA.  The cases put each character under test in its place.
         private const string OutsideTextDataPlaceholder = "^";
@@ -1086,6 +1114,24 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(SurrogatePairOutsideTextDataBadValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_SurrogatePairOutsideTextData_CallsBadValueHandlerOnceWithWholePair(string input, char delimiter, string terminator,
+            int bufferSize, BadValue[] expectedBadValues)
+        {
+            // arrange
+            var badValues = new List<BadValue>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
+
+                // act
+                _ = ReadAllRecords(csvReader);
+
+                // assert
+                badValues.Should().Equal(expectedBadValues);
             }
         }
 

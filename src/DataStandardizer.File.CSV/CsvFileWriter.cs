@@ -38,13 +38,8 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
         private static readonly char[] LineBreakCharacters = { '\r', '\n' };
-#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
         private static readonly char[] NoCharacters = new char[0];
-#endif
         private static readonly string[] NoFieldNames = new string[0];
-#if NET8_0_OR_GREATER
-        private static readonly char[] NoSearchCharacters = new char[0];
-#endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private FieldPlan? _fieldPlan;
@@ -868,7 +863,7 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <remarks>
         /// A field holds TEXTDATA, the printable characters of US-ASCII, and an escaped field also holds the delimiter, CR, LF, the characters of
-        /// the terminator line break and double quotes, which make the writer quote the value.  Any other character needs
+        /// the terminator line break and double quotes, which make the writer quote the value, so the characters that require quotes are allowed.  Any other character needs
         /// <see cref="ICsvFileOptions.ExtendedCharacters"/> to allow it, or the output couldn't be read back with the same options.
         /// ref. RFC 4180§2 (escaped, non-escaped, TEXTDATA)
         /// </remarks>
@@ -876,7 +871,7 @@ namespace DataStandardizer.File.CSV
         private void ValidateFieldValueCharacters(string fieldValue, int fieldIndex)
         {
             var extendedCharacters = _options.ExtendedCharacters;
-            if (fieldValue.Length == 0 || extendedCharacters == (CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii)) return;
+            if (fieldValue.Length == 0 || CsvTextData.AllowsAll(extendedCharacters)) return;
 
             var fieldDelimiter = _options.FieldDelimiterCharacter;
             var terminator = _options.TerminatorLineBreak ?? string.Empty;
@@ -885,8 +880,8 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
             if (_textDataSearchValues is null || !isCurrent)
             {
-                _textDataSearchValues = SearchValues.Create(CsvTextData.GetSearchCharacters(extendedCharacters, GetTextDataExemptCharacters(fieldDelimiter, terminator),
-                    NoSearchCharacters, out _textDataSearchExcept));
+                _textDataSearchValues = SearchValues.Create(CsvTextData.GetSearchCharacters(extendedCharacters, GetRequiredQuoteCharacters(fieldDelimiter, terminator),
+                    NoCharacters, out _textDataSearchExcept));
                 _textDataDelimiter = fieldDelimiter;
                 _textDataExtendedCharacters = extendedCharacters;
                 _textDataTerminator = terminator;
@@ -897,7 +892,7 @@ namespace DataStandardizer.File.CSV
 #else
             if (_textDataExemptCharacters.Length == 0 || !isCurrent)
             {
-                _textDataExemptCharacters = GetTextDataExemptCharacters(fieldDelimiter, terminator);
+                _textDataExemptCharacters = GetRequiredQuoteCharacters(fieldDelimiter, terminator);
                 _textDataDelimiter = fieldDelimiter;
                 _textDataExtendedCharacters = extendedCharacters;
                 _textDataTerminator = terminator;
@@ -907,22 +902,14 @@ namespace DataStandardizer.File.CSV
 #endif
             if (index < 0) return;
 
+            // A surrogate pair is one character, so it is named by its code point.
+            var codePoint = char.IsHighSurrogate(fieldValue[index]) && index + 1 < fieldValue.Length && char.IsLowSurrogate(fieldValue[index + 1])
+                ? char.ConvertToUtf32(fieldValue[index], fieldValue[index + 1])
+                : fieldValue[index];
             var message = string.Format(CultureInfo.InvariantCulture,
                 "The value of the field at index {0} holds the character U+{1:X4}, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.",
-                fieldIndex, (int)fieldValue[index]);
+                fieldIndex, codePoint);
             throw BuildException(message, new Dictionary<string, object> { { DataItemName.FieldIndex, fieldIndex }, { DataItemName.FieldValue, fieldValue } });
-        }
-
-        /// <summary>
-        /// Gets the characters a value may hold, whatever the options, because the writer quotes a value that holds them.
-        /// </summary>
-        private static char[] GetTextDataExemptCharacters(char fieldDelimiter, string terminator)
-        {
-            var escapedFieldCharacters = CsvTextData.GetEscapedFieldCharacters(fieldDelimiter, terminator);
-            var characters = new char[escapedFieldCharacters.Length + 1];
-            escapedFieldCharacters.CopyTo(characters, 0);
-            characters[escapedFieldCharacters.Length] = QuoteCharacter;
-            return characters;
         }
 
         private string[] GetFieldValueBuffer(int fieldCount)

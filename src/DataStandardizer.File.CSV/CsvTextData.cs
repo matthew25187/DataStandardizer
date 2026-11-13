@@ -26,9 +26,19 @@ namespace DataStandardizer.File.CSV
         {
             if (character >= FirstPrintableAscii && character <= LastPrintableAscii) return true;
             if (character < FirstPrintableAscii || character == Delete) return (extendedCharacters & CsvExtendedCharacters.Control) != 0;
-            if (character <= LastC1Control) return extendedCharacters == (CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii);
+            if (character <= LastC1Control) return AllowsAll(extendedCharacters);
 
             return (extendedCharacters & CsvExtendedCharacters.NonAscii) != 0;
+        }
+
+        /// <summary>
+        /// Indicates whether every character is allowed: both <see cref="CsvExtendedCharacters.Control"/> and
+        /// <see cref="CsvExtendedCharacters.NonAscii"/> are set, whatever other bits are.
+        /// </summary>
+        internal static bool AllowsAll(CsvExtendedCharacters extendedCharacters)
+        {
+            const CsvExtendedCharacters ControlAndNonAscii = CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii;
+            return (extendedCharacters & ControlAndNonAscii) == ControlAndNonAscii;
         }
 
         /// <summary>
@@ -57,7 +67,7 @@ namespace DataStandardizer.File.CSV
         /// <param name="exemptCharacters">Characters allowed whatever <paramref name="extendedCharacters"/> is, such as those an escaped field may hold.</param>
         internal static int IndexOfDisallowed(ReadOnlySpan<char> value, CsvExtendedCharacters extendedCharacters, char[] exemptCharacters)
         {
-            if (extendedCharacters == (CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii)) return -1;
+            if (AllowsAll(extendedCharacters)) return -1;
 
             for (var index = 0; index < value.Length; index++)
             {

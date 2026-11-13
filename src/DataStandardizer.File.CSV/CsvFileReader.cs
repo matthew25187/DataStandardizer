@@ -852,7 +852,7 @@ namespace DataStandardizer.File.CSV
             // ref. RFC 4180§2¶2
             if (!EnsureAvailable(1)) return false;
 
-            bool inQuotes = false, quotedValue = false, isInvalidValue = false;
+            bool inQuotes = false, quotedValue = false, isInvalidValue = false, isTextDataReported = false;
             var fieldIndex = 0;
 
             while (true)
@@ -873,9 +873,9 @@ namespace DataStandardizer.File.CSV
 #endif
                     if (quoteIndex >= 0 && buffer[_bufferPosition + quoteIndex] != QuoteCharacter)
                     {
-                        // The character stays in the value, and is reported with the value read up to and including it.
-                        _bufferPosition += quoteIndex + 1;
-                        AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
+                        // The character stays in the value, and the first in the field is reported with the value read up to and including it.
+                        _bufferPosition += quoteIndex;
+                        ReportOutsideTextData(fieldIndex, ref isTextDataReported);
                         isInvalidValue = true;
                         continue;
                     }
@@ -927,7 +927,7 @@ namespace DataStandardizer.File.CSV
                     {
                         AddFieldValue(fieldValues, isInvalidValue);
                         fieldIndex++;
-                        quotedValue = isInvalidValue = false;
+                        quotedValue = isInvalidValue = isTextDataReported = false;
                         _bufferPosition += 2;
                         _fieldValueStart = _bufferPosition;
                         continue;
@@ -1014,23 +1014,31 @@ namespace DataStandardizer.File.CSV
                 {
                     AddFieldValue(fieldValues, isInvalidValue);
                     fieldIndex++;
-                    quotedValue = isInvalidValue = false;
+                    quotedValue = isInvalidValue = isTextDataReported = false;
                     _bufferPosition++;
                     _fieldValueStart = _bufferPosition;
                     continue;
                 }
-
-                _bufferPosition++;
 
                 // Only a delimiter or the end of the record may follow a closing quote, whitespace included.  A non-escaped field is TEXTDATA, which
                 // holds no CR or LF, so a line break that isn't the terminator can only be in a quoted value, and holds no other control character
                 // or character outside US-ASCII either, unless the options allow it.  Any other character that stopped the search, such as a lone
                 // first character of a multi-character terminator that is in TEXTDATA, is ordinary content.
                 // ref. RFC 4180§2 (escaped, non-escaped, TEXTDATA), RFC 4180§2¶6
-                if (quotedValue || character == CarriageReturn || character == LineFeed || !CsvTextData.IsAllowed(character, extendedCharacters))
+                if (quotedValue || character == CarriageReturn || character == LineFeed)
                 {
+                    _bufferPosition++;
                     AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                     isInvalidValue = true;
+                }
+                else if (!CsvTextData.IsAllowed(character, extendedCharacters))
+                {
+                    ReportOutsideTextData(fieldIndex, ref isTextDataReported);
+                    isInvalidValue = true;
+                }
+                else
+                {
+                    _bufferPosition++;
                 }
             }
 
@@ -1080,6 +1088,28 @@ namespace DataStandardizer.File.CSV
             }
 
             fieldValues.Add(TakeFieldValue());
+        }
+
+        /// <summary>
+        /// Moves past a character outside TEXTDATA, at the current position, and records it as a violation if it is the first in the field.
+        /// </summary>
+        /// <remarks>
+        /// A field whose value is already invalid can't become valid again, so only its first character outside TEXTDATA is reported.  A text of
+        /// characters outside US-ASCII then costs one report, not one for each character, each with a copy of the value up to it.  A surrogate pair
+        /// is one character, so the position moves past both halves and the value reported never ends in half a pair.
+        /// </remarks>
+        private void ReportOutsideTextData(int fieldIndex, ref bool isTextDataReported)
+        {
+            var character = _buffer[_bufferPosition++];
+            if (char.IsHighSurrogate(character) && EnsureAvailable(1) && char.IsLowSurrogate(_buffer[_bufferPosition]))
+            {
+                _bufferPosition++;
+            }
+
+            if (isTextDataReported) return;
+
+            AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
+            isTextDataReported = true;
         }
 
         /// <summary>
