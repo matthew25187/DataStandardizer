@@ -132,12 +132,20 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ExpectedFieldCountDataItem = "ExpectedFieldCount";
         private const int FirstLineFieldCount = 2;
 
+        // Key of the CsvFileException data item that gives the field count of a line, and the field count of a line with no fields.
+        private const string ActualFieldCountDataItem = "ActualFieldCount";
+        private const int NoFieldCount = 0;
+
         // A header line of the fields FieldName1 and FieldName2, its field count, and the lines that result from writing it and then a record line
-        // that has values for both fields, or only for FieldName1.
+        // that has values for both fields, only for FieldName1, or for neither.
         private const string TwoFieldHeaderLine = "One,Two\r\n";
         private const int HeaderLineFieldCount = 2;
         private const string TwoFieldHeaderAndRecordLines = "One,Two\r\n1,Two\r\n";
         private const string TwoFieldHeaderAndBlankRecordLines = "One,Two\r\n1,\r\n";
+        private const string TwoFieldHeaderAndAllBlankRecordLines = "One,Two\r\n,\r\n";
+
+        // A record line with the value NumberValue for FieldName1 and TextValue for FieldName2, written with no header line.
+        private const string TwoFieldRecordLine = "1,Two\r\n";
 
         // A header line of the fields that RenamedAttributeLine is mapped to, followed by RenamedRecordLine.
         private const string RenamedHeaderAndRecordLines = "person_id,person_name\r\n5,bob\r\n";
@@ -1328,6 +1336,170 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithNoFields_ThrowsCsvFileException()
+        {
+            // arrange
+            var headerLine = new CsvFileHeaderLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                // act
+                Action testAction = () => csvWriter.WriteLine(headerLine);
+
+                // assert
+                var exception = testAction.Should().Throw<CsvFileException>().WithMessage("A header line has no fields.").Which;
+                exception.Data[ActualFieldCountDataItem].Should().Be(NoFieldCount);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithNoFields_WritesNothing()
+        {
+            // arrange
+            var headerLine = new CsvFileHeaderLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                // act
+                _ = Record.Exception(() => csvWriter.WriteLine(headerLine));
+
+                // assert
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNoFieldsAndNoFieldCountDelegate_ThrowsCsvFileException()
+        {
+            // arrange
+            var recordLine = new CsvFileRecordLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                // act
+                Action testAction = () => csvWriter.WriteLine(recordLine);
+
+                // assert
+                var exception = testAction.Should().Throw<CsvFileException>().WithMessage("A record line has no fields to write.").Which;
+                exception.Data[ActualFieldCountDataItem].Should().Be(NoFieldCount);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNoFieldsAndNoFieldCountDelegate_WritesNothing()
+        {
+            // arrange
+            var recordLine = new CsvFileRecordLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                // act
+                _ = Record.Exception(() => csvWriter.WriteLine(recordLine));
+
+                // assert
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNoFieldsAndFieldCountDelegate_CallsFieldCountDelegate()
+        {
+            // arrange
+            var recordLine = new CsvFileRecordLine();
+
+            var handled = false;
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(_ => handled = true) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                handled.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNoFieldsHandledByFieldCountDelegate_WritesNothing()
+        {
+            // arrange
+            var recordLine = new CsvFileRecordLine();
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineAfterLineWithNoFieldsHandledByFieldCountDelegate_WritesFieldsOfLineWritten()
+        {
+            // arrange
+            var emptyRecordLine = new CsvFileRecordLine();
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName2, TextValue);
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(emptyRecordLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNoFieldsAfterHeaderLine_WritesBlankValueForEachHeaderField()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            var recordLine = new CsvFileRecordLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldHeaderAndAllBlankRecordLines);
             }
         }
 
