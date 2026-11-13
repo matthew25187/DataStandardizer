@@ -89,7 +89,7 @@ namespace DataStandardizer.File.CSV
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            ValidateHandlers(options);
+            ValidateHandlers(options, nameof(options));
 
             _options = options;
 
@@ -115,7 +115,7 @@ namespace DataStandardizer.File.CSV
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            ValidateHandlers(options);
+            ValidateHandlers(options, nameof(options));
 
             _options = options;
 
@@ -137,12 +137,24 @@ namespace DataStandardizer.File.CSV
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
 
-            ValidateHandlers(_options);
+            ValidateHandlers(_options, nameof(options));
 
             if (_options.Encoding != null)
             {
                 throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(writer));
             }
+        }
+
+        /// <summary>
+        /// Checks that the inconsistent field count handler set in the options is of the type the writer calls.  The writer never calls the bad-value
+        /// or header handler, so they aren't checked, and options can be shared with a reader of another line type.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't a <see cref="CsvFieldCount{TModel}"/> of <typeparamref name="TRecordLine"/>.
+        /// </exception>
+        private static void ValidateHandlers(ICsvFileOptions options, string paramName)
+        {
+            ValidateHandler<CsvFieldCount<TRecordLine>>(options.InconsistentFieldCountHandler, nameof(ICsvFileOptions.InconsistentFieldCountHandler), paramName);
         }
 
         private static StreamWriter CreateStreamWriter(Stream stream, Encoding encoding)

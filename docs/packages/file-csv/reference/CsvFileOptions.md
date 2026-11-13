@@ -37,8 +37,9 @@ RFC 4180 defaults.
 
 The handler properties are typed `Delegate`, but a reader or writer calls only a
 delegate of the type each property names, with the reader's or writer's record line
-type as `TModel`. Its constructor throws `ArgumentException` for a handler of any
-other type, so that a handler is never silently ignored. The options are checked
+type as `TModel`. Its constructor throws `ArgumentException` for a handler it calls
+that is of any other type, so that a handler is never silently ignored. A writer
+calls only `InconsistentFieldCountHandler`, so it checks only that one. The options are checked
 when they are passed to the constructor; a handler set on a .NET Standard options
 object after that isn't checked.
 
@@ -52,7 +53,7 @@ object after that isn't checked.
 
 | Property | Signature | Default | Notes |
 | --- | --- | --- | --- |
-| `BadValueHandler` | `Delegate? BadValueHandler { get; init; }` | `null` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate for the reader's or writer's record line type. `get; set;` on .NET Standard. |
+| `BadValueHandler` | `Delegate? BadValueHandler { get; init; }` | `null` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate for the reader's record line type. `get; set;` on .NET Standard. |
 | `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. When `null`, values are converted with the invariant culture, never the current culture. `get; set;` on .NET Standard. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; init; }` | `null` | Replacement for line breaks embedded in field values. `get; set;` on .NET Standard. |
 | `Encoding` | `Encoding? Encoding { get; init; }` | `null` | File encoding. `get; set;` on .NET Standard. |

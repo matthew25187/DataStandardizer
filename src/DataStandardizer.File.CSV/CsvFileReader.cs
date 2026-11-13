@@ -112,7 +112,7 @@ namespace DataStandardizer.File.CSV
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            ValidateHandlers(options);
+            ValidateHandlers(options, nameof(options));
 
             _options = options;
 
@@ -138,7 +138,7 @@ namespace DataStandardizer.File.CSV
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            ValidateHandlers(options);
+            ValidateHandlers(options, nameof(options));
 
             _options = options;
 
@@ -160,7 +160,7 @@ namespace DataStandardizer.File.CSV
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
 
-            ValidateHandlers(_options);
+            ValidateHandlers(_options, nameof(options));
 
             if (_options.Encoding != null)
             {
@@ -177,6 +177,21 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentOutOfRangeException(nameof(bufferSize));
 
             _bufferSize = bufferSize;
+        }
+
+        /// <summary>
+        /// Checks that each handler set in the options is of the type the reader calls.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// <see cref="ICsvFileOptions.BadValueHandler"/> isn't a <see cref="CsvFieldBadValue{TModel}"/> of <typeparamref name="TRecordLine"/>,
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't a <see cref="CsvFieldCount{TModel}"/> of <typeparamref name="TRecordLine"/>,
+        /// or <see cref="ICsvFileOptions.HeaderHandler"/> isn't a <see cref="CsvFileHeader"/>.
+        /// </exception>
+        private static void ValidateHandlers(ICsvFileOptions options, string paramName)
+        {
+            ValidateHandler<CsvFieldBadValue<TRecordLine>>(options.BadValueHandler, nameof(ICsvFileOptions.BadValueHandler), paramName);
+            ValidateHandler<CsvFieldCount<TRecordLine>>(options.InconsistentFieldCountHandler, nameof(ICsvFileOptions.InconsistentFieldCountHandler), paramName);
+            ValidateHandler<CsvFileHeader>(options.HeaderHandler, nameof(ICsvFileOptions.HeaderHandler), paramName);
         }
 
         private static StreamReader CreateStreamReader(Stream stream, Encoding encoding)

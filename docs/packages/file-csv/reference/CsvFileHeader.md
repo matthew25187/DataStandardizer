@@ -22,9 +22,10 @@ public delegate IReadOnlyList<string> CsvFileHeader(CsvFileHeaderLine? headerLin
 
 ## Remarks
 
-Assigned to [CsvFileOptions.HeaderHandler](CsvFileOptions.md); the reader or
-writer constructor throws `ArgumentException` for a delegate of any other type,
-such as a `Func<CsvFileHeaderLine, IReadOnlyList<string>>`. `headerLine` is the
+Assigned to [CsvFileOptions.HeaderHandler](CsvFileOptions.md); the reader
+constructor throws `ArgumentException` for a delegate of any other type, such as
+a `Func<CsvFileHeaderLine, IReadOnlyList<string>>`. A writer never calls it and
+doesn't check it. `headerLine` is the
 header read from the file, if any; return the field names to use, in order.
 When there is no header line to take names from, the reader calls the delegate
 once, as it reads the first record. Returning `null` makes `ReadLine` throw

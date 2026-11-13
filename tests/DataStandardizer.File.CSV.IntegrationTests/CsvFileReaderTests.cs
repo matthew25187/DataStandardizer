@@ -170,4 +170,24 @@ public class CsvFileReaderTests
             set => SetPropertyValue(value);
         }
     }
+
+    [Fact]
+    public void Constructor_FilePathWithHandlerOfAnotherType_ThrowsArgumentExceptionBeforeOpeningFile()
+    {
+        // arrange
+        // The file is deleted, so a reader that opened it before checking the options would throw FileNotFoundException instead.
+        using var testFile = TemporaryFile.Create();
+        System.IO.File.Delete(testFile.Path);
+        var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+
+        // act
+        Action testAction = () => _ = new CsvFileReader<HandlerLine>(testFile.Path, options);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("options");
+    }
+
+    private sealed class HandlerLine : CsvFileRecordLine
+    {
+    }
 }

@@ -13,8 +13,8 @@ namespace DataStandardizer.File.CSV
         /// Gets the <see cref="CsvFieldBadValue{TModel}"/> delegate that will be called when a bad value is found in a CSV field.
         /// </summary>
         /// <remarks>
-        /// <c>TModel</c> must be the record line type of the reader or writer.  Its constructor throws <see cref="System.ArgumentException"/> for a
-        /// delegate of any other type.
+        /// <c>TModel</c> must be the record line type of the reader.  Its constructor throws <see cref="System.ArgumentException"/> for a delegate of
+        /// any other type.  A writer never calls the delegate and doesn't check it.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? BadValueHandler { get; }
@@ -59,7 +59,8 @@ namespace DataStandardizer.File.CSV
         /// Gets the <see cref="CsvFileHeader"/> delegate that will be called to provide field names in lieu of a header line from the file.
         /// </summary>
         /// <remarks>
-        /// The reader or writer constructor throws <see cref="System.ArgumentException"/> for a delegate of any other type.
+        /// The reader constructor throws <see cref="System.ArgumentException"/> for a delegate of any other type.  A writer never calls the delegate
+        /// and doesn't check it.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? HeaderHandler { get; }
