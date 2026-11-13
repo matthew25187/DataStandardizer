@@ -97,8 +97,7 @@ public class CsvFileReaderTests
         // arrange
         // "Caf\x00E9,Cr\x00E8me,No\x00EBl" in ISO 8859-1.
         using var testFile = TemporaryFile.Create([0x43, 0x61, 0x66, 0xE9, 0x2C, 0x43, 0x72, 0xE8, 0x6D, 0x65, 0x2C, 0x4E, 0x6F, 0xEB, 0x6C]);
-        // RFC 4180 TEXTDATA is US-ASCII, so a character outside it needs the opt-in.
-        var options = new CsvFileOptions { Encoding = Encoding.Latin1, ExtendedCharacters = CsvExtendedCharacters.NonAscii };
+        var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
         using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFile.Path, options);
 
         // act
@@ -117,9 +116,7 @@ public class CsvFileReaderTests
         // arrange
         // "Caf\x00E9" in UTF-8, with no byte order mark.
         using var testFile = TemporaryFile.Create([0x43, 0x61, 0x66, 0xC3, 0xA9]);
-        // RFC 4180 TEXTDATA is US-ASCII, so a character outside it needs the opt-in.
-        var options = new CsvFileOptions { ExtendedCharacters = CsvExtendedCharacters.NonAscii };
-        using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFile.Path, options);
+        using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFile.Path);
 
         // act
         var testResult = csvReader.ReadLine();

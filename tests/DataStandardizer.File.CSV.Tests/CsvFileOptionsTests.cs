@@ -19,19 +19,19 @@ namespace DataStandardizer.File.CSV.Tests
         /// <summary>
         /// What <see cref="CsvFileOptions.ToString"/> returns for options with every property at its default.
         /// </summary>
-        private const string DefaultOptionsText = "CsvFileOptions { BadValueHandler = , Culture = , EmbeddedLineBreak = , Encoding = , ExtendedCharacters = None, FieldDelimiterCharacter = ,, HeaderHandler = , HeaderHandling = None, InconsistentFieldCountHandler = , QuoteHandling = Required, SuppressTrailingBlankFields = False, TerminatorLineBreak = \r\n }";
+        private const string DefaultOptionsText = "CsvFileOptions { BadValueHandler = , Culture = , EmbeddedLineBreak = , Encoding = , FieldDelimiterCharacter = ,, HeaderHandler = , HeaderHandling = None, InconsistentFieldCountHandler = , QuoteHandling = Required, SuppressTrailingBlankFields = False, TerminatorLineBreak = \r\n }";
 
         /// <summary>
         /// What <see cref="CsvFileOptions.ToString"/> returns for options with a value other than the default for each property whose value
         /// prints the same on every runtime.  The invariant culture prints as an empty name.
         /// </summary>
-        private const string NonDefaultOptionsText = "CsvFileOptions { BadValueHandler = , Culture = , EmbeddedLineBreak = \n, Encoding = , ExtendedCharacters = Control, NonAscii, FieldDelimiterCharacter = ;, HeaderHandler = , HeaderHandling = Use, InconsistentFieldCountHandler = , QuoteHandling = Always, SuppressTrailingBlankFields = True, TerminatorLineBreak = \n }";
+        private const string NonDefaultOptionsText = "CsvFileOptions { BadValueHandler = , Culture = , EmbeddedLineBreak = \n, Encoding = , FieldDelimiterCharacter = ;, HeaderHandler = , HeaderHandling = Use, InconsistentFieldCountHandler = , QuoteHandling = Always, SuppressTrailingBlankFields = True, TerminatorLineBreak = \n }";
 
         /// <summary>
         /// The number of public properties that the hand-written <see cref="CsvFileOptions.Equals(CsvFileOptions)"/>, <c>GetHashCode</c> and
         /// <c>ToString</c> of the .NET Standard builds list.  A property added to the type has to be added to those members too, and here.
         /// </summary>
-        private const int ComparedPropertyCount = 12;
+        private const int ComparedPropertyCount = 11;
 
         private static readonly Action FirstHandler = () => { };
         private static readonly Action SecondHandler = () => { };
@@ -42,7 +42,6 @@ namespace DataStandardizer.File.CSV.Tests
             { new CsvFileOptions { Culture = CultureInfo.InvariantCulture }, new CsvFileOptions() },
             { new CsvFileOptions { EmbeddedLineBreak = LineFeed }, new CsvFileOptions() },
             { new CsvFileOptions { Encoding = Encoding.UTF8 }, new CsvFileOptions() },
-            { new CsvFileOptions { ExtendedCharacters = CsvExtendedCharacters.Control }, new CsvFileOptions() },
             { new CsvFileOptions { FieldDelimiterCharacter = Semicolon }, new CsvFileOptions() },
             { new CsvFileOptions { HeaderHandler = FirstHandler }, new CsvFileOptions() },
             { new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use }, new CsvFileOptions() },
@@ -231,7 +230,6 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 Culture = CultureInfo.InvariantCulture,
                 EmbeddedLineBreak = LineFeed,
-                ExtendedCharacters = CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii,
                 FieldDelimiterCharacter = Semicolon,
                 HeaderHandling = CsvFileHeaderHandling.Use,
                 QuoteHandling = CsvFieldQuoteHandling.Always,
@@ -265,7 +263,6 @@ namespace DataStandardizer.File.CSV.Tests
             Culture = CultureInfo.InvariantCulture,
             EmbeddedLineBreak = LineFeed,
             Encoding = Encoding.UTF8,
-            ExtendedCharacters = CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii,
             FieldDelimiterCharacter = Semicolon,
             HeaderHandler = SecondHandler,
             HeaderHandling = CsvFileHeaderHandling.Use,

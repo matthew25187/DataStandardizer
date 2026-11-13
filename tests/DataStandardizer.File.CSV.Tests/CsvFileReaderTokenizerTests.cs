@@ -95,30 +95,25 @@ namespace DataStandardizer.File.CSV.Tests
             new InvalidFieldCase("a,\"b\"" + LineBreakPlaceholder, new[] { new[] { "a", "" } }, new BadValue("b" + LineBreakPlaceholder, 1)),
         };
 
-        // Each character outside TEXTDATA, as the key, with the extended characters it needs, as the value.
-        private static readonly KeyValuePair<char, CsvExtendedCharacters>[] OutsideTextDataAllowed = new KeyValuePair<char, CsvExtendedCharacters>[]
+        // Each character in TEXTDATA, as the key, with a reader whose character set has it, as the value.  A string is UTF-16.
+        private static readonly KeyValuePair<char, TextReaderKind>[] OutsideAsciiAllowed = new KeyValuePair<char, TextReaderKind>[]
         {
-            new KeyValuePair<char, CsvExtendedCharacters>(Tab, CsvExtendedCharacters.Control),
-            new KeyValuePair<char, CsvExtendedCharacters>(Null, CsvExtendedCharacters.Control),
-            new KeyValuePair<char, CsvExtendedCharacters>(Delete, CsvExtendedCharacters.Control),
-            new KeyValuePair<char, CsvExtendedCharacters>(LatinSmallLetterEWithAcute, CsvExtendedCharacters.NonAscii),
-            new KeyValuePair<char, CsvExtendedCharacters>(NextLine, CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii),
-            new KeyValuePair<char, CsvExtendedCharacters>(NextLine, AllFlagsAndUndefinedBit),
+            new KeyValuePair<char, TextReaderKind>(LatinSmallLetterEWithAcute, TextReaderKind.StringReader),
+            new KeyValuePair<char, TextReaderKind>(CjkUnifiedIdeographOne, TextReaderKind.StringReader),
         };
 
-        // Each character outside TEXTDATA, as the key, with extended characters that don't include all it needs, as the value.  The first rows
-        // are the strict default.
-        private static readonly KeyValuePair<char, CsvExtendedCharacters>[] OutsideTextDataNotAllowed = new KeyValuePair<char, CsvExtendedCharacters>[]
+        // Each character outside TEXTDATA, as the key, with a reader, as the value.  A control character is never in TEXTDATA, and without an
+        // encoding the character set is US-ASCII, which has no character outside it.
+        private static readonly KeyValuePair<char, TextReaderKind>[] OutsideTextDataNotAllowed = new KeyValuePair<char, TextReaderKind>[]
         {
-            new KeyValuePair<char, CsvExtendedCharacters>(Tab, CsvExtendedCharacters.None),
-            new KeyValuePair<char, CsvExtendedCharacters>(Null, CsvExtendedCharacters.None),
-            new KeyValuePair<char, CsvExtendedCharacters>(Delete, CsvExtendedCharacters.None),
-            new KeyValuePair<char, CsvExtendedCharacters>(LatinSmallLetterEWithAcute, CsvExtendedCharacters.None),
-            new KeyValuePair<char, CsvExtendedCharacters>(NextLine, CsvExtendedCharacters.None),
-            new KeyValuePair<char, CsvExtendedCharacters>(Tab, CsvExtendedCharacters.NonAscii),
-            new KeyValuePair<char, CsvExtendedCharacters>(LatinSmallLetterEWithAcute, CsvExtendedCharacters.Control),
-            new KeyValuePair<char, CsvExtendedCharacters>(NextLine, CsvExtendedCharacters.Control),
-            new KeyValuePair<char, CsvExtendedCharacters>(NextLine, CsvExtendedCharacters.NonAscii),
+            new KeyValuePair<char, TextReaderKind>(Tab, TextReaderKind.StringReader),
+            new KeyValuePair<char, TextReaderKind>(Null, TextReaderKind.StringReader),
+            new KeyValuePair<char, TextReaderKind>(Delete, TextReaderKind.StringReader),
+            new KeyValuePair<char, TextReaderKind>(NextLine, TextReaderKind.StringReader),
+            new KeyValuePair<char, TextReaderKind>(Tab, TextReaderKind.WithoutEncoding),
+            new KeyValuePair<char, TextReaderKind>(NextLine, TextReaderKind.WithoutEncoding),
+            new KeyValuePair<char, TextReaderKind>(LatinSmallLetterEWithAcute, TextReaderKind.WithoutEncoding),
+            new KeyValuePair<char, TextReaderKind>(CjkUnifiedIdeographOne, TextReaderKind.WithoutEncoding),
         };
 
         // One row for each place in a field that a character outside TEXTDATA can be, read by both outside TEXTDATA theories.
@@ -149,19 +144,19 @@ namespace DataStandardizer.File.CSV.Tests
                 new BadValue("b" + OutsideTextDataPlaceholder, 1)),
         };
 
-        public static TheoryData<string, char, string, int, CsvExtendedCharacters, string[][]> OutsideTextDataCases =>
+        public static TheoryData<string, char, string, int, TextReaderKind, string[][]> OutsideTextDataCases =>
             OutsideTextDataRecordCases(OutsideTextDataNotAllowed, OutsideTextDataValues);
 
-        public static TheoryData<string, char, string, int, CsvExtendedCharacters, BadValue[]> OutsideTextDataBadValueCases =>
+        public static TheoryData<string, char, string, int, TextReaderKind, BadValue[]> OutsideTextDataBadValueCases =>
             OutsideTextDataBadValueCasesOf(OutsideTextDataNotAllowed, OutsideTextDataValues);
 
-        public static TheoryData<string, char, string, int, CsvExtendedCharacters> UnhandledOutsideTextDataCases =>
+        public static TheoryData<string, char, string, int, TextReaderKind> UnhandledOutsideTextDataCases =>
             OutsideTextDataInputCases(OutsideTextDataNotAllowed, UnhandledOutsideTextDataInput);
 
-        public static TheoryData<string, char, string, int, CsvExtendedCharacters, string[][]> AllowedOutsideTextDataCases =>
-            OutsideTextDataRecordCases(OutsideTextDataAllowed, new[]
+        public static TheoryData<string, char, string, int, TextReaderKind, string[][]> AllowedOutsideAsciiCases =>
+            OutsideTextDataRecordCases(OutsideAsciiAllowed, new[]
             {
-                new InvalidFieldCase(AllowedOutsideTextDataInput,
+                new InvalidFieldCase(AllowedOutsideAsciiInput,
                     new[] { new[] { "a", "b" + OutsideTextDataPlaceholder + "c" }, new[] { "d" + OutsideTextDataPlaceholder } }),
             });
 
@@ -345,6 +340,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const char Null = '\x0000';
         private const char Delete = '\x007F';
         private const char LatinSmallLetterEWithAcute = '\x00E9';
+        private const char CjkUnifiedIdeographOne = '\x4E00';
 
         // A control character outside US-ASCII (C1), so it needs both kinds of extended character.
         private const char NextLine = '\x0085';
@@ -355,17 +351,16 @@ namespace DataStandardizer.File.CSV.Tests
         private const string SurrogatePairInUnquotedFieldInput = "a,b" + GrinningFace + "c" + GrinningFace + "\nd";
         private const string SurrogatePairInQuotedFieldInput = "a,\"b" + GrinningFace + "c\"\nd";
         private const string SurrogatePairBadValue = "b" + GrinningFace;
-
-        // Every flag of CsvExtendedCharacters and a bit it doesn't define.  The undefined bit doesn't stop the flags from allowing a character.
-        private const CsvExtendedCharacters AllFlagsAndUndefinedBit = (CsvExtendedCharacters)7;
+        private const string SurrogatePairValue = "b" + GrinningFace + "c" + GrinningFace;
+        private const string LineFeedTerminator = "\n";
 
         // Stands in an input for a character outside TEXTDATA.  The cases put each character under test in its place.
         private const string OutsideTextDataPlaceholder = "^";
 
         private const string UnhandledOutsideTextDataInput = "a,b" + OutsideTextDataPlaceholder + "c\nd";
 
-        // Read with every kind of extended character the character in its place needs: the character is kept in both fields.
-        private const string AllowedOutsideTextDataInput = "a,b" + OutsideTextDataPlaceholder + "c\n\"d" + OutsideTextDataPlaceholder + "\"";
+        // Read by a reader whose character set has the character in its place: the character is kept in both fields.
+        private const string AllowedOutsideAsciiInput = "a,b" + OutsideTextDataPlaceholder + "c\n\"d" + OutsideTextDataPlaceholder + "\"";
 
         // Control characters used as the delimiter and terminator, which TEXTDATA leaves out (RFC 4180 section 2).
         private const char TabDelimiter = '\x0009';
@@ -1047,10 +1042,10 @@ namespace DataStandardizer.File.CSV.Tests
         [Theory]
         [MemberData(nameof(OutsideTextDataCases), DisableDiscoveryEnumeration = true)]
         public void TryReadRecord_CharacterOutsideTextData_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize,
-            CsvExtendedCharacters extendedCharacters, string[][] expectedRecords)
+            TextReaderKind readerKind, string[][] expectedRecords)
         {
             // arrange
-            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()), extendedCharacters))
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()), readerKind))
             {
 
                 // act
@@ -1064,11 +1059,11 @@ namespace DataStandardizer.File.CSV.Tests
         [Theory]
         [MemberData(nameof(OutsideTextDataBadValueCases), DisableDiscoveryEnumeration = true)]
         public void TryReadRecord_CharacterOutsideTextData_CallsBadValueHandler(string input, char delimiter, string terminator, int bufferSize,
-            CsvExtendedCharacters extendedCharacters, BadValue[] expectedBadValues)
+            TextReaderKind readerKind, BadValue[] expectedBadValues)
         {
             // arrange
             var badValues = new List<BadValue>();
-            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues), extendedCharacters))
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues), readerKind))
             {
 
                 // act
@@ -1082,10 +1077,10 @@ namespace DataStandardizer.File.CSV.Tests
         [Theory]
         [MemberData(nameof(UnhandledOutsideTextDataCases), DisableDiscoveryEnumeration = true)]
         public void TryReadRecord_CharacterOutsideTextDataWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator,
-            int bufferSize, CsvExtendedCharacters extendedCharacters)
+            int bufferSize, TextReaderKind readerKind)
         {
             // arrange
-            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, extendedCharacters: extendedCharacters))
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, readerKind: readerKind))
             {
                 var fieldValues = new List<string>();
 
@@ -1100,13 +1095,13 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
-        [MemberData(nameof(AllowedOutsideTextDataCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_CharacterOutsideTextDataWithExtendedCharacters_KeepsCharacter(string input, char delimiter, string terminator,
-            int bufferSize, CsvExtendedCharacters extendedCharacters, string[][] expectedRecords)
+        [MemberData(nameof(AllowedOutsideAsciiCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_CharacterOutsideAsciiInReadersCharacterSet_KeepsCharacter(string input, char delimiter, string terminator,
+            int bufferSize, TextReaderKind readerKind, string[][] expectedRecords)
         {
             // arrange
             // Without a bad value handler, a violation would throw.
-            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, extendedCharacters: extendedCharacters))
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, readerKind: readerKind))
             {
 
                 // act
@@ -1119,12 +1114,12 @@ namespace DataStandardizer.File.CSV.Tests
 
         [Theory]
         [MemberData(nameof(SurrogatePairOutsideTextDataBadValueCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_SurrogatePairOutsideTextData_CallsBadValueHandlerOnceWithWholePair(string input, char delimiter, string terminator,
+        public void TryReadRecord_SurrogatePairWithoutEncoding_CallsBadValueHandlerOnceWithWholePair(string input, char delimiter, string terminator,
             int bufferSize, BadValue[] expectedBadValues)
         {
             // arrange
             var badValues = new List<BadValue>();
-            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues), TextReaderKind.WithoutEncoding))
             {
 
                 // act
@@ -1132,6 +1127,22 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 badValues.Should().Equal(expectedBadValues);
+            }
+        }
+
+        [Fact]
+        public void TryReadRecord_SurrogatePairFromStringReader_KeepsPair()
+        {
+            // arrange
+            // A string is UTF-16, whose character set has every character.  Without a bad value handler, a violation would throw.
+            using (var csvReader = CreateReader(SurrogatePairInUnquotedFieldInput, ',', LineFeedTerminator, DefaultBufferSize))
+            {
+
+                // act
+                var testResult = ReadAllRecords(csvReader);
+
+                // assert
+                testResult.Should().BeEquivalentTo(new[] { new[] { "a", SurrogatePairValue }, new[] { "d" } }, config => config.WithStrictOrdering());
             }
         }
 
@@ -1197,6 +1208,16 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 testResult.Should().BeEquivalentTo(new[] { new[] { CommaInUnquotedFieldValue, "c" } }, config => config.WithStrictOrdering());
             }
+        }
+
+        /// <summary>
+        /// The kind of reader a test reads its input through, which sets the character set: a string is UTF-16, and a reader with no encoding reads
+        /// US-ASCII.
+        /// </summary>
+        public enum TextReaderKind
+        {
+            StringReader,
+            WithoutEncoding
         }
 
         /// <summary>
@@ -1376,13 +1397,13 @@ namespace DataStandardizer.File.CSV.Tests
         /// Makes one case for each character and its extended characters, row, delimiter, terminator and buffer size, from the input and records of
         /// each row.  The character takes the place of <see cref="OutsideTextDataPlaceholder"/>.
         /// </summary>
-        private static TheoryData<string, char, string, int, CsvExtendedCharacters, string[][]> OutsideTextDataRecordCases(
-            KeyValuePair<char, CsvExtendedCharacters>[] charactersAndExtendedCharacters, InvalidFieldCase[] invalidFieldCases)
+        private static TheoryData<string, char, string, int, TextReaderKind, string[][]> OutsideTextDataRecordCases(
+            KeyValuePair<char, TextReaderKind>[] charactersAndReaders, InvalidFieldCase[] invalidFieldCases)
         {
-            var data = new TheoryData<string, char, string, int, CsvExtendedCharacters, string[][]>();
-            foreach (var characterAndExtendedCharacters in charactersAndExtendedCharacters)
+            var data = new TheoryData<string, char, string, int, TextReaderKind, string[][]>();
+            foreach (var characterAndReader in charactersAndReaders)
             {
-                var character = characterAndExtendedCharacters.Key.ToString();
+                var character = characterAndReader.Key.ToString();
                 foreach (var invalidFieldCase in invalidFieldCases)
                 {
                     var records = invalidFieldCase.ExpectedRecords
@@ -1392,7 +1413,7 @@ namespace DataStandardizer.File.CSV.Tests
                     AddRecordCases(recordCases, WithoutLineBreak(Terminators), invalidFieldCase.Input.Replace(OutsideTextDataPlaceholder, character), records);
                     foreach (var recordCase in recordCases)
                     {
-                        data.Add((string)recordCase[0], (char)recordCase[1], (string)recordCase[2], (int)recordCase[3], characterAndExtendedCharacters.Value,
+                        data.Add((string)recordCase[0], (char)recordCase[1], (string)recordCase[2], (int)recordCase[3], characterAndReader.Value,
                             (string[][])recordCase[4]);
                     }
                 }
@@ -1405,13 +1426,13 @@ namespace DataStandardizer.File.CSV.Tests
         /// Makes one case for each character and its extended characters, row, delimiter, terminator and buffer size, from the input and bad values of
         /// each row.  The character takes the place of <see cref="OutsideTextDataPlaceholder"/>.
         /// </summary>
-        private static TheoryData<string, char, string, int, CsvExtendedCharacters, BadValue[]> OutsideTextDataBadValueCasesOf(
-            KeyValuePair<char, CsvExtendedCharacters>[] charactersAndExtendedCharacters, InvalidFieldCase[] invalidFieldCases)
+        private static TheoryData<string, char, string, int, TextReaderKind, BadValue[]> OutsideTextDataBadValueCasesOf(
+            KeyValuePair<char, TextReaderKind>[] charactersAndReaders, InvalidFieldCase[] invalidFieldCases)
         {
-            var data = new TheoryData<string, char, string, int, CsvExtendedCharacters, BadValue[]>();
-            foreach (var characterAndExtendedCharacters in charactersAndExtendedCharacters)
+            var data = new TheoryData<string, char, string, int, TextReaderKind, BadValue[]>();
+            foreach (var characterAndReader in charactersAndReaders)
             {
-                var character = characterAndExtendedCharacters.Key.ToString();
+                var character = characterAndReader.Key.ToString();
                 foreach (var invalidFieldCase in invalidFieldCases)
                 {
                     var badValues = invalidFieldCase.ExpectedBadValues
@@ -1421,7 +1442,7 @@ namespace DataStandardizer.File.CSV.Tests
                     AddBadValueCases(badValueCases, WithoutLineBreak(Terminators), invalidFieldCase.Input.Replace(OutsideTextDataPlaceholder, character), badValues);
                     foreach (var badValueCase in badValueCases)
                     {
-                        data.Add((string)badValueCase[0], (char)badValueCase[1], (string)badValueCase[2], (int)badValueCase[3], characterAndExtendedCharacters.Value,
+                        data.Add((string)badValueCase[0], (char)badValueCase[1], (string)badValueCase[2], (int)badValueCase[3], characterAndReader.Value,
                             (BadValue[])badValueCase[4]);
                     }
                 }
@@ -1434,15 +1455,15 @@ namespace DataStandardizer.File.CSV.Tests
         /// Makes one case for each character and its extended characters, delimiter, terminator and buffer size, from an input.  The character takes
         /// the place of <see cref="OutsideTextDataPlaceholder"/>.
         /// </summary>
-        private static TheoryData<string, char, string, int, CsvExtendedCharacters> OutsideTextDataInputCases(
-            KeyValuePair<char, CsvExtendedCharacters>[] charactersAndExtendedCharacters, string input)
+        private static TheoryData<string, char, string, int, TextReaderKind> OutsideTextDataInputCases(
+            KeyValuePair<char, TextReaderKind>[] charactersAndReaders, string input)
         {
-            var data = new TheoryData<string, char, string, int, CsvExtendedCharacters>();
-            foreach (var characterAndExtendedCharacters in charactersAndExtendedCharacters)
+            var data = new TheoryData<string, char, string, int, TextReaderKind>();
+            foreach (var characterAndReader in charactersAndReaders)
             {
-                foreach (var inputCase in InputCases(input.Replace(OutsideTextDataPlaceholder, characterAndExtendedCharacters.Key.ToString())))
+                foreach (var inputCase in InputCases(input.Replace(OutsideTextDataPlaceholder, characterAndReader.Key.ToString())))
                 {
-                    data.Add((string)inputCase[0], (char)inputCase[1], (string)inputCase[2], (int)inputCase[3], characterAndExtendedCharacters.Value);
+                    data.Add((string)inputCase[0], (char)inputCase[1], (string)inputCase[2], (int)inputCase[3], characterAndReader.Value);
                 }
             }
 
@@ -1453,17 +1474,22 @@ namespace DataStandardizer.File.CSV.Tests
             context => badValues.Add(new BadValue(context.RawFieldValue, context.FieldIndex));
 
         private static CsvFileReader<CsvFileRecordLine> CreateReader(string input, char delimiter, string terminator, int bufferSize,
-            CsvFieldBadValue<CsvFileRecordLine> badValueHandler = null, CsvExtendedCharacters extendedCharacters = CsvExtendedCharacters.None)
+            CsvFieldBadValue<CsvFileRecordLine> badValueHandler = null, TextReaderKind readerKind = TextReaderKind.StringReader)
         {
             var options = new CsvFileOptions
             {
                 FieldDelimiterCharacter = delimiter,
                 TerminatorLineBreak = terminator,
-                BadValueHandler = badValueHandler,
-                ExtendedCharacters = extendedCharacters
+                BadValueHandler = badValueHandler
             };
 
-            return new CsvFileReader<CsvFileRecordLine>(new StringReader(input), options, bufferSize);
+            TextReader reader = new StringReader(input);
+            if (readerKind == TextReaderKind.WithoutEncoding)
+            {
+                reader = new UnencodedTextReader(reader);
+            }
+
+            return new CsvFileReader<CsvFileRecordLine>(reader, options, bufferSize);
         }
 
         /// <summary>

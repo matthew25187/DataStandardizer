@@ -54,17 +54,6 @@ namespace DataStandardizer.File.CSV
         Encoding Encoding { get; }
 #endif
         /// <summary>
-        /// Gets the kinds of character outside RFC 4180 <c>TEXTDATA</c> that field values may hold.
-        /// </summary>
-        /// <remarks>
-        /// The default, <see cref="CsvExtendedCharacters.None"/>, follows RFC 4180§2: a field holds only the printable characters of US-ASCII, and
-        /// an escaped field may also hold the field delimiter, CR, LF, the characters of the terminator line break and a pair of double quotes.
-        /// A reader reports any other character in a field as a bad value, through <see cref="BadValueHandler"/>, and a writer throws
-        /// <see cref="CsvFileException"/> for a value that holds one.  Each flag relaxes the rule for one kind of character.
-        /// </remarks>
-        CsvExtendedCharacters ExtendedCharacters { get; }
-
-        /// <summary>
         /// Gets the character used to separate fields on a CSV line.
         /// </summary>
         /// <remarks>
@@ -210,16 +199,6 @@ set;
 #else
         public Encoding Encoding { get; set; }
 #endif
-        public CsvExtendedCharacters ExtendedCharacters
-        {
-            get;
-#if NET5_0_OR_GREATER
-            init;
-#else
-            set;
-#endif
-        } = CsvExtendedCharacters.None;
-
         public char FieldDelimiterCharacter
         {
             get;
@@ -346,7 +325,6 @@ set;
                 && EqualityComparer<CultureInfo>.Default.Equals(Culture, other.Culture)
                 && EqualityComparer<string>.Default.Equals(EmbeddedLineBreak, other.EmbeddedLineBreak)
                 && EqualityComparer<Encoding>.Default.Equals(Encoding, other.Encoding)
-                && ExtendedCharacters == other.ExtendedCharacters
                 && FieldDelimiterCharacter == other.FieldDelimiterCharacter
                 && EqualityComparer<Delegate>.Default.Equals(HeaderHandler, other.HeaderHandler)
                 && HeaderHandling == other.HeaderHandling
@@ -368,7 +346,6 @@ set;
                 hashCode = (hashCode * Multiplier) + EqualityComparer<CultureInfo>.Default.GetHashCode(Culture);
                 hashCode = (hashCode * Multiplier) + EqualityComparer<string>.Default.GetHashCode(EmbeddedLineBreak);
                 hashCode = (hashCode * Multiplier) + EqualityComparer<Encoding>.Default.GetHashCode(Encoding);
-                hashCode = (hashCode * Multiplier) + EqualityComparer<CsvExtendedCharacters>.Default.GetHashCode(ExtendedCharacters);
                 hashCode = (hashCode * Multiplier) + EqualityComparer<char>.Default.GetHashCode(FieldDelimiterCharacter);
                 hashCode = (hashCode * Multiplier) + EqualityComparer<Delegate>.Default.GetHashCode(HeaderHandler);
                 hashCode = (hashCode * Multiplier) + EqualityComparer<CsvFileHeaderHandling>.Default.GetHashCode(HeaderHandling);
@@ -390,7 +367,6 @@ set;
                 .Append(", Culture = ").Append(Culture)
                 .Append(", EmbeddedLineBreak = ").Append(EmbeddedLineBreak)
                 .Append(", Encoding = ").Append(Encoding)
-                .Append(", ExtendedCharacters = ").Append(ExtendedCharacters.ToString())
                 .Append(", FieldDelimiterCharacter = ").Append(FieldDelimiterCharacter)
                 .Append(", HeaderHandler = ").Append(HeaderHandler)
                 .Append(", HeaderHandling = ").Append(HeaderHandling.ToString())

@@ -92,30 +92,34 @@ when creating that reader or writer instead.
 var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
 ```
 
-## Extended characters
+### Characters allowed in a field
 
-**Default:** `CsvExtendedCharacters.None`
+RFC 4180 builds every field from `TEXTDATA`, the printable characters of US-ASCII, and
+lets a file use another character set by naming it in the `charset` parameter of its
+`text/csv` media type. The reader and writer take the encoding as that character set, so
+a field may hold any printable character the encoding can represent. A control
+character, such as TAB or NUL, is never printable, so it's never allowed. A quoted field
+may still hold the field delimiter, CR, LF and the characters of the terminator line
+break.
 
-RFC 4180 builds every field from `TEXTDATA`, the printable characters of US-ASCII. By
-default, a reader reports a field that holds any other character, such as a TAB or an
-accented letter, as a bad value, and a writer throws `CsvFileException` for such a value.
-The field delimiter, CR, LF and the characters of the terminator line break are allowed in a
-quoted field whatever this option is.
+The encoding is chosen in this order:
 
-To read or write files that hold control characters or characters outside US-ASCII,
-allow them:
+1. `Encoding`, when the reader or writer is constructed from a `Stream` or a file path.
+2. The default, UTF-8, when it is constructed from a `Stream` or a file path without
+   `Encoding`.
+3. The encoding of the `TextReader` or `TextWriter` it is given: a `StreamReader`'s
+   current encoding, or a `TextWriter`'s `Encoding`. A `StringReader` or `StringWriter`
+   holds a string, which is UTF-16, so it accepts every printable character.
+4. US-ASCII, when the `TextReader` or `TextWriter` has no encoding.
 
-```csharp
-var options = new CsvFileOptions
-{
-    ExtendedCharacters = CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii
-};
-```
+A reader reports a field that holds a character outside that set as a bad value,
+through `BadValueHandler`, or throws `CsvFileException` when no handler is set. A writer
+throws `CsvFileException` for such a value, and writes nothing for the line.
 
-`NonAscii` allows the printable characters outside US-ASCII, which most UTF-8 files hold.
-`Control` allows control characters, other than a CR or LF in an unquoted field. A control
-character outside US-ASCII, `%x80-9F`, needs both. See
-[CsvExtendedCharacters](../reference/CsvExtendedCharacters.md).
+> **Note:** A `StringReader` or `StringWriter` always reads or writes UTF-16, and
+> `Encoding` can't be combined with it. If a specific encoding is required, such as
+> ISO 8859-1 or US-ASCII, construct the reader or writer from a `Stream` or a file path
+> with `Encoding` set, rather than from a `StringReader` or `StringWriter`.
 
 ## Field delimiter character
 

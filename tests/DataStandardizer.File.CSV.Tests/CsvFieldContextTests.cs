@@ -27,7 +27,7 @@ namespace DataStandardizer.File.CSV.Tests
         /// <summary>
         /// What <see cref="CsvFieldContext{TModel}.ToString"/> returns for the context of the <c>Amount</c> field of <see cref="TwoFieldFile"/>.
         /// </summary>
-        private const string AmountContextText = "CsvFieldContext { FieldIndex = 1, FieldName = Amount, HeaderLine = DataStandardizer.File.CSV.CsvFileHeaderLine, Model = DataStandardizer.File.CSV.Tests.CsvFieldContextTests+RejectedFieldLine, Options = CsvFileOptions { BadValueHandler = DataStandardizer.File.CSV.CsvFieldBadValue`1[DataStandardizer.File.CSV.Tests.CsvFieldContextTests+RejectedFieldLine], Culture = , EmbeddedLineBreak = , Encoding = , ExtendedCharacters = None, FieldDelimiterCharacter = ,, HeaderHandler = , HeaderHandling = Use, InconsistentFieldCountHandler = , QuoteHandling = Required, SuppressTrailingBlankFields = False, TerminatorLineBreak = \r\n }, RawFieldValue = abc }";
+        private const string AmountContextText = "CsvFieldContext { FieldIndex = 1, FieldName = Amount, HeaderLine = DataStandardizer.File.CSV.CsvFileHeaderLine, Model = DataStandardizer.File.CSV.Tests.CsvFieldContextTests+RejectedFieldLine, Options = CsvFileOptions { BadValueHandler = DataStandardizer.File.CSV.CsvFieldBadValue`1[DataStandardizer.File.CSV.Tests.CsvFieldContextTests+RejectedFieldLine], Culture = , EmbeddedLineBreak = , Encoding = , FieldDelimiterCharacter = ,, HeaderHandler = , HeaderHandling = Use, InconsistentFieldCountHandler = , QuoteHandling = Required, SuppressTrailingBlankFields = False, TerminatorLineBreak = \r\n }, RawFieldValue = abc }";
 
         /// <summary>
         /// The number of public properties that the hand-written <c>Equals</c>, <c>GetHashCode</c> and <c>ToString</c> of the .NET Standard
