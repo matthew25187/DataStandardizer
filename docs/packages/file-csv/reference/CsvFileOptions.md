@@ -35,6 +35,10 @@ type is a plain `class` whose properties are settable. Construct it with the imp
 parameterless constructor and set the properties you need; the rest keep their
 RFC 4180 defaults.
 
+On every target, two options objects are equal when each of their properties is equal,
+and `==`, `!=`, `GetHashCode` and `ToString` behave as they do for a record. The .NET
+Standard class implements `IEquatable<CsvFileOptions>` to match the `net10.0` record.
+
 The handler properties are typed `Delegate`, but a reader or writer calls only a
 delegate of the type each property names, with the reader's or writer's record line
 type as `TModel`. Its constructor throws `ArgumentException` for a handler it calls

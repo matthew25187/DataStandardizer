@@ -37,6 +37,11 @@ library supplies a populated instance to your [CsvFieldBadValue](CsvFieldBadValu
 [CsvFieldConvertToString](CsvFieldConvertToString.md) delegates. All properties are
 publicly read-only.
 
+On every target, two contexts are equal when each of their properties is equal, and
+`==`, `!=`, `GetHashCode` and `ToString` behave as they do for a record. The .NET
+Standard class implements `IEquatable<CsvFieldContext<TModel>>` to match the `net10.0`
+record.
+
 ## Properties
 
 | Property | Signature | Notes |
