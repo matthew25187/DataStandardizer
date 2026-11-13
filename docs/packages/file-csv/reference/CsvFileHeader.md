@@ -30,14 +30,13 @@ they replace the names of the file's header line.
 The reader calls the delegate once, whatever
 [CsvFileOptions.HeaderHandling](CsvFileOptions.md) is. With `Use`, it calls it
 as it reads the header line, passes that line, and `ReadLine` returns a header
-line with the names the delegate gave. With `Ignore`, it calls it as it reads
-the header line and passes that line, and `ReadLine` returns no header line.
-With `None`, it calls it after it reads the first record, before it returns
-that record, and passes `null`. A
+line with the names the delegate gave. With `Ignore` and `None`, it calls it
+after it reads the first record, before it returns that record, and passes the
+ignored header line, or `null` with `None`; `ReadLine` returns no header line. A
 header line read from the file is checked for duplicate names before the
 delegate is called; duplicates throw `CsvFileException`. The delegate renames fields; it can't add or remove
-them. The header line, or the first record when there is no header line, sets
-how many fields each record is expected to have; returning a different number
+them. With `Use`, the header line sets how many fields each record is expected
+to have; with `Ignore` and `None`, the first record does; returning a different number
 of names makes `ReadLine` throw `InvalidOperationException`. Returning
 `null` makes `ReadLine` throw `InvalidOperationException`, and duplicate names
 make it throw `CsvFileException`. When the delegate fails, or throws an exception of its own,

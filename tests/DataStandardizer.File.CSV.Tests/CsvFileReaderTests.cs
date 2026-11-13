@@ -382,12 +382,16 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
-        // A header delegate that returns another number of names than the two fields of RenamedHeaderFile's header line, or the three
-        // fields of NumbersLine, and the message that gives.
+        // A header delegate that returns another number of names than the two fields of RenamedHeaderFile's header line or first record,
+        // or the three fields of NumbersLine, and the message that gives.
         private const string OneHeaderNameForTwoFieldsMessage =
             "The header handler returned 1 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
         private const string ThreeHeaderNamesForTwoFieldsMessage =
             "The header handler returned 3 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string OneHeaderNameForTwoFirstRecordFieldsMessage =
+            "The header handler returned 1 field names for a first record of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string ThreeHeaderNamesForTwoFirstRecordFieldsMessage =
+            "The header handler returned 3 field names for a first record of 2 fields.  It can rename the fields, but not add or remove them.";
         private const string TwoHeaderNamesForThreeFieldsMessage =
             "The header handler returned 2 field names for a first record of 3 fields.  It can rename the fields, but not add or remove them.";
         private const string FourHeaderNamesForThreeFieldsMessage =
@@ -401,10 +405,10 @@ namespace DataStandardizer.File.CSV.Tests
                     CsvFileHeaderHandling.Use, RenamedHeaderFile, new[] { IdFieldName, NameFieldName, DescriptionFieldName },
                     ThreeHeaderNamesForTwoFieldsMessage
                 },
-                { CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName }, OneHeaderNameForTwoFieldsMessage },
+                { CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName }, OneHeaderNameForTwoFirstRecordFieldsMessage },
                 {
                     CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName, NameFieldName, DescriptionFieldName },
-                    ThreeHeaderNamesForTwoFieldsMessage
+                    ThreeHeaderNamesForTwoFirstRecordFieldsMessage
                 },
                 { CsvFileHeaderHandling.None, NumbersLine, new[] { IdFieldName, NameFieldName }, TwoHeaderNamesForThreeFieldsMessage },
                 {
@@ -433,19 +437,19 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegateWithRecordShorterThanHeaderLine_ThrowsCsvFileException()
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegateWithRecordShorterThanHeaderLine_ReturnsRecordLineWithHeaderDelegateFieldNames()
         {
             // arrange
-            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName, DescriptionFieldName });
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
             var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
             using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ShortRecordAfterHeaderFile), options))
             {
 
                 // act
-                Action testAction = () => csvReader.ReadLine();
+                var testResult = csvReader.ReadLine();
 
                 // assert
-                testAction.Should().Throw<CsvFileException>().WithMessage(FieldCountMessage);
+                testResult.Keys.Should().Equal(IdFieldName, NameFieldName);
             }
         }
 
