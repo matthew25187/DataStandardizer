@@ -18,7 +18,7 @@ namespace DataStandardizer.File.CSV
     /// </remarks>
     public abstract class CsvFileLineBase : ICsvFileLine
     {
-        // Field keys resolved from property names, keyed by runtime line type then property name.  The resolution
+        // Field keys resolved from property names, keyed by runtime line type, or custom model type, then property name.  The resolution
         // depends only on type metadata, so it is computed once per (type, property name) for the process lifetime.
         // Nested rather than keyed by a tuple, so the .NET Standard 1.x build needs no System.ValueTuple reference.
         private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string>> PropertyKeyCache =
@@ -168,12 +168,20 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         internal string ResolveMappedPropertyKey(string mappingKey) => GetCsvFieldKey(mappingKey);
 
-        private string GetCsvFieldKey(string propertyName)
+        private string GetCsvFieldKey(string propertyName) => GetCachedPropertyKey(this.GetType(), propertyName);
+
+        /// <summary>
+        /// Gets the key of a property of a record line or custom model type: the name given by <see cref="CsvFieldAttribute"/>, else the property
+        /// name.  A name that isn't a property of the type is its own key.
+        /// </summary>
+        /// <remarks>
+        /// A mapping built with <see cref="CsvFileMappingBuilder{TModel}"/> is keyed by this too, so it agrees with the line's properties.
+        /// </remarks>
+        internal static string GetCachedPropertyKey(Type type, string propertyName)
         {
-            var lineType = this.GetType();
-            if (!PropertyKeyCache.TryGetValue(lineType, out var propertyKeys))
+            if (!PropertyKeyCache.TryGetValue(type, out var propertyKeys))
             {
-                propertyKeys = PropertyKeyCache.GetOrAdd(lineType, _ => new ConcurrentDictionary<string, string>(StringComparer.Ordinal));
+                propertyKeys = PropertyKeyCache.GetOrAdd(type, _ => new ConcurrentDictionary<string, string>(StringComparer.Ordinal));
             }
 
             if (propertyKeys.TryGetValue(propertyName, out var propertyKey))
@@ -181,18 +189,18 @@ namespace DataStandardizer.File.CSV
                 return propertyKey;
             }
 
-            return AddPropertyKey(propertyKeys, lineType, propertyName);
+            return AddPropertyKey(propertyKeys, type, propertyName);
         }
 
-        // Kept out of GetPropertyKey so the closure over lineType is only allocated on a cache miss.
-        private static string AddPropertyKey(ConcurrentDictionary<string, string> propertyKeys, Type lineType, string propertyName)
+        // Kept out of GetCachedPropertyKey so the closure over type is only allocated on a cache miss.
+        private static string AddPropertyKey(ConcurrentDictionary<string, string> propertyKeys, Type type, string propertyName)
         {
-            return propertyKeys.GetOrAdd(propertyName, name => ResolvePropertyKey(lineType, name));
+            return propertyKeys.GetOrAdd(propertyName, name => ResolvePropertyKey(type, name));
         }
 
-        private static string ResolvePropertyKey(Type lineType, string propertyName)
+        private static string ResolvePropertyKey(Type type, string propertyName)
         {
-            var pi = CsvMappableProperty.FindDeclaration(lineType, propertyName);
+            var pi = CsvMappableProperty.FindDeclaration(type, propertyName);
             return pi?.GetPropertyKey() ?? propertyName;
         }
 

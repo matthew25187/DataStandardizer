@@ -314,6 +314,18 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void Property_MemberOfNestedObject_KeysMappingByMemberName()
+        {
+            // arrange
+
+            // act
+            ICsvFileMapper testResult = new NestingModelMapper();
+
+            // assert
+            testResult.Keys.Should().Equal(nameof(NestedIdModel.Id));
+        }
+
+        [Fact]
         public void ToObject_BuilderMapperMapsPropertyWithCsvFieldAttribute_CopiesValueOfFieldWithAttributeName()
         {
             // arrange
@@ -956,6 +968,34 @@ namespace DataStandardizer.File.CSV.Tests
             public KeyedModelMapper()
             {
                 this.Map().Property(x => x.Id);
+            }
+        }
+
+        private sealed class NestedIdModel
+        {
+            public int Id { get; set; }
+        }
+
+        /// <summary>
+        /// A custom model with a property whose key from <see cref="CsvFieldAttribute"/> differs from its name, which is also the name of a
+        /// property of the nested object.
+        /// </summary>
+        private sealed class NestingModel
+        {
+            [CsvField(PersonKeyFieldName)]
+            public int Id { get; set; }
+
+            public NestedIdModel Nested { get; set; }
+        }
+
+        /// <summary>
+        /// Maps the property of the nested object of <see cref="NestingModel"/>, not the model's own property with the same name.
+        /// </summary>
+        private sealed class NestingModelMapper : CsvFileCustomMapperBase<NestingModel>
+        {
+            public NestingModelMapper()
+            {
+                this.Map().Property(x => x.Nested.Id);
             }
         }
 
