@@ -545,6 +545,7 @@ namespace DataStandardizer.File.CSV
                         if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
                         {
                             badValueHandler(fieldContext);
+                            recordLine.MarkBadValueField(mappedFieldName);
                             continue;
                         }
 
@@ -591,6 +592,7 @@ namespace DataStandardizer.File.CSV
                             RawFieldValue = rawFieldValue
                         };
                         badValueHandler(fieldContext);
+                        recordLine.MarkBadValueField(mappedFieldName);
                         continue;
                     }
 

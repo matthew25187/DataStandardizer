@@ -23,6 +23,14 @@ namespace DataStandardizer.File.CSV.Tests
         private const string FirstCode = "A";
         private const string SecondCode = "B";
 
+        // The field name of CountLine.Count, which has no [CsvField] attribute.
+        private const string CountFieldName = "Count";
+
+        private const int Count = 5;
+
+        // The text of Count, as a reader stores it for a field that no mapping converts.
+        private const string CountText = "5";
+
         [Fact]
         public void SetPropertyValue_SameNamedPropertyOnDifferentTypes_ResolvesFieldKeyPerType()
         {
@@ -177,7 +185,71 @@ namespace DataStandardizer.File.CSV.Tests
             FieldKeys(testLine).Should().BeEquivalentTo(new[] { FirstCodeFieldName }, options => options.WithStrictOrdering());
         }
 
+        [Fact]
+        public void GetPropertyValue_FieldHoldsValueOfPropertyType_ReturnsValue()
+        {
+            // arrange
+            var testLine = new CountLine();
+            testLine.Add(CountFieldName, Count);
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(Count);
+        }
+
+        [Fact]
+        public void GetPropertyValue_FieldHoldsValueOfAnotherType_ThrowsInvalidCastException()
+        {
+            // arrange
+            var testLine = new CountLine();
+            testLine.Add(CountFieldName, CountText);
+
+            // act
+            Action testAction = () => _ = testLine.Count;
+
+            // assert
+            testAction.Should().Throw<InvalidCastException>();
+        }
+
+        [Fact]
+        public void GetPropertyValue_FieldValueIsNull_ReturnsDefaultValue()
+        {
+            // arrange
+            var testLine = new CountLine();
+            testLine.Add(CountFieldName, null);
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
+        [Fact]
+        public void GetPropertyValue_FieldMissing_ReturnsDefaultValue()
+        {
+            // arrange
+            var testLine = new CountLine();
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
         private static IReadOnlyList<string> FieldKeys(ICsvFileLine line) => line.Keys;
+
+        private class CountLine : CsvFileRecordLine
+        {
+            public int Count
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
 
         private class FirstCodeLine : CsvFileRecordLine
         {
