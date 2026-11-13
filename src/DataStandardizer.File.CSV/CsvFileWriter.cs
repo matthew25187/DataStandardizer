@@ -603,8 +603,8 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Converts a field value to a string.  An <see cref="IFormattable"/> value is formatted with the <see cref="ICsvFileOptions.Culture"/>, or the
-        /// invariant culture if none is set, so the output never depends on the current culture.
+        /// Converts a field value to a string with <see cref="CsvFieldFormatter"/>, with the number symbols of the <see cref="ICsvFileOptions.Culture"/>,
+        /// or the invariant culture if none is set, so the output never depends on the current culture.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static string? FormatFieldValue(object fieldValue, ICsvFileOptions options)
@@ -613,9 +613,7 @@ namespace DataStandardizer.File.CSV
         private static string FormatFieldValue([DisallowNull] object fieldValue, [DisallowNull] ICsvFileOptions options)
 #endif
         {
-            return fieldValue is IFormattable formattableFieldValue
-                ? formattableFieldValue.ToString(null, options.Culture ?? CultureInfo.InvariantCulture)
-                : fieldValue.ToString();
+            return CsvFieldFormatter.Format(fieldValue, options.Culture ?? CultureInfo.InvariantCulture);
         }
 
         private bool DoesFieldValueRequireQuoting(string rawFieldValue, CsvFileOptions options)

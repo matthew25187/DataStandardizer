@@ -113,7 +113,7 @@ namespace DataStandardizer.File.CSV
 #else
             var constantValue = fieldMapping.ConstantValue;
 #endif
-            var formattedValue = constantValue is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : constantValue.ToString();
+            var formattedValue = CsvFieldFormatter.Format(constantValue, CultureInfo.InvariantCulture);
             var exception = new CsvFileException(
                 $"The constant value {formattedValue} of property '{propertyFieldMapping.Key}' is a {CsvTypeName.Format(constantValue.GetType())}, which " +
                 $"the property's type {CsvTypeName.Format(fieldMapping.PropertyType)} can't hold as it is written.");

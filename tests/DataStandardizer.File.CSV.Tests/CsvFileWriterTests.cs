@@ -1975,6 +1975,167 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        /// <summary>
+        /// A UTC time with fractional seconds, which the general date pattern would write without them and without its <see cref="DateTimeKind"/>.
+        /// </summary>
+        private static readonly DateTime UtcTimeWithMilliseconds = new DateTime(2024, 1, 2, 3, 4, 5, 678, DateTimeKind.Utc);
+
+        /// <summary>
+        /// <see cref="UtcTimeWithMilliseconds"/> in the round-trip pattern (<c>"o"</c>).
+        /// </summary>
+        private const string UtcTimeWithMillisecondsText = "2024-01-02T03:04:05.6780000Z";
+
+        /// <summary>
+        /// A line holding only <see cref="UtcTimeWithMillisecondsText"/>.
+        /// </summary>
+        private const string UtcTimeWithMillisecondsLine = "2024-01-02T03:04:05.6780000Z\r\n";
+
+        /// <summary>
+        /// The double nearest to 0.1 + 0.2, which needs 17 significant digits to read back as the same value.  .NET Framework's <c>"R"</c> and
+        /// general format write it as <c>0.3</c>.
+        /// </summary>
+        private const double SumOfOneTenthAndTwoTenths = 0.30000000000000004;
+
+        /// <summary>
+        /// <see cref="SumOfOneTenthAndTwoTenths"/> with the fewest significant digits that read back as it.
+        /// </summary>
+        private const string SumOfOneTenthAndTwoTenthsText = "0.30000000000000004";
+
+        /// <summary>
+        /// A double that needs 16 significant digits to read back as the same value, which .NET Framework's <c>"R"</c> writes with 15
+        /// (<c>901.742658997766</c>), a different double.
+        /// </summary>
+        private const double SixteenDigitDouble = 901.7426589977661;
+
+        /// <summary>
+        /// A float that needs 8 significant digits to read back as the same value: 0.9000000 is a different float.
+        /// </summary>
+        private const float EightDigitFloat = 0.90000004f;
+
+        public static TheoryData<string, Func<string>, string> UnconvertedValueTextCases => new TheoryData<string, Func<string>, string>
+        {
+            { "DateTime, UTC", () => WriteValue(UtcTimeWithMilliseconds), UtcTimeWithMillisecondsText },
+            { "DateTime, unspecified kind", () => WriteValue(new DateTime(2024, 1, 2, 3, 4, 5, 678, DateTimeKind.Unspecified)), "2024-01-02T03:04:05.6780000" },
+            { "DateTimeOffset", () => WriteValue(new DateTimeOffset(2024, 1, 2, 3, 4, 5, 678, new TimeSpan(13, 0, 0))), "2024-01-02T03:04:05.6780000+13:00" },
+#if NET6_0_OR_GREATER
+            { "DateOnly", () => WriteValue(new DateOnly(2024, 1, 2)), "2024-01-02" },
+            { "TimeOnly", () => WriteValue(new TimeOnly(3, 4, 5, 678)), "03:04:05.6780000" },
+#endif
+            { "double, needs 17 digits", () => WriteValue(SumOfOneTenthAndTwoTenths), SumOfOneTenthAndTwoTenthsText },
+            { "double, needs 16 digits", () => WriteValue(SixteenDigitDouble), "901.7426589977661" },
+            { "double, one digit", () => WriteValue(0.1d), "0.1" },
+            { "double, negative", () => WriteValue(-1.5d), "-1.5" },
+            { "double, negative zero", () => WriteValue(-0.0d), "-0" },
+            { "double, whole number of 17 digits", () => WriteValue(1E+16d), "10000000000000000" },
+            { "double, whole number of 18 digits", () => WriteValue(1E+17d), "1E+17" },
+            { "double, decimal point three places before the first digit", () => WriteValue(0.0001d), "0.0001" },
+            { "double, decimal point four places before the first digit", () => WriteValue(0.00001d), "1E-05" },
+            { "double, largest", () => WriteValue(double.MaxValue), "1.7976931348623157E+308" },
+            { "double, smallest subnormal", () => WriteValue(double.Epsilon), "5E-324" },
+            { "double, smallest normal", () => WriteValue(2.2250738585072014E-308), "2.2250738585072014E-308" },
+            { "double, NaN", () => WriteValue(double.NaN), "NaN" },
+            { "double, positive infinity", () => WriteValue(double.PositiveInfinity), "Infinity" },
+            { "double, negative infinity", () => WriteValue(double.NegativeInfinity), "-Infinity" },
+            { "float, one digit", () => WriteValue(0.1f), "0.1" },
+            { "float, needs 8 digits", () => WriteValue(EightDigitFloat), "0.90000004" },
+            { "float, whole number of 9 digits", () => WriteValue(1E+8f), "100000000" },
+            { "float, whole number of 10 digits", () => WriteValue(1E+9f), "1E+09" },
+            { "float, largest", () => WriteValue(float.MaxValue), "3.4028235E+38" },
+            { "float, smallest subnormal", () => WriteValue(float.Epsilon), "1E-45" },
+        };
+
+        [Theory]
+        [MemberData(nameof(UnconvertedValueTextCases))]
+        public void WriteLine_ValueWithoutConverter_WritesTextThatReadsBackAsTheSameValue(string valueType, Func<string> writeValue, string expected)
+        {
+            // arrange
+            _ = valueType;
+
+            // act
+            var testResult = writeValue();
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void WriteLine_DoubleWithoutConverterAndCulture_WritesTextWithCultureSymbols()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, -1.5E-07d);
+
+            var options = new CsvFileOptions { Culture = CreateCulture(TestNegativeSign, ":") };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("~1:5E~07\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_DateTimeWithoutConverterAndCulture_WritesRoundTripPattern()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, UtcTimeWithMilliseconds);
+
+            var options = new CsvFileOptions { Culture = CreateCulture(TestNegativeSign, ":") };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(UtcTimeWithMillisecondsLine);
+            }
+        }
+
+        public static TheoryData<string, Func<object>, object> RoundTripCases => new TheoryData<string, Func<object>, object>
+        {
+            { "DateTime", () => WriteAndReadBack(UtcTimeWithMilliseconds), UtcTimeWithMilliseconds },
+            { "double", () => WriteAndReadBack(SumOfOneTenthAndTwoTenths), SumOfOneTenthAndTwoTenths },
+            { "double, needs 16 digits", () => WriteAndReadBack(SixteenDigitDouble), SixteenDigitDouble },
+            { "float", () => WriteAndReadBack(EightDigitFloat), EightDigitFloat },
+        };
+
+        [Theory]
+        [MemberData(nameof(RoundTripCases))]
+        public void WriteLineThenReadLine_ValueWithoutConverter_ReadsTheSameValue(string valueType, Func<object> writeAndReadBack, object expected)
+        {
+            // arrange
+            _ = valueType;
+
+            // act
+            var testResult = writeAndReadBack();
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void WriteLineThenReadLine_UtcDateTimeWithoutConverter_ReadsUtcKind()
+        {
+            // arrange
+
+            // act
+            var testResult = (DateTime)WriteAndReadBack(UtcTimeWithMilliseconds);
+
+            // assert
+            testResult.Kind.Should().Be(DateTimeKind.Utc);
+        }
+
         [Fact]
         public void WriteLine_RecordLinesWithToStringConverter_CallsConverterOncePerField()
         {
@@ -2466,6 +2627,55 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be(OrderedAttributeRecord);
+            }
+        }
+
+        /// <summary>
+        /// Writes a value as the only field of a line without a converter, and gives the text of the field.
+        /// </summary>
+        private static string WriteValue(object value)
+        {
+            ICsvFileLine csvLine = new CsvFileRecordLine();
+            csvLine.Add(FieldName1, value);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(csvLine);
+            }
+
+            return buffer.ToString(0, buffer.Length - "\r\n".Length);
+        }
+
+        /// <summary>
+        /// Writes a value as the only field of a line without a converter, and reads the line back into a property of the value's type.
+        /// </summary>
+        private static object WriteAndReadBack<T>(T value)
+        {
+            // Written and read back without a header line, so that the only field is the value.
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RoundTripLine<T>>(stringWriter, options))
+            {
+                csvWriter.WriteLine(new RoundTripLine<T> { Value = value });
+            }
+
+            using (var csvReader = new CsvFileReader<RoundTripLine<T>>(new StringReader(buffer.ToString()), options))
+            {
+                return ((RoundTripLine<T>)csvReader.ReadLine()).Value;
+            }
+        }
+
+        private sealed class RoundTripLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
             }
         }
 
