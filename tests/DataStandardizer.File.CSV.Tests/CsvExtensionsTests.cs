@@ -22,6 +22,9 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedName = "bob";
         private const string RenamedRecordFile = "5,bob";
 
+        // A property key given by CsvFieldAttribute.
+        private const string PersonKeyFieldName = "pid";
+
         // A name copied between a line and a custom model through a property the model inherits.
         private const string InheritedName = "alice";
 
@@ -296,6 +299,48 @@ namespace DataStandardizer.File.CSV.Tests
             // assert
             testResult.Id.Should().Be(RenamedId);
             testResult.Name.Should().Be(RenamedName);
+        }
+
+        [Fact]
+        public void Property_PropertyWithCsvFieldAttribute_KeysMappingByAttributeName()
+        {
+            // arrange
+
+            // act
+            ICsvFileMapper testResult = new KeyedLineMapper();
+
+            // assert
+            testResult.Keys.Should().Equal(PersonKeyFieldName);
+        }
+
+        [Fact]
+        public void ToObject_BuilderMapperMapsPropertyWithCsvFieldAttribute_CopiesValueOfFieldWithAttributeName()
+        {
+            // arrange
+            var testLine = new KeyedLine { Id = RenamedId };
+
+            var mapper = new KeyedModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+        }
+
+        [Fact]
+        public void ToCsvLine_BuilderMapperMapsPropertyWithCsvFieldAttribute_PropertyReturnsModelValue()
+        {
+            // arrange
+            var testModel = new KeyedModel { Id = RenamedId };
+
+            var mapper = new KeyedLineMapper();
+
+            // act
+            var testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
         }
 
         [Fact]
@@ -867,6 +912,50 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 get => GetPropertyValue<string>();
                 set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose property has a key from <see cref="CsvFieldAttribute"/>.
+        /// </summary>
+        private sealed class KeyedLine : CsvFileRecordLine
+        {
+            [CsvField(PersonKeyFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps the property of <see cref="KeyedLine"/> without naming a field.
+        /// </summary>
+        private sealed class KeyedLineMapper : CsvFileMapperBase<KeyedLine>
+        {
+            public KeyedLineMapper()
+            {
+                this.Map().Property(x => x.Id);
+            }
+        }
+
+        /// <summary>
+        /// A custom model whose property has a key from <see cref="CsvFieldAttribute"/>.
+        /// </summary>
+        private sealed class KeyedModel
+        {
+            [CsvField(PersonKeyFieldName)]
+            public int Id { get; set; }
+        }
+
+        /// <summary>
+        /// Maps the property of <see cref="KeyedModel"/> without naming a field.
+        /// </summary>
+        private sealed class KeyedModelMapper : CsvFileCustomMapperBase<KeyedModel>
+        {
+            public KeyedModelMapper()
+            {
+                this.Map().Property(x => x.Id);
             }
         }
 

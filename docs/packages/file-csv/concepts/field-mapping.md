@@ -24,7 +24,9 @@ validator. You don't populate a `CsvFieldMapping` directly — its setters are
 internal — you build it through the fluent API or via attributes.
 
 A complete set of mappings for a model is exposed as an `ICsvFileMapper`, which
-is just an `IReadOnlyDictionary<string, CsvFieldMapping>` keyed by property name.
+is just an `IReadOnlyDictionary<string, CsvFieldMapping>` keyed by property key:
+the name given by `[CsvField]`, or else the property name. Mappings built with
+the fluent API and with attributes are keyed the same way.
 `CsvFileMapper` is the concrete collection the reader and writer consume.
 
 ## Two ways to define mappings

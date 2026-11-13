@@ -54,19 +54,22 @@ namespace DataStandardizer.File.CSV
             }
 
             // Get the name of the member nominated by the caller.
-            string mappedPropertyName;
+            string mappedMemberName;
             switch (mappedPropertyExpression.Body)
             {
                 case MemberExpression memberExpression:
-                    mappedPropertyName = memberExpression.Member.Name;
+                    mappedMemberName = memberExpression.Member.Name;
                     break;
                 case UnaryExpression unaryExpression when unaryExpression.Operand is MemberExpression operand:
-                    mappedPropertyName = operand.Member.Name;
+                    mappedMemberName = operand.Member.Name;
                     break;
 
                 default:
                     throw new ArgumentException("Expression must be a member access.", nameof(mappedPropertyExpression));
             }
+
+            // Key the mapping as a declarative mapping is keyed: by the name CsvFieldAttribute gives the property, else the property name.
+            var mappedPropertyKey = CsvMappableProperty.FindDeclaration(typeof(TModel), mappedMemberName)?.GetPropertyKey() ?? mappedMemberName;
 
             // Extract property information relevant to the mapping.
             var fieldMapping = _fieldMapping;
@@ -82,7 +85,7 @@ namespace DataStandardizer.File.CSV
             // Notify the declaring type that a mapping has been created.
             if (_mappingCreatedDelegate != null)
             {
-                _mappingCreatedDelegate(mappedPropertyName, fieldMapping);
+                _mappingCreatedDelegate(mappedPropertyKey, fieldMapping);
             }
 
             return new CsvFieldMappingBuilder<TModel, T>(fieldMapping);

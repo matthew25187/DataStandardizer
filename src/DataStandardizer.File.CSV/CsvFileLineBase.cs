@@ -151,8 +151,7 @@ namespace DataStandardizer.File.CSV
                 return propertyKey;
             }
 
-            // A builder mapper is keyed by property name, and an attribute mapper by the property key.
-            if (mappedFieldNames.TryGetValue(propertyName, out var mappedFieldName) || mappedFieldNames.TryGetValue(propertyKey, out mappedFieldName))
+            if (mappedFieldNames.TryGetValue(propertyKey, out var mappedFieldName))
             {
                 if (_fieldBag.ContainsKey(mappedFieldName) || !_fieldBag.ContainsKey(propertyKey))
                 {
