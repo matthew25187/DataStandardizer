@@ -80,9 +80,17 @@ namespace DataStandardizer.File.CSV
         [NotNull] private readonly TextReader _reader;
 #endif
 #if NET8_0_OR_GREATER
+        private SearchValues<char>? _quotedStopCharacters;
+        private bool _quotedStopExcept;
         private SearchValues<char>? _unquotedStopCharacters;
-        private char _unquotedStopDelimiter;
-        private char _unquotedStopTerminatorStart;
+        private bool _unquotedStopExcept;
+        private char _stopDelimiter;
+        private CsvExtendedCharacters _stopExtendedCharacters;
+        private string _stopTerminator = string.Empty;
+#else
+        private char[] _quotedExemptCharacters = NoCharacters;
+        private char _quotedExemptDelimiter;
+        private string _quotedExemptTerminator = string.Empty;
 #endif
         private char[] _buffer = NoCharacters;
         private int _bufferEnd;
@@ -825,9 +833,16 @@ namespace DataStandardizer.File.CSV
                 throw new InvalidOperationException("The terminator line break must have at least one character.");
 
             var terminatorStart = terminator[0];
+            var extendedCharacters = _options.ExtendedCharacters;
             var buffer = EnsureBuffer(terminator.Length);
 #if NET8_0_OR_GREATER
-            var unquotedStopCharacters = GetUnquotedStopCharacters(fieldDelimiter, terminatorStart);
+            UpdateStopCharacters(fieldDelimiter, terminator, extendedCharacters);
+            var quotedStopCharacters = _quotedStopCharacters!;
+            var quotedStopExcept = _quotedStopExcept;
+            var unquotedStopCharacters = _unquotedStopCharacters!;
+            var unquotedStopExcept = _unquotedStopExcept;
+#else
+            var quotedExemptCharacters = GetQuotedExemptCharacters(fieldDelimiter, terminator);
 #endif
 
             _fieldValueBuilder.Clear();
@@ -844,7 +859,27 @@ namespace DataStandardizer.File.CSV
             {
                 if (inQuotes)
                 {
-                    var quoteIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOf(QuoteCharacter);
+                    // Skip straight to the next quote, or to a character that an escaped field can't hold.
+                    // ref. RFC 4180§2 (escaped, TEXTDATA)
+#if NET8_0_OR_GREATER
+                    var quotedUnread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
+                    var quoteIndex = quotedStopExcept ? quotedUnread.IndexOfAnyExcept(quotedStopCharacters) : quotedUnread.IndexOfAny(quotedStopCharacters);
+#else
+                    var quotedUnread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
+                    var quoteIndex = quotedUnread.IndexOf(QuoteCharacter);
+                    var disallowedIndex = CsvTextData.IndexOfDisallowed(quoteIndex < 0 ? quotedUnread : quotedUnread.Slice(0, quoteIndex), extendedCharacters,
+                        quotedExemptCharacters);
+                    if (disallowedIndex >= 0) quoteIndex = disallowedIndex;
+#endif
+                    if (quoteIndex >= 0 && buffer[_bufferPosition + quoteIndex] != QuoteCharacter)
+                    {
+                        // The character stays in the value, and is reported with the value read up to and including it.
+                        _bufferPosition += quoteIndex + 1;
+                        AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
+                        isInvalidValue = true;
+                        continue;
+                    }
+
                     if (quoteIndex < 0)
                     {
                         _bufferPosition = _bufferEnd;
@@ -907,16 +942,22 @@ namespace DataStandardizer.File.CSV
 
                 if (!quotedValue)
                 {
-                    // Skip straight to the next character that could end the field or the record, open a quote, or break the field.
+                    // Skip straight to the next character that could end the field or the record, open a quote, or break the field, as a
+                    // character outside TEXTDATA does.
+                    // ref. RFC 4180§2 (non-escaped, TEXTDATA)
 #if NET8_0_OR_GREATER
-                    var stopIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOfAny(unquotedStopCharacters);
+                    var unread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
+                    var stopIndex = unquotedStopExcept ? unread.IndexOfAnyExcept(unquotedStopCharacters) : unread.IndexOfAny(unquotedStopCharacters);
 #else
                     // Without SearchValues, an IndexOfAny of more than three values searches once for each value, so search for the three that end
-                    // the field first, then for a line break only up to where the field ends.  Each search stops at the end of the field.
+                    // the field first, then for a line break, then for a character outside TEXTDATA, each only up to where the search before it
+                    // stopped.
                     var unread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var stopIndex = unread.IndexOfAny(fieldDelimiter, QuoteCharacter, terminatorStart);
                     var lineBreakIndex = (stopIndex < 0 ? unread : unread.Slice(0, stopIndex)).IndexOfAny(CarriageReturn, LineFeed);
                     if (lineBreakIndex >= 0) stopIndex = lineBreakIndex;
+                    var disallowedIndex = CsvTextData.IndexOfDisallowed(stopIndex < 0 ? unread : unread.Slice(0, stopIndex), extendedCharacters, NoCharacters);
+                    if (disallowedIndex >= 0) stopIndex = disallowedIndex;
 #endif
                     if (stopIndex < 0)
                     {
@@ -982,11 +1023,11 @@ namespace DataStandardizer.File.CSV
                 _bufferPosition++;
 
                 // Only a delimiter or the end of the record may follow a closing quote, whitespace included.  A non-escaped field is TEXTDATA, which
-                // holds no CR or LF, so a line break that isn't the terminator can only be in a quoted value.  Any other character that stopped the
-                // search, such as a lone first character of a multi-character terminator that isn't CR or LF, is ordinary content.
-                // TODO: TEXTDATA also leaves out control characters such as TAB and characters outside US-ASCII, which this doesn't check (#881).
-                // ref. RFC 4180§2 (escaped, non-escaped), RFC 4180§2¶6
-                if (quotedValue || character == CarriageReturn || character == LineFeed)
+                // holds no CR or LF, so a line break that isn't the terminator can only be in a quoted value, and holds no other control character
+                // or character outside US-ASCII either, unless the options allow it.  Any other character that stopped the search, such as a lone
+                // first character of a multi-character terminator that is in TEXTDATA, is ordinary content.
+                // ref. RFC 4180§2 (escaped, non-escaped, TEXTDATA), RFC 4180§2¶6
+                if (quotedValue || character == CarriageReturn || character == LineFeed || !CsvTextData.IsAllowed(character, extendedCharacters))
                 {
                     AddInvalidFieldValue(GetPendingFieldValueLength(), fieldIndex);
                     isInvalidValue = true;
@@ -1127,19 +1168,48 @@ namespace DataStandardizer.File.CSV
 
 #if NET8_0_OR_GREATER
         /// <summary>
-        /// Gets the characters the search through a non-escaped field stops at: the delimiter, a quote, the first character of the terminator, and
-        /// CR and LF, which a non-escaped field can't hold.
+        /// Builds the characters the searches through a field stop at, or pass over, again only if the options they come from change.
         /// </summary>
-        private SearchValues<char> GetUnquotedStopCharacters(char fieldDelimiter, char terminatorStart)
+        /// <remarks>
+        /// The search through a non-escaped field stops at the delimiter, a quote, the first character of the terminator, and any character the
+        /// field can't hold: CR and LF, and the characters outside TEXTDATA that the options don't allow.  The search through an escaped field
+        /// stops at a quote and at any character the field can't hold, which doesn't include the delimiter, CR, LF or the characters of the
+        /// terminator.
+        /// </remarks>
+        private void UpdateStopCharacters(char fieldDelimiter, string terminator, CsvExtendedCharacters extendedCharacters)
         {
-            if (_unquotedStopCharacters is null || _unquotedStopDelimiter != fieldDelimiter || _unquotedStopTerminatorStart != terminatorStart)
+            if (_unquotedStopCharacters != null && _stopDelimiter == fieldDelimiter && _stopExtendedCharacters == extendedCharacters
+                && string.Equals(_stopTerminator, terminator, StringComparison.Ordinal))
             {
-                _unquotedStopCharacters = SearchValues.Create([fieldDelimiter, QuoteCharacter, terminatorStart, CarriageReturn, LineFeed]);
-                _unquotedStopDelimiter = fieldDelimiter;
-                _unquotedStopTerminatorStart = terminatorStart;
+                return;
             }
 
-            return _unquotedStopCharacters;
+            var unquotedCharacters = CsvTextData.GetSearchCharacters(extendedCharacters, NoCharacters,
+                [fieldDelimiter, QuoteCharacter, terminator[0], CarriageReturn, LineFeed], out _unquotedStopExcept);
+            _unquotedStopCharacters = SearchValues.Create(unquotedCharacters);
+            var quotedCharacters = CsvTextData.GetSearchCharacters(extendedCharacters, CsvTextData.GetEscapedFieldCharacters(fieldDelimiter, terminator),
+                [QuoteCharacter], out _quotedStopExcept);
+            _quotedStopCharacters = SearchValues.Create(quotedCharacters);
+            _stopDelimiter = fieldDelimiter;
+            _stopExtendedCharacters = extendedCharacters;
+            _stopTerminator = terminator;
+        }
+#else
+        /// <summary>
+        /// Gets the characters outside TEXTDATA that an escaped field holds whatever the options, built again only if the options they come from
+        /// change.
+        /// </summary>
+        private char[] GetQuotedExemptCharacters(char fieldDelimiter, string terminator)
+        {
+            if (_quotedExemptCharacters.Length == 0 || _quotedExemptDelimiter != fieldDelimiter
+                || !string.Equals(_quotedExemptTerminator, terminator, StringComparison.Ordinal))
+            {
+                _quotedExemptCharacters = CsvTextData.GetEscapedFieldCharacters(fieldDelimiter, terminator);
+                _quotedExemptDelimiter = fieldDelimiter;
+                _quotedExemptTerminator = terminator;
+            }
+
+            return _quotedExemptCharacters;
         }
 #endif
 

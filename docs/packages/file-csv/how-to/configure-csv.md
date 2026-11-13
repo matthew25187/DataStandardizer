@@ -92,6 +92,31 @@ when creating that reader or writer instead.
 var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
 ```
 
+## Extended characters
+
+**Default:** `CsvExtendedCharacters.None`
+
+RFC 4180 builds every field from `TEXTDATA`, the printable characters of US-ASCII. By
+default, a reader reports a field that holds any other character, such as a TAB or an
+accented letter, as a bad value, and a writer throws `CsvFileException` for such a value.
+The field delimiter, CR, LF and the characters of the terminator line break are allowed in a
+quoted field whatever this option is.
+
+To read or write files that hold control characters or characters outside US-ASCII,
+allow them:
+
+```csharp
+var options = new CsvFileOptions
+{
+    ExtendedCharacters = CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii
+};
+```
+
+`NonAscii` allows the printable characters outside US-ASCII, which most UTF-8 files hold.
+`Control` allows control characters, other than a CR or LF in an unquoted field. A control
+character outside US-ASCII, `%x80-9F`, needs both. See
+[CsvExtendedCharacters](../reference/CsvExtendedCharacters.md).
+
 ## Field delimiter character
 
 **Default:** `,`

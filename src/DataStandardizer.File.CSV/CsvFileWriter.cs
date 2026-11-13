@@ -20,6 +20,7 @@ namespace DataStandardizer.File.CSV
         {
             internal const string ActualFieldCount = "ActualFieldCount";
             internal const string ExpectedFieldCount = "ExpectedFieldCount";
+            internal const string FieldIndex = "FieldIndex";
             internal const string FieldName = "FieldName";
             internal const string FieldValue = "FieldValue";
         }
@@ -41,6 +42,9 @@ namespace DataStandardizer.File.CSV
         private static readonly char[] NoCharacters = new char[0];
 #endif
         private static readonly string[] NoFieldNames = new string[0];
+#if NET8_0_OR_GREATER
+        private static readonly char[] NoSearchCharacters = new char[0];
+#endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private FieldPlan? _fieldPlan;
@@ -58,6 +62,15 @@ namespace DataStandardizer.File.CSV
 #else
         [MaybeNull] private char[] _quoteSearchCharacters;
 #endif
+#if NET8_0_OR_GREATER
+        private SearchValues<char>? _textDataSearchValues;
+        private bool _textDataSearchExcept;
+#else
+        private char[] _textDataExemptCharacters = new char[0];
+#endif
+        private char _textDataDelimiter;
+        private CsvExtendedCharacters _textDataExtendedCharacters;
+        private string _textDataTerminator = string.Empty;
         private char _quoteSearchDelimiter;
         private string _quoteSearchTerminator = string.Empty;
         private char[] _quoteRequiredCharacters = new char[0];
@@ -203,7 +216,8 @@ namespace DataStandardizer.File.CSV
         /// <paramref name="csvLine"/> is neither a <see cref="CsvFileHeaderLine"/> nor a <typeparamref name="TRecordLine"/>.  Nothing is written.
         /// </exception>
         /// <exception cref="CsvFileException">
-        /// Invalid field name detected, or a header line has no fields.  Or a record line has no fields to write, or a different number of fields
+        /// Invalid field name detected, or a header line has no fields.  Or a field value holds a character that RFC 4180§2 doesn't allow in a
+        /// field and <see cref="ICsvFileOptions.ExtendedCharacters"/> doesn't allow either.  Or a record line has no fields to write, or a different number of fields
         /// from the previous record line, or a field with a value that isn't one of the fields written, and
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
         /// </exception>
@@ -352,8 +366,6 @@ namespace DataStandardizer.File.CSV
                 throw BuildException("A header line has no fields.", new Dictionary<string, object> { { DataItemName.ActualFieldCount, 0 } });
             }
 
-            _headerLine = headerLine;
-
             // Extract field names from the header line.
             var fieldValues = GetFieldValueBuffer(csvLine.Count);
             var fieldNames = new string[csvLine.Count];
@@ -383,10 +395,14 @@ namespace DataStandardizer.File.CSV
                 // The name is kept as it is, to order the fields on the record lines, and written with the embedded line break, as the reader, which
                 // applies it to every field, will give it back.
                 fieldNames[fieldValueCount] = rawFieldValue;
-                fieldValues[fieldValueCount++] = _options.EmbeddedLineBreak != null && rawFieldValue.IndexOfAny(LineBreakCharacters) >= 0
+                var headerFieldValue = _options.EmbeddedLineBreak != null && rawFieldValue.IndexOfAny(LineBreakCharacters) >= 0
                     ? NormalizeFieldValueLineBreaks(rawFieldValue, _options)
                     : rawFieldValue;
+                ValidateFieldValueCharacters(headerFieldValue, fieldValueCount);
+                fieldValues[fieldValueCount++] = headerFieldValue;
             }
+
+            _headerLine = headerLine;
 
             // Store a copy of the header line's field names so fields on the record lines can be correctly ordered.
             var headerLineFieldNames = new string[fieldValueCount];
@@ -509,7 +525,9 @@ namespace DataStandardizer.File.CSV
                     rawFieldValue = NormalizeFieldValueLineBreaks(rawFieldValue, _options);
                 }
 
-                fieldValues[fieldValueCount++] = rawFieldValue ?? string.Empty;
+                rawFieldValue = rawFieldValue ?? string.Empty;
+                ValidateFieldValueCharacters(rawFieldValue, fieldValueCount);
+                fieldValues[fieldValueCount++] = rawFieldValue;
             }
 
             // The fields are in output order, which may differ from the order of the line's own fields, so the trailing blank values are
@@ -843,6 +861,68 @@ namespace DataStandardizer.File.CSV
             }
 
             return characters.ToArray();
+        }
+
+        /// <summary>
+        /// Throws if a field value holds a character that RFC 4180 doesn't allow in a field and the options don't allow either.
+        /// </summary>
+        /// <remarks>
+        /// A field holds TEXTDATA, the printable characters of US-ASCII, and an escaped field also holds the delimiter, CR, LF, the characters of
+        /// the terminator line break and double quotes, which make the writer quote the value.  Any other character needs
+        /// <see cref="ICsvFileOptions.ExtendedCharacters"/> to allow it, or the output couldn't be read back with the same options.
+        /// ref. RFC 4180§2 (escaped, non-escaped, TEXTDATA)
+        /// </remarks>
+        /// <exception cref="CsvFileException">The value holds a character that isn't allowed.</exception>
+        private void ValidateFieldValueCharacters(string fieldValue, int fieldIndex)
+        {
+            var extendedCharacters = _options.ExtendedCharacters;
+            if (fieldValue.Length == 0 || extendedCharacters == (CsvExtendedCharacters.Control | CsvExtendedCharacters.NonAscii)) return;
+
+            var fieldDelimiter = _options.FieldDelimiterCharacter;
+            var terminator = _options.TerminatorLineBreak ?? string.Empty;
+            var isCurrent = _textDataDelimiter == fieldDelimiter && _textDataExtendedCharacters == extendedCharacters
+                            && string.Equals(_textDataTerminator, terminator, StringComparison.Ordinal);
+#if NET8_0_OR_GREATER
+            if (_textDataSearchValues is null || !isCurrent)
+            {
+                _textDataSearchValues = SearchValues.Create(CsvTextData.GetSearchCharacters(extendedCharacters, GetTextDataExemptCharacters(fieldDelimiter, terminator),
+                    NoSearchCharacters, out _textDataSearchExcept));
+                _textDataDelimiter = fieldDelimiter;
+                _textDataExtendedCharacters = extendedCharacters;
+                _textDataTerminator = terminator;
+            }
+
+            var value = fieldValue.AsSpan();
+            var index = _textDataSearchExcept ? value.IndexOfAnyExcept(_textDataSearchValues) : value.IndexOfAny(_textDataSearchValues);
+#else
+            if (_textDataExemptCharacters.Length == 0 || !isCurrent)
+            {
+                _textDataExemptCharacters = GetTextDataExemptCharacters(fieldDelimiter, terminator);
+                _textDataDelimiter = fieldDelimiter;
+                _textDataExtendedCharacters = extendedCharacters;
+                _textDataTerminator = terminator;
+            }
+
+            var index = CsvTextData.IndexOfDisallowed(fieldValue.AsSpan(), extendedCharacters, _textDataExemptCharacters);
+#endif
+            if (index < 0) return;
+
+            var message = string.Format(CultureInfo.InvariantCulture,
+                "The value of the field at index {0} holds the character U+{1:X4}, which RFC 4180 doesn't allow in a field.  Set ExtendedCharacters to allow it.",
+                fieldIndex, (int)fieldValue[index]);
+            throw BuildException(message, new Dictionary<string, object> { { DataItemName.FieldIndex, fieldIndex }, { DataItemName.FieldValue, fieldValue } });
+        }
+
+        /// <summary>
+        /// Gets the characters a value may hold, whatever the options, because the writer quotes a value that holds them.
+        /// </summary>
+        private static char[] GetTextDataExemptCharacters(char fieldDelimiter, string terminator)
+        {
+            var escapedFieldCharacters = CsvTextData.GetEscapedFieldCharacters(fieldDelimiter, terminator);
+            var characters = new char[escapedFieldCharacters.Length + 1];
+            escapedFieldCharacters.CopyTo(characters, 0);
+            characters[escapedFieldCharacters.Length] = QuoteCharacter;
+            return characters;
         }
 
         private string[] GetFieldValueBuffer(int fieldCount)

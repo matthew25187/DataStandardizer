@@ -2317,7 +2317,8 @@ namespace DataStandardizer.File.CSV.Tests
             // "Caf\x00E9" in ISO 8859-1.
             using (var testStream = new MemoryStream(new byte[] { 0x43, 0x61, 0x66, 0xE9 }))
             {
-                var options = new CsvFileOptions { Encoding = Encoding.GetEncoding(Latin1CodePage) };
+                // RFC 4180 TEXTDATA is US-ASCII, so a character outside it needs the opt-in.
+                var options = new CsvFileOptions { Encoding = Encoding.GetEncoding(Latin1CodePage), ExtendedCharacters = CsvExtendedCharacters.NonAscii };
                 using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
                 {
 
@@ -2359,8 +2360,10 @@ namespace DataStandardizer.File.CSV.Tests
                 0x43, 0x00, 0x61, 0x00, 0x66, 0x00, 0xE9, 0x00, 0x2C, 0x00,
                 0x4E, 0x00, 0x6F, 0x00, 0xEB, 0x00, 0x6C, 0x00
             };
+            // RFC 4180 TEXTDATA is US-ASCII, so a character outside it needs the opt-in.
+            var options = new CsvFileOptions { ExtendedCharacters = CsvExtendedCharacters.NonAscii };
             using (var testFileStream = new MemoryStream(testFileBytes))
-            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream, options))
             {
 
                 // act

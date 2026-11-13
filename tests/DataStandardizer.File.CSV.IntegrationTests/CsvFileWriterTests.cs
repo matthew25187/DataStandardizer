@@ -18,7 +18,8 @@ public class CsvFileWriterTests
         using var testFile = TemporaryFile.Create();
         ICsvFileLine testRecordLine = new CsvFileRecordLine();
         testRecordLine.Add(FieldName, "Caf\x00E9");
-        var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+        // RFC 4180 TEXTDATA is US-ASCII, so a character outside it needs the opt-in.
+        var options = new CsvFileOptions { Encoding = Encoding.Latin1, ExtendedCharacters = CsvExtendedCharacters.NonAscii };
         var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFile.Path, options);
 
         // act
@@ -36,7 +37,9 @@ public class CsvFileWriterTests
         using var testFile = TemporaryFile.Create();
         ICsvFileLine testRecordLine = new CsvFileRecordLine();
         testRecordLine.Add(FieldName, "\x00E9");
-        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFile.Path);
+        // RFC 4180 TEXTDATA is US-ASCII, so a character outside it needs the opt-in.
+        var options = new CsvFileOptions { ExtendedCharacters = CsvExtendedCharacters.NonAscii };
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFile.Path, options);
 
         // act
         WriteLineAndDispose(csvWriter, testRecordLine);

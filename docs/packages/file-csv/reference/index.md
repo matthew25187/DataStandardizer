@@ -52,6 +52,7 @@ The public types of **DataStandardizer.File.CSV**. All types are in the
 
 | Type | Description |
 | --- | --- |
+| [CsvExtendedCharacters](CsvExtendedCharacters.md) | The kinds of character outside RFC 4180 `TEXTDATA` that field values may hold. |
 | [CsvFieldQuoteHandling](CsvFieldQuoteHandling.md) | How field values are quoted when writing. |
 | [CsvFileHeaderHandling](CsvFileHeaderHandling.md) | How the header line is handled when reading. |
 

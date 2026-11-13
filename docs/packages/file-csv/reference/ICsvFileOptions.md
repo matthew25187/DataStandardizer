@@ -35,6 +35,7 @@ build an instance.
 | `Culture` | `CultureInfo? Culture { get; }` | Culture for value (de)serialization. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; }` | Replacement for line breaks embedded in field values. |
 | `Encoding` | `Encoding? Encoding { get; }` | File encoding. |
+| `ExtendedCharacters` | `CsvExtendedCharacters ExtendedCharacters { get; }` | The kinds of character outside RFC 4180 `TEXTDATA` that field values may hold. A reader reports any other as a bad value; a writer throws `CsvFileException`. |
 | `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; }` | Field separator. A writer rejects a double quote or the first character of `TerminatorLineBreak`. |
 | `HeaderHandler` | `Delegate? HeaderHandler { get; }` | A [CsvFileHeader](CsvFileHeader.md) delegate supplying field names. The reader constructor throws `ArgumentException` for any other type. |
 | `HeaderHandling` | `CsvFileHeaderHandling HeaderHandling { get; }` | How the header line is handled (reading only). |

@@ -61,6 +61,7 @@ object after that isn't checked.
 | `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. When `null`, values are converted with the invariant culture, never the current culture. `get; set;` on .NET Standard. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; init; }` | `null` | Replacement for line breaks embedded in field values. `get; set;` on .NET Standard. |
 | `Encoding` | `Encoding? Encoding { get; init; }` | `null` | File encoding. `get; set;` on .NET Standard. |
+| `ExtendedCharacters` | `CsvExtendedCharacters ExtendedCharacters { get; init; }` | `None` | The kinds of character outside RFC 4180 `TEXTDATA`, such as control characters and characters outside US-ASCII, that field values may hold (read and write). See [CsvExtendedCharacters](CsvExtendedCharacters.md). `get; set;` on .NET Standard. |
 | `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; init; }` | `','` | Field separator. A writer rejects a double quote or the first character of `TerminatorLineBreak`. `get; set;` on .NET Standard. |
 | `HeaderHandler` | `Delegate? HeaderHandler { get; init; }` | `null` | A [CsvFileHeader](CsvFileHeader.md) delegate supplying field names. `get; set;` on .NET Standard. |
 | `HeaderHandling` | `CsvFileHeaderHandling HeaderHandling { get; init; }` | `None` | How the header line is handled (reading only). `get; set;` on .NET Standard. |
@@ -83,4 +84,5 @@ builds.
 - [ICsvFileOptions](ICsvFileOptions.md)
 - [CsvFileHeaderHandling](CsvFileHeaderHandling.md)
 - [CsvFieldQuoteHandling](CsvFieldQuoteHandling.md)
+- [CsvExtendedCharacters](CsvExtendedCharacters.md)
 - [File.CSV API reference](index.md)
