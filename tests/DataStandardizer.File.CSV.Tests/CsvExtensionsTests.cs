@@ -448,6 +448,21 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ToObject_FieldTextWithTypeConverterNotFromString_ParsesFieldValue()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedIdText } };
+
+            var mapper = new ToStringOnlyConverterModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+        }
+
+        [Fact]
         public void ToObject_FieldTextWithConverterDelegate_SetsValueFromConverter()
         {
             // arrange
@@ -888,6 +903,22 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName).ConvertUsing(typeof(Int32Converter));
             }
+        }
+
+        private class ToStringOnlyConverterModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public ToStringOnlyConverterModelMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName).ConvertUsing(typeof(ToStringOnlyConverter));
+            }
+        }
+
+        /// <summary>
+        /// Converts to a string only, so it doesn't apply when a value is read.
+        /// </summary>
+        private sealed class ToStringOnlyConverter : TypeConverter
+        {
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) => destinationType == typeof(string);
         }
 
         private class ConverterDelegateModelMapper : CsvFileCustomMapperBase<TestModel>

@@ -30,8 +30,9 @@ fluent [CsvFileMappingBuilder](CsvFileMappingBuilder.md), and surfaced (read-onl
 through a [CsvFileMapper](CsvFileMapper.md) / [ICsvFileMapper](ICsvFileMapper.md).
 The properties below are all publicly readable.
 
-When neither `FromStringConverter` nor `TypeConverterType` is set, a reader parses
-the field with its built-in parse for `PropertyType`. See
+When `FromStringConverter` isn't set, and `TypeConverterType` isn't set or names
+a `TypeConverter` that doesn't convert from a string, a reader parses the field
+with its built-in parse for `PropertyType`. See
 [converting field values](../concepts/field-mapping.md#converting-field-values).
 
 ## Properties
@@ -45,7 +46,7 @@ the field with its built-in parse for `PropertyType`. See
 | `IsOptional` | `bool IsOptional { get; }` | `true` if the field is optional. |
 | `PropertyType` | `Type PropertyType { get; }` | The type of the mapped property. |
 | `ToStringConverter` | `Delegate? ToStringConverter { get; }` | A [CsvFieldConvertToString](CsvFieldConvertToString.md) delegate (writing only). |
-| `TypeConverterType` | `Type? TypeConverterType { get; }` | The `TypeConverter` type used for (de)serialization. When reading, takes precedence over the reader's built-in parse, and a value the converter throws for is a bad value. |
+| `TypeConverterType` | `Type? TypeConverterType { get; }` | The `TypeConverter` type used for (de)serialization. When reading, a converter that converts from a string takes precedence over the reader's built-in parse, and a value the converter throws for is a bad value. One that doesn't convert from a string isn't used when reading. |
 | `Validator` | `Delegate? Validator { get; }` | A [CsvFieldValidate](CsvFieldValidate.md) delegate. |
 | `VariableValueGenerator` | `Delegate? VariableValueGenerator { get; }` | A [CsvFieldGenerate](CsvFieldGenerate.md) delegate. |
 

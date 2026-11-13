@@ -134,7 +134,7 @@ namespace DataStandardizer.File.CSV
             var fieldMapping = propertyFieldMapping.Value;
             if (fieldValue is T
                 && (fieldMapping.SuppliesValue || !(fieldValue is string)
-                    || !HasFromStringConverter(fieldMapping)))
+                    || !CsvMapperCache.HasFromStringConverter(fieldMapping)))
             {
                 value = fieldValue;
                 return true;
@@ -165,8 +165,8 @@ namespace DataStandardizer.File.CSV
 
             var culture = options.Culture ?? CultureInfo.InvariantCulture;
             // A type converter that doesn't convert from a string doesn't apply, so the value is parsed as it is with no converter configured.
-            var typeConverter = fieldMapping.TypeConverterType != null ? CsvMapperCache.GetTypeConverter(fieldMapping.TypeConverterType) : null;
-            if (typeConverter != null && typeConverter.CanConvertFrom(typeof(string)))
+            var typeConverter = CsvMapperCache.GetFromStringTypeConverter(fieldMapping.TypeConverterType);
+            if (typeConverter != null)
             {
                 try
                 {
@@ -218,26 +218,6 @@ namespace DataStandardizer.File.CSV
 
             value = null;
             return false;
-        }
-
-        /// <summary>
-        /// Gets a flag indicating if a mapping has a converter delegate, or a type converter that converts from a string.
-        /// </summary>
-        private static bool HasFromStringConverter(CsvFieldMapping fieldMapping)
-        {
-            if (fieldMapping.FromStringConverter != null)
-            {
-                return true;
-            }
-
-            var typeConverterType = fieldMapping.TypeConverterType;
-            if (typeConverterType is null)
-            {
-                return false;
-            }
-
-            var typeConverter = CsvMapperCache.GetTypeConverter(typeConverterType);
-            return typeConverter != null && typeConverter.CanConvertFrom(typeof(string));
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

@@ -218,12 +218,12 @@ The culture is the reader's `CsvFileOptions.Culture`, or the invariant culture
 if it isn't set, as it is for a configured `TypeConverter`. The current culture
 is never used.
 
-When the reader parses a field itself, because no converter is configured, an
-empty field gives the default value of the property type: `null` for a
+When the reader parses a field itself, because no converter that applies is
+configured, an empty field gives the default value of the property type: `null` for a
 `Nullable<T>` or reference type, and `0`, `false` or the type's other default for
 a value type. Only an empty field does: a field of white space is parsed like any
-other value. A configured converter gets an empty field like any other, and
-decides what it gives.
+other value. A configured converter that applies gets an empty field like any
+other, and decides what it gives.
 
 ### Values that fail to convert
 
