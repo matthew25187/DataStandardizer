@@ -97,6 +97,16 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private const int HandlerFallbackValue = 3;
 
+        /// <summary>
+        /// An integer field, which the built-in parse reads as <see cref="Int32Value"/>.
+        /// </summary>
+        private const string Int32Text = "5";
+
+        /// <summary>
+        /// The value of <see cref="Int32Text"/>.
+        /// </summary>
+        private const int Int32Value = 5;
+
         public static TheoryData<string, Func<string, object>, string, object> ParsedValueCases => new TheoryData<string, Func<string, object>, string, object>
         {
             { "int", ReadValue<int>, "-42", -42 },
@@ -647,6 +657,36 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_TypeConverterNotFromStringOnInt32Property_ParsesFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<ToStringOnlyConvertedInt32Line>(new StringReader(Int32Text), options))
+            {
+                // act
+                var testResult = (ToStringOnlyConvertedInt32Line)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(Int32Value);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TypeConverterNotFromStringOnInt32PropertyMalformedValue_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<ToStringOnlyConvertedInt32Line>(new StringReader(MalformedInteger), options))
+            {
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(InvalidMalformedIntegerMessage);
+            }
+        }
+
+        [Fact]
         public void ReadLine_FromStringConverterOnFieldAnEarlierMappingConverted_GivesConverterFieldAsRead()
         {
             // arrange
@@ -1063,6 +1103,17 @@ namespace DataStandardizer.File.CSV.Tests
             public string Value
             {
                 get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ToStringOnlyConvertedInt32Line : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(ToStringOnlyConverter))]
+            public int Value
+            {
+                get => GetPropertyValue<int>();
                 set => SetPropertyValue(value);
             }
         }

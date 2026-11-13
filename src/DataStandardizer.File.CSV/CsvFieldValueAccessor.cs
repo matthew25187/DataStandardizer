@@ -164,15 +164,10 @@ namespace DataStandardizer.File.CSV
             }
 
             var culture = options.Culture ?? CultureInfo.InvariantCulture;
-            if (fieldMapping.TypeConverterType != null)
+            // A type converter that doesn't convert from a string doesn't apply, so the value is parsed as it is with no converter configured.
+            var typeConverter = fieldMapping.TypeConverterType != null ? CsvMapperCache.GetTypeConverter(fieldMapping.TypeConverterType) : null;
+            if (typeConverter != null && typeConverter.CanConvertFrom(typeof(string)))
             {
-                var typeConverter = CsvMapperCache.GetTypeConverter(fieldMapping.TypeConverterType);
-                if (typeConverter is null || !typeConverter.CanConvertFrom(typeof(string)))
-                {
-                    value = default(T);
-                    return true;
-                }
-
                 try
                 {
                     value = typeConverter.ConvertFromString(null, culture, serializedFieldValue);

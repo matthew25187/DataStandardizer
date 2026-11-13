@@ -163,7 +163,9 @@ property type. The first of these that applies to the mapping is used:
 
 1. A `CsvFieldConvertFromString` delegate, set with `ConvertUsing(delegate)`.
 2. A `TypeConverter`, set with `ConvertUsing(Type)`, `ConvertUsing<TConverter>()`
-   or a `[TypeConverter]` attribute on the property.
+   or a `[TypeConverter]` attribute on the property, if it converts from a
+   string. One that doesn't, such as a converter meant only for writing, doesn't
+   apply, and the next step is used.
 3. The reader's built-in parse for the property type, described below.
 4. Otherwise the property gets the default value of its type.
 
