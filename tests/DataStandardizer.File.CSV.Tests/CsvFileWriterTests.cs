@@ -3777,5 +3777,84 @@ namespace DataStandardizer.File.CSV.Tests
                 set => SetPropertyValue(value);
             }
         }
+
+        // A quote handling value that CsvFieldQuoteHandling doesn't define.
+        private const CsvFieldQuoteHandling UndefinedQuoteHandling = (CsvFieldQuoteHandling)99;
+
+        // Options with which the lines written couldn't be read back: no terminator, so the records run together (RFC 4180§2¶1); a delimiter that
+        // can't be told apart from a quote (RFC 4180§2¶5) or from the end of the record; or a quote handling value that never quotes (RFC 4180§2¶6).
+        public static TheoryData<CsvFileOptions> OptionsThatCantBeReadBack => new TheoryData<CsvFileOptions>
+        {
+            new CsvFileOptions { TerminatorLineBreak = string.Empty },
+            new CsvFileOptions { TerminatorLineBreak = null },
+            new CsvFileOptions { FieldDelimiterCharacter = '"' },
+            new CsvFileOptions { FieldDelimiterCharacter = '\n', TerminatorLineBreak = "\n" },
+            new CsvFileOptions { FieldDelimiterCharacter = '|', TerminatorLineBreak = "||" },
+            new CsvFileOptions { QuoteHandling = UndefinedQuoteHandling }
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsThatCantBeReadBack))]
+        public void WriteLine_OptionsThatCantBeReadBack_ThrowsInvalidOperationException(CsvFileOptions options)
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, TextValue);
+
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(TextWriter.Null, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(OptionsThatCantBeReadBack))]
+        public void WriteLine_OptionsThatCantBeReadBack_WritesNothing(CsvFileOptions options)
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, TextValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_DelimiterInTerminatorAfterItsFirstCharacter_WritesFieldsSeparatedByDelimiter()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, FieldName1);
+            testLine.Add(FieldName2, FieldName2);
+
+            var options = new CsvFileOptions { FieldDelimiterCharacter = '\n' };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("One\nTwo\r\n");
+            }
+        }
     }
 }

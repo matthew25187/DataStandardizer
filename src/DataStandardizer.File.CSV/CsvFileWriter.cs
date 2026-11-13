@@ -205,6 +205,11 @@ namespace DataStandardizer.File.CSV
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The options would write output that can't be read back: <see cref="ICsvFileOptions.TerminatorLineBreak"/> is <c>null</c> or empty,
+        /// <see cref="ICsvFileOptions.FieldDelimiterCharacter"/> is a double quote or the first character of the terminator line break, or
+        /// <see cref="ICsvFileOptions.QuoteHandling"/> isn't a defined <see cref="CsvFieldQuoteHandling"/> value.  Nothing is written.
+        /// </exception>
         /// <remarks>
         /// A record line that has a different number of fields from the previous record line breaks RFC 4180§2¶4.  When
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> is set, it is called for the line, and the line is skipped: nothing is
@@ -237,6 +242,9 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentException($"Expected a {nameof(CsvFileHeaderLine)} or a {typeof(TRecordLine).Name}; found a {csvLine.GetType().Name}.", nameof(csvLine));
             }
 
+            // The options are checked on each line, as they can be changed after the writer is created.
+            ValidateOptions(_options);
+
             // Extract the serialized field values that will comprise the CSV line.  All of them are extracted before any is
             // written, so a line that fails part way through writes nothing.
             int fieldValueCount;
@@ -254,6 +262,36 @@ namespace DataStandardizer.File.CSV
 
             // Write line to CSV output.
             WriteFieldValues(fieldValueCount);
+        }
+
+        /// <summary>
+        /// Checks that the options describe output that can be read back as the lines written.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// <see cref="ICsvFileOptions.TerminatorLineBreak"/> is <c>null</c> or empty, <see cref="ICsvFileOptions.FieldDelimiterCharacter"/> is a
+        /// double quote or the first character of the terminator, or <see cref="ICsvFileOptions.QuoteHandling"/> isn't a defined value.
+        /// </exception>
+        private static void ValidateOptions(ICsvFileOptions options)
+        {
+            // Without a terminator, the records would run together.
+            // ref. RFC 4180§2¶1
+            var terminator = options.TerminatorLineBreak;
+            if (string.IsNullOrEmpty(terminator))
+                throw new InvalidOperationException("The terminator line break must have at least one character.");
+
+            // A quote delimiter can't be told apart from the quotes around an escaped field, and a delimiter that starts the terminator can't be told
+            // apart from the end of the record, so the fields couldn't be read back.
+            // ref. RFC 4180§2¶5-6
+            var fieldDelimiter = options.FieldDelimiterCharacter;
+            if (fieldDelimiter == QuoteCharacter)
+                throw new InvalidOperationException("The field delimiter can't be a double quote.");
+            if (fieldDelimiter == terminator[0])
+                throw new InvalidOperationException("The field delimiter can't be the first character of the terminator line break.");
+
+            // Any other value would never quote a field, even one that RFC 4180 requires to be quoted.
+            // ref. RFC 4180§2¶6
+            if ((uint)options.QuoteHandling > (uint)CsvFieldQuoteHandling.Required)
+                throw new InvalidOperationException($"The quote handling '{options.QuoteHandling}' isn't a defined {nameof(CsvFieldQuoteHandling)} value.");
         }
 
         private int GetHeaderLineFieldValues(CsvFileHeaderLine headerLine, int lastFieldIndex)

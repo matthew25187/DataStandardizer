@@ -100,7 +100,7 @@ field's mapping supplies a constant or generated value, which is written instead
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or a header line with no fields, or on a record line with no fields to write, an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, or `ObjectDisposedException` after `Dispose`. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or a header line with no fields, or on a record line with no fields to write, an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, `InvalidOperationException` when the options would write output that can't be read back (an empty or `null` `TerminatorLineBreak`, a `FieldDelimiterCharacter` that is a double quote or the first character of the terminator, or an undefined `QuoteHandling`), or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

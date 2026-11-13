@@ -102,6 +102,10 @@ The character used to separate fields on a line can be changed.
 var options = new CsvFileOptions { FieldDelimiterCharacter = ';' };
 ```
 
+A writer throws `InvalidOperationException` from `WriteLine` when the delimiter is
+a double quote or the first character of the terminator line break, as the
+fields it wrote couldn't be read back.
+
 ## Header handler
 
 **Default:** `null`
@@ -200,6 +204,7 @@ var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Always 
 Options include the ability to quote all field values (`Always`), quote only
 string (non-numeric) values (`Auto`), or quote only values required to be quoted
 by RFC 4180 (`Required`).
+Any other value makes `WriteLine` throw `InvalidOperationException`.
 
 ## Suppress trailing blank fields
 
@@ -232,6 +237,8 @@ var options = new CsvFileOptions { TerminatorLineBreak = "\n" };
 
 This setting applies both to how the reader detects the ends of lines and how
 lines are terminated when written to a CSV file by a writer.
+It must have at least one character: with an empty or `null` terminator, the
+reader's `ReadLine` and the writer's `WriteLine` throw `InvalidOperationException`.
 
 A carriage return or line feed that isn't part of the terminator can only be in a
 quoted field. In an unquoted field the reader reports it as a
