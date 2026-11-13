@@ -90,6 +90,7 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentNullException(nameof(options));
 
             ValidateHandlers(options, nameof(options));
+            ValidateOptionsArgument(options, nameof(options));
 
             _options = options;
 
@@ -116,6 +117,7 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentNullException(nameof(options));
 
             ValidateHandlers(options, nameof(options));
+            ValidateOptionsArgument(options, nameof(options));
 
             _options = options;
 
@@ -138,6 +140,7 @@ namespace DataStandardizer.File.CSV
             _options = options ?? throw new ArgumentNullException(nameof(options));
 
             ValidateHandlers(_options, nameof(options));
+            ValidateOptionsArgument(_options, nameof(options));
 
             if (_options.Encoding != null)
             {
@@ -205,6 +208,12 @@ namespace DataStandardizer.File.CSV
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The options, changed since the writer was created, would write output that can't be read back:
+        /// <see cref="ICsvFileOptions.TerminatorLineBreak"/> is <c>null</c> or empty or starts with a double quote,
+        /// <see cref="ICsvFileOptions.FieldDelimiterCharacter"/> is a double quote or the first character of the terminator line break, or
+        /// <see cref="ICsvFileOptions.QuoteHandling"/> isn't a defined <see cref="CsvFieldQuoteHandling"/> value.  Nothing is written.
+        /// </exception>
         /// <remarks>
         /// A record line that has a different number of fields from the previous record line breaks RFC 4180§2¶4.  When
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> is set, it is called for the line, and the line is skipped: nothing is
@@ -237,6 +246,11 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentException($"Expected a {nameof(CsvFileHeaderLine)} or a {typeof(TRecordLine).Name}; found a {csvLine.GetType().Name}.", nameof(csvLine));
             }
 
+            // The options are checked on each line, as they can be changed after the writer is created on targets older than .NET 5.  They are checked
+            // before the line changes the writer's state, such as the fields to write.
+            if (!TryValidateOptions(_options, out var optionsMessage))
+                throw new InvalidOperationException(optionsMessage);
+
             // Extract the serialized field values that will comprise the CSV line.  All of them are extracted before any is
             // written, so a line that fails part way through writes nothing.
             int fieldValueCount;
@@ -252,8 +266,79 @@ namespace DataStandardizer.File.CSV
                 return;
             }
 
+            // The converters, generators and handlers that ran may have changed the options, so they are checked again before the line is written.
+            if (!TryValidateOptions(_options, out optionsMessage))
+            {
+                Array.Clear(_fieldValues, 0, fieldValueCount);
+                throw new InvalidOperationException(optionsMessage);
+            }
+
             // Write line to CSV output.
             WriteFieldValues(fieldValueCount);
+        }
+
+        /// <summary>
+        /// Checks that the options describe output that can be read back as the lines written.
+        /// </summary>
+        /// <param name="options">The options to check.</param>
+        /// <param name="message">The reason the options are invalid; empty when they are valid.</param>
+        /// <returns><c>true</c> if the options are valid; <c>false</c> if they aren't.</returns>
+        private static bool TryValidateOptions(CsvFileOptions options, out string message)
+        {
+            // Without a terminator, the records would run together.
+            // ref. RFC 4180§2¶1
+            var terminator = options.TerminatorLineBreak;
+            if (string.IsNullOrEmpty(terminator))
+            {
+                message = "The terminator line break must have at least one character.";
+                return false;
+            }
+
+            // A terminator that starts with a quote, written after the closing quote of an escaped field, reads as an escaped quote, so the field
+            // would run on into the records after it.
+            // ref. RFC 4180§2¶7
+            if (terminator[0] == QuoteCharacter)
+            {
+                message = "The terminator line break can't start with a double quote.";
+                return false;
+            }
+
+            // A quote delimiter can't be told apart from the quotes around an escaped field, and a delimiter that starts the terminator can't be told
+            // apart from the end of the record, such as after an empty field, so the fields couldn't always be read back.
+            // ref. RFC 4180§2¶5-6
+            var fieldDelimiter = options.FieldDelimiterCharacter;
+            if (fieldDelimiter == QuoteCharacter)
+            {
+                message = "The field delimiter can't be a double quote.";
+                return false;
+            }
+
+            if (fieldDelimiter == terminator[0])
+            {
+                message = "The field delimiter can't be the first character of the terminator line break.";
+                return false;
+            }
+
+            // Any other value would never quote a field, even one that RFC 4180 requires to be quoted.
+            // ref. RFC 4180§2¶6
+            if ((uint)options.QuoteHandling > (uint)CsvFieldQuoteHandling.Required)
+            {
+                message = $"The quote handling '{options.QuoteHandling}' isn't a defined {nameof(CsvFieldQuoteHandling)} value.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
+        }
+
+        /// <summary>
+        /// Checks the options passed to a constructor, before any output is opened.
+        /// </summary>
+        /// <exception cref="ArgumentException">The options would write output that can't be read back.</exception>
+        private static void ValidateOptionsArgument(CsvFileOptions options, string paramName)
+        {
+            if (!TryValidateOptions(options, out var message))
+                throw new ArgumentException(message, paramName);
         }
 
         private int GetHeaderLineFieldValues(CsvFileHeaderLine headerLine, int lastFieldIndex)

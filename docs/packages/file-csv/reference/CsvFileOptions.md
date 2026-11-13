@@ -57,13 +57,13 @@ object after that isn't checked.
 | `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. When `null`, values are converted with the invariant culture, never the current culture. `get; set;` on .NET Standard. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; init; }` | `null` | Replacement for line breaks embedded in field values. `get; set;` on .NET Standard. |
 | `Encoding` | `Encoding? Encoding { get; init; }` | `null` | File encoding. `get; set;` on .NET Standard. |
-| `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; init; }` | `','` | Field separator. `get; set;` on .NET Standard. |
+| `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; init; }` | `','` | Field separator. A writer rejects a double quote or the first character of `TerminatorLineBreak`. `get; set;` on .NET Standard. |
 | `HeaderHandler` | `Delegate? HeaderHandler { get; init; }` | `null` | A [CsvFileHeader](CsvFileHeader.md) delegate supplying field names. `get; set;` on .NET Standard. |
 | `HeaderHandling` | `CsvFileHeaderHandling HeaderHandling { get; init; }` | `None` | How the header line is handled (reading only). `get; set;` on .NET Standard. |
 | `InconsistentFieldCountHandler` | `Delegate? InconsistentFieldCountHandler { get; init; }` | `null` | A [CsvFieldCount](CsvFieldCount.md) delegate for the reader's or writer's record line type. `get; set;` on .NET Standard. |
-| `QuoteHandling` | `CsvFieldQuoteHandling QuoteHandling { get; init; }` | `Required` | Field quoting strategy (writing only). `get; set;` on .NET Standard. |
+| `QuoteHandling` | `CsvFieldQuoteHandling QuoteHandling { get; init; }` | `Required` | Field quoting strategy (writing only). A writer rejects a value `CsvFieldQuoteHandling` doesn't define. `get; set;` on .NET Standard. |
 | `SuppressTrailingBlankFields` | `bool SuppressTrailingBlankFields { get; init; }` | `false` | Omit trailing empty fields on write. `get; set;` on .NET Standard. |
-| `TerminatorLineBreak` | `string TerminatorLineBreak { get; init; }` | `"\r\n"` | Line terminator (read and write). `get; set;` on .NET Standard. |
+| `TerminatorLineBreak` | `string TerminatorLineBreak { get; init; }` | `"\r\n"` | Line terminator (read and write). Must have at least one character; a writer also rejects one that starts with a double quote. `get; set;` on .NET Standard. |
 
 ## Applies to
 
