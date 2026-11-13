@@ -27,18 +27,21 @@ constructor throws `ArgumentException` for a delegate of any other type, such as
 a `Func<CsvFileHeaderLine, IReadOnlyList<string>>`. A writer never calls it and
 doesn't check it. Return the field names to use, in order;
 they replace the names of the file's header line.
-The reader calls the delegate once, whatever
+The reader calls the delegate at most once, whatever
 [CsvFileOptions.HeaderHandling](CsvFileOptions.md) is. With `Use`, it calls it
 as it reads the header line, passes that line, and `ReadLine` returns a header
 line with the names the delegate gave. With `Ignore` and `None`, it calls it
 after it reads the first record, before it returns that record, and passes the
-ignored header line, or `null` with `None`; `ReadLine` returns no header line. A
-header line read from the file is checked for duplicate names before the
-delegate is called; duplicates throw `CsvFileException`. The delegate renames fields; it can't add or remove
+ignored header line, or `null` with `None`; `ReadLine` returns no header line.
+For a file with no records, it doesn't call the delegate. A header line can't
+hold two fields with the same name, so with `Use`, and with `Ignore` when there
+is a delegate, a header line that repeats a name makes `ReadLine` throw
+`CsvFileException` as the header line is read, before the delegate is called. The delegate renames fields; it can't add or remove
 them. With `Use`, the header line sets how many fields each record is expected
 to have; with `Ignore` and `None`, the first record does; returning a different number
 of names makes `ReadLine` throw `InvalidOperationException`. Returning
-`null` makes `ReadLine` throw `InvalidOperationException`, and duplicate names
+`null`, or a list that contains `null`, makes `ReadLine` throw
+`InvalidOperationException`, and duplicate names
 make it throw `CsvFileException`. When the delegate fails, or throws an exception of its own,
 every later `ReadLine` call throws the same exception. The
 nullable annotation on `headerLine` applies to the `netstandard2.1` and

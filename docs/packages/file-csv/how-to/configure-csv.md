@@ -122,7 +122,7 @@ The handler must be a `CsvFileHeader` delegate. A delegate of any other type, ev
 one with the same signature, makes the reader constructor throw
 `ArgumentException`. A writer never calls this handler and doesn't check it.
 
-If this handler is specified, the reader calls it one time, whatever the
+If this handler is specified, the reader calls it at most one time, whatever the
 [header handling](#header-handling) is, and passes it the header line read from
 the file, or `null` if the file has no header line. The handler can return names
 based on that line, or its own list. The list it returns gives the field names
@@ -138,8 +138,14 @@ line.
 The handler renames fields; it can't add or remove them. With `Use`, the header
 line sets how many fields each record is expected to have; with `Ignore` and
 `None`, the first record does, as if the file had no header line. The list must have that many names, or `ReadLine`
-throws `InvalidOperationException`. Names in the list must not repeat, or
-`ReadLine` throws `CsvFileException`.
+throws `InvalidOperationException`. Names in the list must not be `null`, or
+`ReadLine` throws `InvalidOperationException`, and must not repeat, or it throws
+`CsvFileException`.
+
+With `Ignore` and `None`, a file with no records never gets to the point where
+the handler is called. The header line passed to the handler must not repeat a
+name either: with `Use`, and with `Ignore` when there is a handler, a header line
+that repeats a name makes `ReadLine` throw `CsvFileException`.
 
 Header handling decides the field names only when there is no handler.
 

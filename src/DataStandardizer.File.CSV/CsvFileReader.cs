@@ -254,7 +254,7 @@ namespace DataStandardizer.File.CSV
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The terminator line break option is empty.
         /// -or-
-        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>.
+        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>, or a list that contains <c>null</c>.
         /// -or-
         /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned a different number of field names from the number of fields
         /// on the file's header line or, when the file has no header line or it is ignored, on its first record.
@@ -411,15 +411,9 @@ namespace DataStandardizer.File.CSV
 
             if (headerHandler != null)
             {
-                var headerFieldNames = CallHeaderHandler(headerHandler, headerLine);
-
                 // The handler renames the fields of the header line; the line, not the handler, sets how many fields there are.
-                if (headerFieldNames.Count != rawFieldValues.Count)
-                {
-                    throw new InvalidOperationException(
-                        string.Format(ErrorMessage.HeaderHandlerFieldCountTemplate, headerFieldNames.Count, rawFieldValues.Count));
-                }
-
+                var headerFieldNames =
+                    CallHeaderHandler(headerHandler, headerLine, rawFieldValues.Count, ErrorMessage.HeaderHandlerFieldCountTemplate);
                 headerLine = CreateHeaderLine(headerFieldNames);
             }
 
@@ -450,19 +444,35 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <param name="headerHandler">The header handler.</param>
         /// <param name="headerLine">The header line read from the file; <c>null</c> if the file has no header line.</param>
+        /// <param name="expectedFieldCount">The number of fields the handler must name: those of the header line or of the first record.</param>
+        /// <param name="fieldCountTemplate">The message template for a list with a different number of names, which takes the number of names
+        /// and <paramref name="expectedFieldCount"/>.</param>
         /// <returns>The field names the header handler returned.</returns>
-        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>, a list with a <c>null</c> name, or a different
+        /// number of names from <paramref name="expectedFieldCount"/>.</exception>
         /// <exception cref="CsvFileException">The field names include duplicates.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private IReadOnlyList<string> CallHeaderHandler(CsvFileHeader headerHandler, CsvFileHeaderLine? headerLine)
+        private IReadOnlyList<string> CallHeaderHandler(CsvFileHeader headerHandler, CsvFileHeaderLine? headerLine, int expectedFieldCount,
+            string fieldCountTemplate)
 #else
-        private IReadOnlyList<string> CallHeaderHandler(CsvFileHeader headerHandler, [AllowNull] CsvFileHeaderLine headerLine)
+        private IReadOnlyList<string> CallHeaderHandler(CsvFileHeader headerHandler, [AllowNull] CsvFileHeaderLine headerLine, int expectedFieldCount,
+            string fieldCountTemplate)
 #endif
         {
             var headerFieldNames = headerHandler(headerLine);
             if (headerFieldNames is null)
             {
                 throw new InvalidOperationException("The header handler returned null instead of a list of field names.");
+            }
+
+            if (headerFieldNames.Any(fieldName => fieldName == null))
+            {
+                throw new InvalidOperationException("The header handler returned a list of field names that contains null.");
+            }
+
+            if (headerFieldNames.Count != expectedFieldCount)
+            {
+                throw new InvalidOperationException(string.Format(fieldCountTemplate, headerFieldNames.Count, expectedFieldCount));
             }
 
             // Check for duplicate names.
@@ -477,8 +487,8 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <param name="firstRecordFieldCount">The number of fields of the first record, which has been read but not yet processed.</param>
         /// <returns>The field names; <c>null</c> if there is neither a header line nor a header handler.</returns>
-        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>, or a different number of field names from the
-        /// number of fields of the first record.</exception>
+        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>, a list with a <c>null</c> name, or a different
+        /// number of field names from the number of fields of the first record.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private IReadOnlyList<string>? GetHeaderFieldNames(int firstRecordFieldCount)
 #else
@@ -499,14 +509,7 @@ namespace DataStandardizer.File.CSV
             // Without a header line, or with one that is ignored, the first record sets how many fields there are, and the handler names them.
             var ignoredHeaderLine = _ignoredHeaderLine;
             _ignoredHeaderLine = null;
-            var headerFieldNames = CallHeaderHandler(headerHandler, ignoredHeaderLine);
-            if (headerFieldNames.Count != firstRecordFieldCount)
-            {
-                throw new InvalidOperationException(
-                    string.Format(ErrorMessage.HeaderHandlerFirstRecordFieldCountTemplate, headerFieldNames.Count, firstRecordFieldCount));
-            }
-
-            return headerFieldNames;
+            return CallHeaderHandler(headerHandler, ignoredHeaderLine, firstRecordFieldCount, ErrorMessage.HeaderHandlerFirstRecordFieldCountTemplate);
         }
 
         private static void ThrowIfNoFields(List<string> rawFieldValues)
