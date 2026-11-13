@@ -106,8 +106,8 @@ var options = new CsvFileOptions { FieldDelimiterCharacter = ';' };
 
 **Default:** `null`
 
-You can intercept the processing of a header line to specify your own list of
-field names.
+You can supply your own list of field names, in place of any header line in the
+file.
 
 ```csharp
 IReadOnlyList<string> HandleHeaderLine(CsvFileHeaderLine? line)
@@ -122,10 +122,32 @@ The handler must be a `CsvFileHeader` delegate. A delegate of any other type, ev
 one with the same signature, makes the reader constructor throw
 `ArgumentException`. A writer never calls this handler and doesn't check it.
 
-If this handler is specified and the file has a header line, this handler will
-be called one time and passed the header line so a custom list of field names
-can be returned. The list returned from this handler will override the field
-names obtained from the header line.
+If this handler is specified, the reader calls it at most one time, whatever the
+[header handling](#header-handling) is, and passes it the header line read from
+the file, or `null` if the file has no header line. The handler can return names
+based on that line, or its own list. The list it returns gives the field names
+of every record, in order, and replaces the field names of the file's header
+line.
+
+| Header handling | Handler is passed | Handler is called | Header line returned by `ReadLine` |
+|-----------------|-------------------|-------------------|------------------------------------|
+| `Use` | The file's header line | As the header line is read | One with the handler's field names |
+| `Ignore` | The file's header line | After the first record is read, before it's returned | None |
+| `None` | `null` | After the first record is read, before it's returned | None |
+
+The handler renames fields; it can't add or remove them. With `Use`, the header
+line sets how many fields each record is expected to have; with `Ignore` and
+`None`, the first record does, as if the file had no header line. The list must have that many names, or `ReadLine`
+throws `InvalidOperationException`. Names in the list must not be `null`, or
+`ReadLine` throws `InvalidOperationException`, and must not repeat, or it throws
+`CsvFileException`.
+
+With `Ignore` and `None`, a file with no records never gets to the point where
+the handler is called. The header line passed to the handler must not repeat a
+name either: with `Use`, and with `Ignore` when there is a handler, a header line
+that repeats a name makes `ReadLine` throw `CsvFileException`.
+
+Header handling decides the field names only when there is no handler.
 
 ## Header handling
 
@@ -138,9 +160,10 @@ var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None }
 ```
 
 The available options include having no header, having a header, or ignoring the
-header if it does exist. The ignore option means you can skip reading the header
-line in the file and instead use a header handler to specify an override list of
-field names.
+header if it does exist. The ignore option reads the file as if it had no header
+line. Without a header handler, `Use` takes the field names from the header line,
+and `None` and `Ignore` read records without field names from a header. A header
+handler supplies the field names in every case.
 
 ## Inconsistent field count handler
 

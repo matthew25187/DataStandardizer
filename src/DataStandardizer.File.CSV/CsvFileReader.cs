@@ -30,6 +30,10 @@ namespace DataStandardizer.File.CSV
         {
             internal const string DuplicateFieldNamesTemplate = "Found {0} duplicate field names.";
             internal const string FieldCountMismatchTemplate = "Found {0} of {1} expected fields.";
+            internal const string HeaderHandlerFieldCountTemplate =
+                "The header handler returned {0} field names for a header line of {1} fields.  It can rename the fields, but not add or remove them.";
+            internal const string HeaderHandlerFirstRecordFieldCountTemplate =
+                "The header handler returned {0} field names for a first record of {1} fields.  It can rename the fields, but not add or remove them.";
             internal const string IndexedFieldNameTakenTemplate =
                 "Found no field at index {0} for property '{1}' in a record of {2} fields, and the record already has a field named '{3}'.";
             internal const string MissingIndexedFieldTemplate = "Found no field at index {0} for required property '{1}' in a record of {2} fields.";
@@ -60,6 +64,7 @@ namespace DataStandardizer.File.CSV
         private ExceptionDispatchInfo? _headerFailure;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
+        private CsvFileHeaderLine? _ignoredHeaderLine;
         private List<KeyValuePair<int, int>>? _invalidFieldValues;
         private Dictionary<int, string>? _invalidRawFieldValues;
         private readonly TextReader _reader = null!;
@@ -69,6 +74,7 @@ namespace DataStandardizer.File.CSV
         [MaybeNull] private ExceptionDispatchInfo _headerFailure;
         [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
         [MaybeNull] private CsvFileHeaderLine _headerLine;
+        [MaybeNull] private CsvFileHeaderLine _ignoredHeaderLine;
         [MaybeNull] private List<KeyValuePair<int, int>> _invalidFieldValues;
         [MaybeNull] private Dictionary<int, string> _invalidRawFieldValues;
         [NotNull] private readonly TextReader _reader;
@@ -248,7 +254,10 @@ namespace DataStandardizer.File.CSV
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The terminator line break option is empty.
         /// -or-
-        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>.
+        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>, or a list that contains <c>null</c>.
+        /// -or-
+        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned a different number of field names from the number of fields
+        /// on the file's header line or, when the file has no header line or it is ignored, on its first record.
         /// </exception>
         /// <remarks>
         /// Records can't be read without valid field names.  When reading the header line, or getting field names from the
@@ -305,7 +314,7 @@ namespace DataStandardizer.File.CSV
                 {
                     try
                     {
-                        _headerFieldNames = GetHeaderFieldNames();
+                        _headerFieldNames = GetHeaderFieldNames(rawFieldValues.Count);
                     }
                     catch (Exception exception)
                     {
@@ -361,7 +370,10 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Reads the first line of the file as the header line, and either keeps it or, when the header line is ignored, discards it.
+        /// Reads the first line of the file as the header line.  When the header line is used, the reader keeps the line it takes the field
+        /// names from: the header line itself or, when a header handler is set, a line of the names the handler returns for it, which must be
+        /// as many as the header line's fields.  When the header line is ignored, the reader discards it, or keeps it to pass to the header
+        /// handler as it reads the first record.
         /// </summary>
         /// <returns>The header line, if it is used; <c>null</c> if it is ignored or the stream is empty.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -376,7 +388,8 @@ namespace DataStandardizer.File.CSV
 
             ThrowIfNoFields(rawFieldValues);
 
-            if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore)
+            var headerHandler = _options.HeaderHandler as CsvFileHeader;
+            if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore && headerHandler == null)
             {
                 _headerLineIgnored = true;
                 return null;
@@ -385,13 +398,23 @@ namespace DataStandardizer.File.CSV
             // Make sure all field names are unique.
             ThrowIfDuplicateFieldNames(rawFieldValues);
 
-            var headerLine = new CsvFileHeaderLine();
-            headerLine.EnsureFieldCapacity(rawFieldValues.Count);
+            var headerLine = CreateHeaderLine(rawFieldValues);
 
-            // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
-            foreach (var fieldValue in rawFieldValues)
+            // An ignored header line is kept only to pass to the header handler, which is called as the first record is read, as for a file
+            // without a header line.
+            if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore)
             {
-                headerLine.Add(fieldValue, fieldValue);
+                _ignoredHeaderLine = headerLine;
+                _headerLineIgnored = true;
+                return null;
+            }
+
+            if (headerHandler != null)
+            {
+                // The handler renames the fields of the header line; the line, not the handler, sets how many fields there are.
+                var headerFieldNames =
+                    CallHeaderHandler(headerHandler, headerLine, rawFieldValues.Count, ErrorMessage.HeaderHandlerFieldCountTemplate);
+                headerLine = CreateHeaderLine(headerFieldNames);
             }
 
             _expectedFieldCount = rawFieldValues.Count;
@@ -400,30 +423,93 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the field names that records are read with: those of the header line, if there is one, or else those the header handler gives.
+        /// Creates a header line whose fields are the given field names.
         /// </summary>
-        /// <returns>The field names; <c>null</c> if there is neither a header line nor a header handler.</returns>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private IReadOnlyList<string>? GetHeaderFieldNames()
-#else
-        [return: MaybeNull]
-        private IReadOnlyList<string> GetHeaderFieldNames()
-#endif
+        private static CsvFileHeaderLine CreateHeaderLine(IReadOnlyList<string> fieldNames)
         {
-            var headerFieldNames = _headerLine?.FieldNames;
-            if (headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
-            {
-                headerFieldNames = headerHandler(_headerLine);
-                if (headerFieldNames is null)
-                {
-                    throw new InvalidOperationException("The header handler returned null instead of a list of field names.");
-                }
+            var headerLine = new CsvFileHeaderLine();
+            headerLine.EnsureFieldCapacity(fieldNames.Count);
 
-                // Check for duplicate names.
-                ThrowIfDuplicateFieldNames(headerFieldNames);
+            // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
+            foreach (var fieldName in fieldNames)
+            {
+                headerLine.Add(fieldName, fieldName);
             }
 
+            return headerLine;
+        }
+
+        /// <summary>
+        /// Calls the header handler and checks the field names it returns.
+        /// </summary>
+        /// <param name="headerHandler">The header handler.</param>
+        /// <param name="headerLine">The header line read from the file; <c>null</c> if the file has no header line.</param>
+        /// <param name="expectedFieldCount">The number of fields the handler must name: those of the header line or of the first record.</param>
+        /// <param name="fieldCountTemplate">The message template for a list with a different number of names, which takes the number of names
+        /// and <paramref name="expectedFieldCount"/>.</param>
+        /// <returns>The field names the header handler returned.</returns>
+        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>, a list with a <c>null</c> name, or a different
+        /// number of names from <paramref name="expectedFieldCount"/>.</exception>
+        /// <exception cref="CsvFileException">The field names include duplicates.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private IReadOnlyList<string> CallHeaderHandler(CsvFileHeader headerHandler, CsvFileHeaderLine? headerLine, int expectedFieldCount,
+            string fieldCountTemplate)
+#else
+        private IReadOnlyList<string> CallHeaderHandler(CsvFileHeader headerHandler, [AllowNull] CsvFileHeaderLine headerLine, int expectedFieldCount,
+            string fieldCountTemplate)
+#endif
+        {
+            var headerFieldNames = headerHandler(headerLine);
+            if (headerFieldNames is null)
+            {
+                throw new InvalidOperationException("The header handler returned null instead of a list of field names.");
+            }
+
+            if (headerFieldNames.Any(fieldName => fieldName == null))
+            {
+                throw new InvalidOperationException("The header handler returned a list of field names that contains null.");
+            }
+
+            if (headerFieldNames.Count != expectedFieldCount)
+            {
+                throw new InvalidOperationException(string.Format(fieldCountTemplate, headerFieldNames.Count, expectedFieldCount));
+            }
+
+            // Check for duplicate names.
+            ThrowIfDuplicateFieldNames(headerFieldNames);
+
             return headerFieldNames;
+        }
+
+        /// <summary>
+        /// Gets the field names that records are read with when the reader hasn't already got them from the header line: those the
+        /// header handler gives for a file without a header line, or whose header line is ignored.
+        /// </summary>
+        /// <param name="firstRecordFieldCount">The number of fields of the first record, which has been read but not yet processed.</param>
+        /// <returns>The field names; <c>null</c> if there is neither a header line nor a header handler.</returns>
+        /// <exception cref="InvalidOperationException">The header handler returned <c>null</c>, a list with a <c>null</c> name, or a different
+        /// number of field names from the number of fields of the first record.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private IReadOnlyList<string>? GetHeaderFieldNames(int firstRecordFieldCount)
+#else
+        [return: MaybeNull]
+        private IReadOnlyList<string> GetHeaderFieldNames(int firstRecordFieldCount)
+#endif
+        {
+            if (_headerLine != null)
+            {
+                return _headerLine.FieldNames;
+            }
+
+            if (!(_options.HeaderHandler is CsvFileHeader headerHandler))
+            {
+                return null;
+            }
+
+            // Without a header line, or with one that is ignored, the first record sets how many fields there are, and the handler names them.
+            var ignoredHeaderLine = _ignoredHeaderLine;
+            _ignoredHeaderLine = null;
+            return CallHeaderHandler(headerHandler, ignoredHeaderLine, firstRecordFieldCount, ErrorMessage.HeaderHandlerFirstRecordFieldCountTemplate);
         }
 
         private static void ThrowIfNoFields(List<string> rawFieldValues)

@@ -56,9 +56,10 @@ namespace DataStandardizer.File.CSV
         char FieldDelimiterCharacter { get; }
 
         /// <summary>
-        /// Gets the <see cref="CsvFileHeader"/> delegate that will be called to provide field names in lieu of a header line from the file.
+        /// Gets the <see cref="CsvFileHeader"/> delegate that will be called to provide the field names, in place of any header line in the file.
         /// </summary>
         /// <remarks>
+        /// A reader calls the delegate whatever <see cref="HeaderHandling"/> is, and passes it the header line read from the file, if any.
         /// The reader constructor throws <see cref="System.ArgumentException"/> for a delegate of any other type.  A writer never calls the delegate
         /// and doesn't check it.
         /// </remarks>

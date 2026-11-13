@@ -109,6 +109,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string TwoShortRecordsFile = "1,2\r\n3,4";
         private const string InvalidLastFieldHeaderFile = "One,x\"Two\"\r\n1,2";
         private const string HeaderHandlerFailureMessage = "Header handler failed.";
+        private const string HeaderDelegateNullFieldNameMessage = "The header handler returned a list of field names that contains null.";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
@@ -259,6 +260,242 @@ namespace DataStandardizer.File.CSV.Tests
                 testResult[fieldName1].Should().Be(RecordValue1);
                 testResult[fieldName2].Should().Be(FirstName);
                 testResult[fieldName3].Should().Be(FirstLongDescription);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegate_PassesFileHeaderLineToHeaderDelegateOnce()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { PersonIdFieldName, PersonNameFieldName, ExtraFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ThreeRecordsWithHeaderFile), options))
+            {
+
+                // act
+                var firstRecordLine = csvReader.ReadLine();
+                var secondRecordLine = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle()
+                    .Which.FieldNames.Should().Equal(IdFieldName, NameFieldName, DescriptionFieldName);
+                firstRecordLine[PersonNameFieldName].Should().Be(FirstName);
+                secondRecordLine[PersonNameFieldName].Should().Be(SecondName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredWithRepeatedNameAndUsingHeaderDelegate_ThrowsCsvFileException()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { PersonIdFieldName, PersonNameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(DuplicateFieldNamesHeaderFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_PassesFileHeaderLineToHeaderDelegateOnce()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { IdFieldName, NameFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoRenamedRecordsWithHeaderFile), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle()
+                    .Which.FieldNames.Should().Equal(PersonIdFieldName, PersonNameFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_ReturnsHeaderLineWithHeaderDelegateFieldNames()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().BeOfType<CsvFileHeaderLine>()
+                    .Which.FieldNames.Should().Equal(IdFieldName, NameFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_ReturnsRecordLineWithHeaderDelegateFieldNames()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                var recordLine = csvReader.ReadLine();
+
+                // assert
+                recordLine[NameFieldName].Should().Be(RenamedName);
+                recordLine[PersonNameFieldName].Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndHeaderDelegateReturnsNull_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => null);
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        // A header delegate that returns another number of names than the two fields of RenamedHeaderFile's header line or first record,
+        // or the three fields of NumbersLine, and the message that gives.
+        private const string OneHeaderNameForTwoFieldsMessage =
+            "The header handler returned 1 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string ThreeHeaderNamesForTwoFieldsMessage =
+            "The header handler returned 3 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string OneHeaderNameForTwoFirstRecordFieldsMessage =
+            "The header handler returned 1 field names for a first record of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string ThreeHeaderNamesForTwoFirstRecordFieldsMessage =
+            "The header handler returned 3 field names for a first record of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string TwoHeaderNamesForThreeFieldsMessage =
+            "The header handler returned 2 field names for a first record of 3 fields.  It can rename the fields, but not add or remove them.";
+        private const string FourHeaderNamesForThreeFieldsMessage =
+            "The header handler returned 4 field names for a first record of 3 fields.  It can rename the fields, but not add or remove them.";
+
+        public static TheoryData<CsvFileHeaderHandling, string, string[], string> HeaderDelegateFieldCountMismatchCases =>
+            new TheoryData<CsvFileHeaderHandling, string, string[], string>
+            {
+                { CsvFileHeaderHandling.Use, RenamedHeaderFile, new[] { IdFieldName }, OneHeaderNameForTwoFieldsMessage },
+                {
+                    CsvFileHeaderHandling.Use, RenamedHeaderFile, new[] { IdFieldName, NameFieldName, DescriptionFieldName },
+                    ThreeHeaderNamesForTwoFieldsMessage
+                },
+                { CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName }, OneHeaderNameForTwoFirstRecordFieldsMessage },
+                {
+                    CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName, NameFieldName, DescriptionFieldName },
+                    ThreeHeaderNamesForTwoFirstRecordFieldsMessage
+                },
+                { CsvFileHeaderHandling.None, NumbersLine, new[] { IdFieldName, NameFieldName }, TwoHeaderNamesForThreeFieldsMessage },
+                {
+                    CsvFileHeaderHandling.None, NumbersLine, new[] { IdFieldName, NameFieldName, DescriptionFieldName, ExtraFieldName },
+                    FourHeaderNamesForThreeFieldsMessage
+                }
+            };
+
+        [Theory]
+        [MemberData(nameof(HeaderDelegateFieldCountMismatchCases))]
+        public void ReadLine_HeaderDelegateReturnsOtherFieldCountThanHeaderLineOrFirstRecord_ThrowsInvalidOperationException(
+            CsvFileHeaderHandling headerHandling, string file, string[] headerDelegateFieldNames, string expectedMessage)
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => headerDelegateFieldNames);
+            var options = new CsvFileOptions { HeaderHandling = headerHandling, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(file), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegateWithRecordShorterThanHeaderLine_ReturnsRecordLineWithHeaderDelegateFieldNames()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ShortRecordAfterHeaderFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(IdFieldName, NameFieldName);
+            }
+        }
+
+        [Theory]
+        [InlineData(CsvFileHeaderHandling.Use, RenamedHeaderFile)]
+        [InlineData(CsvFileHeaderHandling.Ignore, RenamedHeaderFile)]
+        [InlineData(CsvFileHeaderHandling.None, TwoShortRecordsFile)]
+        public void ReadLine_HeaderDelegateReturnsNullFieldName_ThrowsInvalidOperationException(CsvFileHeaderHandling headerHandling, string file)
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, null });
+            var options = new CsvFileOptions { HeaderHandling = headerHandling, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(file), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(HeaderDelegateNullFieldNameMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_NoHeaderLineAndUsingHeaderDelegate_PassesNullToHeaderDelegateOnce()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { PersonIdFieldName, PersonNameFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoShortRecordsFile), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle().Which.Should().BeNull();
             }
         }
 
@@ -1218,6 +1455,30 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_HeaderNamesTakingPositionalFieldNameAndItsSuffix_NamesFieldPastHeaderWithNextSuffix()
+        {
+            // arrange
+            var inconsistentLines = new List<CsvFileRecordLine>();
+            var inconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => inconsistentLines.Add(context.Model));
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                InconsistentFieldCountHandler = inconsistentFieldCountHandler
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader("Field 3,Field 3 (2)\r\n1,2,3"), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+
+                // assert
+                ((ICsvFileLine)inconsistentLines.Should().ContainSingle().Subject).Keys
+                    .Should().Equal(PositionalFieldName3, SecondPositionalFieldName3, ThirdPositionalFieldName3);
+            }
+        }
+
+        [Fact]
         public void ReadLine_MappingNamedLikeALaterPositionalField_KeepsMappingNameAndRenamesLaterField()
         {
             // arrange
@@ -1248,22 +1509,6 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 ((ICsvFileLine)testResult).Keys.Should().Equal(SecondPositionalFieldName1, IdFieldName);
                 testResult.Name.Should().BeNull();
-            }
-        }
-
-        [Fact]
-        public void ReadLine_HeaderHandlerNamesTakingPositionalFieldNameAndItsSuffix_NamesFieldWithNextSuffix()
-        {
-            // arrange
-            var headerHandler = new CsvFileHeader(_ => new[] { PositionalFieldName3, SecondPositionalFieldName3 });
-            var options = new CsvFileOptions { HeaderHandler = headerHandler };
-            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(NumbersLine), options))
-            {
-                // act
-                var testResult = csvReader.ReadLine();
-
-                // assert
-                testResult.Keys.Should().Equal(PositionalFieldName3, SecondPositionalFieldName3, ThirdPositionalFieldName3);
             }
         }
 

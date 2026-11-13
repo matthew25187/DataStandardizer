@@ -72,7 +72,7 @@ returned are not affected.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. Calling it again has no effect. |
-| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, `InvalidOperationException` if the header handler returns `null`, or `ObjectDisposedException` after `Dispose`. Once reading the header line or getting the header handler's field names fails, every later call throws the same exception and reads no further lines. |
+| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, `InvalidOperationException` if the header handler returns `null`, a list that contains `null`, or a different number of names from the expected field count (see [CsvFileHeader](CsvFileHeader.md)), or `ObjectDisposedException` after `Dispose`. Once reading the header line or getting the header handler's field names fails, every later call throws the same exception and reads no further lines. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).
