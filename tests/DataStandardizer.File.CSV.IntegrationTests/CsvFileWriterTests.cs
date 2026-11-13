@@ -259,6 +259,22 @@ public class CsvFileWriterTests
         System.IO.File.ReadAllBytes(testFile.Path).Should().Equal(0x31);
     }
 
+    [Fact]
+    public void Constructor_FilePathWithOptionsThatCantBeReadBack_ThrowsArgumentExceptionBeforeOpeningFile()
+    {
+        // arrange
+        // A writer that opened the file before checking the options would truncate it.
+        using var testFile = TemporaryFile.Create([0x31]); // "1" in ASCII
+        var options = new CsvFileOptions { FieldDelimiterCharacter = '"' };
+
+        // act
+        Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(testFile.Path, options);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("options");
+        System.IO.File.ReadAllBytes(testFile.Path).Should().Equal(0x31);
+    }
+
     private sealed class HandlerLine : CsvFileRecordLine
     {
     }

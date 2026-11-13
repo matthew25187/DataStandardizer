@@ -87,11 +87,11 @@ field's mapping supplies a constant or generated value, which is written instead
 | Constructor | Notes |
 | --- | --- |
 | `CsvFileWriter(Stream csvStream)` | Writes with a `StreamWriter` using a 16K-character buffer and UTF-8 encoding without a byte order mark. Throws `ArgumentNullException` if `csvStream` is `null`. |
-| `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`, or `ArgumentException` if `options.InconsistentFieldCountHandler` is of the wrong type. |
+| `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`, or `ArgumentException` if `options.InconsistentFieldCountHandler` is of the wrong type or for options that would write output that can't be read back (see [`CsvFileOptions`](CsvFileOptions.md)). |
 | `CsvFileWriter(string csvFilePath)` | *(netstandard2.0+/.NET)* Creates (or overwrites) the file with a 16 KB `FileStream` buffer and writes it with a `StreamWriter` using a 16K-character buffer and UTF-8 encoding without a byte order mark. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`, or `ArgumentException` if `options.InconsistentFieldCountHandler` is of the wrong type, before opening the file. |
+| `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`, or `ArgumentException` if `options.InconsistentFieldCountHandler` is of the wrong type or for options that would write output that can't be read back (see [`CsvFileOptions`](CsvFileOptions.md)), before opening the file. |
 | `CsvFileWriter(TextWriter writer)` | Throws `ArgumentNullException` if `writer` is `null`. |
-| `CsvFileWriter(TextWriter writer, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the writer — or if `options.InconsistentFieldCountHandler` is of the wrong type. |
+| `CsvFileWriter(TextWriter writer, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the writer — or if `options.InconsistentFieldCountHandler` is of the wrong type, or for options that would write output that can't be read back (see [`CsvFileOptions`](CsvFileOptions.md)). |
 
 ## Methods
 
@@ -100,7 +100,7 @@ field's mapping supplies a constant or generated value, which is written instead
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or a header line with no fields, or on a record line with no fields to write, an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, `InvalidOperationException` when the options would write output that can't be read back (an empty or `null` `TerminatorLineBreak`, a `FieldDelimiterCharacter` that is a double quote or the first character of the terminator, or an undefined `QuoteHandling`), or `ObjectDisposedException` after `Dispose`. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or a header line with no fields, or on a record line with no fields to write, an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, `InvalidOperationException` when the options have been changed since the writer was created (they have setters on .NET Standard) so they would write output that can't be read back, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

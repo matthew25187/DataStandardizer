@@ -102,9 +102,9 @@ The character used to separate fields on a line can be changed.
 var options = new CsvFileOptions { FieldDelimiterCharacter = ';' };
 ```
 
-A writer throws `InvalidOperationException` from `WriteLine` when the delimiter is
-a double quote or the first character of the terminator line break, as the
-fields it wrote couldn't be read back.
+A writer's constructor throws `ArgumentException` when the delimiter is a double
+quote or the first character of the terminator line break, as the fields it
+wrote couldn't always be read back.
 
 ## Header handler
 
@@ -204,7 +204,7 @@ var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Always 
 Options include the ability to quote all field values (`Always`), quote only
 string (non-numeric) values (`Auto`), or quote only values required to be quoted
 by RFC 4180 (`Required`).
-Any other value makes `WriteLine` throw `InvalidOperationException`.
+Any other value makes a writer's constructor throw `ArgumentException`.
 
 ## Suppress trailing blank fields
 
@@ -238,7 +238,14 @@ var options = new CsvFileOptions { TerminatorLineBreak = "\n" };
 This setting applies both to how the reader detects the ends of lines and how
 lines are terminated when written to a CSV file by a writer.
 It must have at least one character: with an empty or `null` terminator, the
-reader's `ReadLine` and the writer's `WriteLine` throw `InvalidOperationException`.
+reader's `ReadLine` throws `InvalidOperationException` and a writer's constructor
+throws `ArgumentException`. A writer's constructor also throws `ArgumentException`
+for a terminator that starts with a double quote, which would read as an escaped
+quote after a quoted field.
+
+On .NET Standard, where the options have setters, a writer checks them again on
+each `WriteLine`, and throws `InvalidOperationException` if they have been changed
+to any of these values.
 
 A carriage return or line feed that isn't part of the terminator can only be in a
 quoted field. In an unquoted field the reader reports it as a

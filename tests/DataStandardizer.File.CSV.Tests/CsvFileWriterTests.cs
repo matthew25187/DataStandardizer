@@ -3778,60 +3778,63 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        // The field delimiter and terminator that RFC 4180 gives a CSV file.
+        // ref. RFC 4180§2¶1, RFC 4180§2¶4
+        private const char Rfc4180FieldDelimiter = ',';
+        private const string Rfc4180Terminator = "\r\n";
+
         // A quote handling value that CsvFieldQuoteHandling doesn't define.
         private const CsvFieldQuoteHandling UndefinedQuoteHandling = (CsvFieldQuoteHandling)99;
 
-        // Options with which the lines written couldn't be read back: no terminator, so the records run together (RFC 4180§2¶1); a delimiter that
-        // can't be told apart from a quote (RFC 4180§2¶5) or from the end of the record; or a quote handling value that never quotes (RFC 4180§2¶6).
-        public static TheoryData<CsvFileOptions> OptionsThatCantBeReadBack => new TheoryData<CsvFileOptions>
-        {
-            new CsvFileOptions { TerminatorLineBreak = string.Empty },
-            new CsvFileOptions { TerminatorLineBreak = null },
-            new CsvFileOptions { FieldDelimiterCharacter = '"' },
-            new CsvFileOptions { FieldDelimiterCharacter = '\n', TerminatorLineBreak = "\n" },
-            new CsvFileOptions { FieldDelimiterCharacter = '|', TerminatorLineBreak = "||" },
-            new CsvFileOptions { QuoteHandling = UndefinedQuoteHandling }
-        };
+        // The messages for options that a writer rejects.  Each ends with a wildcard, as an ArgumentException adds the parameter name to its message.
+        private const string EmptyTerminatorMessage = "The terminator line break must have at least one character.*";
+        private const string QuoteTerminatorMessage = "The terminator line break can't start with a double quote.*";
+        private const string QuoteDelimiterMessage = "The field delimiter can't be a double quote.*";
+        private const string TerminatorDelimiterMessage = "The field delimiter can't be the first character of the terminator line break.*";
+        private const string UndefinedQuoteHandlingMessage = "The quote handling '99' isn't a defined CsvFieldQuoteHandling value.*";
+
+        // Options with which the lines written couldn't be read back, and the message each is rejected with: no terminator, so the records run
+        // together (RFC 4180§2¶1); a terminator that reads as an escaped quote after a quoted field (RFC 4180§2¶7); a delimiter that can't be told
+        // apart from a quote (RFC 4180§2¶5) or from the end of the record; or a quote handling value that never quotes (RFC 4180§2¶6).
+        public static TheoryData<char, string, CsvFieldQuoteHandling, string> OptionsThatCantBeReadBack =>
+            new TheoryData<char, string, CsvFieldQuoteHandling, string>
+            {
+                { Rfc4180FieldDelimiter, "", CsvFieldQuoteHandling.Required, EmptyTerminatorMessage },
+                { Rfc4180FieldDelimiter, null, CsvFieldQuoteHandling.Required, EmptyTerminatorMessage },
+                { Rfc4180FieldDelimiter, "\"\n", CsvFieldQuoteHandling.Required, QuoteTerminatorMessage },
+                { '"', Rfc4180Terminator, CsvFieldQuoteHandling.Required, QuoteDelimiterMessage },
+                { '\n', "\n", CsvFieldQuoteHandling.Required, TerminatorDelimiterMessage },
+                { '|', "||", CsvFieldQuoteHandling.Required, TerminatorDelimiterMessage },
+                { Rfc4180FieldDelimiter, Rfc4180Terminator, UndefinedQuoteHandling, UndefinedQuoteHandlingMessage }
+            };
 
         [Theory]
         [MemberData(nameof(OptionsThatCantBeReadBack))]
-        public void WriteLine_OptionsThatCantBeReadBack_ThrowsInvalidOperationException(CsvFileOptions options)
+        public void Constructor_OptionsThatCantBeReadBack_ThrowsArgumentException(char fieldDelimiter, string terminator, CsvFieldQuoteHandling quoteHandling,
+            string expectedMessage)
         {
             // arrange
-            ICsvFileLine testLine = new CsvFileRecordLine();
-            testLine.Add(FieldName1, TextValue);
+            var options = new CsvFileOptions { FieldDelimiterCharacter = fieldDelimiter, TerminatorLineBreak = terminator, QuoteHandling = quoteHandling };
 
-            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(TextWriter.Null, options))
-            {
+            // act
+            Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(TextWriter.Null, options);
 
-                // act
-                Action testAction = () => csvWriter.WriteLine(testLine);
-
-                // assert
-                testAction.Should().Throw<InvalidOperationException>();
-            }
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(expectedMessage).WithParameterName(OptionsParameterName);
         }
 
         [Theory]
-        [MemberData(nameof(OptionsThatCantBeReadBack))]
-        public void WriteLine_OptionsThatCantBeReadBack_WritesNothing(CsvFileOptions options)
+        [MemberData(nameof(OptionsConstructors))]
+        public void Constructor_AnyOverloadWithOptionsThatCantBeReadBack_ThrowsArgumentException(Func<CsvFileOptions, IDisposable> constructor)
         {
             // arrange
-            ICsvFileLine testLine = new CsvFileRecordLine();
-            testLine.Add(FieldName1, TextValue);
+            var options = new CsvFileOptions { FieldDelimiterCharacter = '"' };
 
-            var buffer = new StringBuilder();
-            using (var stringWriter = new StringWriter(buffer))
-            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
-            {
+            // act
+            Action testAction = () => constructor(options);
 
-                // act
-                Action testAction = () => csvWriter.WriteLine(testLine);
-
-                // assert
-                testAction.Should().Throw<InvalidOperationException>();
-                buffer.ToString().Should().BeEmpty();
-            }
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(QuoteDelimiterMessage).WithParameterName(OptionsParameterName);
         }
 
         [Fact]
@@ -3856,5 +3859,156 @@ namespace DataStandardizer.File.CSV.Tests
                 buffer.ToString().Should().Be("One\nTwo\r\n");
             }
         }
+
+        [Fact]
+        public void WriteLine_DelimiterInTerminatorAfterItsFirstCharacter_ReadsBackAsLineWritten()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, FieldName1);
+            testLine.Add(FieldName2, FieldName2);
+
+            var options = new CsvFileOptions { FieldDelimiterCharacter = '\n' };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+                ICsvFileLine readLine;
+                using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(buffer.ToString()), options))
+                {
+                    readLine = csvReader.ReadLine();
+                }
+
+                // assert
+                readLine.Count.Should().Be(2);
+                readLine[0].Should().Be(FieldName1);
+                readLine[1].Should().Be(FieldName2);
+            }
+        }
+
+#if NETFRAMEWORK
+        // The options have setters on targets older than .NET 5, so they can be changed after the writer is created.
+
+        [Theory]
+        [MemberData(nameof(OptionsThatCantBeReadBack))]
+        public void WriteLine_OptionsChangedSoOutputCantBeReadBack_ThrowsInvalidOperationException(char fieldDelimiter, string terminator,
+            CsvFieldQuoteHandling quoteHandling, string expectedMessage)
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, TextValue);
+
+            var options = new CsvFileOptions();
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(TextWriter.Null, options))
+            {
+                csvWriter.WriteLine(testLine);
+                options.FieldDelimiterCharacter = fieldDelimiter;
+                options.TerminatorLineBreak = terminator;
+                options.QuoteHandling = quoteHandling;
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(OptionsThatCantBeReadBack))]
+        public void WriteLine_OptionsChangedSoOutputCantBeReadBack_WritesNothing(char fieldDelimiter, string terminator,
+            CsvFieldQuoteHandling quoteHandling, string expectedMessage)
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, TextValue);
+
+            var options = new CsvFileOptions();
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(testLine);
+                options.FieldDelimiterCharacter = fieldDelimiter;
+                options.TerminatorLineBreak = terminator;
+                options.QuoteHandling = quoteHandling;
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
+                buffer.ToString().Should().Be("Two\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineAfterOptionsChangedSoOutputCantBeReadBack_ThrowsInvalidOperationException()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(FieldName1, FieldName1);
+
+            var options = new CsvFileOptions();
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                options.FieldDelimiterCharacter = '"';
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(QuoteDelimiterMessage);
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_ValueChangesOptionsWhileLineIsConverted_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var options = new CsvFileOptions();
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, new DelimiterChangingValue(options));
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(QuoteDelimiterMessage);
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        /// <summary>
+        /// A field value that sets the field delimiter to a double quote when it is converted to text, as a converter could.
+        /// </summary>
+        private sealed class DelimiterChangingValue
+        {
+            private readonly CsvFileOptions _options;
+
+            public DelimiterChangingValue(CsvFileOptions options)
+            {
+                _options = options;
+            }
+
+            public override string ToString()
+            {
+                _options.FieldDelimiterCharacter = '"';
+                return TextValue;
+            }
+        }
+#endif
     }
 }

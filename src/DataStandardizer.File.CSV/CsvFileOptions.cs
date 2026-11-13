@@ -53,6 +53,10 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the character used to separate fields on a CSV line.
         /// </summary>
+        /// <remarks>
+        /// A writer throws for a double quote, which can't be told apart from the quotes around an escaped field (RFC 4180§2¶5), or for the first
+        /// character of <see cref="TerminatorLineBreak"/>, which can't be told apart from the end of a record.
+        /// </remarks>
         char FieldDelimiterCharacter { get; }
 
         /// <summary>
@@ -98,7 +102,7 @@ namespace DataStandardizer.File.CSV
         /// Gets the method for handling quoted field values.
         /// </summary>
         /// <remarks>
-        /// Applies to writing lines only.
+        /// Applies to writing lines only.  A writer throws for a value that <see cref="CsvFieldQuoteHandling"/> doesn't define.
         /// </remarks>
         CsvFieldQuoteHandling QuoteHandling { get; }
 
@@ -120,6 +124,10 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the character sequence for line breaks terminating CSV lines.
         /// </summary>
+        /// <remarks>
+        /// It must have at least one character, or a reader and a writer throw.  A writer also throws for a sequence that starts with a double
+        /// quote, which would read as an escaped quote after a quoted field (RFC 4180§2¶7).
+        /// </remarks>
         string TerminatorLineBreak { get; }
     }
 
