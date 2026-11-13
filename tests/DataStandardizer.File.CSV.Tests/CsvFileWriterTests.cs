@@ -126,6 +126,19 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ExpectedFieldCountDataItem = "ExpectedFieldCount";
         private const int FirstLineFieldCount = 2;
 
+        // A header line of the fields FieldName1 and FieldName2, its field count, and the lines that result from writing it and then a record line
+        // that has values for both fields, or only for FieldName1.
+        private const string TwoFieldHeaderLine = "One,Two\r\n";
+        private const int HeaderLineFieldCount = 2;
+        private const string TwoFieldHeaderAndRecordLines = "One,Two\r\n1,Two\r\n";
+        private const string TwoFieldHeaderAndBlankRecordLines = "One,Two\r\n1,\r\n";
+
+        // A header line of the fields that RenamedAttributeLine is mapped to, followed by RenamedRecordLine.
+        private const string RenamedHeaderAndRecordLines = "person_id,person_name\r\n5,bob\r\n";
+
+        // The record line that PartlyMappedLineMapper reads, with an unmapped second field.
+        private const string PartlyMappedRecordFile = "1,One";
+
         [Fact]
         public void WriteLine_HeaderLineAndQuoteHandlingAlways_WritesHeaderLineWithAllValuesQuoted()
         {
@@ -1286,6 +1299,268 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_RecordLineWithMoreFieldsThanHeaderLine_ThrowsCsvFileException()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName2, TextValue);
+            recordLine.Add(FieldName3, TextValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(recordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithFieldNotInHeaderLineAndNoFieldCountDelegate_ThrowsCsvFileException()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName3, TextValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(recordLine);
+
+                // assert
+                var exception = testAction.Should().Throw<CsvFileException>()
+                    .WithMessage("Field 'Three' is not one of the 2 fields of the header line.").Which;
+                exception.Data[FieldNameDataItem].Should().Be(FieldName3);
+                exception.Data[ExpectedFieldCountDataItem].Should().Be(HeaderLineFieldCount);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithFieldNotInHeaderLineAndFieldCountDelegate_CallsFieldCountDelegate()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName3, TextValue);
+
+            var handled = false;
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(_ => handled = true) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                handled.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithFieldNotInHeaderLineHandledByFieldCountDelegate_WritesNothing()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName3, TextValue);
+
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(_ => { }) };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldHeaderLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNullFieldNotInHeaderLine_WritesFieldsOfHeaderLine()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+            recordLine.Add(FieldName2, TextValue);
+            recordLine.Add(FieldName3, null);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldHeaderAndRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineLackingAFieldOfHeaderLine_WritesBlankValueForField()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+            headerLine.Add(FieldName2, FieldName2);
+
+            ICsvFileLine recordLine = new CsvFileRecordLine();
+            recordLine.Add(FieldName1, NumberValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(TwoFieldHeaderAndBlankRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithPropertiesMappedToHeaderLineFields_WritesFieldValues()
+        {
+            // arrange
+            // The line holds its values under the property keys, which the mappings resolve to the header line's fields.
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(PersonIdFieldName, PersonIdFieldName);
+            headerLine.Add(PersonNameFieldName, PersonNameFieldName);
+
+            var recordLine = new RenamedAttributeLine { Id = RenamedId, Name = RenamedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<RenamedAttributeLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(RenamedHeaderAndRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperAndUnmappedField_WritesUnmappedFieldAfterMappedFields()
+        {
+            // arrange
+            var recordLine = new PartlyMappedLine { Id = 1, Name = FirstName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<PartlyMappedLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<PartlyMappedLineMapper>();
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(FirstRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperAndUnmappedFieldNotOnFirstLine_ThrowsCsvFileException()
+        {
+            // arrange
+            // The first line sets the unmapped fields written, so the second line's Description field isn't one of them.
+            var recordLine1 = new PartlyMappedLine { Id = 1, Name = FirstName };
+            var recordLine2 = new PartlyMappedLine { Id = 2, Description = SecondDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<PartlyMappedLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<PartlyMappedLineMapper>();
+                csvWriter.WriteLine(recordLine1);
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(recordLine2);
+
+                // assert
+                var exception = testAction.Should().Throw<CsvFileException>()
+                    .WithMessage("Field 'Description' is not one of the 2 fields of the first record line.").Which;
+                exception.Data[FieldNameDataItem].Should().Be(nameof(PartlyMappedLine.Description));
+                exception.Data[ExpectedFieldCountDataItem].Should().Be(FirstLineFieldCount);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperAndLineReadWithUnmappedField_WritesFieldValues()
+        {
+            // arrange
+            // The reader keeps the unmapped field under a name generated from its position.
+            PartlyMappedLine testLine;
+            using (var csvReader = new CsvFileReader<PartlyMappedLine>(new StringReader(PartlyMappedRecordFile)))
+            {
+                csvReader.RegisterMapper<PartlyMappedLineMapper>();
+                testLine = (PartlyMappedLine)csvReader.ReadLine();
+            }
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<PartlyMappedLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<PartlyMappedLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(FirstRecordLine);
+            }
+        }
+
+        [Fact]
         public void WriteLine_RecordLineLackingAFieldOfFirstLine_WritesBlankValueForField()
         {
             // arrange
@@ -2182,6 +2457,13 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
+        /// A line that <see cref="PartlyMappedLineMapper"/> maps only the <see cref="TestLine.Id"/> property of.
+        /// </summary>
+        private sealed class PartlyMappedLine : TestLine
+        {
+        }
+
+        /// <summary>
         /// A field value that can't be formatted as text.
         /// </summary>
         private sealed class UnformattableValue
@@ -2480,6 +2762,17 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map()
                     .Property(x => x.Description)
                     .HasFieldIndex(2);
+            }
+        }
+
+        private sealed class PartlyMappedLineMapper : CsvFileMapperBase<PartlyMappedLine>
+        {
+            public PartlyMappedLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
             }
         }
 
