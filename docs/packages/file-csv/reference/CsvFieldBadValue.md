@@ -27,6 +27,12 @@ Assigned to [CsvFileOptions.BadValueHandler](CsvFileOptions.md). The `context`
 carries the field's identity, raw value, and the model. See
 [CsvFieldContext](CsvFieldContext.md).
 
+`TModel` must be the record line type of the reader or writer the options are
+passed to: a `CsvFileReader<OrderLine>` calls a `CsvFieldBadValue<OrderLine>`.
+The reader or writer constructor throws `ArgumentException` for a handler of any
+other type, such as a `CsvFieldBadValue<CsvFileRecordLine>` given to a reader of a
+derived line type.
+
 A reader calls it for a field it can't read, such as an unquoted field that holds a
 quote or a line break, for a field a mapping's validator rejects, and for a field it can't convert
 to the mapped property's type. See

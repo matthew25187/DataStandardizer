@@ -112,6 +112,8 @@ namespace DataStandardizer.File.CSV
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
+            ValidateHandlers(options);
+
             _options = options;
 
             // Create the reader once, with the requested encoding if any, so no buffer is allocated and discarded.
@@ -136,6 +138,8 @@ namespace DataStandardizer.File.CSV
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
+            ValidateHandlers(options);
+
             _options = options;
 
             // Open the file once, with the requested encoding if any, so no handle is left orphaned.
@@ -155,6 +159,8 @@ namespace DataStandardizer.File.CSV
         public CsvFileReader(TextReader reader, CsvFileOptions options) : this(reader)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
+
+            ValidateHandlers(_options);
 
             if (_options.Encoding != null)
             {

@@ -3226,5 +3226,82 @@ namespace DataStandardizer.File.CSV.Tests
                 testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
             }
         }
+
+        // Options with a handler of a type the writer never calls: a delegate for a base type of the line type, or a delegate of another type.
+        public static TheoryData<CsvFileOptions> OptionsWithHandlerOfAnotherType => new TheoryData<CsvFileOptions>
+        {
+            new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { BadValueHandler = new Action<CsvFieldContext<HandlerLine>>(context => { }) },
+            new CsvFileOptions { BadValueHandler = new CsvFieldCount<HandlerLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldBadValue<HandlerLine>(context => { }) },
+            new CsvFileOptions { HeaderHandler = new Func<CsvFileHeaderLine, IReadOnlyList<string>>(headerLine => Array.Empty<string>()) }
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsWithHandlerOfAnotherType))]
+        public void Constructor_HandlerOfAnotherType_ThrowsArgumentException(CsvFileOptions options)
+        {
+            // arrange
+            using (var stringWriter = new StringWriter())
+            {
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<HandlerLine>(stringWriter, options);
+
+                // assert
+                testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+            }
+        }
+
+        // Each constructor that takes options, given a bad-value handler for a base type of the line type.  The options are checked before the
+        // file is opened, so the file doesn't need to exist.
+        public static TheoryData<Action> ConstructorCallsWithHandlerOfAnotherType => new TheoryData<Action>
+        {
+            () => _ = new CsvFileWriter<HandlerLine>(new MemoryStream(), CreateBaseLineBadValueHandlerOptions()),
+            () => _ = new CsvFileWriter<HandlerLine>("unused.csv", CreateBaseLineBadValueHandlerOptions()),
+            () => _ = new CsvFileWriter<HandlerLine>(new StringWriter(), CreateBaseLineBadValueHandlerOptions())
+        };
+
+        [Theory]
+        [MemberData(nameof(ConstructorCallsWithHandlerOfAnotherType))]
+        public void Constructor_AnyOverloadWithHandlerOfAnotherType_ThrowsArgumentException(Action constructorCall)
+        {
+            // act
+            var testAction = constructorCall;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        [Fact]
+        public void Constructor_HandlersOfLineType_DoesNotThrow()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<HandlerLine>(context => { }),
+                HeaderHandler = new CsvFileHeader(headerLine => Array.Empty<string>()),
+                InconsistentFieldCountHandler = new CsvFieldCount<HandlerLine>(context => { })
+            };
+            using (var stringWriter = new StringWriter())
+            {
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<HandlerLine>(stringWriter, options);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+        }
+
+        private static CsvFileOptions CreateBaseLineBadValueHandlerOptions()
+        {
+            return new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+        }
+
+        private sealed class HandlerLine : CsvFileRecordLine
+        {
+        }
     }
 }

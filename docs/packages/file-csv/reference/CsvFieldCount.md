@@ -28,6 +28,12 @@ Assigned to [CsvFileOptions.InconsistentFieldCountHandler](CsvFileOptions.md). T
 `context` carries the offending line's model and header. See
 [CsvFieldContext](CsvFieldContext.md).
 
+`TModel` must be the record line type of the reader or writer the options are
+passed to: a `CsvFileWriter<OrderLine>` calls a `CsvFieldCount<OrderLine>`. The
+reader or writer constructor throws `ArgumentException` for a handler of any other
+type, such as a `CsvFieldCount<CsvFileRecordLine>` given to a writer of a derived
+line type.
+
 The line the delegate is called for is skipped. A reader doesn't return it, and a
 writer writes nothing for it. Lines after it are checked against the same field count
 as before it.

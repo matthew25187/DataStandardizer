@@ -12,6 +12,10 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the <see cref="CsvFieldBadValue{TModel}"/> delegate that will be called when a bad value is found in a CSV field.
         /// </summary>
+        /// <remarks>
+        /// <c>TModel</c> must be the record line type of the reader or writer.  Its constructor throws <see cref="System.ArgumentException"/> for a
+        /// delegate of any other type.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? BadValueHandler { get; }
 #else
@@ -54,6 +58,9 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the <see cref="CsvFileHeader"/> delegate that will be called to provide field names in lieu of a header line from the file.
         /// </summary>
+        /// <remarks>
+        /// The reader or writer constructor throws <see cref="System.ArgumentException"/> for a delegate of any other type.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? HeaderHandler { get; }
 #else
@@ -74,6 +81,10 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// The line the delegate is called for is skipped: a reader doesn't return it, and a writer writes nothing for it.  When the delegate isn't set,
         /// an inconsistent line throws <see cref="CsvFileException"/>.
+        /// <para>
+        /// <c>TModel</c> must be the record line type of the reader or writer.  Its constructor throws <see cref="System.ArgumentException"/> for a
+        /// delegate of any other type.
+        /// </para>
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? InconsistentFieldCountHandler { get; }

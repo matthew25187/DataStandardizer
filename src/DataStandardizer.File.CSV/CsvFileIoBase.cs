@@ -122,6 +122,38 @@ namespace DataStandardizer.File.CSV
                 throw new ObjectDisposedException(GetType().Name);
         }
 
+        /// <summary>
+        /// Checks that each handler delegate set in the options is of the type this reader or writer calls, so that none is silently ignored.
+        /// </summary>
+        /// <param name="options">The options passed to the constructor.</param>
+        /// <exception cref="ArgumentException">
+        /// <see cref="ICsvFileOptions.BadValueHandler"/> isn't a <see cref="CsvFieldBadValue{TModel}"/> of <typeparamref name="TRecordLine"/>,
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't a <see cref="CsvFieldCount{TModel}"/> of <typeparamref name="TRecordLine"/>,
+        /// or <see cref="ICsvFileOptions.HeaderHandler"/> isn't a <see cref="CsvFileHeader"/>.
+        /// </exception>
+        private protected static void ValidateHandlers(ICsvFileOptions options)
+        {
+            ValidateHandler<CsvFieldBadValue<TRecordLine>>(options.BadValueHandler, nameof(ICsvFileOptions.BadValueHandler));
+            ValidateHandler<CsvFieldCount<TRecordLine>>(options.InconsistentFieldCountHandler, nameof(ICsvFileOptions.InconsistentFieldCountHandler));
+            ValidateHandler<CsvFileHeader>(options.HeaderHandler, nameof(ICsvFileOptions.HeaderHandler));
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static void ValidateHandler<THandler>(Delegate? handler, string propertyName)
+#else
+        private static void ValidateHandler<THandler>([AllowNull] Delegate handler, string propertyName)
+#endif
+            where THandler : class
+        {
+            if (handler is null || handler is THandler)
+            {
+                return;
+            }
+
+            throw new ArgumentException(
+                $"{propertyName} is a {handler.GetType()} delegate, but this reader or writer only calls a {typeof(THandler)} delegate.", "options");
+        }
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems, Exception? innerException = null)
 #else

@@ -53,11 +53,11 @@ returned are not affected.
 | Constructor | Notes |
 | --- | --- |
 | `CsvFileReader(Stream csvStream)` | Reads with a `StreamReader` using a 16 KB buffer, UTF-8 encoding and byte order mark detection. Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
-| `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
+| `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`, or `ArgumentException` if a handler in `options` is of the wrong type. |
 | `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file for sequential reading with a 16 KB `FileStream` buffer and reads it with a `StreamReader` using a 16 KB buffer, UTF-8 encoding and byte order mark detection. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
+| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`, or `ArgumentException` if a handler in `options` is of the wrong type, before opening the file. |
 | `CsvFileReader(TextReader reader)` | Throws `ArgumentNullException` if `reader` is `null`. |
-| `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader. |
+| `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader — or if a handler in `options` is of the wrong type. |
 
 ## Properties
 
