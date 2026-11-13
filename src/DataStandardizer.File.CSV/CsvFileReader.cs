@@ -30,6 +30,8 @@ namespace DataStandardizer.File.CSV
         {
             internal const string DuplicateFieldNamesTemplate = "Found {0} duplicate field names.";
             internal const string FieldCountMismatchTemplate = "Found {0} of {1} expected fields.";
+            internal const string HeaderHandlerFieldCountTemplate =
+                "The header handler returned {0} field names for a header line of {1} fields.  It can rename the fields, but not add or remove them.";
             internal const string IndexedFieldNameTakenTemplate =
                 "Found no field at index {0} for property '{1}' in a record of {2} fields, and the record already has a field named '{3}'.";
             internal const string MissingIndexedFieldTemplate = "Found no field at index {0} for required property '{1}' in a record of {2} fields.";
@@ -249,6 +251,9 @@ namespace DataStandardizer.File.CSV
         /// <exception cref="InvalidOperationException">The terminator line break option is empty.
         /// -or-
         /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>.
+        /// -or-
+        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned a different number of field names from the number of fields
+        /// on the file's header line.
         /// </exception>
         /// <remarks>
         /// Records can't be read without valid field names.  When reading the header line, or getting field names from the
@@ -362,7 +367,7 @@ namespace DataStandardizer.File.CSV
 
         /// <summary>
         /// Reads the first line of the file as the header line.  When a header handler is set, the reader passes it the line and
-        /// takes the field names from the list it returns instead.  When the header line is used, the reader keeps the line it takes
+        /// takes the field names from the list it returns instead, which must have as many names as the line has fields.  When the header line is used, the reader keeps the line it takes
         /// the field names from; when it is ignored, the reader discards it.
         /// </summary>
         /// <returns>The header line, if it is used; <c>null</c> if it is ignored or the stream is empty.</returns>
@@ -392,6 +397,14 @@ namespace DataStandardizer.File.CSV
             if (headerHandler != null)
             {
                 var headerFieldNames = CallHeaderHandler(headerHandler, headerLine);
+
+                // The handler renames the fields of the header line; the line, not the handler, sets how many fields there are.
+                if (headerFieldNames.Count != rawFieldValues.Count)
+                {
+                    throw new InvalidOperationException(
+                        string.Format(ErrorMessage.HeaderHandlerFieldCountTemplate, headerFieldNames.Count, rawFieldValues.Count));
+                }
+
                 if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore)
                 {
                     _headerFieldNames = headerFieldNames;

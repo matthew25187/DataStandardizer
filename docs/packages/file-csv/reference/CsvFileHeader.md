@@ -34,9 +34,12 @@ line with the names the delegate gave. With `Ignore`, it calls it as it reads
 the header line and passes that line, and `ReadLine` returns no header line.
 With `None`, it calls it as it reads the first record and passes `null`. A
 header line read from the file is checked for duplicate names before the
-delegate is called; duplicates throw `CsvFileException`. Returning `null` makes `ReadLine` throw
-`InvalidOperationException`, and duplicate names make it throw
-`CsvFileException`. When the delegate fails, or throws an exception of its own,
+delegate is called; duplicates throw `CsvFileException`. The delegate renames fields; it can't add or remove
+them. When there is a header line, returning a different number of names from
+its number of fields makes `ReadLine` throw `InvalidOperationException`, and the
+header line sets how many fields each record is expected to have. Returning
+`null` makes `ReadLine` throw `InvalidOperationException`, and duplicate names
+make it throw `CsvFileException`. When the delegate fails, or throws an exception of its own,
 every later `ReadLine` call throws the same exception. The
 nullable annotation on `headerLine` applies to the `netstandard2.1` and
 `net10.0` builds.

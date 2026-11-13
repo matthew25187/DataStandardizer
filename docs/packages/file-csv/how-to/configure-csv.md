@@ -135,6 +135,12 @@ line.
 | `Ignore` | The file's header line | As the header line is read | None |
 | `None` | `null` | As the first record is read | None |
 
+The handler renames fields; it can't add or remove them. When the file has a
+header line, the list must have as many names as the line has fields, or
+`ReadLine` throws `InvalidOperationException`, and the header line still sets how
+many fields each record is expected to have. Names in the list must not repeat,
+or `ReadLine` throws `CsvFileException`.
+
 Header handling decides the field names only when there is no handler.
 
 ## Header handling

@@ -270,7 +270,7 @@ namespace DataStandardizer.File.CSV.Tests
             var headerHandler = new CsvFileHeader(headerLine =>
             {
                 headerHandlerCalls.Add(headerLine);
-                return new[] { PersonIdFieldName, PersonNameFieldName };
+                return new[] { PersonIdFieldName, PersonNameFieldName, ExtraFieldName };
             });
             var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
             using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ThreeRecordsWithHeaderFile), options))
@@ -381,6 +381,40 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        // A header delegate that returns another number of names than the two fields of RenamedHeaderFile, and the message that gives.
+        private const string OneHeaderNameForTwoFieldsMessage =
+            "The header handler returned 1 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string ThreeHeaderNamesForTwoFieldsMessage =
+            "The header handler returned 3 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+
+        public static TheoryData<CsvFileHeaderHandling, string[], string> HeaderDelegateFieldCountMismatchCases =>
+            new TheoryData<CsvFileHeaderHandling, string[], string>
+            {
+                { CsvFileHeaderHandling.Use, new[] { IdFieldName }, OneHeaderNameForTwoFieldsMessage },
+                { CsvFileHeaderHandling.Use, new[] { IdFieldName, NameFieldName, DescriptionFieldName }, ThreeHeaderNamesForTwoFieldsMessage },
+                { CsvFileHeaderHandling.Ignore, new[] { IdFieldName }, OneHeaderNameForTwoFieldsMessage },
+                { CsvFileHeaderHandling.Ignore, new[] { IdFieldName, NameFieldName, DescriptionFieldName }, ThreeHeaderNamesForTwoFieldsMessage }
+            };
+
+        [Theory]
+        [MemberData(nameof(HeaderDelegateFieldCountMismatchCases))]
+        public void ReadLine_HeaderDelegateReturnsOtherFieldCountThanHeaderLine_ThrowsInvalidOperationException(
+            CsvFileHeaderHandling headerHandling, string[] headerDelegateFieldNames, string expectedMessage)
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => headerDelegateFieldNames);
+            var options = new CsvFileOptions { HeaderHandling = headerHandling, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
             }
         }
 

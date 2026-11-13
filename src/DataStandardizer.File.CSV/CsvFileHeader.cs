@@ -19,6 +19,11 @@ namespace DataStandardizer.File.CSV
     /// replace those of the file's header line.  The delegate can return names based on the header line, or names of its own.
     /// </para>
     /// <para>
+    /// The delegate renames fields; it can't add or remove them.  When there is a header line, the names must be as many as the line's fields,
+    /// and the line sets how many fields each record is expected to have.  The names must not repeat.  A list that breaks either rule makes
+    /// <see cref="CsvFileReader{TRecordLine}.ReadLine"/> throw.
+    /// </para>
+    /// <para>
     /// With <see cref="CsvFileHeaderHandling.Use"/>, the reader calls the delegate as it reads the header line, and returns a header line with
     /// the names the delegate gave.  With <see cref="CsvFileHeaderHandling.Ignore"/>, it calls the delegate as it reads the header line, and
     /// doesn't return a header line.  With <see cref="CsvFileHeaderHandling.None"/>, it calls the delegate as it reads the first record.
