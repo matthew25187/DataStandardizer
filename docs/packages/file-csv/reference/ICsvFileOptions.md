@@ -31,14 +31,14 @@ build an instance.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `BadValueHandler` | `Delegate? BadValueHandler { get; }` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate. |
+| `BadValueHandler` | `Delegate? BadValueHandler { get; }` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate for the reader's record line type. The reader constructor throws `ArgumentException` for any other type. |
 | `Culture` | `CultureInfo? Culture { get; }` | Culture for value (de)serialization. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; }` | Replacement for line breaks embedded in field values. |
 | `Encoding` | `Encoding? Encoding { get; }` | File encoding. |
 | `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; }` | Field separator. |
-| `HeaderHandler` | `Delegate? HeaderHandler { get; }` | A [CsvFileHeader](CsvFileHeader.md) delegate supplying field names. |
+| `HeaderHandler` | `Delegate? HeaderHandler { get; }` | A [CsvFileHeader](CsvFileHeader.md) delegate supplying field names. The reader constructor throws `ArgumentException` for any other type. |
 | `HeaderHandling` | `CsvFileHeaderHandling HeaderHandling { get; }` | How the header line is handled (reading only). |
-| `InconsistentFieldCountHandler` | `Delegate? InconsistentFieldCountHandler { get; }` | A [CsvFieldCount](CsvFieldCount.md) delegate. |
+| `InconsistentFieldCountHandler` | `Delegate? InconsistentFieldCountHandler { get; }` | A [CsvFieldCount](CsvFieldCount.md) delegate for the reader's or writer's record line type. Its constructor throws `ArgumentException` for any other type. |
 | `QuoteHandling` | `CsvFieldQuoteHandling QuoteHandling { get; }` | Field quoting strategy (writing only). |
 | `SuppressTrailingBlankFields` | `bool SuppressTrailingBlankFields { get; }` | Omit trailing empty fields on write. |
 | `TerminatorLineBreak` | `string TerminatorLineBreak { get; }` | Line terminator (read and write). |

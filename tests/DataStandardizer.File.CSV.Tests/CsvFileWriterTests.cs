@@ -3226,5 +3226,81 @@ namespace DataStandardizer.File.CSV.Tests
                 testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
             }
         }
+
+        // Options with an inconsistent field count handler of a type the writer never calls: a delegate for a base type of the line type, or a
+        // delegate of another type.
+        public static TheoryData<CsvFileOptions> OptionsWithHandlerOfAnotherType => new TheoryData<CsvFileOptions>
+        {
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldBadValue<HandlerLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new Action<CsvFieldContext<HandlerLine>>(context => { }) }
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsWithHandlerOfAnotherType))]
+        public void Constructor_HandlerOfAnotherType_ThrowsArgumentException(CsvFileOptions options)
+        {
+            // act
+            Action testAction = () => _ = new CsvFileWriter<HandlerLine>(TextWriter.Null, options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        // Options with a bad-value or header handler that a reader of another line type could call.  The writer never calls either handler.
+        public static TheoryData<CsvFileOptions> OptionsWithHandlerTheWriterNeverCalls => new TheoryData<CsvFileOptions>
+        {
+            new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { HeaderHandler = new Func<CsvFileHeaderLine, IReadOnlyList<string>>(headerLine => Array.Empty<string>()) }
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsWithHandlerTheWriterNeverCalls))]
+        public void Constructor_HandlerTheWriterNeverCalls_DoesNotThrow(CsvFileOptions options)
+        {
+            // act
+            Action testAction = () => _ = new CsvFileWriter<HandlerLine>(TextWriter.Null, options);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        // The constructors that take options and no file path.  The file path constructor is covered by the integration tests.
+        public static TheoryData<Func<CsvFileOptions, IDisposable>> OptionsConstructors => new TheoryData<Func<CsvFileOptions, IDisposable>>
+        {
+            options => new CsvFileWriter<HandlerLine>(Stream.Null, options),
+            options => new CsvFileWriter<HandlerLine>(TextWriter.Null, options)
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsConstructors))]
+        public void Constructor_AnyOverloadWithHandlerOfAnotherType_ThrowsArgumentException(Func<CsvFileOptions, IDisposable> constructor)
+        {
+            // arrange
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => { }) };
+
+            // act
+            Action testAction = () => constructor(options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        [Fact]
+        public void Constructor_HandlerOfLineType_DoesNotThrow()
+        {
+            // arrange
+            var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<HandlerLine>(context => { }) };
+
+            // act
+            Action testAction = () => _ = new CsvFileWriter<HandlerLine>(TextWriter.Null, options);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        private sealed class HandlerLine : CsvFileRecordLine
+        {
+        }
     }
 }

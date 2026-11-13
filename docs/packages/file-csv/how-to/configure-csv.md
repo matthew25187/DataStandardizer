@@ -30,6 +30,13 @@ void HandleBadValues(CsvFieldContext<CsvFileRecordLine> ctx)
 var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(HandleBadValues) };
 ```
 
+The delegate's type argument must be the record line type of the reader you pass
+the options to: `CsvFileRecordLine` here, for a `CsvFileReader<CsvFileRecordLine>`.
+For a `CsvFileReader<OrderLine>`, use a `CsvFieldBadValue<OrderLine>`. A handler of
+any other type makes the reader constructor throw `ArgumentException`. A writer
+never calls this handler and doesn't check it, so the same options can be passed
+to a writer of another line type.
+
 If a handler is not specified, the reader or writer will throw a
 `CsvFileException` when a bad value is encountered.
 
@@ -110,6 +117,10 @@ IReadOnlyList<string> HandleHeaderLine(CsvFileHeaderLine? line)
 var options = new CsvFileOptions { HeaderHandler = new CsvFileHeader(HandleHeaderLine) };
 ```
 
+The handler must be a `CsvFileHeader` delegate. A delegate of any other type, even
+one with the same signature, makes the reader constructor throw
+`ArgumentException`. A writer never calls this handler and doesn't check it.
+
 If this handler is specified and the file has a header line, this handler will
 be called one time and passed the header line so a custom list of field names
 can be returned. The list returned from this handler will override the field
@@ -148,6 +159,9 @@ void HandleInconsistentFieldCount(CsvFieldContext<CsvFileRecordLine> ctx)
 
 var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(HandleInconsistentFieldCount) };
 ```
+
+The delegate's type argument must be the record line type of the reader or writer
+you pass the options to, or its constructor throws `ArgumentException`.
 
 ## Quote handling
 

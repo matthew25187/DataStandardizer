@@ -122,6 +122,52 @@ namespace DataStandardizer.File.CSV
                 throw new ObjectDisposedException(GetType().Name);
         }
 
+        /// <summary>
+        /// Checks that a handler delegate set in the options is of the type the reader or writer calls, so that it is never silently ignored.
+        /// </summary>
+        /// <typeparam name="THandler">The delegate type the reader or writer calls.</typeparam>
+        /// <param name="handler">The handler set in the options, if any.</param>
+        /// <param name="propertyName">The name of the options property that holds <paramref name="handler"/>.</param>
+        /// <param name="paramName">The name of the constructor parameter that holds the options.</param>
+        /// <exception cref="ArgumentException"><paramref name="handler"/> isn't <c>null</c> or a <typeparamref name="THandler"/>.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected static void ValidateHandler<THandler>(Delegate? handler, string propertyName, string paramName)
+#else
+        private protected static void ValidateHandler<THandler>([AllowNull] Delegate handler, string propertyName, string paramName)
+#endif
+            where THandler : class
+        {
+            if (handler is null || handler is THandler)
+            {
+                return;
+            }
+
+            throw new ArgumentException(
+                $"{propertyName} must be a {FormatTypeName(typeof(THandler))} delegate, or null, but it is a {FormatTypeName(handler.GetType())}.", paramName);
+        }
+
+        /// <summary>
+        /// Formats a type name the way C# writes it, such as <c>CsvFieldBadValue&lt;OrderLine&gt;</c> rather than <c>CsvFieldBadValue`1[OrderLine]</c>.
+        /// </summary>
+        private static string FormatTypeName(Type type)
+        {
+            var typeArguments = type.GenericTypeArguments;
+            if (typeArguments.Length == 0)
+            {
+                return type.Name;
+            }
+
+            var name = type.Name;
+            var arityStart = name.IndexOf('`');
+            var formattedArguments = new string[typeArguments.Length];
+            for (var index = 0; index < typeArguments.Length; index++)
+            {
+                formattedArguments[index] = FormatTypeName(typeArguments[index]);
+            }
+
+            return (arityStart < 0 ? name : name.Substring(0, arityStart)) + "<" + string.Join(", ", formattedArguments) + ">";
+        }
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems, Exception? innerException = null)
 #else

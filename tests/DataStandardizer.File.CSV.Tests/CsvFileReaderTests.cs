@@ -2787,5 +2787,84 @@ namespace DataStandardizer.File.CSV.Tests
                 testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
             }
         }
+
+        // Options with a handler of a type the reader never calls: a delegate for a base type of the line type, or a delegate of another type.
+        public static TheoryData<CsvFileOptions> OptionsWithHandlerOfAnotherType => new TheoryData<CsvFileOptions>
+        {
+            new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { BadValueHandler = new Action<CsvFieldContext<HandlerLine>>(context => { }) },
+            new CsvFileOptions { BadValueHandler = new CsvFieldCount<HandlerLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldBadValue<HandlerLine>(context => { }) },
+            new CsvFileOptions { HeaderHandler = new Func<CsvFileHeaderLine, IReadOnlyList<string>>(headerLine => Array.Empty<string>()) }
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsWithHandlerOfAnotherType))]
+        public void Constructor_HandlerOfAnotherType_ThrowsArgumentException(CsvFileOptions options)
+        {
+            // act
+            Action testAction = () => _ = new CsvFileReader<HandlerLine>(TextReader.Null, options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        // The constructors that take options and no file path.  The file path constructor is covered by the integration tests.
+        public static TheoryData<Func<CsvFileOptions, IDisposable>> OptionsConstructors => new TheoryData<Func<CsvFileOptions, IDisposable>>
+        {
+            options => new CsvFileReader<HandlerLine>(Stream.Null, options),
+            options => new CsvFileReader<HandlerLine>(TextReader.Null, options)
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsConstructors))]
+        public void Constructor_AnyOverloadWithHandlerOfAnotherType_ThrowsArgumentException(Func<CsvFileOptions, IDisposable> constructor)
+        {
+            // arrange
+            var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+
+            // act
+            Action testAction = () => constructor(options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        [Fact]
+        public void Constructor_HandlerOfAnotherType_MessageNamesBothDelegateTypes()
+        {
+            // arrange
+            var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+
+            // act
+            Action testAction = () => _ = new CsvFileReader<HandlerLine>(TextReader.Null, options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>()
+                .WithMessage("BadValueHandler must be a CsvFieldBadValue<HandlerLine> delegate, or null, but it is a CsvFieldBadValue<CsvFileRecordLine>.*");
+        }
+
+        [Fact]
+        public void Constructor_HandlersOfLineType_DoesNotThrow()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<HandlerLine>(context => { }),
+                HeaderHandler = new CsvFileHeader(headerLine => Array.Empty<string>()),
+                InconsistentFieldCountHandler = new CsvFieldCount<HandlerLine>(context => { })
+            };
+
+            // act
+            Action testAction = () => _ = new CsvFileReader<HandlerLine>(TextReader.Null, options);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        private sealed class HandlerLine : CsvFileRecordLine
+        {
+        }
     }
 }
