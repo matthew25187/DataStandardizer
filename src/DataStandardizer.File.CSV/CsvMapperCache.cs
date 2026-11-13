@@ -25,8 +25,9 @@ namespace DataStandardizer.File.CSV
         private static readonly ConcurrentDictionary<Type, ICsvFileMapper> DeclarativeMappers = new ConcurrentDictionary<Type, ICsvFileMapper>();
         private static readonly ConcurrentDictionary<Type, TypeConverter> TypeConverters = new ConcurrentDictionary<Type, TypeConverter>();
 
-        // Field value accessors keyed by the reader's or writer's record-line type, then property type.  Held here rather than in a static of the
-        // generic reader or writer, so that clearing the cache also releases a property type when the record-line type itself is not unloaded.
+        // Field value accessors keyed by the model type their delegates are given (the reader's or writer's record-line type, or the custom model
+        // type of a conversion), then property type.  Held here rather than in a static of the generic accessor, so that clearing the cache also
+        // releases a property type when the model type itself is not unloaded.
         private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<Type, object>> FieldValueAccessors =
             new ConcurrentDictionary<Type, ConcurrentDictionary<Type, object>>();
 
@@ -71,13 +72,13 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the field value accessor of a property type for a record-line type, creating and caching it if necessary.
+        /// Gets the field value accessor of a property type for a model type, creating and caching it if necessary.
         /// </summary>
-        internal static object GetOrAddFieldValueAccessor(Type recordLineType, Type propertyType, Func<Type, object> accessorFactory)
+        internal static object GetOrAddFieldValueAccessor(Type modelType, Type propertyType, Func<Type, object> accessorFactory)
         {
-            if (!FieldValueAccessors.TryGetValue(recordLineType, out var accessors))
+            if (!FieldValueAccessors.TryGetValue(modelType, out var accessors))
             {
-                accessors = FieldValueAccessors.GetOrAdd(recordLineType, _ => new ConcurrentDictionary<Type, object>());
+                accessors = FieldValueAccessors.GetOrAdd(modelType, _ => new ConcurrentDictionary<Type, object>());
             }
 
             if (accessors.TryGetValue(propertyType, out var accessor))

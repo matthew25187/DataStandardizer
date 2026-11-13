@@ -1,0 +1,122 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Reflection;
+
+namespace DataStandardizer.File.CSV
+{
+    public static class CsvExtensions
+    {
+        private static class DataItemName
+        {
+            internal const string FieldIndex = "FieldIndex";
+            internal const string FieldName = "FieldName";
+            internal const string PropertyName = "PropertyName";
+        }
+
+        /// <summary>
+        /// Reflection results for a property that a record line or custom model type declares or inherits.
+        /// </summary>
+        private sealed class PropertyBinding
+        {
+            internal PropertyBinding(CsvMappableProperty mappableProperty)
+            {
+                var property = mappableProperty.Declaration;
+                Property = property;
+                Getter = mappableProperty.Getter;
+                Setter = mappableProperty.Setter;
+                Key = property.GetPropertyKey();
+                MappingAttribute = property.GetCustomAttribute<CsvFieldMappingAttribute>();
+                if (MappingAttribute is null)
+                {
+                    return;
+                }
+
+                var typeConverterAttribute = property.GetCustomAttribute<TypeConverterAttribute>();
+                TypeConverterType = !string.IsNullOrEmpty(typeConverterAttribute?.ConverterTypeName) ? Type.GetType(typeConverterAttribute.ConverterTypeName) : null;
+            }
+
+            internal PropertyInfo Property { get; }
+
+            internal string Key { get; }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            /// <inheritdoc cref="CsvMappableProperty.Getter"/>
+            internal PropertyInfo? Getter { get; }
+
+            /// <inheritdoc cref="CsvMappableProperty.Setter"/>
+            internal PropertyInfo? Setter { get; }
+
+            internal CsvFieldMappingAttribute? MappingAttribute { get; }
+
+            internal Type? TypeConverterType { get; }
+#else
+            /// <inheritdoc cref="CsvMappableProperty.Getter"/>
+            internal PropertyInfo Getter { get; }
+
+            /// <inheritdoc cref="CsvMappableProperty.Setter"/>
+            internal PropertyInfo Setter { get; }
+
+            internal CsvFieldMappingAttribute MappingAttribute { get; }
+
+            internal Type TypeConverterType { get; }
+#endif
+        }
+
+        // Mappable-property bindings keyed by type, so conversions and mapper creation reflect at most once per type.
+        private static readonly ConcurrentDictionary<Type, PropertyBinding[]> PropertyBindingCache = new ConcurrentDictionary<Type, PropertyBinding[]>();
+
+        /// <summary>
+        /// Removes every cached property binding.  Called by <see cref="CsvMapperCache.Clear"/>.
+        /// </summary>
+        internal static void ClearPropertyBindings() => PropertyBindingCache.Clear();
+
+        private static PropertyBinding[] GetPropertyBindings(Type type)
+        {
+            if (PropertyBindingCache.TryGetValue(type, out var propertyBindings))
+            {
+                return propertyBindings;
+            }
+
+            return PropertyBindingCache.GetOrAdd(type, t => CsvMappableProperty.GetAll(t).Select(property => new PropertyBinding(property)).ToArray());
+        }
+
+        internal static string GetPropertyKey(this PropertyInfo pi)
+        {
+            var fieldAttribute = pi.GetCustomAttribute<CsvFieldAttribute>();
+            return fieldAttribute?.FieldName ?? pi.Name;
+        }
+
+        /// <summary>
+        /// Create a CSV field mapper based on declarative configuration on the record line object.
+        /// </summary>
+        /// <param name="recordLine">Record line object to be mapped.</param>
+        /// <returns>Mapper containing collection of field mappings.</returns>
+        public static ICsvFileMapper CreateMapper<TRecordLine>(this TRecordLine recordLine) where TRecordLine : CsvFileRecordLine
+        {
+            var propertyFieldMappings = new Dictionary<string, CsvFieldMapping>();
+
+            foreach (var propertyBinding in GetPropertyBindings(recordLine.GetType()))
+            {
+                var fieldAttribute = propertyBinding.MappingAttribute;
+                if (fieldAttribute is null)
+                {
+                    continue;
+                }
+
+                var fieldMapping = new CsvFieldMapping(propertyBinding.Property.PropertyType)
+                {
+                    FieldIndex = fieldAttribute.FieldIndex,
+                    FieldName = fieldAttribute.FieldName,
+                    ConstantValue = fieldAttribute.ConstantValue,
+                    IsOptional = fieldAttribute.IsOptional,
+                    TypeConverterType = propertyBinding.TypeConverterType,
+                };
+                propertyFieldMappings.Add(propertyBinding.Key, fieldMapping);
+            }
+
+            return new CsvFileMapper(propertyFieldMappings);
+        }
+

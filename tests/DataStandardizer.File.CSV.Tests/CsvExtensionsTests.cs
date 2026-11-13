@@ -28,6 +28,30 @@ namespace DataStandardizer.File.CSV.Tests
         // The field index that HidingMappedLine maps its hiding Name property to.
         private const int HidingNameFieldIndex = 1;
 
+        // The text of RenamedId as a reader stores it for a field that no mapping converts.
+        private const string RenamedIdText = "5";
+
+        // A line's field text that isn't a valid Int32.
+        private const string InvalidIdText = "five";
+
+        // Values that a mapping's converter, constant or generator supplies instead of the field's.
+        private const string ConvertedName = "converted";
+        private const int ConstantId = 7;
+        private const int GeneratedId = 9;
+        private const string ConstantDescription = "constant";
+        private const string GeneratedDescription = "generated";
+        private const string ModelDescription = "model";
+
+        // The fields of a line whose names no mapping uses, and the position of the second.
+        private const string FirstFieldName = "x";
+        private const string FirstFieldValue = "a";
+        private const string SecondFieldName = "y";
+        private const string SecondFieldValue = "b";
+        private const int SecondFieldIndex = 1;
+
+        // A field position past the last field of a line with two fields.
+        private const int PastLastFieldIndex = 2;
+
         [Fact]
         public void CreateMapper_DeclarativeMappingFieldIndex_ReturnsFieldMappingWithIndex()
         {
@@ -399,6 +423,224 @@ namespace DataStandardizer.File.CSV.Tests
             testResult.Name.Should().Be(InheritedName);
         }
 
+        [Fact]
+        public void ToObject_FieldTextWithTypeConverter_ConvertsValueWithTypeConverter()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedIdText } };
+
+            var mapper = new TypeConverterModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+        }
+
+        [Fact]
+        public void ToObject_FieldTextWithConverterDelegate_SetsValueFromConverter()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonNameFieldName, RenamedName } };
+
+            var mapper = new ConverterDelegateModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Name.Should().Be(ConvertedName);
+        }
+
+        [Fact]
+        public void ToObject_FieldTextWithoutConverter_ParsesValue()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedIdText } };
+
+            var mapper = new ParsedModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+        }
+
+        [Fact]
+        public void ToObject_InvalidFieldText_ThrowsCsvFileException()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, InvalidIdText } };
+
+            var mapper = new ParsedModelMapper();
+
+            // act
+            Action testAction = () => _ = testLine.ToObject(mapper);
+
+            // assert
+            testAction.Should()
+                .Throw<CsvFileException>()
+                .WithMessage("Encountered invalid value 'five' in CSV field person_id.");
+        }
+
+        [Fact]
+        public void ToObject_FieldHoldsValueOfOtherType_ThrowsCsvFileException()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, (long)RenamedId } };
+
+            var mapper = new ParsedModelMapper();
+
+            // act
+            Action testAction = () => _ = testLine.ToObject(mapper);
+
+            // assert
+            testAction.Should()
+                .Throw<CsvFileException>()
+                .WithMessage("CSV field person_id holds a value of type System.Int64, which property 'Id' of type System.Int32 can't hold.");
+        }
+
+        [Fact]
+        public void ToObject_FieldMappedByIndex_CopiesValueOfFieldAtThatPosition()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { FirstFieldName, FirstFieldValue }, { SecondFieldName, SecondFieldValue } };
+
+            var mapper = new IndexModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Name.Should().Be(SecondFieldValue);
+        }
+
+        [Fact]
+        public void ToObject_RequiredFieldIndexPastLastField_ThrowsCsvFileException()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { FirstFieldName, FirstFieldValue }, { SecondFieldName, SecondFieldValue } };
+
+            var mapper = new PastLastFieldModelMapper();
+
+            // act
+            Action testAction = () => _ = testLine.ToObject(mapper);
+
+            // assert
+            testAction.Should()
+                .Throw<CsvFileException>()
+                .WithMessage("Property 'Name' unable to be mapped.");
+        }
+
+        [Fact]
+        public void ToObject_ConstantValue_SetsConstantValue()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine();
+
+            var mapper = new ConstantModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(ConstantId);
+        }
+
+        [Fact]
+        public void ToObject_GeneratedValue_SetsGeneratedValue()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine();
+
+            var mapper = new GeneratedModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(GeneratedId);
+        }
+
+        [Fact]
+        public void ToObject_ValidatorRejectsValue_ThrowsCsvFileException()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedIdText } };
+
+            var mapper = new ValidatedModelMapper(false);
+
+            // act
+            Action testAction = () => _ = testLine.ToObject(mapper);
+
+            // assert
+            testAction.Should()
+                .Throw<CsvFileException>()
+                .WithMessage("Encountered invalid value '5' in CSV field person_id.");
+        }
+
+        [Fact]
+        public void ToObject_ValidatorAcceptsValue_SetsConvertedValue()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedIdText } };
+
+            var mapper = new ValidatedModelMapper(true);
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+        }
+
+        [Fact]
+        public void ToCsvLine_ConstantValue_LineHoldsConstantInsteadOfModelValue()
+        {
+            // arrange
+            var testModel = new TestModel { Id = 1, Description = ModelDescription };
+
+            var mapper = new ConstantLineMapper();
+
+            // act
+            var testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Description.Should().Be(ConstantDescription);
+        }
+
+        [Fact]
+        public void ToCsvLine_GeneratedValue_LineHoldsGeneratedValue()
+        {
+            // arrange
+            var testModel = new TestModel { Id = 1 };
+
+            var mapper = new GeneratedLineMapper();
+
+            // act
+            var testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Description.Should().Be(GeneratedDescription);
+        }
+
+        [Fact]
+        public void ToCsvLine_FieldMappedByIndex_LineHoldsFieldsInPositionOrder()
+        {
+            // arrange
+            var testModel = new TestModel { Id = 1, Name = RenamedName };
+
+            var mapper = new PositionLineMapper();
+
+            // act
+            ICsvFileLine testResult = testModel.ToCsvLine(mapper);
+
+            // assert
+            testResult.Keys.Should().Equal(nameof(TestLine.Name), nameof(TestLine.Id));
+        }
+
         /// <summary>
         /// A line that inherits every mapped property from <see cref="TestMappedLine"/>.
         /// </summary>
@@ -560,6 +802,102 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.PersonId).HasFieldName(PersonIdFieldName);
                 this.Map().Property(x => x.PersonName).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        private class TypeConverterModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public TypeConverterModelMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName).ConvertUsing(typeof(Int32Converter));
+            }
+        }
+
+        private class ConverterDelegateModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public ConverterDelegateModelMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName)
+                    .ConvertUsing((CsvFieldConvertFromString<TestModel, string>)(_ => ConvertedName));
+            }
+        }
+
+        private class ParsedModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public ParsedModelMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        private class IndexModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public IndexModelMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldIndex(SecondFieldIndex);
+            }
+        }
+
+        private class PastLastFieldModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public PastLastFieldModelMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldIndex(PastLastFieldIndex);
+            }
+        }
+
+        private class ConstantModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public ConstantModelMapper()
+            {
+                this.Map().Property(x => x.Id).HasConstantValue(ConstantId);
+            }
+        }
+
+        private class GeneratedModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public GeneratedModelMapper()
+            {
+                this.Map().Property(x => x.Id).HasVariableValue(() => GeneratedId);
+            }
+        }
+
+        /// <summary>
+        /// Maps <see cref="TestModel.Id"/> with a validator that gives the result it is created with for every value.
+        /// </summary>
+        private class ValidatedModelMapper : CsvFileCustomMapperBase<TestModel>
+        {
+            public ValidatedModelMapper(bool isValid)
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName).ConvertUsing(typeof(Int32Converter)).ValidateUsing(_ => isValid);
+            }
+        }
+
+        private class ConstantLineMapper : CsvFileMapperBase<TestLine>
+        {
+            public ConstantLineMapper()
+            {
+                this.Map().Property(x => x.Description).HasConstantValue(ConstantDescription);
+            }
+        }
+
+        private class GeneratedLineMapper : CsvFileMapperBase<TestLine>
+        {
+            public GeneratedLineMapper()
+            {
+                this.Map().Property(x => x.Description).HasVariableValue(() => GeneratedDescription);
+            }
+        }
+
+        /// <summary>
+        /// Maps <see cref="TestLine.Id"/> without an index before <see cref="TestLine.Name"/> at index 0, so <c>Id</c> takes position 1.
+        /// </summary>
+        private class PositionLineMapper : CsvFileMapperBase<TestLine>
+        {
+            public PositionLineMapper()
+            {
+                this.Map().Property(x => x.Id);
+                this.Map().Property(x => x.Name).HasFieldIndex(0);
             }
         }
 

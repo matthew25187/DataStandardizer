@@ -13,6 +13,7 @@ namespace DataStandardizer.File.CSV
         {
             internal const string FieldIndex = "FieldIndex";
             internal const string FieldName = "FieldName";
+            internal const string FieldValue = "FieldValue";
             internal const string PropertyName = "PropertyName";
         }
 
@@ -120,6 +121,7 @@ namespace DataStandardizer.File.CSV
             return new CsvFileMapper(propertyFieldMappings);
         }
 
+
         /// <summary>
         /// Convert a CSV line object to a custom line model object.
         /// </summary>
@@ -128,6 +130,22 @@ namespace DataStandardizer.File.CSV
         /// <param name="sourceLine">CSV line read from a CSV file.</param>
         /// <param name="mapper">Field mapping for the custom line model.</param>
         /// <returns>Custom object model representing the CSV line.</returns>
+        /// <remarks>
+        /// <para>
+        /// Each property of the model that <paramref name="mapper"/> maps is set the way a reader sets a record line's property.  A mapping by index
+        /// reads the field at that position of the line, whatever its name; a mapping by name reads the field with that name; any other mapping reads
+        /// the field named after the property.  A constant or generated value is used in place of the field's value.
+        /// </para>
+        /// <para>
+        /// A validator is given the field's text, or <c>null</c> when the line holds a value that isn't text.  Text is converted to the property type
+        /// with the mapping's converter delegate or type converter, or else parsed as a reader parses it, in the invariant culture.  A value the line
+        /// already holds as the property type, such as one a reader converted, is used as it is.  The converter and validator delegates are given
+        /// the model being built, and options with their default values; they are given no header line.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="CsvFileException">A property's mapping isn't optional and the line has no field for it; a validator rejected a field's
+        /// value; a field's text isn't a valid value of the property type; or the line holds a value of another type than the property's, which isn't
+        /// text.</exception>
         public static TModel ToObject<TRecordLine, TModel>(this TRecordLine sourceLine, CsvFileCustomMapperBase<TModel> mapper)
             where TRecordLine : CsvFileRecordLine
             where TModel : class, new()
@@ -135,6 +153,7 @@ namespace DataStandardizer.File.CSV
             ICsvFileLine csvLine = sourceLine;
             var targetModel = new TModel();
             ICsvFileMapper csvMapper = mapper;
+            var options = new CsvFileOptions();
 
             foreach (var propertyBinding in GetPropertyBindings(targetModel.GetType()))
             {
@@ -150,31 +169,65 @@ namespace DataStandardizer.File.CSV
                     continue;
                 }
 
-                var fieldKey = CsvMappingService.GetFieldNameFromMapping(new KeyValuePair<string, CsvFieldMapping>(propertyKey, fieldMapping));
-                if (!csvLine.Contains(fieldKey) && csvLine.Contains(propertyKey))
-                {
-                    fieldKey = propertyKey;
-                }
-
-                // If a field name was not found for the property, do not attempt to set the property on the custom model.
-                if (!csvLine.Contains(fieldKey))
+                // Find the field the mapping resolves to.  A mapping that supplies its own value needs no field.
+                var propertyFieldMapping = new KeyValuePair<string, CsvFieldMapping>(propertyKey, fieldMapping);
+                var fieldPosition = GetFieldPosition(csvLine, propertyFieldMapping);
+                if (fieldPosition is null)
                 {
                     if (fieldMapping.IsOptional)
                     {
                         continue;
                     }
 
-                    var exception = new CsvFileException($"Property '{propertyKey}' unable to be mapped.");
-                    exception.Data.Add(DataItemName.PropertyName, propertyKey);
-                    exception.Data.Add(DataItemName.FieldIndex, fieldMapping.FieldIndex);
-                    exception.Data.Add(DataItemName.FieldName, fieldMapping.FieldName);
-                    throw exception;
+                    if (!fieldMapping.SuppliesValue)
+                    {
+                        throw BuildUnmappedPropertyException(propertyFieldMapping);
+                    }
                 }
 
-                // Copy the field value from the CSV line to the corresponding property on the custom model.
-                // Assumes that the raw string value from the CSV file has already been converted in the CSV line.
-                var fieldValue = csvLine[fieldKey];
-                setter.SetValue(targetModel, fieldValue);
+                var fieldName = fieldPosition is int position ? csvLine.GetAt(position).Key : CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
+                var lineValue = fieldPosition is int valuePosition ? csvLine[valuePosition] : null;
+
+                // Validate the field value.
+                if (fieldMapping.Validator is CsvFieldValidate<TModel> validator)
+                {
+                    var fieldContext = new CsvFieldContext<TModel>(options)
+                    {
+                        Model = targetModel,
+                        FieldIndex = fieldPosition,
+                        FieldName = fieldName,
+                        RawFieldValue = lineValue as string
+                    };
+                    if (!validator(fieldContext))
+                    {
+                        throw BuildInvalidValueException(propertyFieldMapping, fieldName, lineValue, null);
+                    }
+                }
+
+                // Take the constant or generated value, or the field's, then convert it to the property type.
+                var accessor = CsvFieldValueAccessor<TModel>.For(fieldMapping.PropertyType);
+                var fieldValue = lineValue;
+                if (fieldMapping.ConstantValue != null)
+                {
+                    fieldValue = fieldMapping.ConstantValue;
+                }
+                else if (fieldMapping.VariableValueGenerator != null)
+                {
+                    fieldValue = accessor.Generate(fieldMapping.VariableValueGenerator);
+                }
+                else if (fieldValue is object heldValue && !accessor.IsConvertible(heldValue))
+                {
+                    throw BuildWrongValueTypeException(propertyFieldMapping, fieldName, heldValue);
+                }
+
+                var valuePositionForConverter = fieldMapping.SuppliesValue ? null : fieldPosition;
+                if (!accessor.TryDeserialize(null, targetModel, options, propertyFieldMapping, fieldName, valuePositionForConverter, fieldValue, out var propertyValue,
+                        out var error))
+                {
+                    throw BuildInvalidValueException(propertyFieldMapping, fieldName, fieldValue, error);
+                }
+
+                setter.SetValue(targetModel, propertyValue);
             }
 
             return targetModel;
@@ -188,6 +241,18 @@ namespace DataStandardizer.File.CSV
         /// <param name="sourceModel">Custom model object with values to be copied to a CSV line.</param>
         /// <param name="mapper">Field mapping for the CSV line.</param>
         /// <returns>CSV line representing the custom model object.</returns>
+        /// <remarks>
+        /// <para>
+        /// The line holds a field for each mapping of <paramref name="mapper"/>, in the order of the positions a writer gives them, so a mapping by
+        /// index comes before the mappings at later positions.  A field is named as the mapping names it, or after the property.  It holds the
+        /// mapping's constant or generated value if it has one, or else the value of the model's property with the same key; a mapping with neither
+        /// adds no field.
+        /// </para>
+        /// <para>
+        /// The values keep their types, as a line's properties return them.  A writer converts them to text when it writes the line, and applies the
+        /// mapping's converters and positions if <paramref name="mapper"/> is registered on it.  Validators apply only to reading.
+        /// </para>
+        /// </remarks>
         public static TRecordLine ToCsvLine<TModel, TRecordLine>(this TModel sourceModel, CsvFileMapperBase<TRecordLine> mapper)
             where TModel : class
             where TRecordLine : CsvFileRecordLine, new()
@@ -199,28 +264,106 @@ namespace DataStandardizer.File.CSV
             // The values are stored under their field names, so a property mapped to a field with another name reads that field.
             targetLine.SetMappedFieldNames(CsvMappingService.GetMappedFieldNames(csvMapper));
 
-            foreach (var propertyBinding in GetPropertyBindings(sourceModel.GetType()))
+            var propertyBindings = GetPropertyBindings(sourceModel.GetType());
+            foreach (var propertyKey in CsvMappingService.GetPropertyKeysByPosition(csvMapper))
             {
-                if (!(propertyBinding.Getter is PropertyInfo getter))
+                var fieldMapping = csvMapper[propertyKey];
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                object? fieldValue;
+#else
+                object fieldValue;
+#endif
+                if (fieldMapping.ConstantValue != null)
                 {
-                    continue;
+                    fieldValue = fieldMapping.ConstantValue;
                 }
-
-                // Get the field mapping for the current property.
-                var propertyKey = propertyBinding.Key;
-                if (!csvMapper.TryGetValue(propertyKey, out var fieldMapping))
+                else if (fieldMapping.VariableValueGenerator != null)
+                {
+                    fieldValue = CsvFieldValueAccessor<TRecordLine>.For(fieldMapping.PropertyType).Generate(fieldMapping.VariableValueGenerator);
+                }
+                else if (FindGetter(propertyBindings, propertyKey) is PropertyInfo getter)
+                {
+                    fieldValue = getter.GetValue(sourceModel);
+                }
+                else
                 {
                     continue;
                 }
 
                 var fieldKey = CsvMappingService.GetFieldNameFromMapping(propertyKey, fieldMapping);
-
-                // Copy the field value from the CSV line to the corresponding property on the custom model.
-                var fieldValue = getter.GetValue(sourceModel);
                 csvLine[fieldKey] = fieldValue;
             }
 
             return targetLine;
+        }
+
+        /// <summary>
+        /// Gets the position on a line of the field a mapping resolves to, or <c>null</c> if the line has no such field.
+        /// </summary>
+        private static int? GetFieldPosition(ICsvFileLine csvLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
+        {
+            if (propertyFieldMapping.Value.FieldIndex is int fieldIndex)
+            {
+                return fieldIndex < csvLine.Count ? fieldIndex : (int?)null;
+            }
+
+            var position = csvLine.IndexOf(CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping));
+            return position < 0 ? (int?)null : position;
+        }
+
+        /// <summary>
+        /// Gets the getter of the readable property with a key, or <c>null</c> if there is none.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static PropertyInfo? FindGetter(PropertyBinding[] propertyBindings, string propertyKey)
+#else
+        private static PropertyInfo FindGetter(PropertyBinding[] propertyBindings, string propertyKey)
+#endif
+        {
+            foreach (var propertyBinding in propertyBindings)
+            {
+                if (propertyBinding.Getter != null && string.Equals(propertyBinding.Key, propertyKey, StringComparison.Ordinal))
+                {
+                    return propertyBinding.Getter;
+                }
+            }
+
+            return null;
+        }
+
+        private static CsvFileException BuildUnmappedPropertyException(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
+        {
+            var exception = new CsvFileException($"Property '{propertyFieldMapping.Key}' unable to be mapped.");
+            exception.Data.Add(DataItemName.PropertyName, propertyFieldMapping.Key);
+            exception.Data.Add(DataItemName.FieldIndex, propertyFieldMapping.Value.FieldIndex);
+            exception.Data.Add(DataItemName.FieldName, propertyFieldMapping.Value.FieldName);
+            return exception;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static CsvFileException BuildInvalidValueException(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, string fieldName, object? fieldValue,
+            Exception? innerException)
+#else
+        private static CsvFileException BuildInvalidValueException(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, string fieldName, object fieldValue,
+            Exception innerException)
+#endif
+        {
+            var message = $"Encountered invalid value '{fieldValue}' in CSV field {fieldName}.";
+            var exception = innerException is null ? new CsvFileException(message) : new CsvFileException(message, innerException);
+            exception.Data.Add(DataItemName.PropertyName, propertyFieldMapping.Key);
+            exception.Data.Add(DataItemName.FieldName, fieldName);
+            exception.Data.Add(DataItemName.FieldValue, fieldValue);
+            return exception;
+        }
+
+        private static CsvFileException BuildWrongValueTypeException(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, string fieldName, object fieldValue)
+        {
+            var exception = new CsvFileException(
+                $"CSV field {fieldName} holds a value of type {fieldValue.GetType()}, which property '{propertyFieldMapping.Key}' of type {propertyFieldMapping.Value.PropertyType} can't hold.");
+            exception.Data.Add(DataItemName.PropertyName, propertyFieldMapping.Key);
+            exception.Data.Add(DataItemName.FieldName, fieldName);
+            exception.Data.Add(DataItemName.FieldValue, fieldValue);
+            return exception;
         }
     }
 }

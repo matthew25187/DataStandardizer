@@ -27,8 +27,8 @@ public static class CsvExtensions
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
 | `CreateMapper<TRecordLine>()` | `TRecordLine` | `ICsvFileMapper` | `where TRecordLine : CsvFileRecordLine`. Builds a mapper from the line model's `[CsvFieldMapping]` (and `[TypeConverter]`) attributes. |
-| `ToCsvLine<TModel, TRecordLine>(CsvFileMapperBase<TRecordLine> mapper)` | `TModel` | `TRecordLine` | `where TModel : class` and `where TRecordLine : CsvFileRecordLine, new()`. Converts a plain object to a record line for writing. |
-| `ToObject<TRecordLine, TModel>(CsvFileCustomMapperBase<TModel> mapper)` | `TRecordLine` | `TModel` | `where TRecordLine : CsvFileRecordLine` and `where TModel : class, new()`. Converts a read line to a custom object. Throws `CsvFileException` when a non-optional property cannot be mapped. |
+| `ToCsvLine<TModel, TRecordLine>(CsvFileMapperBase<TRecordLine> mapper)` | `TModel` | `TRecordLine` | `where TModel : class` and `where TRecordLine : CsvFileRecordLine, new()`. Converts a plain object to a record line for writing, applying the mapping's field names, positions, constants and generators. Converters apply when a writer with the mapper registered writes the line. |
+| `ToObject<TRecordLine, TModel>(CsvFileCustomMapperBase<TModel> mapper)` | `TRecordLine` | `TModel` | `where TRecordLine : CsvFileRecordLine` and `where TModel : class, new()`. Converts a read line to a custom object, applying the mapping's field names and indexes, converters, constants, generators and validators as a reader does. Throws `CsvFileException` when a non-optional property cannot be mapped, a validator rejects a value, or a value can't be converted. |
 
 ## Applies to
 

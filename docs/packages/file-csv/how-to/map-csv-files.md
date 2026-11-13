@@ -189,6 +189,15 @@ N.B. Mappers for custom objects (based on `CsvFileCustomMapperBase`) are
 different from mappers for record lines (based on `CsvFileMapperBase`) and not
 interchangeable.
 
+`ToObject` applies the whole mapping, as a reader does: a field index reads the
+field at that position, a field name reads the field with that name, a constant
+or generated value replaces the field's, and a validator checks the field's
+text. Text, such as a reader stores for a field that its own mapping doesn't
+convert, is converted with the mapping's converter, or else parsed in the
+invariant culture. A value the line already holds as the property's type is
+copied as it is. A required field the line doesn't have, a value the validator
+rejects, and text that isn't a valid value all throw `CsvFileException`.
+
 You can convert the record lines read from the file to your own model like so:
 
 ```csharp
@@ -248,8 +257,10 @@ var myRecords = new List<CustomRecordLine>();
 // load lines
 
 var mapper = new MyRecordLineMapper();
-using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>("file_name.csv"))
+using (var csvWriter = new CsvFileWriter<MyRecordLine>("file_name.csv"))
 {
+    csvWriter.RegisterMapper<MyRecordLineMapper>();
+
     foreach (var myRecord in myRecords)
     {
         var line = myRecord.ToCsvLine(mapper);
@@ -257,3 +268,8 @@ using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>("file_name.csv"))
     }
 }
 ```
+
+The line holds a field for each mapping, in field-position order, with the
+mapping's constant or generated value if it has one and the model's property
+value otherwise. The values keep their types; the writer converts them to text
+with the mapping's converters when the mapper is registered on it, as above.

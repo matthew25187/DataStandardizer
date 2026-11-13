@@ -1078,7 +1078,7 @@ namespace DataStandardizer.File.CSV
                     IsSupplied = mapping.Value.SuppliesValue;
                     if (mapping.Value.VariableValueGenerator != null)
                     {
-                        Accessor = FieldValueAccessor.For(mapping.Value.PropertyType);
+                        Accessor = CsvFieldValueAccessor<TRecordLine>.For(mapping.Value.PropertyType);
                     }
                 }
             }
@@ -1087,9 +1087,9 @@ namespace DataStandardizer.File.CSV
             /// Gets the accessor that generates values of the property type, if the mapping has a value generator.
             /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal FieldValueAccessor? Accessor { get; }
+            internal CsvFieldValueAccessor<TRecordLine>? Accessor { get; }
 #else
-            [MaybeNull] internal FieldValueAccessor Accessor { get; }
+            [MaybeNull] internal CsvFieldValueAccessor<TRecordLine> Accessor { get; }
 #endif
 
             /// <summary>
