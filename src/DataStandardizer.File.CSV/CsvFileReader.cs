@@ -595,7 +595,7 @@ namespace DataStandardizer.File.CSV
                 // A constant or generated value didn't come from a field, so has no position.  The position is only looked up for a converter, which
                 // is given the field's text as it was read from the file, not a value an earlier mapping of the same field put on the line.
                 var isFieldValue = !fieldMapping.Value.SuppliesValue;
-                var fieldIndex = isFieldValue && (fieldMapping.Value.FromStringConverter != null || fieldMapping.Value.TypeConverterType != null)
+                var fieldIndex = isFieldValue && CsvMapperCache.HasFromStringConverter(fieldMapping.Value)
                     ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount)
                     : null;
                 if (fieldIndex.HasValue)

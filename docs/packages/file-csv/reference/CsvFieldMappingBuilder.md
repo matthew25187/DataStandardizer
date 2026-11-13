@@ -65,7 +65,7 @@ the numeric, date, time, `bool`, `Guid` and enum types. See
 | --- | --- | --- |
 | `ConvertUsing(CsvFieldConvertFromString<TModel, T> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the deserialization converter (reading). It takes precedence over a `TypeConverter` and the reader's built-in parse. |
 | `ConvertUsing(CsvFieldConvertToString<TModel> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the serialization converter (writing). |
-| `ConvertUsing(Type typeConverterType)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type. Throws `ArgumentException` if it is not a `TypeConverter`. When reading, it takes precedence over the reader's built-in parse. |
+| `ConvertUsing(Type typeConverterType)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type. Throws `ArgumentException` if it is not a `TypeConverter`. When reading, it takes precedence over the reader's built-in parse if it converts from a string; otherwise it isn't used when reading. |
 | `ConvertUsing<TConverter>() where TConverter : TypeConverter` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type by type argument. |
 | `HasConstantValue(T value)` | `void` | Sets a constant field value. |
 | `HasFieldIndex(int fieldIndex)` | `ICsvFieldMappingIdentityNextBuilder<TModel, T>` | Maps to a field by index. Throws `ArgumentOutOfRangeException` if negative. |

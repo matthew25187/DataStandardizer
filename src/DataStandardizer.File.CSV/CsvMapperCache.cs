@@ -114,5 +114,36 @@ namespace DataStandardizer.File.CSV
             // Another thread may have added a converter first; use whichever one won so all callers share an instance.
             return TypeConverters.GetOrAdd(typeConverterType, typeConverter);
         }
+
+        /// <summary>
+        /// Gets the shared instance of a mapping's type converter if it converts from a string.  A type converter that doesn't, such as one meant
+        /// only for writing, doesn't apply when a value is read.
+        /// </summary>
+        /// <returns>The type converter, or <c>null</c> if <paramref name="typeConverterType"/> is <c>null</c>, is not a <see cref="TypeConverter"/>,
+        /// or is one that doesn't convert from a string.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static TypeConverter? GetFromStringTypeConverter(Type? typeConverterType)
+#else
+        [return: MaybeNull]
+        internal static TypeConverter GetFromStringTypeConverter([AllowNull] Type typeConverterType)
+#endif
+        {
+            if (typeConverterType is null)
+            {
+                return null;
+            }
+
+            var typeConverter = GetTypeConverter(typeConverterType);
+            return typeConverter != null && typeConverter.CanConvertFrom(typeof(string)) ? typeConverter : null;
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a mapping has a converter that a read value is given: a converter delegate, or a type converter that converts
+        /// from a string.
+        /// </summary>
+        internal static bool HasFromStringConverter(CsvFieldMapping fieldMapping)
+        {
+            return fieldMapping.FromStringConverter != null || GetFromStringTypeConverter(fieldMapping.TypeConverterType) != null;
+        }
     }
 }
