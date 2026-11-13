@@ -52,6 +52,15 @@ namespace DataStandardizer.File.CSV.Tests
         // A field position past the last field of a line with two fields.
         private const int PastLastFieldIndex = 2;
 
+        // RenamedId held as a type other than the Int32 property it is mapped to.
+        private const long RenamedIdAsInt64 = 5;
+
+        // The Id of a model whose other properties a test converts.
+        private const int ModelId = 1;
+
+        // A record whose first field isn't a valid Int32, read by RenamedLineMapper.
+        private const string InvalidIdRecordFile = "five,bob";
+
         [Fact]
         public void CreateMapper_DeclarativeMappingFieldIndex_ReturnsFieldMappingWithIndex()
         {
@@ -489,7 +498,7 @@ namespace DataStandardizer.File.CSV.Tests
         public void ToObject_FieldHoldsValueOfOtherType_ThrowsCsvFileException()
         {
             // arrange
-            var testLine = new CsvFileRecordLine { { PersonIdFieldName, (long)RenamedId } };
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedIdAsInt64 } };
 
             var mapper = new ParsedModelMapper();
 
@@ -600,7 +609,7 @@ namespace DataStandardizer.File.CSV.Tests
         public void ToCsvLine_ConstantValue_LineHoldsConstantInsteadOfModelValue()
         {
             // arrange
-            var testModel = new TestModel { Id = 1, Description = ModelDescription };
+            var testModel = new TestModel { Id = ModelId, Description = ModelDescription };
 
             var mapper = new ConstantLineMapper();
 
@@ -612,25 +621,93 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ToCsvLine_GeneratedValue_LineHoldsGeneratedValue()
+        public void ToCsvLine_GeneratedValue_LineHoldsNoFieldForMapping()
         {
             // arrange
-            var testModel = new TestModel { Id = 1 };
+            var testModel = new TestModel { Id = ModelId, Description = ModelDescription };
 
             var mapper = new GeneratedLineMapper();
 
             // act
-            var testResult = testModel.ToCsvLine(mapper);
+            ICsvFileLine testResult = testModel.ToCsvLine(mapper);
 
             // assert
-            testResult.Description.Should().Be(GeneratedDescription);
+            testResult.Contains(nameof(TestLine.Description)).Should().BeFalse();
+        }
+
+        [Fact]
+        public void ToObject_MappedFieldMissingAndFieldNamedAfterPropertyPresent_ThrowsCsvFileException()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { nameof(TestModel.Id), RenamedIdText } };
+
+            var mapper = new ParsedModelMapper();
+
+            // act
+            Action testAction = () => _ = testLine.ToObject(mapper);
+
+            // assert
+            testAction.Should()
+                .Throw<CsvFileException>()
+                .WithMessage("Property 'Id' unable to be mapped.");
+        }
+
+        [Fact]
+        public void ToObject_ValidatorAndFieldHoldsConvertedValue_CopiesValueWithoutValidating()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, RenamedId } };
+
+            var mapper = new ValidatedModelMapper(false);
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.Id.Should().Be(RenamedId);
+        }
+
+        [Fact]
+        public void ToObject_FieldHandledByBadValueHandler_LeavesPropertyAtDefaultValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { BadValueHandler = (CsvFieldBadValue<RenamedLine>)(_ => { }) };
+            RenamedLine testLine;
+            using (var csvReader = new CsvFileReader<RenamedLine>(new StringReader(InvalidIdRecordFile), options))
+            {
+                csvReader.RegisterMapper<RenamedLineMapper>();
+                testLine = (RenamedLine)csvReader.ReadLine();
+            }
+
+            var mapper = new PersonModelMapper();
+
+            // act
+            var testResult = testLine.ToObject(mapper);
+
+            // assert
+            testResult.PersonId.Should().Be(0);
+        }
+
+        [Fact]
+        public void ToObject_FieldHoldsNonSerializableValueOfOtherType_ThrowsCsvFileException()
+        {
+            // arrange
+            var testLine = new CsvFileRecordLine { { PersonIdFieldName, new NonSerializableValue() } };
+
+            var mapper = new ParsedModelMapper();
+
+            // act
+            Action testAction = () => _ = testLine.ToObject(mapper);
+
+            // assert
+            testAction.Should().Throw<CsvFileException>();
         }
 
         [Fact]
         public void ToCsvLine_FieldMappedByIndex_LineHoldsFieldsInPositionOrder()
         {
             // arrange
-            var testModel = new TestModel { Id = 1, Name = RenamedName };
+            var testModel = new TestModel { Id = ModelId, Name = RenamedName };
 
             var mapper = new PositionLineMapper();
 
@@ -887,6 +964,13 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Description).HasVariableValue(() => GeneratedDescription);
             }
+        }
+
+        /// <summary>
+        /// A value that isn't serializable, which .NET Framework doesn't let an exception's <see cref="Exception.Data"/> hold.
+        /// </summary>
+        private sealed class NonSerializableValue
+        {
         }
 
         /// <summary>

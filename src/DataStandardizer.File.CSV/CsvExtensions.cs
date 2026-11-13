@@ -66,6 +66,9 @@ namespace DataStandardizer.File.CSV
 #endif
         }
 
+        // The options that ToObject gives converter and validator delegates, which have no reader's options to take.
+        private static readonly CsvFileOptions DefaultOptions = new CsvFileOptions();
+
         // Mappable-property bindings keyed by type, so conversions and mapper creation reflect at most once per type.
         private static readonly ConcurrentDictionary<Type, PropertyBinding[]> PropertyBindingCache = new ConcurrentDictionary<Type, PropertyBinding[]>();
 
@@ -137,7 +140,9 @@ namespace DataStandardizer.File.CSV
         /// the field named after the property.  A constant or generated value is used in place of the field's value.
         /// </para>
         /// <para>
-        /// A validator is given the field's text, or <c>null</c> when the line holds a value that isn't text.  Text is converted to the property type
+        /// A field whose value a reader's bad-value handler handled leaves the property at its default value, as the line's own property reads it.
+        /// A validator checks the field's text; a value the line holds that isn't text, such as one a reader converted, isn't validated again.
+        /// Text is converted to the property type
         /// with the mapping's converter delegate or type converter, or else parsed as a reader parses it, in the invariant culture.  A value the line
         /// already holds as the property type, such as one a reader converted, is used as it is.  The converter and validator delegates are given
         /// the model being built, and options with their default values; they are given no header line.
@@ -153,7 +158,7 @@ namespace DataStandardizer.File.CSV
             ICsvFileLine csvLine = sourceLine;
             var targetModel = new TModel();
             ICsvFileMapper csvMapper = mapper;
-            var options = new CsvFileOptions();
+            var options = DefaultOptions;
 
             foreach (var propertyBinding in GetPropertyBindings(targetModel.GetType()))
             {
@@ -188,8 +193,14 @@ namespace DataStandardizer.File.CSV
                 var fieldName = fieldPosition is int position ? csvLine.GetAt(position).Key : CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
                 var lineValue = fieldPosition is int valuePosition ? csvLine[valuePosition] : null;
 
-                // Validate the field value.
-                if (fieldMapping.Validator is CsvFieldValidate<TModel> validator)
+                // A field that the reader's bad-value handler handled reads as the default value, as the line's own property does.
+                if (fieldPosition.HasValue && sourceLine.IsBadValueField(fieldName))
+                {
+                    continue;
+                }
+
+                // Validate the field's text.  A value that isn't text was converted when the line was read, so there is no text to validate.
+                if (fieldMapping.Validator is CsvFieldValidate<TModel> validator && (lineValue is null || lineValue is string))
                 {
                     var fieldContext = new CsvFieldContext<TModel>(options)
                     {
@@ -245,12 +256,14 @@ namespace DataStandardizer.File.CSV
         /// <para>
         /// The line holds a field for each mapping of <paramref name="mapper"/>, in the order of the positions a writer gives them, so a mapping by
         /// index comes before the mappings at later positions.  A field is named as the mapping names it, or after the property.  It holds the
-        /// mapping's constant or generated value if it has one, or else the value of the model's property with the same key; a mapping with neither
-        /// adds no field.
+        /// mapping's constant value if it has one, or else the value of the model's property with the same key.  A mapping with a generated value,
+        /// or with neither a constant value nor a property on the model, adds no field, so the fields keep their order but not necessarily their
+        /// positions.
         /// </para>
         /// <para>
         /// The values keep their types, as a line's properties return them.  A writer converts them to text when it writes the line, and applies the
-        /// mapping's converters and positions if <paramref name="mapper"/> is registered on it.  Validators apply only to reading.
+        /// mapping's converters and positions, and generates each generated value, if <paramref name="mapper"/> is registered on it.  Validators
+        /// apply only to reading.
         /// </para>
         /// </remarks>
         public static TRecordLine ToCsvLine<TModel, TRecordLine>(this TModel sourceModel, CsvFileMapperBase<TRecordLine> mapper)
@@ -277,11 +290,7 @@ namespace DataStandardizer.File.CSV
                 {
                     fieldValue = fieldMapping.ConstantValue;
                 }
-                else if (fieldMapping.VariableValueGenerator != null)
-                {
-                    fieldValue = CsvFieldValueAccessor<TRecordLine>.For(fieldMapping.PropertyType).Generate(fieldMapping.VariableValueGenerator);
-                }
-                else if (FindGetter(propertyBindings, propertyKey) is PropertyInfo getter)
+                else if (fieldMapping.VariableValueGenerator is null && FindGetter(propertyBindings, propertyKey) is PropertyInfo getter)
                 {
                     fieldValue = getter.GetValue(sourceModel);
                 }
@@ -352,7 +361,13 @@ namespace DataStandardizer.File.CSV
             var exception = innerException is null ? new CsvFileException(message) : new CsvFileException(message, innerException);
             exception.Data.Add(DataItemName.PropertyName, propertyFieldMapping.Key);
             exception.Data.Add(DataItemName.FieldName, fieldName);
-            exception.Data.Add(DataItemName.FieldValue, fieldValue);
+
+            // Only text is added: on .NET Framework, Exception.Data only takes serializable values.
+            if (fieldValue is string fieldText)
+            {
+                exception.Data.Add(DataItemName.FieldValue, fieldText);
+            }
+
             return exception;
         }
 
@@ -362,7 +377,6 @@ namespace DataStandardizer.File.CSV
                 $"CSV field {fieldName} holds a value of type {fieldValue.GetType()}, which property '{propertyFieldMapping.Key}' of type {propertyFieldMapping.Value.PropertyType} can't hold.");
             exception.Data.Add(DataItemName.PropertyName, propertyFieldMapping.Key);
             exception.Data.Add(DataItemName.FieldName, fieldName);
-            exception.Data.Add(DataItemName.FieldValue, fieldValue);
             return exception;
         }
     }

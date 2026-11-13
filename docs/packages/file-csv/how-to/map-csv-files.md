@@ -192,7 +192,9 @@ interchangeable.
 `ToObject` applies the whole mapping, as a reader does: a field index reads the
 field at that position, a field name reads the field with that name, a constant
 or generated value replaces the field's, and a validator checks the field's
-text. Text, such as a reader stores for a field that its own mapping doesn't
+text. A value the line holds that isn't text was converted when the line was
+read, so it isn't validated again, and a field the reader's bad-value handler
+handled leaves the property at its default value. Text, such as a reader stores for a field that its own mapping doesn't
 convert, is converted with the mapping's converter, or else parsed in the
 invariant culture. A value the line already holds as the property's type is
 copied as it is. A required field the line doesn't have, a value the validator
@@ -270,6 +272,8 @@ using (var csvWriter = new CsvFileWriter<MyRecordLine>("file_name.csv"))
 ```
 
 The line holds a field for each mapping, in field-position order, with the
-mapping's constant or generated value if it has one and the model's property
-value otherwise. The values keep their types; the writer converts them to text
-with the mapping's converters when the mapper is registered on it, as above.
+mapping's constant value if it has one and the model's property value
+otherwise. A mapping with a generated value adds no field: the writer generates
+the value as it writes each line, when the mapper is registered on it. The
+values keep their types; the writer converts them to text with the mapping's
+converters, as above.

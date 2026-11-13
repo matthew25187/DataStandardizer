@@ -113,7 +113,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets whether the reader called the bad-value handler for a field's value.
         /// </summary>
-        private protected bool IsBadValueField(string fieldName)
+        internal bool IsBadValueField(string fieldName)
         {
             return _badValueFieldNames != null && _badValueFieldNames.Contains(fieldName);
         }
