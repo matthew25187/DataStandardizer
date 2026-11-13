@@ -579,7 +579,13 @@ namespace DataStandardizer.File.CSV
                 var fieldValue = fieldMappingPlan.IsPastLastField ? null : csvLine[mappedFieldName];
                 if (fieldMapping.Value.ConstantValue != null)
                 {
-                    fieldValue = fieldMapping.Value.ConstantValue;
+                    // A constant the property can't hold is a mistake in the mapping, not in the file, so no bad-value handler is given it.
+                    if (!fieldMappingPlan.IsConstantConvertible)
+                    {
+                        throw CsvConstantValue.BuildNotConvertibleException(fieldMapping);
+                    }
+
+                    fieldValue = fieldMappingPlan.ConstantValue;
                 }
                 else if (fieldMapping.Value.VariableValueGenerator != null)
                 {
@@ -1321,7 +1327,27 @@ namespace DataStandardizer.File.CSV
                 IsFieldNameTaken = isFieldNameTaken;
                 IsMissing = isMissing;
                 Accessor = accessor;
+
+                // The constant is converted once, here, rather than for each line.
+                var constantValue = mapping.Value.ConstantValue;
+                IsConstantConvertible = constantValue is null || CsvConstantValue.TryConvert(constantValue, mapping.Value.PropertyType, out constantValue);
+                ConstantValue = constantValue;
             }
+
+            /// <summary>
+            /// Gets the mapping's constant value converted to the property type, or <c>null</c> if it has none or it can't be converted.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal object? ConstantValue { get; }
+#else
+            [MaybeNull]
+            internal object ConstantValue { get; }
+#endif
+
+            /// <summary>
+            /// Gets a flag indicating if the mapping has no constant value, or one that converts to the property type.
+            /// </summary>
+            internal bool IsConstantConvertible { get; }
 
             /// <summary>
             /// Gets a flag indicating if the mapping is required, reads its value from a field, and the line has no field for it.

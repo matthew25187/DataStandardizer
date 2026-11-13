@@ -168,6 +168,16 @@ property type. The first of these that applies to the mapping is used:
 4. Otherwise the property gets the default value of its type.
 
 A constant value of the property type, or a generated value, is used as it is.
+A constant that is text is converted as a field's text is. A constant that is a
+number of another type, as an attribute's `ConstantValue` often is, is converted
+to a property of a built-in number type (`sbyte` to `ulong`, `float`, `double`,
+`decimal`, or a nullable one) if that type holds the number as it is written.
+So `5` reads into a `long` or `byte` property, and `0.1` or `0.1f` into a
+`decimal`, `double` or `float` property as 0.1. A `float` or `double` is taken to
+be written with the fewest significant digits that convert back to it, up to 7
+or 15, and a whole number keeps its exact value. Any other constant, such as
+`-1` for a `byte` or `1.5` for an `int`, makes the reader throw
+`CsvFileException`. The writer writes a constant as it is given.
 A field's text is given to a configured converter even when the property is a
 `string`, or another type a string can be assigned to, such as `object`, so a
 converter can trim or normalise a string column. The converter gets the text as

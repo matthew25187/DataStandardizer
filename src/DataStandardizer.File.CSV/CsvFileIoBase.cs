@@ -143,29 +143,7 @@ namespace DataStandardizer.File.CSV
             }
 
             throw new ArgumentException(
-                $"{propertyName} must be a {FormatTypeName(typeof(THandler))} delegate, or null, but it is a {FormatTypeName(handler.GetType())}.", paramName);
-        }
-
-        /// <summary>
-        /// Formats a type name the way C# writes it, such as <c>CsvFieldBadValue&lt;OrderLine&gt;</c> rather than <c>CsvFieldBadValue`1[OrderLine]</c>.
-        /// </summary>
-        private static string FormatTypeName(Type type)
-        {
-            var typeArguments = type.GenericTypeArguments;
-            if (typeArguments.Length == 0)
-            {
-                return type.Name;
-            }
-
-            var name = type.Name;
-            var arityStart = name.IndexOf('`');
-            var formattedArguments = new string[typeArguments.Length];
-            for (var index = 0; index < typeArguments.Length; index++)
-            {
-                formattedArguments[index] = FormatTypeName(typeArguments[index]);
-            }
-
-            return (arityStart < 0 ? name : name.Substring(0, arityStart)) + "<" + string.Join(", ", formattedArguments) + ">";
+                $"{propertyName} must be a {CsvTypeName.Format(typeof(THandler))} delegate, or null, but it is a {CsvTypeName.Format(handler.GetType())}.", paramName);
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

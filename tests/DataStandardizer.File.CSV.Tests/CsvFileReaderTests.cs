@@ -1383,6 +1383,68 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        // Reads a line with a constant whose type isn't the property type, each with the value and type the property gets.
+        public static TheoryData<Func<object>, object, Type> ConvertibleConstants => new TheoryData<Func<object>, object, Type>
+        {
+            { () => ReadConstant<IntConstantLine<long>>(line => line.Value), (long)IntConstant, typeof(long) },
+            { () => ReadConstant<IntConstantLine<byte>>(line => line.Value), (byte)IntConstant, typeof(byte) },
+            { () => ReadConstant<IntConstantLine<long?>>(line => line.Value), (long)IntConstant, typeof(long) },
+            { () => ReadConstant<IntConstantLine<decimal>>(line => line.Value), (decimal)IntConstant, typeof(decimal) },
+            { () => ReadConstant<IntConstantLine<double>>(line => line.Value), (double)IntConstant, typeof(double) },
+            { () => ReadConstant<TenthDoubleLine<decimal>>(line => line.Value), TenthDecimal, typeof(decimal) },
+            { () => ReadConstant<TenthDoubleLine<float>>(line => line.Value), TenthFloat, typeof(float) },
+            { () => ReadConstant<TenthFloatLine<double>>(line => line.Value), TenthDouble, typeof(double) },
+            { () => ReadConstant<TenthFloatLine<decimal>>(line => line.Value), TenthDecimal, typeof(decimal) },
+            { () => ReadConstant<WholeDoubleLine<int>>(line => line.Value), WholeDoubleAsInt, typeof(int) },
+            { () => ReadConstant<SixteenDigitWholeDoubleLine<decimal>>(line => line.Value), SixteenDigitWholeDecimal, typeof(decimal) },
+            { () => ReadConstant<ULongMaxValueLine<decimal>>(line => line.Value), (decimal)ulong.MaxValue, typeof(decimal) },
+            { () => ReadConstant<TwoToThe63Line<ulong>>(line => line.Value), TwoToThe63AsULong, typeof(ulong) },
+            { () => ReadConstant<TwoToThe64Line<decimal>>(line => line.Value), TwoToThe64AsDecimal, typeof(decimal) },
+            { () => ReadConstant<TextConstantLine<int>>(line => line.Value), IntConstant, typeof(int) }
+        };
+
+        [Theory]
+        [MemberData(nameof(ConvertibleConstants))]
+        public void ReadLine_ConstantPropertyTypeHoldsAsWritten_SetsConvertedValue(Func<object> readConstant, object expectedValue, Type expectedType)
+        {
+            // act
+            var testResult = readConstant();
+
+            // assert
+            testResult.Should().BeOfType(expectedType).And.Be(expectedValue);
+        }
+
+        // Reads a line with a constant that the property type can't hold as it is written.
+        public static TheoryData<Func<object>> NotConvertibleConstants => new TheoryData<Func<object>>
+        {
+            () => ReadConstant<NegativeIntConstantLine<byte>>(line => line.Value),
+            () => ReadConstant<FractionalDoubleLine<int>>(line => line.Value),
+            () => ReadConstant<SeventeenDigitDoubleLine<decimal>>(line => line.Value),
+            () => ReadConstant<SeventeenDigitDoubleLine<float>>(line => line.Value),
+            () => ReadConstant<NaNLine<decimal>>(line => line.Value),
+            () => ReadConstant<IntPastFloatPrecisionLine<float>>(line => line.Value),
+            () => ReadConstant<LongPastDoublePrecisionLine<double>>(line => line.Value),
+            () => ReadConstant<LongMaxValueLine<double>>(line => line.Value),
+            () => ReadConstant<ULongMaxValueLine<double>>(line => line.Value),
+            () => ReadConstant<ULongMaxValueLine<long>>(line => line.Value),
+            () => ReadConstant<TwoToThe63Line<long>>(line => line.Value),
+            () => ReadConstant<TwoToThe64Line<ulong>>(line => line.Value),
+            () => ReadConstant<IntConstantLine<string>>(line => line.Value),
+            () => ReadConstant<IntConstantLine<ConstantKind>>(line => line.Value),
+            () => ReadConstant<BooleanConstantLine<int>>(line => line.Value)
+        };
+
+        [Theory]
+        [MemberData(nameof(NotConvertibleConstants))]
+        public void ReadLine_ConstantPropertyTypeCantHold_ThrowsCsvFileException(Func<object> readConstant)
+        {
+            // act
+            Action testAction = () => readConstant();
+
+            // assert
+            testAction.Should().Throw<CsvFileException>();
+        }
+
         [Fact]
         public void ReadLine_MapperWithVariableValueGenerators_SetsGeneratedValuesOnFirstLine()
         {
@@ -2861,6 +2923,219 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             testAction.Should().NotThrow();
+        }
+
+        // Constants of the types an attribute holds them as, which a reader converts to the type of the property they are mapped to, and a file
+        // with a field in their place.
+        private const string ConstantLineFile = "1";
+        private const int IntConstant = 5;
+        private const string IntConstantText = "5";
+        private const double TenthDouble = 0.1;
+        private const float TenthFloat = 0.1f;
+        private const decimal TenthDecimal = 0.1m;
+        private const double WholeDouble = 2.0;
+        private const int WholeDoubleAsInt = 2;
+
+        // A whole number with more significant digits than a cast of a double to decimal keeps.
+        private const double SixteenDigitWholeDouble = 1234567890123456.0;
+        private const decimal SixteenDigitWholeDecimal = 1234567890123456m;
+
+        // A double with 17 significant digits, which no decimal of at most 15 significant digits converts back to.
+        private const double SeventeenDigitDouble = 0.30000000000000004;
+
+        // 2^24 + 1 and 2^53 + 1, the first integers that a float and a double don't hold exactly.
+        private const int IntPastFloatPrecision = 16777217;
+        private const long LongPastDoublePrecision = 9007199254740993L;
+
+        // 2^63 and 2^64, the first numbers past the ranges of long and ulong.
+        private const double TwoToThe63 = 9223372036854775808.0;
+        private const ulong TwoToThe63AsULong = 9223372036854775808UL;
+        private const double TwoToThe64 = 18446744073709551616.0;
+        private const decimal TwoToThe64AsDecimal = 18446744073709551616m;
+
+        // Reads the one line of a file with a field in place of a constant, and gets the value of the property the constant is mapped to.
+        private static object ReadConstant<TLine>(Func<TLine, object> getValue) where TLine : CsvFileRecordLine, new()
+        {
+            using (var csvReader = new CsvFileReader<TLine>(new StringReader(ConstantLineFile)))
+            {
+                return getValue((TLine)csvReader.ReadLine());
+            }
+        }
+
+        private sealed class IntConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = IntConstant)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class NegativeIntConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = -1)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class IntPastFloatPrecisionLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = IntPastFloatPrecision)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class LongPastDoublePrecisionLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = LongPastDoublePrecision)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class LongMaxValueLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = long.MaxValue)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ULongMaxValueLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = ulong.MaxValue)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TwoToThe63Line<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TwoToThe63)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TwoToThe64Line<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TwoToThe64)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TenthDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TenthDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TenthFloatLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TenthFloat)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SeventeenDigitDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SeventeenDigitDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class WholeDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = WholeDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SixteenDigitWholeDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SixteenDigitWholeDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class FractionalDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = 1.5)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class NaNLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = double.NaN)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class BooleanConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = true)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TextConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = IntConstantText)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private enum ConstantKind
+        {
+            None,
+            Some
         }
 
         private sealed class HandlerLine : CsvFileRecordLine
