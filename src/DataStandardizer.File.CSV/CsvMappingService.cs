@@ -59,6 +59,18 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
+        /// Gets the property key of each mapping, in the order of the positions of the fields they are mapped to.  Mappings at the same position keep
+        /// their mapper order.
+        /// </summary>
+        internal static string[] GetPropertyKeysByPosition(ICsvFileMapper mapper)
+        {
+            return GetFieldPositions(mapper)
+                .OrderBy(item => item.Item2)
+                .Select(item => item.Item1)
+                .ToArray();
+        }
+
+        /// <summary>
         /// Gets the field name of each mapping at the zero-based position of the field it is mapped to.
         /// </summary>
         /// <returns>The field names keyed by position.  A position no mapping is mapped to has no entry.  Where more than one mapping is mapped to a

@@ -1294,7 +1294,7 @@ namespace DataStandardizer.File.CSV
                         isStatic = false;
                     }
 
-                    var accessor = FieldValueAccessor.For(fieldMapping.Value.PropertyType);
+                    var accessor = CsvFieldValueAccessor<TRecordLine>.For(fieldMapping.Value.PropertyType);
                     mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, isSkipped, isPastLastField, isFieldNameTaken, isMissing, accessor));
                 }
 
@@ -1312,7 +1312,7 @@ namespace DataStandardizer.File.CSV
         private sealed class FieldMappingPlan
         {
             internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, bool isSkipped, bool isPastLastField,
-                bool isFieldNameTaken, bool isMissing, FieldValueAccessor accessor)
+                bool isFieldNameTaken, bool isMissing, CsvFieldValueAccessor<TRecordLine> accessor)
             {
                 Mapping = mapping;
                 FieldName = fieldName;
@@ -1331,7 +1331,7 @@ namespace DataStandardizer.File.CSV
             /// <summary>
             /// Gets the accessor that generates and deserializes values of the property type.
             /// </summary>
-            internal FieldValueAccessor Accessor { get; }
+            internal CsvFieldValueAccessor<TRecordLine> Accessor { get; }
 
             /// <summary>
             /// Gets the name of the field the property is mapped to, which the value is read from and the deserialized value is stored in.
