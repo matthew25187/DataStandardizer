@@ -280,8 +280,6 @@ set;
 
         // The net10.0 build is a record, so the compiler gives it value equality and a ToString that lists the properties.  The members below
         // do the same on the other targets, so that options compare, hash and print the same way whatever the target.
-        // The netstandard2.1 EqualityComparer<T> has no nullable annotations, so it warns for the null values it accepts.
-#pragma warning disable CS8604
 
         /// <summary>
         /// Indicates whether two options objects have equal values for every property.
@@ -309,6 +307,8 @@ set;
         public override bool Equals(object obj) => Equals(obj as CsvFileOptions);
 #endif
 
+        // The netstandard2.1 EqualityComparer<T> has no nullable annotations, so it warns for the null values it accepts.
+#pragma warning disable CS8604
         /// <summary>
         /// Indicates whether this options object has the same value as <paramref name="other"/> for every property.
         /// </summary>

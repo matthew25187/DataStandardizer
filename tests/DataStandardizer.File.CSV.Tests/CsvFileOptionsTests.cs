@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using FluentAssertions;
@@ -19,6 +20,18 @@ namespace DataStandardizer.File.CSV.Tests
         /// What <see cref="CsvFileOptions.ToString"/> returns for options with every property at its default.
         /// </summary>
         private const string DefaultOptionsText = "CsvFileOptions { BadValueHandler = , Culture = , EmbeddedLineBreak = , Encoding = , FieldDelimiterCharacter = ,, HeaderHandler = , HeaderHandling = None, InconsistentFieldCountHandler = , QuoteHandling = Required, SuppressTrailingBlankFields = False, TerminatorLineBreak = \r\n }";
+
+        /// <summary>
+        /// What <see cref="CsvFileOptions.ToString"/> returns for options with a value other than the default for each property whose value
+        /// prints the same on every runtime.  The invariant culture prints as an empty name.
+        /// </summary>
+        private const string NonDefaultOptionsText = "CsvFileOptions { BadValueHandler = , Culture = , EmbeddedLineBreak = \n, Encoding = , FieldDelimiterCharacter = ;, HeaderHandler = , HeaderHandling = Use, InconsistentFieldCountHandler = , QuoteHandling = Always, SuppressTrailingBlankFields = True, TerminatorLineBreak = \n }";
+
+        /// <summary>
+        /// The number of public properties that the hand-written <see cref="CsvFileOptions.Equals(CsvFileOptions)"/>, <c>GetHashCode</c> and
+        /// <c>ToString</c> of the .NET Standard builds list.  A property added to the type has to be added to those members too, and here.
+        /// </summary>
+        private const int ComparedPropertyCount = 11;
 
         private static readonly Action FirstHandler = () => { };
         private static readonly Action SecondHandler = () => { };
@@ -115,18 +128,85 @@ namespace DataStandardizer.File.CSV.Tests
             testResult.Should().BeTrue();
         }
 
+        [Theory]
+        [MemberData(nameof(OptionsDifferingInOneProperty))]
+        public void EqualityOperator_OptionsDifferingInOneProperty_ReturnsFalse(CsvFileOptions options, CsvFileOptions other)
+        {
+            // act
+            var testResult = options == other;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
         [Fact]
-        public void GetHashCode_OptionsWithSameValues_ReturnsSameHashCode()
+        public void InequalityOperator_OptionsWithSameValues_ReturnsFalse()
         {
             // arrange
             var options = CreateNonDefaultOptions();
             var other = CreateNonDefaultOptions();
 
             // act
-            var testResult = new[] { options.GetHashCode(), other.GetHashCode() };
+            var testResult = options != other;
 
             // assert
-            testResult[0].Should().Be(testResult[1]);
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualityOperator_NullLeftOperand_ReturnsFalse()
+        {
+            // arrange
+            CsvFileOptions left = null;
+            var right = new CsvFileOptions();
+
+            // act
+            var testResult = left == right;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualityOperator_BothOperandsNull_ReturnsTrue()
+        {
+            // arrange
+            CsvFileOptions left = null;
+            CsvFileOptions right = null;
+
+            // act
+            var testResult = left == right;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Equals_ObjectOfAnotherType_ReturnsFalse()
+        {
+            // arrange
+            var options = new CsvFileOptions();
+            object other = LineFeed;
+
+            // act
+            var testResult = options.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetHashCode_OptionsWithSameValues_HashSetKeepsOne()
+        {
+            // arrange
+            var options = CreateNonDefaultOptions();
+            var other = CreateNonDefaultOptions();
+
+            // act
+            var testResult = new HashSet<CsvFileOptions> { options, other };
+
+            // assert
+            testResult.Should().HaveCount(1);
         }
 
         [Fact]
@@ -140,6 +220,38 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             testResult.Should().Be(DefaultOptionsText);
+        }
+
+        [Fact]
+        public void ToString_NonDefaultOptions_ReturnsEveryPropertyValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                Culture = CultureInfo.InvariantCulture,
+                EmbeddedLineBreak = LineFeed,
+                FieldDelimiterCharacter = Semicolon,
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                QuoteHandling = CsvFieldQuoteHandling.Always,
+                SuppressTrailingBlankFields = true,
+                TerminatorLineBreak = LineFeed,
+            };
+
+            // act
+            var testResult = options.ToString();
+
+            // assert
+            testResult.Should().Be(NonDefaultOptionsText);
+        }
+
+        [Fact]
+        public void GetProperties_CsvFileOptions_ReturnsOnlyThePropertiesEqualityCompares()
+        {
+            // act
+            var testResult = typeof(CsvFileOptions).GetProperties();
+
+            // assert
+            testResult.Should().HaveCount(ComparedPropertyCount);
         }
 
         /// <summary>

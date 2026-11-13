@@ -29,6 +29,12 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private const string AmountContextText = "CsvFieldContext { FieldIndex = 1, FieldName = Amount, HeaderLine = DataStandardizer.File.CSV.CsvFileHeaderLine, Model = DataStandardizer.File.CSV.Tests.CsvFieldContextTests+RejectedFieldLine, Options = CsvFileOptions { BadValueHandler = DataStandardizer.File.CSV.CsvFieldBadValue`1[DataStandardizer.File.CSV.Tests.CsvFieldContextTests+RejectedFieldLine], Culture = , EmbeddedLineBreak = , Encoding = , FieldDelimiterCharacter = ,, HeaderHandler = , HeaderHandling = Use, InconsistentFieldCountHandler = , QuoteHandling = Required, SuppressTrailingBlankFields = False, TerminatorLineBreak = \r\n }, RawFieldValue = abc }";
 
+        /// <summary>
+        /// The number of public properties that the hand-written <c>Equals</c>, <c>GetHashCode</c> and <c>ToString</c> of the .NET Standard
+        /// builds list.  A property added to the type has to be added to those members too, and here.
+        /// </summary>
+        private const int ComparedPropertyCount = 6;
+
         [Fact]
         public void Equals_ContextsForSameField_ReturnsTrue()
         {
@@ -82,16 +88,107 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void GetHashCode_ContextsForSameField_ReturnsSameHashCode()
+        public void EqualityOperator_ContextsForDifferentFields_ReturnsFalse()
+        {
+            // arrange
+            var contexts = ReadRejectedFieldContexts<DifferentFieldRejectingLineMapper>();
+
+            // act
+            var testResult = contexts[0] == contexts[1];
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void InequalityOperator_ContextsForSameField_ReturnsFalse()
         {
             // arrange
             var contexts = ReadRejectedFieldContexts<SameFieldRejectingLineMapper>();
 
             // act
-            var testResult = new[] { contexts[0].GetHashCode(), contexts[1].GetHashCode() };
+            var testResult = contexts[0] != contexts[1];
 
             // assert
-            testResult[0].Should().Be(testResult[1]);
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualityOperator_NullLeftOperand_ReturnsFalse()
+        {
+            // arrange
+            var contexts = ReadRejectedFieldContexts<SameFieldRejectingLineMapper>();
+            CsvFieldContext<RejectedFieldLine> left = null;
+
+            // act
+            var testResult = left == contexts[0];
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_Null_ReturnsFalse()
+        {
+            // arrange
+            var contexts = ReadRejectedFieldContexts<SameFieldRejectingLineMapper>();
+
+            // act
+            var testResult = contexts[0].Equals(null);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_ContextForSameFieldAsObject_ReturnsTrue()
+        {
+            // arrange
+            var contexts = ReadRejectedFieldContexts<SameFieldRejectingLineMapper>();
+            object other = contexts[1];
+
+            // act
+            var testResult = contexts[0].Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Equals_ObjectOfAnotherType_ReturnsFalse()
+        {
+            // arrange
+            var contexts = ReadRejectedFieldContexts<SameFieldRejectingLineMapper>();
+            object other = AmountFieldName;
+
+            // act
+            var testResult = contexts[0].Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetHashCode_ContextsForSameField_HashSetKeepsOne()
+        {
+            // arrange
+            var contexts = ReadRejectedFieldContexts<SameFieldRejectingLineMapper>();
+
+            // act
+            var testResult = new HashSet<CsvFieldContext<RejectedFieldLine>>(contexts);
+
+            // assert
+            testResult.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public void GetProperties_CsvFieldContext_ReturnsOnlyThePropertiesEqualityCompares()
+        {
+            // act
+            var testResult = typeof(CsvFieldContext<RejectedFieldLine>).GetProperties();
+
+            // assert
+            testResult.Should().HaveCount(ComparedPropertyCount);
         }
 
         [Fact]
