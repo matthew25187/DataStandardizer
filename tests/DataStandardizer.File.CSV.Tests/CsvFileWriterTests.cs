@@ -144,6 +144,9 @@ namespace DataStandardizer.File.CSV.Tests
         private const string TwoFieldHeaderAndBlankRecordLines = "One,Two\r\n1,\r\n";
         private const string TwoFieldHeaderAndAllBlankRecordLines = "One,Two\r\n,\r\n";
 
+        // A header line of the field FieldName1, then a record of one blank field, which is a record (RFC 4180§2 ABNF: field = *TEXTDATA).
+        private const string OneFieldHeaderAndBlankRecordLines = "One\r\n\r\n";
+
         // A record line with the value NumberValue for FieldName1 and TextValue for FieldName2, written with no header line.
         private const string TwoFieldRecordLine = "1,Two\r\n";
 
@@ -1369,9 +1372,10 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
             {
                 // act
-                _ = Record.Exception(() => csvWriter.WriteLine(headerLine));
+                Action testAction = () => csvWriter.WriteLine(headerLine);
 
                 // assert
+                testAction.Should().Throw<CsvFileException>();
                 buffer.ToString().Should().BeEmpty();
             }
         }
@@ -1406,9 +1410,10 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
             {
                 // act
-                _ = Record.Exception(() => csvWriter.WriteLine(recordLine));
+                Action testAction = () => csvWriter.WriteLine(recordLine);
 
                 // assert
+                testAction.Should().Throw<CsvFileException>();
                 buffer.ToString().Should().BeEmpty();
             }
         }
@@ -1469,9 +1474,8 @@ namespace DataStandardizer.File.CSV.Tests
             using (var stringWriter = new StringWriter(buffer))
             using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
             {
-                csvWriter.WriteLine(emptyRecordLine);
-
                 // act
+                csvWriter.WriteLine(emptyRecordLine);
                 csvWriter.WriteLine(recordLine);
 
                 // assert
@@ -1500,6 +1504,29 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be(TwoFieldHeaderAndAllBlankRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithNoFieldsAfterOneFieldHeaderLine_WritesRecordOfOneBlankField()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldName1, FieldName1);
+
+            var recordLine = new CsvFileRecordLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(OneFieldHeaderAndBlankRecordLines);
             }
         }
 

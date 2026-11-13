@@ -210,9 +210,10 @@ namespace DataStandardizer.File.CSV
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> is set, it is called for the line, and the line is skipped: nothing is
         /// written for it, and the lines after it are checked against the same field count as before it.
         /// <para>
-        /// A line is never written as an empty line, as a header line and each record have one or more fields (RFC 4180§2¶3-4).  A header line with
+        /// A line with no fields is never written, as a header line and each record have one or more fields (RFC 4180§2¶3-4).  A header line with
         /// no fields throws.  A record line has no fields to write when there's no header line, no mapping and no record line written before it,
-        /// and it has no fields of its own.  It is handled or throws in the same way as a line with a different number of fields.
+        /// and it has no fields of its own.  It is handled or throws in the same way as a line with a different number of fields.  A record line
+        /// with one field whose value is blank is a record, so it is written, as an empty line, and is read back as that record.
         /// </para>
         /// <para>
         /// With a header line, the fields written are those of the header line.  Without one, they are the mapped fields, followed by the fields
