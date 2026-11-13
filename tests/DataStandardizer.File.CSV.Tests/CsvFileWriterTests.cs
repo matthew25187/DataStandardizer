@@ -2324,6 +2324,26 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_RecordLineWithoutConstantAndVariableValueMappedFields_WritesMappedValues()
+        {
+            // arrange
+            var testLine = new ConstantAndVariableLine { Description = FirstDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ConstantAndVariableLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ConstantAndVariableLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("42,Constant,First\r\n");
+            }
+        }
+
+        [Fact]
         public void WriteLine_RecordLinesOfDifferentTypesWithoutRegisteredMapper_WritesEachLineWithItsOwnMapping()
         {
             // arrange

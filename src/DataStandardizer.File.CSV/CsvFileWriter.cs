@@ -371,8 +371,9 @@ namespace DataStandardizer.File.CSV
                     }
                 }
 
-                // If a value has not been set for the current field, add a blank value.
-                if (!hasField)
+                // If a value has not been set for the current field, add a blank value.  A constant or generated value is supplied by the mapping,
+                // so is written whether or not the line holds the field, as it is read.
+                if (!hasField && !field.IsSupplied)
                 {
                     fieldValues[fieldValueCount++] = string.Empty;
                     continue;
@@ -485,7 +486,8 @@ namespace DataStandardizer.File.CSV
                 return fieldValue is null ? null : fieldValue is string stringFieldValue ? stringFieldValue : FormatFieldValue(fieldValue, _options);
             }
 
-            // Get the mapped field value.  The line has a field with the given key, so the value is read by that key.
+            // Get the mapped field value.  A constant or generated value comes from the mapping; any other value is read from the line by the
+            // given key, which the line holds.
             var fieldMapping = field.Mapping.Value;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             object? mappedFieldValue;
@@ -1060,6 +1062,7 @@ namespace DataStandardizer.File.CSV
                 if (IsMapped)
                 {
                     Converter = mapping.Value.ToStringConverter as CsvFieldConvertToString<TRecordLine>;
+                    IsSupplied = mapping.Value.ConstantValue != null || mapping.Value.VariableValueGenerator != null;
                     if (mapping.Value.VariableValueGenerator != null)
                     {
                         Accessor = FieldValueAccessor.For(mapping.Value.PropertyType);
@@ -1095,6 +1098,11 @@ namespace DataStandardizer.File.CSV
             /// Gets a flag indicating if the field has a mapping.
             /// </summary>
             internal bool IsMapped { get; }
+
+            /// <summary>
+            /// Gets a flag indicating if the field's mapping supplies its value, as a constant or generated value, rather than taking it from the line.
+            /// </summary>
+            internal bool IsSupplied { get; }
 
             internal bool IsTypeConverterResolved { get; set; }
 
