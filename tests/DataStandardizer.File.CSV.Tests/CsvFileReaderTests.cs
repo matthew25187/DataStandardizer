@@ -2332,6 +2332,48 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_CallerSuppliedStreamReaderWithEncoding_ReadsCharactersOfItsCharacterSet()
+        {
+            // arrange
+            // "Caf\x00E9" in ISO 8859-1.  The character set is the caller's StreamReader's encoding, which has U+00E9.
+            using (var testStream = new MemoryStream(new byte[] { 0x43, 0x61, 0x66, 0xE9 }))
+            using (var streamReader = new StreamReader(testStream, Encoding.GetEncoding(Latin1CodePage)))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(streamReader))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[0].Should().Be(CafeLatin1Value);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithEncodingLackingCharacter_CallsBadValueHandler()
+        {
+            // arrange
+            // "a[b,c": the encoding, which has no web name, lacks '[', so the field that holds it is a bad value.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                Encoding = new RestrictedAsciiEncoding('['),
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x5B, 0x62, 0x2C, 0x63 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal("a[");
+            }
+        }
+
+        [Fact]
         public void ReadLine_CallerSuppliedReader_ReadsThroughCallerSuppliedReader()
         {
             // arrange

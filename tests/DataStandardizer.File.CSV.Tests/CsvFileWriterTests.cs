@@ -164,7 +164,20 @@ namespace DataStandardizer.File.CSV.Tests
         private const string AsciiGrinningFaceMessage = "The value of the field at index 0 holds U+1F600, which isn't a printable character of the writer's character set, us-ascii, so RFC 4180 doesn't allow it in a field.";
         private const string Latin1EuroSignMessage = "The value of the field at index 0 holds U+20AC, which isn't a printable character of the writer's character set, iso-8859-1, so RFC 4180 doesn't allow it in a field.";
         private const string Latin1GrinningFaceMessage = "The value of the field at index 0 holds U+1F600, which isn't a printable character of the writer's character set, iso-8859-1, so RFC 4180 doesn't allow it in a field.";
+        private const string RestrictedAsciiBracketMessage = "The value of the field at index 0 holds U+005B, which isn't a printable character of the writer's character set, RestrictedAsciiEncoding, so RFC 4180 doesn't allow it in a field.";
+        private const string AsciiSectionSignDelimiterMessage = "The field delimiter U+00A7 isn't a character of the writer's character set, us-ascii.";
+        private const string Latin1LineSeparatorTerminatorMessage = "The terminator line break holds U+2028, which isn't a character of the writer's character set, iso-8859-1.";
+        private const string VerticalTabEmbeddedLineBreakMessage = "The embedded line break holds U+000B, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
         private const string Utf8TabMessage = "The value of the field at index 0 holds U+0009, which isn't a printable character of the writer's character set, utf-8, so RFC 4180 doesn't allow it in a field.";
+
+        // A value with a character that a national variant of ISO 646 without '[' doesn't have, and that character.
+        private const string BracketedValue = "a[b";
+        private const char LeftSquareBracket = '[';
+
+        // Options characters that a character set may not have: SECTION SIGN, LINE SEPARATOR and a vertical tab, a control character.
+        private const char SectionSign = '\x00A7';
+        private const string LineSeparator = "\x2028";
+        private const string VerticalTab = "\x000B";
 
         // A tab delimiter, a value that holds it, and the line it is written as: quoted, as the delimiter takes the place of COMMA (RFC 4180 section 2).
         private const char TabDelimiter = '\x0009';
@@ -2008,6 +2021,74 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueWithCharacterCustomEncodingLacks_ThrowsCsvFileException()
+        {
+            // arrange
+            // The encoding has no web name, and lacks a character of printable US-ASCII, so the writer checks each character against it.
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, BracketedValue);
+
+            var options = new CsvFileOptions { Encoding = new RestrictedAsciiEncoding(LeftSquareBracket) };
+            using (var testStream = new MemoryStream())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(RestrictedAsciiBracketMessage);
+            }
+        }
+
+        public static TheoryData<CsvFileOptions, string> OptionsOutsideCharacterSet => new TheoryData<CsvFileOptions, string>
+        {
+            { new CsvFileOptions { Encoding = Encoding.ASCII, FieldDelimiterCharacter = SectionSign }, AsciiSectionSignDelimiterMessage },
+            { new CsvFileOptions { Encoding = Encoding.GetEncoding(Latin1CodePage), TerminatorLineBreak = LineSeparator }, Latin1LineSeparatorTerminatorMessage },
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsOutsideCharacterSet))]
+        public void WriteLine_OptionsCharacterOutsideCharacterSet_ThrowsInvalidOperationException(CsvFileOptions options, string expectedMessage)
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, NumberValue);
+
+            using (var testStream = new MemoryStream())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_EmbeddedLineBreakWithControlCharacter_ThrowsInvalidOperationException()
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, NumberValue);
+
+            var options = new CsvFileOptions { EmbeddedLineBreak = VerticalTab };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(VerticalTabEmbeddedLineBreakMessage);
             }
         }
 

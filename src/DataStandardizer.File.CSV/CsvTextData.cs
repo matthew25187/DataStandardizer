@@ -23,7 +23,9 @@ namespace DataStandardizer.File.CSV
         private const char FirstPrintableAscii = '\x20';
         private const char LastPrintableAscii = '\x7E';
         private const char LastAscii = '\x7F';
+        private const char FirstC1Control = '\x80';
         private const char LastC1Control = '\x9F';
+        private const int PageSize = 256;
 
         // The name of US-ASCII.
         private const string AsciiWebName = "us-ascii";
@@ -31,17 +33,21 @@ namespace DataStandardizer.File.CSV
         // Names of the encodings whose character set is all of Unicode: UTF-7, UTF-8, UTF-16 and UTF-32, in both byte orders.
         private static readonly string[] UnicodeWebNames = { "utf-7", "utf-8", "utf-16", "utf-16BE", "utf-32", "utf-32BE" };
 
-        private static readonly CsvTextData AsciiTextData = new CsvTextData(CharacterSetKind.Ascii, null);
-        private static readonly CsvTextData UnicodeTextData = new CsvTextData(CharacterSetKind.Unicode, null);
+        private static readonly char[] NoCharacters = new char[0];
+        private static readonly CsvTextData AsciiTextData = new CsvTextData(CharacterSetKind.Ascii, null, AsciiWebName);
+        private static readonly CsvTextData[] UnicodeTextData = CreateUnicodeTextData();
+
+        // A string is UTF-16.
+        private static readonly CsvTextData StringTextData = UnicodeTextData[Array.IndexOf(UnicodeWebNames, "utf-16")];
 
         private readonly CharacterSetKind _kind;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private readonly Encoding? _encoding;
-        private byte[]? _knownCharacters;
 #else
         private readonly Encoding _encoding;
-        private byte[] _knownCharacters;
 #endif
+        private readonly char[] _missingPrintableAscii = NoCharacters;
+        private readonly byte[][] _knownCharacterPages = new byte[(char.MaxValue + 1) / PageSize][];
         private readonly char[] _characterBuffer = new char[2];
         private readonly char[] _decodedBuffer = new char[4];
 
@@ -53,19 +59,33 @@ namespace DataStandardizer.File.CSV
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private CsvTextData(CharacterSetKind kind, Encoding? encoding)
+        private CsvTextData(CharacterSetKind kind, Encoding? encoding, string name)
 #else
-        private CsvTextData(CharacterSetKind kind, Encoding encoding)
+        private CsvTextData(CharacterSetKind kind, Encoding encoding, string name)
 #endif
         {
             _kind = kind;
             _encoding = encoding;
+            Name = name;
+
+            if (kind == CharacterSetKind.Encoded)
+            {
+                // Nearly every character set has all of printable US-ASCII, which lets the searches pass over it without checking each character.
+                // A national variant of ISO 646, such as one without '[' or '@', doesn't, so the characters it lacks are checked like any other.
+                var missingPrintableAscii = new List<char>();
+                for (var character = FirstPrintableAscii; character <= LastPrintableAscii; character++)
+                {
+                    if (!IsEncodable(character, character, 1)) missingPrintableAscii.Add(character);
+                }
+
+                _missingPrintableAscii = missingPrintableAscii.ToArray();
+            }
         }
 
         /// <summary>
-        /// Indicates whether the character set has every character outside US-ASCII other than the control characters, as Unicode does.
+        /// Gets the name of the character set, for messages: the encoding's web name, or its type name if it has none.
         /// </summary>
-        internal bool HasAllNonAscii => _kind == CharacterSetKind.Unicode;
+        internal string Name { get; }
 
         /// <summary>
         /// Gets the field characters of an encoding's character set, or of US-ASCII when there is no encoding.
@@ -76,13 +96,45 @@ namespace DataStandardizer.File.CSV
         internal static CsvTextData ForEncoding(Encoding encoding)
 #endif
         {
-            if (encoding is null || string.Equals(encoding.WebName, AsciiWebName, StringComparison.OrdinalIgnoreCase)) return AsciiTextData;
-            foreach (var unicodeWebName in UnicodeWebNames)
+            if (encoding is null) return AsciiTextData;
+
+            // An encoding of a code page that .NET doesn't know, such as a custom Encoding class, throws for its web name.  Its character set is
+            // found by encoding each character, as for any other encoding that isn't US-ASCII or Unicode.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? webName;
+#else
+            string webName;
+#endif
+            try
             {
-                if (string.Equals(encoding.WebName, unicodeWebName, StringComparison.OrdinalIgnoreCase)) return UnicodeTextData;
+                webName = encoding.WebName;
+            }
+            catch (NotSupportedException)
+            {
+                webName = null;
             }
 
-            return new CsvTextData(CharacterSetKind.Encoded, encoding);
+            if (webName != null)
+            {
+                if (string.Equals(webName, AsciiWebName, StringComparison.OrdinalIgnoreCase)) return AsciiTextData;
+                for (var index = 0; index < UnicodeWebNames.Length; index++)
+                {
+                    if (string.Equals(webName, UnicodeWebNames[index], StringComparison.OrdinalIgnoreCase)) return UnicodeTextData[index];
+                }
+            }
+
+            return new CsvTextData(CharacterSetKind.Encoded, encoding, webName ?? encoding.GetType().Name);
+        }
+
+        private static CsvTextData[] CreateUnicodeTextData()
+        {
+            var textData = new CsvTextData[UnicodeWebNames.Length];
+            for (var index = 0; index < textData.Length; index++)
+            {
+                textData[index] = new CsvTextData(CharacterSetKind.Unicode, null, UnicodeWebNames[index]);
+            }
+
+            return textData;
         }
 
         /// <summary>
@@ -95,7 +147,7 @@ namespace DataStandardizer.File.CSV
         internal static CsvTextData ForReader(TextReader reader)
         {
             if (reader is StreamReader streamReader) return ForEncoding(streamReader.CurrentEncoding);
-            if (reader is StringReader) return UnicodeTextData;
+            if (reader is StringReader) return StringTextData;
 
             return AsciiTextData;
         }
@@ -109,7 +161,11 @@ namespace DataStandardizer.File.CSV
         /// </remarks>
         internal bool IsAllowed(char character)
         {
-            if (character >= FirstPrintableAscii && character <= LastPrintableAscii) return true;
+            if (character >= FirstPrintableAscii && character <= LastPrintableAscii)
+            {
+                return _missingPrintableAscii.Length == 0 || Array.IndexOf(_missingPrintableAscii, character) < 0;
+            }
+
             if (character <= LastC1Control) return false;
 
             switch (_kind)
@@ -139,18 +195,37 @@ namespace DataStandardizer.File.CSV
             }
         }
 
+        /// <summary>
+        /// Indicates whether the character set has a character, printable or not, such as a character of the field delimiter or terminator line
+        /// break, which a writer writes as it is.
+        /// </summary>
+        internal bool IsInCharacterSet(char character)
+        {
+            switch (_kind)
+            {
+                case CharacterSetKind.Unicode:
+                    return !char.IsSurrogate(character);
+                case CharacterSetKind.Encoded:
+                    return !char.IsSurrogate(character) && IsEncodable(character, character, 1);
+                default:
+                    return character <= LastAscii;
+            }
+        }
+
         private bool IsEncodable(char first, char second, int length)
         {
-            // The answer for a single character is kept, so each is encoded at most once.  A surrogate pair's isn't, as there are too many.
-            if (length == 1 && _knownCharacters != null && _knownCharacters[first] != 0) return _knownCharacters[first] == 1;
+            // The answer for a single character is kept, in pages that are only allocated once a character in them is checked, so each character is
+            // encoded at most once.  A surrogate pair's answer isn't kept, as there are too many.
+            var page = length == 1 ? _knownCharacterPages[first / PageSize] : null;
+            if (page != null && page[first % PageSize] != 0) return page[first % PageSize] == 1;
 
             var encoding = _encoding;
             if (encoding is null) return false;
 
-            _characterBuffer[0] = first;
-            _characterBuffer[1] = second;
             // A character the character set doesn't have is encoded as a replacement, such as '?', or a best fit, such as 'A' for U+0100, or it
             // throws, so it doesn't decode back to itself.  Every target can do this, unlike setting an exception fallback.
+            _characterBuffer[0] = first;
+            _characterBuffer[1] = second;
             bool isEncodable;
             try
             {
@@ -169,8 +244,13 @@ namespace DataStandardizer.File.CSV
 
             if (length == 1)
             {
-                if (_knownCharacters is null) _knownCharacters = new byte[char.MaxValue + 1];
-                _knownCharacters[first] = isEncodable ? (byte)1 : (byte)2;
+                if (page is null)
+                {
+                    page = new byte[PageSize];
+                    _knownCharacterPages[first / PageSize] = page;
+                }
+
+                page[first % PageSize] = isEncodable ? (byte)1 : (byte)2;
             }
 
             return isEncodable;
@@ -194,15 +274,17 @@ namespace DataStandardizer.File.CSV
 
 #if !NET8_0_OR_GREATER
         /// <summary>
-        /// Gets the index of the first character that has to be checked, or -1 if there is none: one that isn't printable US-ASCII, unless the
-        /// character set has all of Unicode and it isn't a control character, and isn't one of <paramref name="exemptCharacters"/>.
+        /// Gets the index of the first character that has to be checked, or -1 if there is none: one that isn't printable US-ASCII the character
+        /// set has, unless the character set has all of Unicode and it isn't a control character, and isn't one of <paramref name="exemptCharacters"/>.
         /// </summary>
         internal int IndexOfCharacterToCheck(ReadOnlySpan<char> value, char[] exemptCharacters)
         {
+            var hasAllPrintableAscii = _missingPrintableAscii.Length == 0;
             for (var index = 0; index < value.Length; index++)
             {
                 var character = value[index];
-                if (character >= FirstPrintableAscii && character <= LastPrintableAscii) continue;
+                if (character >= FirstPrintableAscii && character <= LastPrintableAscii
+                    && (hasAllPrintableAscii || Array.IndexOf(_missingPrintableAscii, character) < 0)) continue;
                 if (character > LastC1Control && _kind == CharacterSetKind.Unicode) continue;
                 if (Array.IndexOf(exemptCharacters, character) >= 0) continue;
 
@@ -222,20 +304,29 @@ namespace DataStandardizer.File.CSV
         /// <c>true</c> if the characters returned are those the search passes over, for an <c>IndexOfAnyExcept</c>; <c>false</c> if they are
         /// those it stops at, for an <c>IndexOfAny</c>.
         /// </param>
+        /// <param name="searchC1Separately">
+        /// <c>true</c> if the characters returned leave out the C1 control characters, <c>%x80-9F</c>, which the caller then searches for with
+        /// <c>IndexOfAnyInRange</c> up to where the search stopped.
+        /// </param>
         /// <remarks>
         /// Unless the character set has all of Unicode, every character outside US-ASCII stops the search to be checked, so the set is the
         /// characters passed over, nearly all in US-ASCII.  With all of Unicode, the characters that stop the search are the control characters
-        /// and <paramref name="stopCharacters"/>, so the set is those.
+        /// and <paramref name="stopCharacters"/>.  A set of US-ASCII characters is searched with vector instructions, and one with a character
+        /// above <c>%x7F</c> isn't, so the C1 controls are left out of it and searched for as a range, unless another character of the set is above
+        /// <c>%x7F</c> anyway or one of them is exempt.
         /// </remarks>
-        internal char[] GetSearchCharacters(char[] exemptCharacters, char[] stopCharacters, out bool searchExcept)
+        internal char[] GetSearchCharacters(char[] exemptCharacters, char[] stopCharacters, out bool searchExcept, out bool searchC1Separately)
         {
             var characters = new List<char>();
             searchExcept = _kind != CharacterSetKind.Unicode;
+            searchC1Separately = false;
             if (searchExcept)
             {
                 for (var character = '\0'; character <= LastAscii; character++)
                 {
-                    var isPassedOver = (character >= FirstPrintableAscii && character <= LastPrintableAscii) || Array.IndexOf(exemptCharacters, character) >= 0;
+                    var isPrintable = character >= FirstPrintableAscii && character <= LastPrintableAscii
+                                      && Array.IndexOf(_missingPrintableAscii, character) < 0;
+                    var isPassedOver = isPrintable || Array.IndexOf(exemptCharacters, character) >= 0;
                     if (isPassedOver && Array.IndexOf(stopCharacters, character) < 0) characters.Add(character);
                 }
 
@@ -247,7 +338,21 @@ namespace DataStandardizer.File.CSV
                 return characters.ToArray();
             }
 
-            for (var character = '\0'; character <= LastC1Control; character++)
+            var hasNonAsciiStop = false;
+            foreach (var character in stopCharacters)
+            {
+                if (character > LastAscii) hasNonAsciiStop = true;
+            }
+
+            var hasExemptC1 = false;
+            foreach (var character in exemptCharacters)
+            {
+                if (character >= FirstC1Control && character <= LastC1Control) hasExemptC1 = true;
+            }
+
+            searchC1Separately = !hasNonAsciiStop && !hasExemptC1;
+            var lastControl = searchC1Separately ? LastAscii : LastC1Control;
+            for (var character = '\0'; character <= lastControl; character++)
             {
                 var isControl = character < FirstPrintableAscii || character > LastPrintableAscii;
                 if ((isControl && Array.IndexOf(exemptCharacters, character) < 0) || Array.IndexOf(stopCharacters, character) >= 0) characters.Add(character);
@@ -255,11 +360,16 @@ namespace DataStandardizer.File.CSV
 
             foreach (var character in stopCharacters)
             {
-                if (character > LastC1Control && !characters.Contains(character)) characters.Add(character);
+                if (character > lastControl && !characters.Contains(character)) characters.Add(character);
             }
 
             return characters.ToArray();
         }
+
+        /// <summary>
+        /// Gets the index of the first C1 control character, <c>%x80-9F</c>, in a value, or -1 if there is none.
+        /// </summary>
+        internal static int IndexOfC1Control(ReadOnlySpan<char> value) => value.IndexOfAnyInRange(FirstC1Control, LastC1Control);
 #endif
     }
 }

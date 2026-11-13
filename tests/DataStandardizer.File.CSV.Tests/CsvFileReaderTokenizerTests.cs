@@ -342,7 +342,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const char LatinSmallLetterEWithAcute = '\x00E9';
         private const char CjkUnifiedIdeographOne = '\x4E00';
 
-        // A control character outside US-ASCII (C1), so it needs both kinds of extended character.
+        // A control character outside US-ASCII (C1), which isn't printable in any character set.
         private const char NextLine = '\x0085';
 
         // A character outside the Basic Multilingual Plane, U+1F600, which is a surrogate pair in UTF-16.  The pair is one character, so it is
@@ -1394,7 +1394,7 @@ namespace DataStandardizer.File.CSV.Tests
             template.Replace(',', delimiter).Replace("\n", terminatorAndLineBreak.Key).Replace(LineBreakPlaceholder, terminatorAndLineBreak.Value);
 
         /// <summary>
-        /// Makes one case for each character and its extended characters, row, delimiter, terminator and buffer size, from the input and records of
+        /// Makes one case for each character and its reader, row, delimiter, terminator and buffer size, from the input and records of
         /// each row.  The character takes the place of <see cref="OutsideTextDataPlaceholder"/>.
         /// </summary>
         private static TheoryData<string, char, string, int, TextReaderKind, string[][]> OutsideTextDataRecordCases(
@@ -1423,7 +1423,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Makes one case for each character and its extended characters, row, delimiter, terminator and buffer size, from the input and bad values of
+        /// Makes one case for each character and its reader, row, delimiter, terminator and buffer size, from the input and bad values of
         /// each row.  The character takes the place of <see cref="OutsideTextDataPlaceholder"/>.
         /// </summary>
         private static TheoryData<string, char, string, int, TextReaderKind, BadValue[]> OutsideTextDataBadValueCasesOf(
@@ -1452,7 +1452,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Makes one case for each character and its extended characters, delimiter, terminator and buffer size, from an input.  The character takes
+        /// Makes one case for each character and its reader, delimiter, terminator and buffer size, from an input.  The character takes
         /// the place of <see cref="OutsideTextDataPlaceholder"/>.
         /// </summary>
         private static TheoryData<string, char, string, int, TextReaderKind> OutsideTextDataInputCases(

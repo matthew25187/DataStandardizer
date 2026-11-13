@@ -86,8 +86,10 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
         private SearchValues<char>? _quotedStopCharacters;
         private bool _quotedStopExcept;
+        private bool _quotedStopC1Separately;
         private SearchValues<char>? _unquotedStopCharacters;
         private bool _unquotedStopExcept;
+        private bool _unquotedStopC1Separately;
         private char _stopDelimiter;
         private CsvTextData? _stopTextData;
         private string _stopTerminator = string.Empty;
@@ -853,8 +855,10 @@ namespace DataStandardizer.File.CSV
             UpdateStopCharacters(fieldDelimiter, terminator, textData);
             var quotedStopCharacters = _quotedStopCharacters!;
             var quotedStopExcept = _quotedStopExcept;
+            var quotedStopC1Separately = _quotedStopC1Separately;
             var unquotedStopCharacters = _unquotedStopCharacters!;
             var unquotedStopExcept = _unquotedStopExcept;
+            var unquotedStopC1Separately = _unquotedStopC1Separately;
 #else
             var quotedExemptCharacters = GetQuotedExemptCharacters(fieldDelimiter, terminator);
 #endif
@@ -871,6 +875,11 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
                     var quotedUnread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var quoteIndex = quotedStopExcept ? quotedUnread.IndexOfAnyExcept(quotedStopCharacters) : quotedUnread.IndexOfAny(quotedStopCharacters);
+                    if (quotedStopC1Separately)
+                    {
+                        var c1Index = CsvTextData.IndexOfC1Control(quoteIndex < 0 ? quotedUnread : quotedUnread.Slice(0, quoteIndex));
+                        if (c1Index >= 0) quoteIndex = c1Index;
+                    }
 #else
                     var quotedUnread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var quoteIndex = quotedUnread.IndexOf(QuoteCharacter);
@@ -954,6 +963,11 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
                     var unread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var stopIndex = unquotedStopExcept ? unread.IndexOfAnyExcept(unquotedStopCharacters) : unread.IndexOfAny(unquotedStopCharacters);
+                    if (unquotedStopC1Separately)
+                    {
+                        var c1Index = CsvTextData.IndexOfC1Control(stopIndex < 0 ? unread : unread.Slice(0, stopIndex));
+                        if (c1Index >= 0) stopIndex = c1Index;
+                    }
 #else
                     // Without SearchValues, an IndexOfAny of more than three values searches once for each value, so search for the three that end
                     // the field first, then for a line break, then for a character outside TEXTDATA, each only up to where the search before it
@@ -1243,10 +1257,10 @@ namespace DataStandardizer.File.CSV
             }
 
             var unquotedCharacters = textData.GetSearchCharacters(NoCharacters,
-                [fieldDelimiter, QuoteCharacter, terminator[0], CarriageReturn, LineFeed], out _unquotedStopExcept);
+                [fieldDelimiter, QuoteCharacter, terminator[0], CarriageReturn, LineFeed], out _unquotedStopExcept, out _unquotedStopC1Separately);
             _unquotedStopCharacters = SearchValues.Create(unquotedCharacters);
             var quotedCharacters = textData.GetSearchCharacters(CsvTextData.GetEscapedFieldCharacters(fieldDelimiter, terminator),
-                [QuoteCharacter], out _quotedStopExcept);
+                [QuoteCharacter], out _quotedStopExcept, out _quotedStopC1Separately);
             _quotedStopCharacters = SearchValues.Create(quotedCharacters);
             _stopDelimiter = fieldDelimiter;
             _stopTextData = textData;
