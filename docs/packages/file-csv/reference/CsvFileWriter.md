@@ -54,18 +54,23 @@ throws `CsvFileException`, nothing from that line is written, and the lines afte
 are written as if it had never been passed to `WriteLine`.
 
 **Handled lines.** When a record line's field count differs from the previous record
-line's and `InconsistentFieldCountHandler` is set, the handler is called and the line
-is skipped. Nothing is written for it, and the lines after it are checked against the
+line's, or the line has a field that isn't one of the fields written, and
+`InconsistentFieldCountHandler` is set, the handler is called and the line is skipped. Nothing is written for it, and the lines after it are checked against the
 same field count as before it. The reader skips a handled line in the same way.
 
-**Fields without a header line.** Without a header line or a mapper, the fields
-written are those of the first record line written. A later record line with a field
-that isn't one of them is inconsistent with the lines before it, even if it has as
-many fields, so it is handled or throws `CsvFileException` rather than being written
-without that field. When the line has as many fields as the lines before it, the
-exception's message names the field, and its `Data` holds the name under `FieldName`
-and the field count under `ExpectedFieldCount`. A later
-record line that lacks one of them is written with a blank value for it.
+**Fields written.** With a header line, the fields written are those of the header
+line. Without one, they are the mapped fields, followed by the fields of the first
+record line written that no mapping covers, in the order they're on that line. Without
+a mapper either, they are the fields of the first record line written.
+
+A record line with a field that isn't one of the fields written is inconsistent, even
+if it has as many fields, so it is handled or throws `CsvFileException` rather than
+being written without that field. When the line has as many fields as the fields
+written, the exception's message names the field, and its `Data` holds the name under
+`FieldName` and the field count under `ExpectedFieldCount`. A field whose value is
+`null` or empty loses nothing, so it doesn't make the line inconsistent, and neither
+does a field whose value a mapping's constant or generator supplies. A record line
+that lacks one of the fields written is written with a blank value for it.
 
 ## Constructors
 
@@ -85,7 +90,7 @@ record line that lacks one of them is written with a blank value for it.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name, or on an inconsistent field count when no `InconsistentFieldCountHandler` is set, or `ObjectDisposedException` after `Dispose`. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name, or on an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

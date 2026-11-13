@@ -135,7 +135,8 @@ field names.
 **Default:** `null`
 
 A handler can be specified that will be called when there is an inconsistent
-number of fields across multiple lines. The line it is called for is skipped: a
+number of fields across multiple lines, or when a line to be written has a field
+that isn't one of the fields written. The line it is called for is skipped: a
 reader doesn't return it, and a writer writes nothing for it. Without a handler, an
 inconsistent field count throws `CsvFileException`.
 
@@ -173,7 +174,8 @@ off by default.
 
 A field is blank when the text written for it is empty; whitespace is not blank.
 Trailing fields are the last ones in the order the line is written: header line
-order, else mapper order, else the order of the first record line. A record line
+order, else mapper order followed by the unmapped fields of the first record line,
+else the order of the first record line. A record line
 whose fields are all blank is still written with all of them.
 
 ```csharp
