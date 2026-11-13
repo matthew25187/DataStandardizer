@@ -61,17 +61,42 @@ namespace DataStandardizer.File.CSV
             convertedValue = null;
             if (IsNumberType(targetType))
             {
-                if (constantValue is sbyte sbyteValue) convertedValue = FromInt64(sbyteValue, targetType);
-                else if (constantValue is short shortValue) convertedValue = FromInt64(shortValue, targetType);
-                else if (constantValue is int intValue) convertedValue = FromInt64(intValue, targetType);
-                else if (constantValue is long longValue) convertedValue = FromInt64(longValue, targetType);
-                else if (constantValue is byte byteValue) convertedValue = FromInt64(byteValue, targetType);
-                else if (constantValue is ushort ushortValue) convertedValue = FromInt64(ushortValue, targetType);
-                else if (constantValue is uint uintValue) convertedValue = FromInt64(uintValue, targetType);
-                else if (constantValue is ulong ulongValue) convertedValue = FromUInt64(ulongValue, targetType);
-                else if (constantValue is float floatValue) convertedValue = FromFloat(floatValue, targetType);
-                else if (constantValue is double doubleValue) convertedValue = FromDouble(doubleValue, targetType);
-                else if (constantValue is decimal decimalValue) convertedValue = FromDecimal(decimalValue, targetType);
+                switch (constantValue)
+                {
+                    case sbyte sbyteValue:
+                        convertedValue = FromInt64(sbyteValue, targetType);
+                        break;
+                    case short shortValue:
+                        convertedValue = FromInt64(shortValue, targetType);
+                        break;
+                    case int intValue:
+                        convertedValue = FromInt64(intValue, targetType);
+                        break;
+                    case long longValue:
+                        convertedValue = FromInt64(longValue, targetType);
+                        break;
+                    case byte byteValue:
+                        convertedValue = FromInt64(byteValue, targetType);
+                        break;
+                    case ushort ushortValue:
+                        convertedValue = FromInt64(ushortValue, targetType);
+                        break;
+                    case uint uintValue:
+                        convertedValue = FromInt64(uintValue, targetType);
+                        break;
+                    case ulong ulongValue:
+                        convertedValue = FromUInt64(ulongValue, targetType);
+                        break;
+                    case float floatValue:
+                        convertedValue = FromFloat(floatValue, targetType);
+                        break;
+                    case double doubleValue:
+                        convertedValue = FromDouble(doubleValue, targetType);
+                        break;
+                    case decimal decimalValue:
+                        convertedValue = FromDecimal(decimalValue, targetType);
+                        break;
+                }
             }
 
             return convertedValue != null;
