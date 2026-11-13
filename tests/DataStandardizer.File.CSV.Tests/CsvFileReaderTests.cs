@@ -126,6 +126,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedRecordFile = "5,bob";
         private const string TwoRenamedRecordsWithHeaderFile = "person_id,person_name\r\n5,bob\r\n6,amy";
         private const string RenamedIdHeaderFile = "person_id\r\n5";
+        private const string KeyedIdHeaderFile = "pid\r\n5";
 
         // A file with a column named like the property key that another field is mapped to.
         private const string CompanyName = "Acme";
@@ -2224,6 +2225,24 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_BuilderMapperMapsPropertyWithCsvFieldAttribute_PropertyReturnsValueOfFieldWithAttributeName()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<KeyedBuilderLine>(new StringReader(KeyedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<UnrenamedKeyedBuilderLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as KeyedBuilderLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+            }
+        }
+
+        [Fact]
         public void ReadLine_SecondLineWithRenamedHeaderField_PropertiesReturnFieldValues()
         {
             // arrange
@@ -2866,6 +2885,18 @@ namespace DataStandardizer.File.CSV.Tests
             public KeyedBuilderLineMapper()
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps the property of <see cref="KeyedBuilderLine"/> without naming a field, so it maps to the field named by its
+        /// <see cref="CsvFieldAttribute"/>.
+        /// </summary>
+        private sealed class UnrenamedKeyedBuilderLineMapper : CsvFileMapperBase<KeyedBuilderLine>
+        {
+            public UnrenamedKeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id);
             }
         }
 

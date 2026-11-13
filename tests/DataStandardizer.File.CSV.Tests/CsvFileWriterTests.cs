@@ -109,6 +109,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const int ChangedId = 6;
         private const string ChangedRecordLine = "6,bob\r\n";
         private const string RenamedIdLine = "5\r\n";
+        private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
 
         /// <summary>
@@ -2341,6 +2342,30 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_BuilderMapperMapsPropertyWithCsvFieldAttributeAfterHeaderLine_WritesPropertyValue()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(PersonKeyFieldName, PersonKeyFieldName);
+
+            var recordLine = new KeyedBuilderLine { Id = RenamedId };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<KeyedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<UnrenamedKeyedBuilderLineMapper>();
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(recordLine);
+
+                // assert
+                buffer.ToString().Should().Be(KeyedIdHeaderAndRecordLines);
+            }
+        }
+
+        [Fact]
         public void WriteLine_MapperRegisteredAfterFirstLine_WritesLaterLinesInOrderByMapping()
         {
             // arrange
@@ -3111,6 +3136,18 @@ namespace DataStandardizer.File.CSV.Tests
             public KeyedBuilderLineMapper()
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps the property of <see cref="KeyedBuilderLine"/> without naming a field, so it maps to the field named by its
+        /// <see cref="CsvFieldAttribute"/>.
+        /// </summary>
+        private sealed class UnrenamedKeyedBuilderLineMapper : CsvFileMapperBase<KeyedBuilderLine>
+        {
+            public UnrenamedKeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id);
             }
         }
 
