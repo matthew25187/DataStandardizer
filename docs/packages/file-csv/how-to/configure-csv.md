@@ -106,8 +106,8 @@ var options = new CsvFileOptions { FieldDelimiterCharacter = ';' };
 
 **Default:** `null`
 
-You can intercept the processing of a header line to specify your own list of
-field names.
+You can supply your own list of field names for a file whose header line isn't
+used.
 
 ```csharp
 IReadOnlyList<string> HandleHeaderLine(CsvFileHeaderLine? line)
@@ -122,10 +122,12 @@ The handler must be a `CsvFileHeader` delegate. A delegate of any other type, ev
 one with the same signature, makes the reader constructor throw
 `ArgumentException`. A writer never calls this handler and doesn't check it.
 
-If this handler is specified and the file has a header line, this handler will
-be called one time and passed the header line so a custom list of field names
-can be returned. The list returned from this handler will override the field
-names obtained from the header line.
+The reader calls this handler only when there is no header line to take field
+names from: when [header handling](#header-handling) is `None` or `Ignore`. It
+calls it one time, as it reads the first record, and passes `null`. The list it
+returns gives the field names of every record, in order. When header handling is
+`Use`, the field names come from the file's header line and the handler is never
+called.
 
 ## Header handling
 

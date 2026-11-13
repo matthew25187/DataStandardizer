@@ -263,6 +263,56 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegate_CallsHeaderDelegateOnceWithoutHeaderLine()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { IdFieldName, NameFieldName, DescriptionFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ThreeRecordsWithHeaderFile), options))
+            {
+
+                // act
+                var firstRecordLine = csvReader.ReadLine();
+                var secondRecordLine = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle().Which.Should().BeNull();
+                firstRecordLine[NameFieldName].Should().Be(FirstName);
+                secondRecordLine[NameFieldName].Should().Be(SecondName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_TakesFieldNamesFromHeaderLineWithoutCallingHeaderDelegate()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { IdFieldName, NameFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                var headerLine = csvReader.ReadLine();
+                var recordLine = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().BeEmpty();
+                headerLine.Should().BeOfType<CsvFileHeaderLine>();
+                recordLine[PersonNameFieldName].Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
         public void ReadLine_RecordLineWithQuotedValues_ReturnsRecordLine()
         {
             // arrange
