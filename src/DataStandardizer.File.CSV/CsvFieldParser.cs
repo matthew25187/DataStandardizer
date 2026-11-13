@@ -18,8 +18,10 @@ namespace DataStandardizer.File.CSV
     /// <item><description>The integer and floating-point types, <see cref="decimal"/>, <see cref="bool"/>, <see cref="char"/>, <see cref="DateTime"/>,
     /// <see cref="DateTimeOffset"/>, <see cref="TimeSpan"/> and <see cref="Guid"/>, with the number and date styles their
     /// <c>IParsable&lt;TSelf&gt;</c> implementations use on .NET 7 and later, except that a <see cref="DateTime"/> keeps the
-    /// <see cref="DateTime.Kind"/> its value is written with (<see cref="DateTimeStyles.RoundtripKind"/>), so that a UTC time ending in <c>Z</c>
-    /// reads as that UTC time and not as the machine's local time.</description></item>
+    /// <see cref="DateTime.Kind"/> its value is written with (<see cref="DateTimeStyles.RoundtripKind"/>), so that a UTC time ending in <c>Z</c> or
+    /// <c>GMT</c> reads as that UTC time and not as the machine's local time.  On .NET 6 and later, a <c>DateOnly</c> is read with the round-trip
+    /// pattern (<c>"o"</c>) before the culture, so that a date a writer wrote reads back as the same date in a culture whose calendar isn't the
+    /// Gregorian calendar.</description></item>
     /// <item><description>Enumerations, with <see cref="Enum.TryParse{TEnum}(string, bool, out TEnum)"/>, case-sensitive.</description></item>
     /// <item><description>On .NET 7 and later, any other type that implements <c>ISpanParsable&lt;TSelf&gt;</c> or <c>IParsable&lt;TSelf&gt;</c>.</description></item>
     /// <item><description>The <see cref="TypeConverter"/> that <see cref="TypeDescriptor.GetConverter(Type)"/> gives for the type, if it converts from
@@ -34,6 +36,9 @@ namespace DataStandardizer.File.CSV
         private const NumberStyles IntegerStyles = NumberStyles.Integer;
         private const NumberStyles FloatingPointStyles = NumberStyles.Float | NumberStyles.AllowThousands;
         private const NumberStyles DecimalStyles = NumberStyles.Number;
+#if NET6_0_OR_GREATER
+        private const string RoundTripFormat = "o";
+#endif
 
         /// <summary>
         /// Gets the parser of a type, or <c>null</c> if the type has none.
@@ -120,6 +125,13 @@ namespace DataStandardizer.File.CSV
             if (type == typeof(DateTimeOffset)) return new DelegateParser<DateTimeOffset>((string value, CultureInfo culture, out DateTimeOffset result) => DateTimeOffset.TryParse(value, culture, DateTimeStyles.None, out result));
             if (type == typeof(TimeSpan)) return new DelegateParser<TimeSpan>((string value, CultureInfo culture, out TimeSpan result) => TimeSpan.TryParse(value, culture, out result));
             if (type == typeof(Guid)) return new DelegateParser<Guid>((string value, CultureInfo culture, out Guid result) => Guid.TryParse(value, out result));
+#if NET6_0_OR_GREATER
+            // A writer writes a DateOnly with the round-trip pattern, which is always in the Gregorian calendar.  Parsed with a culture whose calendar
+            // isn't Gregorian, such as th-TH, the same text would be a date in that calendar.
+            if (type == typeof(DateOnly)) return new DelegateParser<DateOnly>((string value, CultureInfo culture, out DateOnly result) =>
+                DateOnly.TryParseExact(value, RoundTripFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out result)
+                || DateOnly.TryParse(value, culture, DateTimeStyles.None, out result));
+#endif
 
             return null;
         }

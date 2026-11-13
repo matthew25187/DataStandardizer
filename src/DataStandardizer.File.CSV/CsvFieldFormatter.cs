@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 #if !NETCOREAPP3_0_OR_GREATER
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 #endif
@@ -67,6 +68,7 @@ namespace DataStandardizer.File.CSV
 #if NETCOREAPP3_0_OR_GREATER
             return value.ToString("R", numberFormat);
 #else
+            if (IsRuntimeRoundTripFormatShortest) return value.ToString("R", numberFormat);
             if (double.IsNaN(value)) return numberFormat.NaNSymbol;
             if (double.IsPositiveInfinity(value)) return numberFormat.PositiveInfinitySymbol;
             if (double.IsNegativeInfinity(value)) return numberFormat.NegativeInfinitySymbol;
@@ -85,6 +87,7 @@ namespace DataStandardizer.File.CSV
 #if NETCOREAPP3_0_OR_GREATER
             return value.ToString("R", numberFormat);
 #else
+            if (IsRuntimeRoundTripFormatShortest) return value.ToString("R", numberFormat);
             if (float.IsNaN(value)) return numberFormat.NaNSymbol;
             if (float.IsPositiveInfinity(value)) return numberFormat.PositiveInfinitySymbol;
             if (float.IsNegativeInfinity(value)) return numberFormat.NegativeInfinitySymbol;
@@ -96,6 +99,19 @@ namespace DataStandardizer.File.CSV
         }
 
 #if !NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Whether the runtime's <c>"R"</c> writes the digits and layout <see cref="FormatShortest"/> does, as it does on .NET Core 3.0 and later,
+        /// so that a .NET Standard build running there can use it, which is many times faster.  It is checked with values that .NET Framework's
+        /// <c>"R"</c> writes otherwise: with too few digits to read back, with too many, or in scientific notation.
+        /// </summary>
+        private static readonly bool IsRuntimeRoundTripFormatShortest =
+            string.Equals(901.7426589977661.ToString("R", CultureInfo.InvariantCulture), "901.7426589977661", StringComparison.Ordinal)
+            && string.Equals(double.Epsilon.ToString("R", CultureInfo.InvariantCulture), "5E-324", StringComparison.Ordinal)
+            && string.Equals(1E+16.ToString("R", CultureInfo.InvariantCulture), "10000000000000000", StringComparison.Ordinal)
+            && string.Equals(0.1f.ToString("R", CultureInfo.InvariantCulture), "0.1", StringComparison.Ordinal)
+            && string.Equals(0.90000004f.ToString("R", CultureInfo.InvariantCulture), "0.90000004", StringComparison.Ordinal)
+            && string.Equals(1E+8f.ToString("R", CultureInfo.InvariantCulture), "100000000", StringComparison.Ordinal);
+
         // The IEEE 754 binary64 and binary32 layouts, and the most significant digits "R" writes before it switches to scientific notation.
         private const int DoubleFractionBits = 52;
         private const ulong DoubleFractionMask = (1UL << DoubleFractionBits) - 1;
@@ -226,21 +242,10 @@ namespace DataStandardizer.File.CSV
                     break;
                 }
 
-                // Round up, carrying into the digits before a 9.
-                digit++;
-                while (digit == 10 && digits.Length > 0)
-                {
-                    digit = digits[digits.Length - 1] - '0' + 1;
-                    digits.Length--;
-                }
-
-                if (digit == 10)
-                {
-                    digit = 1;
-                    decimalExponent++;
-                }
-
-                digits.Append((char)('0' + digit));
+                // A digit of 9 is never rounded up: the bound above it would have been reached at the digit before, or, for the first digit,
+                // the scaling above would have taken the next power of 10.
+                Debug.Assert(digit < 9, "A digit of 9 is never rounded up.");
+                digits.Append((char)('0' + digit + 1));
                 break;
             }
 

@@ -1,4 +1,6 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.Globalization;
+using System.IO;
 using System.Text;
 using FluentAssertions;
 
@@ -189,5 +191,37 @@ public class CsvFileReaderTests
 
     private sealed class HandlerLine : CsvFileRecordLine
     {
+    }
+
+    // 2 January 2024 in the round-trip pattern ("o"), as a writer writes a DateOnly.
+    private const string RoundTripDateText = "2024-01-02";
+
+    // Cultures whose default calendar isn't the Gregorian calendar: Thai Buddhist, Persian and Um Al Qura.  They come from the operating system's
+    // culture data, which is why these tests are integration tests.
+    [Theory]
+    [InlineData("th-TH")]
+    [InlineData("fa-IR")]
+    [InlineData("ar-SA")]
+    public void ReadLine_RoundTripDateWithNonGregorianCulture_ReadsGregorianDate(string cultureName)
+    {
+        // arrange
+        var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, Culture = new CultureInfo(cultureName) };
+        using var csvReader = new CsvFileReader<DateOnlyLine>(new StringReader(RoundTripDateText), options);
+
+        // act
+        var testResult = (DateOnlyLine)csvReader.ReadLine()!;
+
+        // assert
+        testResult.Value.Should().Be(new DateOnly(2024, 1, 2));
+    }
+
+    private sealed class DateOnlyLine : CsvFileRecordLine
+    {
+        [CsvFieldMapping(0)]
+        public DateOnly Value
+        {
+            get => GetPropertyValue<DateOnly>();
+            set => SetPropertyValue(value);
+        }
     }
 }

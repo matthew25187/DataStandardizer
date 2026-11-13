@@ -1986,6 +1986,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string UtcTimeWithMillisecondsText = "2024-01-02T03:04:05.6780000Z";
 
         /// <summary>
+        /// A line holding only <see cref="UtcTimeWithMillisecondsText"/>.
+        /// </summary>
+        private const string UtcTimeWithMillisecondsLine = "2024-01-02T03:04:05.6780000Z\r\n";
+
+        /// <summary>
         /// The double nearest to 0.1 + 0.2, which needs 17 significant digits to read back as the same value.  .NET Framework's <c>"R"</c> and
         /// general format write it as <c>0.3</c>.
         /// </summary>
@@ -2001,6 +2006,11 @@ namespace DataStandardizer.File.CSV.Tests
         /// (<c>901.742658997766</c>), a different double.
         /// </summary>
         private const double SixteenDigitDouble = 901.7426589977661;
+
+        /// <summary>
+        /// A float that needs 8 significant digits to read back as the same value: 0.9000000 is a different float.
+        /// </summary>
+        private const float EightDigitFloat = 0.90000004f;
 
         public static TheoryData<string, Func<string>, string> UnconvertedValueTextCases => new TheoryData<string, Func<string>, string>
         {
@@ -2027,7 +2037,7 @@ namespace DataStandardizer.File.CSV.Tests
             { "double, positive infinity", () => WriteValue(double.PositiveInfinity), "Infinity" },
             { "double, negative infinity", () => WriteValue(double.NegativeInfinity), "-Infinity" },
             { "float, one digit", () => WriteValue(0.1f), "0.1" },
-            { "float, needs 8 digits", () => WriteValue(0.90000004f), "0.90000004" },
+            { "float, needs 8 digits", () => WriteValue(EightDigitFloat), "0.90000004" },
             { "float, whole number of 9 digits", () => WriteValue(1E+8f), "100000000" },
             { "float, whole number of 10 digits", () => WriteValue(1E+9f), "1E+09" },
             { "float, largest", () => WriteValue(float.MaxValue), "3.4028235E+38" },
@@ -2088,7 +2098,7 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testLine);
 
                 // assert
-                buffer.ToString().Should().Be(UtcTimeWithMillisecondsText + "\r\n");
+                buffer.ToString().Should().Be(UtcTimeWithMillisecondsLine);
             }
         }
 
@@ -2097,7 +2107,7 @@ namespace DataStandardizer.File.CSV.Tests
             { "DateTime", () => WriteAndReadBack(UtcTimeWithMilliseconds), UtcTimeWithMilliseconds },
             { "double", () => WriteAndReadBack(SumOfOneTenthAndTwoTenths), SumOfOneTenthAndTwoTenths },
             { "double, needs 16 digits", () => WriteAndReadBack(SixteenDigitDouble), SixteenDigitDouble },
-            { "float", () => WriteAndReadBack(0.90000004f), 0.90000004f },
+            { "float", () => WriteAndReadBack(EightDigitFloat), EightDigitFloat },
         };
 
         [Theory]
@@ -2638,22 +2648,22 @@ namespace DataStandardizer.File.CSV.Tests
             return buffer.ToString(0, buffer.Length - "\r\n".Length);
         }
 
-        // Lines written and read back without a header line, so that the only field is the value.
-        private static readonly CsvFileOptions RoundTripOptions = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
-
         /// <summary>
         /// Writes a value as the only field of a line without a converter, and reads the line back into a property of the value's type.
         /// </summary>
         private static object WriteAndReadBack<T>(T value)
         {
+            // Written and read back without a header line, so that the only field is the value.
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+
             var buffer = new StringBuilder();
             using (var stringWriter = new StringWriter(buffer))
-            using (var csvWriter = new CsvFileWriter<RoundTripLine<T>>(stringWriter, RoundTripOptions))
+            using (var csvWriter = new CsvFileWriter<RoundTripLine<T>>(stringWriter, options))
             {
                 csvWriter.WriteLine(new RoundTripLine<T> { Value = value });
             }
 
-            using (var csvReader = new CsvFileReader<RoundTripLine<T>>(new StringReader(buffer.ToString()), RoundTripOptions))
+            using (var csvReader = new CsvFileReader<RoundTripLine<T>>(new StringReader(buffer.ToString()), options))
             {
                 return ((RoundTripLine<T>)csvReader.ReadLine()).Value;
             }

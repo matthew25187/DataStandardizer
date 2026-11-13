@@ -205,12 +205,13 @@ on every target:
 | `DateTime` | `TryParse` with `DateTimeStyles.RoundtripKind` |
 | `DateTimeOffset` | `TryParse` with `DateTimeStyles.None` |
 | `TimeSpan` | `TryParse` |
+| `DateOnly`, on `net10.0` | `TryParseExact` with the round-trip pattern `"o"`, which is always in the Gregorian calendar, then `TryParse` |
 | `bool`, `char`, `Guid` | `TryParse`, which doesn't depend on the culture |
 | An enum | `Enum.TryParse`, case-sensitive: a member name, a comma-separated list of names, or a number, which needn't be a defined value. |
 
 These are the styles the types' own `IParsable<T>` implementations use on .NET 7
 and later, except that a `DateTime` keeps the `Kind` it's written with: a time
-ending in `Z` reads as that UTC time, not as the machine's local time. On the
+ending in `Z` or `GMT` reads as that UTC time, not as the machine's local time. On the
 `net10.0` build, any other type that implements
 `ISpanParsable<T>` or `IParsable<T>` is parsed with it. On every build, a type
 that has none of these is parsed with the `TypeConverter` that
