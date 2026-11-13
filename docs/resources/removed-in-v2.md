@@ -735,8 +735,10 @@ public int Id
 }
 ```
 
-When the bad-value handler is called for a mapped field, the line now holds the
-default value of the property type for the field once the handler returns, so the
-property still reads as its default value. The field keeps its value if it is a
-value of the property type: its text, for a `string` property, or a value the
-handler set on the line. In version 1.x, the line kept the field's text.
+The same applies to a line you build yourself: a value of another type set
+through the indexer or `Add`, such as a `long` for an `int` property, now throws
+rather than reading as `0`.
+
+A mapped field whose value the bad-value handler was called for still reads as
+the default value of the property type, as in version 1.x, and the line still
+holds the field's text.

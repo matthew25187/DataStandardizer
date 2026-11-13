@@ -89,6 +89,35 @@ namespace DataStandardizer.File.CSV
         private Dictionary<string, string> _mappedFieldNames;
 #endif
 
+        // The names of the fields whose values the reader called the bad-value handler for, or null if there are none.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private HashSet<string>? _badValueFieldNames;
+#else
+        private HashSet<string> _badValueFieldNames;
+#endif
+
+        /// <summary>
+        /// Records that the reader called the bad-value handler for a field's value, so a property of another type than the value reads as its
+        /// default value instead of throwing.  The field keeps its value, so a line read and then written gives back the field's text.
+        /// </summary>
+        internal void MarkBadValueField(string fieldName)
+        {
+            if (_badValueFieldNames is null)
+            {
+                _badValueFieldNames = new HashSet<string>(StringComparer.Ordinal);
+            }
+
+            _badValueFieldNames.Add(fieldName);
+        }
+
+        /// <summary>
+        /// Gets whether the reader called the bad-value handler for a field's value.
+        /// </summary>
+        private protected bool IsBadValueField(string fieldName)
+        {
+            return _badValueFieldNames != null && _badValueFieldNames.Contains(fieldName);
+        }
+
         /// <summary>
         /// Sets the field names that the line's properties are mapped to, so a property mapped to a field with another name
         /// reads and writes that field.  Set by the reader, and by <see cref="CsvExtensions.ToCsvLine"/>, from their mapper.

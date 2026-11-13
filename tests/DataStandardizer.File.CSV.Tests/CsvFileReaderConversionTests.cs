@@ -264,7 +264,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MalformedValueWithBadValueHandler_LineHoldsDefaultValue()
+        public void ReadLine_MalformedValueWithBadValueHandler_LineKeepsFieldText()
         {
             // arrange
             var options = new CsvFileOptions
@@ -275,10 +275,10 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvReader = new CsvFileReader<ValueLine<int>>(new StringReader(MalformedInteger), options))
             {
                 // act
-                ICsvFileLine testResult = csvReader.ReadLine();
+                var testResult = ((ICsvFileLine)csvReader.ReadLine())[ValuePropertyName];
 
                 // assert
-                testResult[ValuePropertyName].Should().Be(0);
+                testResult.Should().Be(MalformedInteger);
             }
         }
 
@@ -314,10 +314,10 @@ namespace DataStandardizer.File.CSV.Tests
                 _ = csvReader.ReadLine();
 
                 // act
-                var testResult = (RejectedAmountLine)csvReader.ReadLine();
+                var testResult = ((RejectedAmountLine)csvReader.ReadLine()).Amount;
 
                 // assert
-                testResult.Amount.Should().Be(0);
+                testResult.Should().Be(0);
             }
         }
 

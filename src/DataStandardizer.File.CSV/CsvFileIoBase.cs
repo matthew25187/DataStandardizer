@@ -228,12 +228,6 @@ namespace DataStandardizer.File.CSV
                 string fieldName, int? fieldIndex, object? fieldValue, out object? value, out Exception? error);
 
             internal abstract object? Generate(Delegate generator);
-
-            /// <summary>
-            /// Gets the value a line holds for a mapped field whose value the bad-value handler was called for: the field's value if the property
-            /// can hold it, otherwise the default value of the property type, so the property reads as its default value.
-            /// </summary>
-            internal abstract object? GetValueAfterBadValue(object? fieldValue);
 #else
             /// <summary>
             /// Converts a mapped field value to the property type.
@@ -249,13 +243,6 @@ namespace DataStandardizer.File.CSV
 
             [return: MaybeNull]
             internal abstract object Generate([DisallowNull] Delegate generator);
-
-            /// <summary>
-            /// Gets the value a line holds for a mapped field whose value the bad-value handler was called for: the field's value if the property
-            /// can hold it, otherwise the default value of the property type, so the property reads as its default value.
-            /// </summary>
-            [return: MaybeNull]
-            internal abstract object GetValueAfterBadValue([AllowNull] object fieldValue);
 #endif
         }
 
@@ -426,20 +413,10 @@ namespace DataStandardizer.File.CSV
             {
                 return ((CsvFieldGenerate<T>)generator)();
             }
-
-            internal override object? GetValueAfterBadValue(object? fieldValue)
-            {
-                return fieldValue is T ? fieldValue : default(T);
-            }
 #else
             internal override object Generate(Delegate generator)
             {
                 return ((CsvFieldGenerate<T>)generator)();
-            }
-
-            internal override object GetValueAfterBadValue(object fieldValue)
-            {
-                return fieldValue is T ? fieldValue : default(T);
             }
 #endif
         }
