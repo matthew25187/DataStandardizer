@@ -2392,6 +2392,24 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_ConstantPropertyTypeCantHold_WritesConstantAsGiven()
+        {
+            // arrange
+            var testLine = new IntConstantStringLine();
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<IntConstantStringLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("5\r\n");
+            }
+        }
+
+        [Fact]
         public void WriteLine_RecordLinesOfDifferentTypesWithoutRegisteredMapper_WritesEachLineWithItsOwnMapping()
         {
             // arrange
@@ -3301,6 +3319,17 @@ namespace DataStandardizer.File.CSV.Tests
 
         private sealed class HandlerLine : CsvFileRecordLine
         {
+        }
+
+        // A line whose constant is an int, which a string property can't hold, so a reader rejects it and a writer writes it as it is given.
+        private sealed class IntConstantStringLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = 5)]
+            public string Value
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
         }
     }
 }

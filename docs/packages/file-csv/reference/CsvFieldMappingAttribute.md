@@ -41,7 +41,7 @@ instead.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `ConstantValue` | `object? ConstantValue { get; set; }` | A constant value for the field. |
+| `ConstantValue` | `object? ConstantValue { get; set; }` | A constant value for the field. A reader converts a number to the property's number type if that type holds it as it is written, and throws `CsvFileException` if it can't; see [Field mapping](../concepts/field-mapping.md). |
 | `FieldIndex` | `int? FieldIndex { get; }` | The mapped field index, if set via the constructor. |
 | `FieldName` | `string? FieldName { get; }` | The mapped field name, if set via the constructor. |
 | `IsOptional` | `bool IsOptional { get; set; }` | `true` if the field is optional. |
