@@ -106,8 +106,8 @@ var options = new CsvFileOptions { FieldDelimiterCharacter = ';' };
 
 **Default:** `null`
 
-You can supply your own list of field names for a file whose header line isn't
-used.
+You can supply your own list of field names, in place of any header line in the
+file.
 
 ```csharp
 IReadOnlyList<string> HandleHeaderLine(CsvFileHeaderLine? line)
@@ -122,12 +122,20 @@ The handler must be a `CsvFileHeader` delegate. A delegate of any other type, ev
 one with the same signature, makes the reader constructor throw
 `ArgumentException`. A writer never calls this handler and doesn't check it.
 
-The reader calls this handler only when there is no header line to take field
-names from: when [header handling](#header-handling) is `None` or `Ignore`. It
-calls it one time, as it reads the first record, and passes `null`. The list it
-returns gives the field names of every record, in order. When header handling is
-`Use`, the field names come from the file's header line and the handler is never
-called.
+If this handler is specified, the reader calls it one time, whatever the
+[header handling](#header-handling) is, and passes it the header line read from
+the file, or `null` if the file has no header line. The handler can return names
+based on that line, or its own list. The list it returns gives the field names
+of every record, in order, and replaces the field names of the file's header
+line.
+
+| Header handling | Handler is passed | Handler is called | Header line returned by `ReadLine` |
+|-----------------|-------------------|-------------------|------------------------------------|
+| `Use` | The file's header line | As the header line is read | One with the handler's field names |
+| `Ignore` | The file's header line | As the header line is read | None |
+| `None` | `null` | As the first record is read | None |
+
+Header handling decides the field names only when there is no handler.
 
 ## Header handling
 
@@ -140,9 +148,10 @@ var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None }
 ```
 
 The available options include having no header, having a header, or ignoring the
-header if it does exist. The ignore option means you can skip reading the header
-line in the file and instead use a header handler to specify an override list of
-field names.
+header if it does exist. The ignore option reads the file as if it had no header
+line. Without a header handler, `Use` takes the field names from the header line,
+and `None` and `Ignore` read records without field names from a header. A header
+handler supplies the field names in every case.
 
 ## Inconsistent field count handler
 

@@ -25,8 +25,8 @@ public enum CsvFileHeaderHandling
 | Field | Value | Meaning |
 | --- | --- | --- |
 | `None` | 0 | The file has no header line. |
-| `Use` | 1 | Read the first line as the header and use it for field names. |
-| `Ignore` | 2 | Skip the header line; supply field names via a [CsvFileHeader](CsvFileHeader.md) delegate. |
+| `Use` | 1 | Read the first line as the header and use it for field names. A [CsvFileHeader](CsvFileHeader.md) delegate, if set, is passed the line and its names are used instead. |
+| `Ignore` | 2 | Skip the header line, as if the file had none. A [CsvFileHeader](CsvFileHeader.md) delegate, if set, is passed the skipped line and supplies the field names. |
 
 ## Applies to
 
