@@ -58,6 +58,15 @@ line's, or the line has a field that isn't one of the fields written, and
 `InconsistentFieldCountHandler` is set, the handler is called and the line is skipped. Nothing is written for it, and the lines after it are checked against the
 same field count as before it. The reader skips a handled line in the same way.
 
+**Lines with no fields.** A line with no fields is never written, because a header line
+and each record have one or more fields (RFC 4180 section 2). A header line with no fields
+throws `CsvFileException`. A record line has no fields to write when there's no header
+line, no mapped field and no record line written before it, and it has no fields of its
+own. It is handled or throws `CsvFileException` in the same way as a line with an
+inconsistent field count. The exception's `Data` holds `0` under `ActualFieldCount`.
+A record line with one field whose value is blank is a record, so it's written, as an
+empty line, and the reader reads it back as that record.
+
 **Fields written.** With a header line, the fields written are those of the header
 line. Without one, they are the mapped fields, followed by the fields of the first
 record line written that no mapping covers, in the order they're on that line. Without
@@ -91,7 +100,7 @@ field's mapping supplies a constant or generated value, which is written instead
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name, or on an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, or `ObjectDisposedException` after `Dispose`. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or a header line with no fields, or on a record line with no fields to write, an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

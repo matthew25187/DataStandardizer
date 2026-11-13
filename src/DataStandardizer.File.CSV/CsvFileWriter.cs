@@ -200,14 +200,21 @@ namespace DataStandardizer.File.CSV
         /// <paramref name="csvLine"/> is neither a <see cref="CsvFileHeaderLine"/> nor a <typeparamref name="TRecordLine"/>.  Nothing is written.
         /// </exception>
         /// <exception cref="CsvFileException">
-        /// Invalid field name detected, or a record line has a different number of fields from the previous record line, or a field with a value
-        /// that isn't one of the fields written, and <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
+        /// Invalid field name detected, or a header line has no fields.  Or a record line has no fields to write, or a different number of fields
+        /// from the previous record line, or a field with a value that isn't one of the fields written, and
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         /// <remarks>
         /// A record line that has a different number of fields from the previous record line breaks RFC 4180§2¶4.  When
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> is set, it is called for the line, and the line is skipped: nothing is
         /// written for it, and the lines after it are checked against the same field count as before it.
+        /// <para>
+        /// A line with no fields is never written, as a header line and each record have one or more fields (RFC 4180§2¶3-4).  A header line with
+        /// no fields throws.  A record line has no fields to write when there's no header line, no mapping and no record line written before it,
+        /// and it has no fields of its own.  It is handled or throws in the same way as a line with a different number of fields.  A record line
+        /// with one field whose value is blank is a record, so it is written, as an empty line, and is read back as that record.
+        /// </para>
         /// <para>
         /// With a header line, the fields written are those of the header line.  Without one, they are the mapped fields, followed by the fields
         /// of the first record line written that no mapping covers, in the order they're on that line.  A record line with a field that isn't one
@@ -252,6 +259,14 @@ namespace DataStandardizer.File.CSV
         private int GetHeaderLineFieldValues(CsvFileHeaderLine headerLine, int lastFieldIndex)
         {
             ICsvFileLine csvLine = headerLine;
+
+            // A header line with no fields would be written as an empty line, which isn't a header line, as it has one or more fields.
+            // ref. RFC 4180§2¶3-4
+            if (csvLine.Count == 0)
+            {
+                throw BuildException("A header line has no fields.", new Dictionary<string, object> { { DataItemName.ActualFieldCount, 0 } });
+            }
+
             _headerLine = headerLine;
 
             // Extract field names from the header line.
@@ -354,6 +369,14 @@ namespace DataStandardizer.File.CSV
             if (_previousLineFieldCount > 0 && fields.Length != _previousLineFieldCount)
             {
                 return HandleInconsistentFieldCount(recordLine, _previousLineFieldCount, fields.Length);
+            }
+
+            // A line with no fields to write would be written as an empty line, which isn't a record, as a record has one or more fields.
+            // ref. RFC 4180§2¶4
+            if (fields.Length == 0)
+            {
+                return HandleInconsistentLine(recordLine, "A record line has no fields to write.",
+                    new Dictionary<string, object> { { DataItemName.ActualFieldCount, 0 } });
             }
 
             // A field of the line that isn't one of the fields output would lose its value, so the line is inconsistent with the lines before it,
