@@ -68,6 +68,10 @@ namespace DataStandardizer.File.CSV.Tests
 
         // The record a line mapped to put FirstAttributeValue ahead of SecondAttributeValue writes.
         private const string OrderedAttributeRecord = "1st,2nd\r\n";
+
+        // The record ConstantAndVariableLineMapper writes for a line whose Description is FirstDescription: the generated Id, the constant Name,
+        // then the Description.
+        private const string ConstantAndVariableRecord = "42,Constant,First\r\n";
         private const string HtmlLineBreak = "<br>";
         private const string FirstId = "1";
         private const string SecondId = "2";
@@ -2319,7 +2323,71 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testLine);
 
                 // assert
-                buffer.ToString().Should().Be("42,Constant,First\r\n");
+                buffer.ToString().Should().Be(ConstantAndVariableRecord);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithoutConstantAndVariableValueMappedFields_WritesMappedValues()
+        {
+            // arrange
+            var testLine = new ConstantAndVariableLine { Description = FirstDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ConstantAndVariableLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ConstantAndVariableLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ConstantAndVariableRecord);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithoutConstantAndVariableValueMappedFieldsAfterHeaderLine_WritesMappedValues()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(nameof(ConstantAndVariableLine.Id), nameof(ConstantAndVariableLine.Id));
+            headerLine.Add(nameof(ConstantAndVariableLine.Name), nameof(ConstantAndVariableLine.Name));
+            headerLine.Add(nameof(ConstantAndVariableLine.Description), nameof(ConstantAndVariableLine.Description));
+
+            var testLine = new ConstantAndVariableLine { Description = FirstDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ConstantAndVariableLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ConstantAndVariableLineMapper>();
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("Id,Name,Description\r\n42,Constant,First\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineWithoutAttributeConstantValueField_WritesConstantValue()
+        {
+            // arrange
+            var testLine = new ConstantAttributeLine { Description = FirstDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ConstantAttributeLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("bob,First\r\n");
             }
         }
 
@@ -2722,6 +2790,26 @@ namespace DataStandardizer.File.CSV.Tests
                     .Property(x => x.Name)
                     .HasFieldName(PersonNameFieldName)
                     .ConvertUsing(typeof(FromStringOnlyConverter));
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name, mapped by attribute, has <see cref="RenamedName"/> as its constant value, followed by its Description.
+        /// </summary>
+        private sealed class ConstantAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = RenamedName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(1)]
+            public string Description
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
             }
         }
 

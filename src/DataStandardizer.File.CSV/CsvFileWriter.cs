@@ -195,7 +195,7 @@ namespace DataStandardizer.File.CSV
         /// of the first record line written that no mapping covers, in the order they're on that line.  A record line with a field that isn't one
         /// of the fields written, and whose value isn't <c>null</c>, is inconsistent, even if it has as many fields, so it is handled or throws in
         /// the same way, rather than being written without that field.  A record line that lacks one of the fields written is written with a
-        /// blank value for it.
+        /// blank value for it, unless the field's mapping supplies a constant or generated value, which is written instead.
         /// </para>
         /// </remarks>
         public void WriteLine(ICsvFileLine csvLine)
@@ -357,25 +357,21 @@ namespace DataStandardizer.File.CSV
             var fieldValues = GetFieldValueBuffer(fields.Length);
             foreach (var field in fields)
             {
-                // A line read or converted with the mapping holds a mapped value under the field name.  A line built from the model holds it under
-                // the key that the property resolves to on the line, which differs from the field name when the field is renamed.
+                // A constant or generated value is supplied by the mapping, so is written whether or not the line holds the field, as it is read.
+                // A line read or converted with the mapping holds any other mapped value under the field name.  A line built from the model holds
+                // it under the key that the property resolves to on the line, which differs from the field name when the field is renamed.
                 var fieldKey = field.FieldName;
-                var hasField = csvLine.Contains(fieldKey);
-                if (!hasField && field.IsMapped)
+                if (!field.IsSupplied && !csvLine.Contains(fieldKey))
                 {
-                    var propertyKey = recordLine.ResolveMappedPropertyKey(field.Mapping.Key);
-                    if (csvLine.Contains(propertyKey))
+                    var propertyKey = field.IsMapped ? recordLine.ResolveMappedPropertyKey(field.Mapping.Key) : null;
+                    if (propertyKey is null || !csvLine.Contains(propertyKey))
                     {
-                        fieldKey = propertyKey;
-                        hasField = true;
+                        // If a value has not been set for the current field, add a blank value.
+                        fieldValues[fieldValueCount++] = string.Empty;
+                        continue;
                     }
-                }
 
-                // If a value has not been set for the current field, add a blank value.
-                if (!hasField)
-                {
-                    fieldValues[fieldValueCount++] = string.Empty;
-                    continue;
+                    fieldKey = propertyKey;
                 }
 
                 // Convert the field value to a string.
@@ -485,7 +481,8 @@ namespace DataStandardizer.File.CSV
                 return fieldValue is null ? null : fieldValue is string stringFieldValue ? stringFieldValue : FormatFieldValue(fieldValue, _options);
             }
 
-            // Get the mapped field value.  The line has a field with the given key, so the value is read by that key.
+            // Get the mapped field value.  A constant or generated value comes from the mapping; any other value is read from the line by the
+            // given key, which the line holds.
             var fieldMapping = field.Mapping.Value;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             object? mappedFieldValue;
@@ -518,7 +515,7 @@ namespace DataStandardizer.File.CSV
             // is given the value even when it is a string.  A constant or generated string is always written as it is.
             var typeConverter = ResolveTypeConverter(field);
             if (mappedFieldValue is string serializedFieldValue
-                && (fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null
+                && (fieldMapping.SuppliesValue
                     || (field.Converter is null && (typeConverter is null || !typeConverter.CanConvertTo(typeof(string))))))
             {
                 return serializedFieldValue;
@@ -912,7 +909,7 @@ namespace DataStandardizer.File.CSV
                     {
                         coveringMappingKeys.Add(mapping.Key);
                     }
-                    else if (mapping.Value.ConstantValue != null || mapping.Value.VariableValueGenerator != null)
+                    else if (mapping.Value.SuppliesValue)
                     {
                         suppliedFieldNames.Add(mappedFieldName);
                         coveringMappingKeys.Add(mapping.Key);
@@ -1060,6 +1057,7 @@ namespace DataStandardizer.File.CSV
                 if (IsMapped)
                 {
                     Converter = mapping.Value.ToStringConverter as CsvFieldConvertToString<TRecordLine>;
+                    IsSupplied = mapping.Value.SuppliesValue;
                     if (mapping.Value.VariableValueGenerator != null)
                     {
                         Accessor = FieldValueAccessor.For(mapping.Value.PropertyType);
@@ -1095,6 +1093,11 @@ namespace DataStandardizer.File.CSV
             /// Gets a flag indicating if the field has a mapping.
             /// </summary>
             internal bool IsMapped { get; }
+
+            /// <summary>
+            /// Gets a flag indicating if the field's mapping supplies its value, as a constant or generated value, rather than taking it from the line.
+            /// </summary>
+            internal bool IsSupplied { get; }
 
             internal bool IsTypeConverterResolved { get; set; }
 

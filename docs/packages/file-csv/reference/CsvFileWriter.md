@@ -70,7 +70,8 @@ written, the exception's message names the field, and its `Data` holds the name 
 `FieldName` and the field count under `ExpectedFieldCount`. A field whose value is
 `null` or empty loses nothing, so it doesn't make the line inconsistent, and neither
 does a field whose value a mapping's constant or generator supplies. A record line
-that lacks one of the fields written is written with a blank value for it.
+that lacks one of the fields written is written with a blank value for it, unless the
+field's mapping supplies a constant or generated value, which is written instead.
 
 ## Constructors
 

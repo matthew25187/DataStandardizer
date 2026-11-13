@@ -521,7 +521,7 @@ namespace DataStandardizer.File.CSV
                         continue;
                     }
 
-                    if (!FieldPlan.SuppliesValue(fieldMapping.Value))
+                    if (!fieldMapping.Value.SuppliesValue)
                     {
                         throw BuildMissingFieldException(fieldMapping, mappedFieldName, recordFieldCount);
                     }
@@ -567,7 +567,7 @@ namespace DataStandardizer.File.CSV
 
                 // A constant or generated value didn't come from a field, so has no position.  The position is only looked up for a converter, which
                 // is given the field's text as it was read from the file, not a value an earlier mapping of the same field put on the line.
-                var isFieldValue = !FieldPlan.SuppliesValue(fieldMapping.Value);
+                var isFieldValue = !fieldMapping.Value.SuppliesValue;
                 var fieldIndex = isFieldValue && (fieldMapping.Value.FromStringConverter != null || fieldMapping.Value.TypeConverterType != null)
                     ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount)
                     : null;
@@ -1264,7 +1264,7 @@ namespace DataStandardizer.File.CSV
                     // A mapping reads only the field it is mapped to.  An optional mapping without that field is skipped; a required one is an error
                     // unless it supplies its own value, which is then added to the line under the mapping's name.
                     var hasField = !isPastLastField && lineFieldNameSet.Contains(mappedFieldName);
-                    var suppliesValue = SuppliesValue(fieldMapping.Value);
+                    var suppliesValue = fieldMapping.Value.SuppliesValue;
                     var isSkipped = !hasField && fieldMapping.Value.IsOptional;
                     var isMissing = !hasField && !isSkipped && !suppliesValue;
                     var isFieldNameTaken = isPastLastField && !isSkipped && suppliesValue && lineFieldNameSet.Contains(mappedFieldName);
@@ -1282,14 +1282,6 @@ namespace DataStandardizer.File.CSV
                 _mappings = mappings.ToArray();
                 _mappingsAreStatic = isStatic;
                 _mappedFieldCount = fieldCount;
-            }
-
-            /// <summary>
-            /// Gets a flag indicating if a mapping gives its property a constant or generated value, rather than reading it from a field.
-            /// </summary>
-            internal static bool SuppliesValue(CsvFieldMapping fieldMapping)
-            {
-                return fieldMapping.ConstantValue != null || fieldMapping.VariableValueGenerator != null;
             }
         }
 

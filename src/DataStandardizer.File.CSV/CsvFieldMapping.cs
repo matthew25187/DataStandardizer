@@ -112,5 +112,10 @@ namespace DataStandardizer.File.CSV
         [MaybeNull, AllowNull]
         public Delegate VariableValueGenerator { get; internal set; }
 #endif
+
+        /// <summary>
+        /// Gets a flag indicating if the mapping supplies a constant or generated value, rather than taking it from a field or record line.
+        /// </summary>
+        internal bool SuppliesValue => ConstantValue != null || VariableValueGenerator != null;
     }
 }
