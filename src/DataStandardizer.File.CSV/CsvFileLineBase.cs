@@ -305,6 +305,15 @@ namespace DataStandardizer.File.CSV
             return propertyKey;
         }
 
+        /// <summary>
+        /// Gets whether a property with the given key reads and writes the field with that key on this line, rather than a field with another
+        /// name that the line was filled through a mapping from.  A line built from the model holds every property's value under its key.
+        /// </summary>
+        internal bool IsPropertyKeyOwnField(string propertyKey)
+        {
+            return string.Equals(GetMappedFieldName(propertyKey), propertyKey, StringComparison.Ordinal);
+        }
+
         private protected string GetCsvFieldKey(string propertyName) => GetCachedPropertyKey(this.GetType(), propertyName);
 
         /// <summary>

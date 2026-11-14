@@ -178,7 +178,11 @@ another mapping of that field has no field to read.
 A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
 yet, so it holds the value under the property key: the name given by
 `[CsvField]`, or else the property name. The writer looks a mapped value up by
-its field name, and if the line has no such field, by the property key.
+its field name, and if the line has no such field, by the property key. Field
+names and property keys share one set of keys on the line, so a field name can
+be the property key of another property that's mapped to another field. When
+the line holds that other property's value under the key, the writer doesn't
+write it to this field, and uses the property key instead.
 
 ## Header lines that repeat a name
 

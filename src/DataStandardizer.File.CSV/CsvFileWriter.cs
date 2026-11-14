@@ -707,7 +707,7 @@ namespace DataStandardizer.File.CSV
             var fieldValues = GetFieldValueBuffer(fields.Length);
             foreach (var field in fields)
             {
-                if (!TryGetFieldValueSource(recordLine, field, out var fieldMapping, out var fieldKey))
+                if (!TryGetFieldValueSource(recordLine, fieldPlan, field, out var fieldMapping, out var fieldKey))
                 {
                     // If a value has not been set for the current field, or no field is at its position, add a blank value.
                     fieldValues[fieldValueCount++] = string.Empty;
@@ -818,14 +818,17 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// A constant or generated value is supplied by the mapping, so is written whether or not the line holds the field, as it is read.  A line
         /// read or converted with the mapping holds any other mapped value under the field name.  A line built from the model holds it under the
-        /// mapping's key, the property key, which differs from the field name when the field is renamed.  Where several mappings share the
-        /// field, only one value can be written, so the last mapping, in mapper order, that has a value gives it.
+        /// mapping's key, the property key, which differs from the field name when the field is renamed.  Field names and property keys share
+        /// one key space on the line, so where the field name is the property key of another mapping, and the line holds that property's value
+        /// under it, the value under the field name isn't this mapping's.  Where several mappings share the field, only one value can be
+        /// written, so the last mapping, in mapper order, that has a value gives it.
         /// </remarks>
         /// <returns><c>true</c> if the field has a value; <c>false</c> if it is written as a blank value.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static bool TryGetFieldValueSource(TRecordLine recordLine, FieldWritePlan field, out FieldMappingWritePlan? fieldMapping, out string fieldKey)
+        private static bool TryGetFieldValueSource(TRecordLine recordLine, FieldPlan fieldPlan, FieldWritePlan field, out FieldMappingWritePlan? fieldMapping,
+            out string fieldKey)
 #else
-        private static bool TryGetFieldValueSource([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field,
+        private static bool TryGetFieldValueSource([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldPlan fieldPlan, [DisallowNull] FieldWritePlan field,
             [MaybeNull] out FieldMappingWritePlan fieldMapping, out string fieldKey)
 #endif
         {
@@ -844,14 +847,14 @@ namespace DataStandardizer.File.CSV
                     return true;
                 }
 
-                if (csvLine.Contains(mapping.FieldName))
+                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under.
+                var propertyKey = mapping.Mapping.Key;
+                if (csvLine.Contains(mapping.FieldName) && !IsOtherFieldPropertyKey(recordLine, fieldPlan, field, mapping.FieldName))
                 {
                     fieldKey = mapping.FieldName;
                     return true;
                 }
 
-                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under.
-                var propertyKey = mapping.Mapping.Key;
                 if (csvLine.Contains(propertyKey))
                 {
                     fieldKey = propertyKey;
@@ -860,10 +863,37 @@ namespace DataStandardizer.File.CSV
             }
 
             // Otherwise the line may hold the value under the name of the field it's output as, such as a header line's name for a field mapped by
-            // index.  That value is given by the last mapping, or is the field's own value if no mapping covers it.
+            // index.  That value is given by the last mapping, or is the field's own value if no mapping covers it.  A value the line holds there
+            // as the value of a property that another mapping maps to another field isn't the field's.
             fieldMapping = mappings.Length > 0 ? mappings[mappings.Length - 1] : null;
             fieldKey = fieldName;
-            return fieldName.Length > 0 && csvLine.Contains(fieldName);
+            return fieldName.Length > 0 && csvLine.Contains(fieldName) && (mappings.Length == 0 || !IsOtherFieldPropertyKey(recordLine, fieldPlan, field, fieldName));
+        }
+
+        /// <summary>
+        /// Gets whether a key that a record line holds a value under is the key of a property that a mapping of another field maps, and the line
+        /// holds that property's value under it, as a line built from the model does, rather than the value of a field with that name.
+        /// </summary>
+        /// <param name="recordLine">The record line.</param>
+        /// <param name="fieldPlan">The field plan, whose mapper has the mappings.</param>
+        /// <param name="field">The field being written, whose own mappings' keys are never another field's.</param>
+        /// <param name="key">The key.</param>
+        private static bool IsOtherFieldPropertyKey(TRecordLine recordLine, FieldPlan fieldPlan, FieldWritePlan field, string key)
+        {
+            if (!fieldPlan.IsMappingKey(key))
+            {
+                return false;
+            }
+
+            foreach (var mapping in field.Mappings)
+            {
+                if (string.Equals(mapping.Mapping.Key, key, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return recordLine.IsPropertyKeyOwnField(key);
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1419,6 +1449,9 @@ namespace DataStandardizer.File.CSV
             // The keys of the properties mapped to the fields output: the keys of the mappings that cover them.
             private readonly HashSet<string> _propertyKeys;
 
+            // The keys of all the mapper's mappings, whether they cover a field output or not.
+            private readonly HashSet<string> _mappingKeys;
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldPlan(int mapperVersion, Type? mapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames,
                 string[] unmappedCandidateFieldNames)
@@ -1508,6 +1541,11 @@ namespace DataStandardizer.File.CSV
                 }
 
                 _propertyKeys = coveringMappingKeys;
+                _mappingKeys = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var mapping in mapper)
+                {
+                    _mappingKeys.Add(mapping.Key);
+                }
 
                 if (isMapperOutput)
                 {
@@ -1635,6 +1673,11 @@ namespace DataStandardizer.File.CSV
                 fieldName = string.Empty;
                 return false;
             }
+
+            /// <summary>
+            /// Gets whether a key is the key of one of the mapper's mappings: the key of the property it maps.
+            /// </summary>
+            internal bool IsMappingKey(string key) => _mappingKeys.Contains(key);
 
             internal string[] LineFieldNames { get; }
 

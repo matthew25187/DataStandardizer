@@ -126,6 +126,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string SwappedValueA = "x";
         private const string SwappedValueB = "y";
         private const string SwappedRecordLine = "x,y\r\n";
+
+        // A property mapped to a field whose name is the key of another property, which is mapped to a field of its own, and the
+        // line written when only that other property is set.
+        private const string FieldNamedByKeyNameFieldName = "x";
+        private const string FieldNamedByKeyNameOnlyRecordLine = ",N\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
@@ -3205,6 +3210,64 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_MappedFieldNameIsKeyOfAnotherProperty_WritesEachPropertysValue()
+        {
+            // arrange
+            var testLine = new FieldNamedByKeyLine { Title = CrossKeyedTitle, Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_MappedFieldNameIsKeyOfAnotherSetPropertyAndPropertyNotSet_WritesBlankValue()
+        {
+            // arrange
+            var testLine = new FieldNamedByKeyLine { Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(FieldNamedByKeyNameOnlyRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_LineReadWithMappedFieldNameThatIsKeyOfAnotherProperty_WritesFieldValues()
+        {
+            // arrange
+            FieldNamedByKeyLine testLine;
+            using (var csvReader = new CsvFileReader<FieldNamedByKeyLine>(new StringReader(CrossKeyedRecordLine)))
+            {
+                testLine = (FieldNamedByKeyLine)csvReader.ReadLine();
+            }
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
         public void WriteLine_RenamedMappingAndLineWithFieldNamesOnly_WritesFieldValues()
         {
             // arrange
@@ -3968,6 +4031,28 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
                 this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Title property is mapped to a field named by the key of its Name property, which is mapped to a field of its own.
+        /// </summary>
+        private sealed class FieldNamedByKeyLine : CsvFileRecordLine
+        {
+            [CsvField(CrossKeyedTitleKey)]
+            [CsvFieldMapping(CrossKeyedNameKey)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(CrossKeyedNameKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
             }
         }
 
