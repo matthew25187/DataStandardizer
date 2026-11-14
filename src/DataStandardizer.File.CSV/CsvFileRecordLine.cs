@@ -56,9 +56,9 @@ namespace DataStandardizer.File.CSV
 
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string? propertyName = null)
         {
-            var fieldName = GetPropertyKey(propertyName!);
-
-            SetFieldValue(fieldName, value);
+            // The line records that the property set the value, so the writer can tell it from a field's value with the same name.
+            var propertyKey = GetCsvFieldKey(propertyName!);
+            SetPropertyFieldValue(GetMappedFieldName(propertyKey), propertyKey, value);
         }
 #elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -91,9 +91,9 @@ namespace DataStandardizer.File.CSV
 
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string? propertyName = null)
         {
-            var fieldName = GetPropertyKey(propertyName!);
-
-            SetFieldValue(fieldName, value);
+            // The line records that the property set the value, so the writer can tell it from a field's value with the same name.
+            var propertyKey = GetCsvFieldKey(propertyName!);
+            SetPropertyFieldValue(GetMappedFieldName(propertyKey), propertyKey, value);
         }
 #else
         [return: MaybeNull]
@@ -126,9 +126,9 @@ namespace DataStandardizer.File.CSV
 
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string propertyName = null)
         {
-            var fieldName = GetPropertyKey(propertyName);
-
-            SetFieldValue(fieldName, value);
+            // The line records that the property set the value, so the writer can tell it from a field's value with the same name.
+            var propertyKey = GetCsvFieldKey(propertyName);
+            SetPropertyFieldValue(GetMappedFieldName(propertyKey), propertyKey, value);
         }
 #endif
 

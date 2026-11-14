@@ -141,6 +141,14 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedRecordFile = "5,bob";
         private const string TwoRenamedRecordsWithHeaderFile = "person_id,person_name\r\n5,bob\r\n6,amy";
         private const string RenamedIdHeaderFile = "person_id\r\n5";
+
+        // A property keyed by the name of the field another property is mapped to, the field it is mapped to, and a record that has only the
+        // other property's field, holding the title.
+        private const string FieldNamedByKeyTitleKey = "Name";
+        private const string FieldNamedByKeyNameKey = "full_name";
+        private const string FieldNamedByKeyNameFieldName = "x";
+        private const string FieldNamedByKeyTitle = "T";
+        private const string FieldNamedByKeyTitleOnlyRecordFile = "T";
         private const string RenamedIdText = "5";
         private const string InvalidRenamedIdHeaderFile = "person_id\r\nabc";
         private const string InvalidRenamedIdText = "abc";
@@ -2199,6 +2207,21 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_PropertyKeyIsFieldOfAnotherMappingAndOwnFieldMissing_PropertyNotSet()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<FieldNamedByKeyOptionalNameLine>(new StringReader(FieldNamedByKeyTitleOnlyRecordFile)))
+            {
+                // act
+                var testResult = csvReader.ReadLine() as FieldNamedByKeyOptionalNameLine;
+
+                // assert
+                testResult.Title.Should().Be(FieldNamedByKeyTitle);
+                testResult.Name.Should().BeNull();
+            }
+        }
+
+        [Fact]
         public void ReadLine_HeaderHasColumnNamedLikePropertyKey_KeepsColumnValue()
         {
             // arrange
@@ -3356,6 +3379,29 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
                 this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Title property is mapped to a field named by the key of its Name property, which is optionally mapped to a field of its
+        /// own.
+        /// </summary>
+        private sealed class FieldNamedByKeyOptionalNameLine : CsvFileRecordLine
+        {
+            [CsvField(FieldNamedByKeyTitleKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameKey)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(FieldNamedByKeyNameKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameFieldName, IsOptional = true)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
             }
         }
 
