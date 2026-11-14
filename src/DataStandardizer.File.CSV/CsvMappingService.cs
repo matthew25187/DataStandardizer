@@ -86,7 +86,7 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <remarks>
         /// A mapping with a field index is at that index.  A mapping without one is at the position of the field with its name, if a mapping
-        /// already places that name; otherwise it takes the lowest position that no mapping has taken yet, the mappings without a field index
+        /// already names a field that: the first mapping at an index, or an earlier mapping without one.  Otherwise it takes the lowest position that no mapping has taken yet, the mappings without a field index
         /// taking theirs in mapper order.  So a gap below a field index is filled by the fields mapped by name, and mapper order decides only
         /// the order of those fields among themselves.
         /// </remarks>
@@ -103,10 +103,10 @@ namespace DataStandardizer.File.CSV
             {
                 if (mapping.Value.FieldIndex is int fieldIndex)
                 {
+                    // Only the first mapping at an index names the field there (GetFieldNamesByPosition), so only its name is the field's.
                     positions[mappingIndex] = Tuple.Create(mapping.Key, fieldIndex);
-                    takenPositions.Add(fieldIndex);
                     var fieldName = GetFieldNameFromMapping(mapping);
-                    if (!positionsByFieldName.ContainsKey(fieldName))
+                    if (takenPositions.Add(fieldIndex) && !positionsByFieldName.ContainsKey(fieldName))
                     {
                         positionsByFieldName.Add(fieldName, fieldIndex);
                     }

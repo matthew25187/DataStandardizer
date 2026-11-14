@@ -153,6 +153,13 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ContactPhoneHeaderAndRecordLines = "Title,FirstName,LastName,City,Phone,,,,,Country\r\nDr,Ann,Lee,Oslo,555,,,,,Norway\r\n";
         private const string ContactNoCityHeaderLine = "Title,FirstName,LastName,,,,,,,Country\r\n";
 
+        // SharedIndexLineMapper maps Name and then Description to index 0, so Description, the last mapping, gives the field's value.
+        private const string SharedIndexRecordLine = "First\r\n";
+
+        // NamedAtSharedIndexLineMapper maps Name and Description to index 0, which Name names, and Id by the name Description, so Id takes position 1.
+        private const string NamedAtSharedIndexRecordLine = "One,1\r\n";
+        private const int NamedAtSharedIndexId = 1;
+
         private const string OptionsParameterName = "options";
 
         // Keys of the CsvFileException data items that describe a record line with a field the first record line doesn't have, and the field
@@ -1362,6 +1369,63 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 buffer.ToString().Should().Be(ContactNoCityHeaderLine);
             }
+        }
+
+        [Fact]
+        public void WriteLine_MappingsSharingIndex_WritesLastMappingsOwnValue()
+        {
+            // arrange
+            var testLine = new SharedIndexLine { Name = FirstName, Description = FirstDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<SharedIndexLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<SharedIndexLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(SharedIndexRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_NameMappingNamedLikeSecondMappingAtIndex_WritesFieldAtFreePosition()
+        {
+            // arrange
+            var testLine = new NamedAtSharedIndexLine { Name = FirstName, Id = NamedAtSharedIndexId };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<NamedAtSharedIndexLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<NamedAtSharedIndexLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(NamedAtSharedIndexRecordLine);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_NameMappingNamedLikeSecondMappingAtIndex_ReadsFieldAtFreePosition()
+        {
+            // arrange
+            NamedAtSharedIndexLine testResult;
+            using (var csvReader = new CsvFileReader<NamedAtSharedIndexLine>(new StringReader(NamedAtSharedIndexRecordLine)))
+            {
+                csvReader.RegisterMapper<NamedAtSharedIndexLineMapper>();
+
+                // act
+                testResult = (NamedAtSharedIndexLine)csvReader.ReadLine();
+            }
+
+            // assert
+            testResult.Id.Should().Be(NamedAtSharedIndexId);
         }
 
         [Fact]
@@ -4148,6 +4212,39 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map().Property(x => x.Title).HasFieldIndex(0);
                 this.Map().Property(x => x.City).IsOptional();
                 this.Map().Property(x => x.Country).HasFieldIndex(9);
+            }
+        }
+
+        private sealed class SharedIndexLine : TestLine
+        {
+        }
+
+        /// <summary>
+        /// Maps Name and then Description to index 0, so they share the field there.
+        /// </summary>
+        private sealed class SharedIndexLineMapper : CsvFileMapperBase<SharedIndexLine>
+        {
+            public SharedIndexLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldIndex(0);
+                this.Map().Property(x => x.Description).HasFieldIndex(0);
+            }
+        }
+
+        private sealed class NamedAtSharedIndexLine : TestLine
+        {
+        }
+
+        /// <summary>
+        /// Maps Name and then Description to index 0, which Name, the first, names, and Id by the name Description, which no field has.
+        /// </summary>
+        private sealed class NamedAtSharedIndexLineMapper : CsvFileMapperBase<NamedAtSharedIndexLine>
+        {
+            public NamedAtSharedIndexLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldIndex(0);
+                this.Map().Property(x => x.Description).HasFieldIndex(0);
+                this.Map().Property(x => x.Id).HasFieldName(DescriptionFieldName).ConvertUsing(typeof(Int32Converter));
             }
         }
 

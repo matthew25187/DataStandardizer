@@ -248,7 +248,9 @@ namespace DataStandardizer.File.CSV
         /// none of the names of the mappings at an index gets the field name of the first of them, or else its property name, at that index.
         /// Without a header line, they are the fields mapped by name, in mapper order, followed by the fields of the first record line written
         /// that no mapping covers, in the order they're on that line.  A position still free below the highest index is written as a blank
-        /// field.  Without a header line, the fields are at the positions a reader with the same mapper reads them from.
+        /// field.  Without a header line, the fields are at the positions a reader with the same mapper reads them from.  A header line is laid out
+        /// with the registered mapper, or else the declarative mapper of <typeparamref name="TRecordLine"/>, as it has no record type of its own.
+        /// To lay out the header line as the record lines are, for record lines of a derived type with mappings of their own, register a mapper.
         /// </para>
         /// <para>
         /// With a header line, the fields written are those of the header line, as laid out.  Without one, they are the mapped fields and the
@@ -758,9 +760,11 @@ namespace DataStandardizer.File.CSV
             var mappings = field.Mappings;
             for (var mappingIndex = mappings.Length - 1; mappingIndex >= 0; mappingIndex--)
             {
+                // A mapping's value is looked for under its own field name and property key first, so a mapping that shares the field never
+                // takes another mapping's value.
                 var mapping = mappings[mappingIndex];
                 fieldMapping = mapping;
-                if (mapping.IsSupplied || (fieldName.Length > 0 && csvLine.Contains(fieldName)))
+                if (mapping.IsSupplied)
                 {
                     fieldKey = fieldName;
                     return true;
@@ -780,9 +784,11 @@ namespace DataStandardizer.File.CSV
                 }
             }
 
-            fieldMapping = null;
+            // Otherwise the line may hold the value under the name of the field it's output as, such as a header line's name for a field mapped by
+            // index.  That value is given by the last mapping, or is the field's own value if no mapping covers it.
+            fieldMapping = mappings.Length > 0 ? mappings[mappings.Length - 1] : null;
             fieldKey = fieldName;
-            return mappings.Length == 0 && fieldName.Length > 0 && csvLine.Contains(fieldName);
+            return fieldName.Length > 0 && csvLine.Contains(fieldName);
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
