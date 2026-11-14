@@ -30,7 +30,8 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <remarks>
         /// When reading, this is the position of the field in the record as read from the file, whether the mapping names the field or gives its
-        /// index; <c>null</c> when the file has no such field.  When writing, it is the index configured on the mapping.
+        /// index; <c>null</c> when the file has no such field.  When writing, it is the position of the field in the line written, whether the
+        /// mapping names the field or gives its index.
         /// </remarks>
         public int? FieldIndex
         {
@@ -45,7 +46,11 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the name of the CSV field.
         /// </summary>
-        /// <remarks>When reading, this is the name of the field that the mapping resolved to on the line.</remarks>
+        /// <remarks>
+        /// When reading, this is the name of the field that the mapping resolved to on the line.  When writing, it is the name of the field the
+        /// line is written under, as a reader with the same mapper resolves it, so a field renamed with <see cref="CsvFieldMapping.UseFieldName"/>
+        /// has the name it is renamed to.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? FieldName
         {

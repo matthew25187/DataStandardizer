@@ -714,8 +714,11 @@ namespace DataStandardizer.File.CSV
                     continue;
                 }
 
-                // Convert the field value to a string.
-                var rawFieldValue = SerializeFieldValue(recordLine, fieldMapping, fieldKey);
+                // Convert the field value to a string.  A converter is given the field's position in the line.  A constant or generated value
+                // didn't come from a field, so has no position, as when reading, though the mapping builder doesn't let a mapping that supplies
+                // its value have a converter.
+                var fieldIndex = fieldMapping != null && fieldMapping.IsSupplied ? (int?)null : fieldValueCount;
+                var rawFieldValue = SerializeFieldValue(recordLine, fieldMapping, fieldKey, field.FieldName, fieldIndex);
 
                 // Apply embedded line break on field value.  A value without a line break is unchanged by this, so is skipped.
                 if (_options.EmbeddedLineBreak != null && !string.IsNullOrEmpty(rawFieldValue) && rawFieldValue.IndexOfAny(LineBreakCharacters) >= 0)
@@ -864,10 +867,11 @@ namespace DataStandardizer.File.CSV
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private string? SerializeFieldValue(TRecordLine recordLine, FieldMappingWritePlan? field, string fieldKey)
+        private string? SerializeFieldValue(TRecordLine recordLine, FieldMappingWritePlan? field, string fieldKey, string fieldName, int? fieldIndex)
 #else
         [return: MaybeNull]
-        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [AllowNull] FieldMappingWritePlan field, [DisallowNull] string fieldKey)
+        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [AllowNull] FieldMappingWritePlan field, [DisallowNull] string fieldKey,
+            [DisallowNull] string fieldName, int? fieldIndex)
 #endif
         {
             ICsvFileLine csvLine = recordLine;
@@ -917,7 +921,7 @@ namespace DataStandardizer.File.CSV
                 return serializedFieldValue;
             }
 
-            return ConvertFieldValueToString(_headerLine, recordLine, _options, field.Mapping, field.Converter, typeConverter, mappedFieldValue);
+            return ConvertFieldValueToString(_headerLine, recordLine, _options, fieldName, fieldIndex, field.Converter, typeConverter, mappedFieldValue);
         }
 
         /// <summary>
@@ -949,13 +953,15 @@ namespace DataStandardizer.File.CSV
         /// Converts a mapped field value: with the mapping's converter if it has one, else its type converter if that can
         /// convert to a string, else with <see cref="FormatFieldValue"/>.
         /// </summary>
+        /// <param name="fieldName">The name of the field written, as the line names it, which a reader with the same mapper resolves it to.</param>
+        /// <param name="fieldIndex">The position of the field in the line written, or <c>null</c> for a constant or generated value.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+        private static string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, string fieldName, int? fieldIndex,
             CsvFieldConvertToString<TRecordLine>? converter, TypeConverter? typeConverter, object fieldValue)
 #else
         [return: MaybeNull]
         private static string ConvertFieldValueToString([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
-            KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] CsvFieldConvertToString<TRecordLine> converter, [AllowNull] TypeConverter typeConverter, [DisallowNull] object fieldValue)
+            [DisallowNull] string fieldName, int? fieldIndex, [AllowNull] CsvFieldConvertToString<TRecordLine> converter, [AllowNull] TypeConverter typeConverter, [DisallowNull] object fieldValue)
 #endif
         {
             if (converter != null)
@@ -964,8 +970,8 @@ namespace DataStandardizer.File.CSV
                 {
                     HeaderLine = headerLine,
                     Model = recordLine,
-                    FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
-                    FieldIndex = propertyFieldMapping.Value.FieldIndex
+                    FieldName = fieldName,
+                    FieldIndex = fieldIndex
                 };
                 return converter(context);
             }
