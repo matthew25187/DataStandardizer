@@ -707,7 +707,7 @@ namespace DataStandardizer.File.CSV
             var fieldValues = GetFieldValueBuffer(fields.Length);
             foreach (var field in fields)
             {
-                if (!TryGetFieldValueSource(recordLine, fieldPlan, field, out var fieldMapping, out var fieldKey))
+                if (!TryGetFieldValueSource(recordLine, field, out var fieldMapping, out var fieldKey))
                 {
                     // If a value has not been set for the current field, or no field is at its position, add a blank value.
                     fieldValues[fieldValueCount++] = string.Empty;
@@ -818,17 +818,15 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// A constant or generated value is supplied by the mapping, so is written whether or not the line holds the field, as it is read.  A line
         /// read or converted with the mapping holds any other mapped value under the field name.  A line built from the model holds it under the
-        /// mapping's key, the property key, which differs from the field name when the field is renamed.  Field names and property keys share
-        /// one key space on the line, so where the field name is the property key of another mapping, and the line holds that property's value
-        /// under it, the value under the field name isn't this mapping's.  Where several mappings share the field, only one value can be
-        /// written, so the last mapping, in mapper order, that has a value gives it.
+        /// mapping's key, the property key, which differs from the field name when the field is renamed.  A value under the field name that is
+        /// another field's property value isn't the field's (see <see cref="HoldsFieldValue"/>).  Where several mappings share the field, only one
+        /// value can be written, so the last mapping, in mapper order, that has a value gives it.
         /// </remarks>
         /// <returns><c>true</c> if the field has a value; <c>false</c> if it is written as a blank value.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static bool TryGetFieldValueSource(TRecordLine recordLine, FieldPlan fieldPlan, FieldWritePlan field, out FieldMappingWritePlan? fieldMapping,
-            out string fieldKey)
+        private static bool TryGetFieldValueSource(TRecordLine recordLine, FieldWritePlan field, out FieldMappingWritePlan? fieldMapping, out string fieldKey)
 #else
-        private static bool TryGetFieldValueSource([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldPlan fieldPlan, [DisallowNull] FieldWritePlan field,
+        private static bool TryGetFieldValueSource([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field,
             [MaybeNull] out FieldMappingWritePlan fieldMapping, out string fieldKey)
 #endif
         {
@@ -847,14 +845,14 @@ namespace DataStandardizer.File.CSV
                     return true;
                 }
 
-                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under.
-                var propertyKey = mapping.Mapping.Key;
-                if (csvLine.Contains(mapping.FieldName) && !IsOtherFieldPropertyKey(recordLine, fieldPlan, field, mapping.FieldName))
+                if (HoldsFieldValue(recordLine, mapping.FieldName, field.OtherPropertyFieldNames[mappingIndex]))
                 {
                     fieldKey = mapping.FieldName;
                     return true;
                 }
 
+                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under.
+                var propertyKey = mapping.Mapping.Key;
                 if (csvLine.Contains(propertyKey))
                 {
                     fieldKey = propertyKey;
@@ -863,37 +861,28 @@ namespace DataStandardizer.File.CSV
             }
 
             // Otherwise the line may hold the value under the name of the field it's output as, such as a header line's name for a field mapped by
-            // index.  That value is given by the last mapping, or is the field's own value if no mapping covers it.  A value the line holds there
-            // as the value of a property that another mapping maps to another field isn't the field's.
+            // index.  That value is given by the last mapping, or is the field's own value if no mapping covers it.
             fieldMapping = mappings.Length > 0 ? mappings[mappings.Length - 1] : null;
             fieldKey = fieldName;
-            return fieldName.Length > 0 && csvLine.Contains(fieldName) && (mappings.Length == 0 || !IsOtherFieldPropertyKey(recordLine, fieldPlan, field, fieldName));
+            return fieldName.Length > 0 && HoldsFieldValue(recordLine, fieldName, field.FieldNameOtherPropertyFieldName);
         }
 
         /// <summary>
-        /// Gets whether a key that a record line holds a value under is the key of a property that a mapping of another field maps, and the line
-        /// holds that property's value under it, as a line built from the model does, rather than the value of a field with that name.
+        /// Gets whether a record line holds a field's value under a field name.
         /// </summary>
+        /// <remarks>
+        /// Field names and property keys share one key space on the line.  Where the field name is the key of a property that a mapping of
+        /// another field maps, the value the line holds under it is that property's value, not the field's, if the line holds the property's
+        /// value under its key, as a line built from the model does.
+        /// </remarks>
         /// <param name="recordLine">The record line.</param>
-        /// <param name="fieldPlan">The field plan, whose mapper has the mappings.</param>
-        /// <param name="field">The field being written, whose own mappings' keys are never another field's.</param>
-        /// <param name="key">The key.</param>
-        private static bool IsOtherFieldPropertyKey(TRecordLine recordLine, FieldPlan fieldPlan, FieldWritePlan field, string key)
+        /// <param name="fieldName">The field name.</param>
+        /// <param name="otherPropertyFieldName">The name of the field that the mapping keyed by the field name maps its property to, if it is a
+        /// mapping of another field; otherwise empty.</param>
+        private static bool HoldsFieldValue(TRecordLine recordLine, string fieldName, string otherPropertyFieldName)
         {
-            if (!fieldPlan.IsMappingKey(key))
-            {
-                return false;
-            }
-
-            foreach (var mapping in field.Mappings)
-            {
-                if (string.Equals(mapping.Mapping.Key, key, StringComparison.Ordinal))
-                {
-                    return false;
-                }
-            }
-
-            return recordLine.IsPropertyKeyOwnField(key);
+            return ((ICsvFileLine)recordLine).Contains(fieldName)
+                && (otherPropertyFieldName.Length == 0 || !recordLine.HoldsPropertyValueUnderKey(fieldName, otherPropertyFieldName));
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1449,9 +1438,6 @@ namespace DataStandardizer.File.CSV
             // The keys of the properties mapped to the fields output: the keys of the mappings that cover them.
             private readonly HashSet<string> _propertyKeys;
 
-            // The keys of all the mapper's mappings, whether they cover a field output or not.
-            private readonly HashSet<string> _mappingKeys;
-
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldPlan(int mapperVersion, Type? mapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames,
                 string[] unmappedCandidateFieldNames)
@@ -1541,11 +1527,6 @@ namespace DataStandardizer.File.CSV
                 }
 
                 _propertyKeys = coveringMappingKeys;
-                _mappingKeys = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var mapping in mapper)
-                {
-                    _mappingKeys.Add(mapping.Key);
-                }
 
                 if (isMapperOutput)
                 {
@@ -1568,14 +1549,51 @@ namespace DataStandardizer.File.CSV
                     UnmappedLineFieldNames = unmappedLineFieldNames.ToArray();
                 }
 
+                // The field name of each mapping, by property key, so a field name that is another mapping's property key is found once here,
+                // rather than on every line.
+                var mappingFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var mapping in mapper)
+                {
+                    mappingFieldNames[mapping.Key] = CsvMappingService.GetFieldNameFromMapping(mapping);
+                }
+
                 var fields = new FieldWritePlan[fieldNames.Count];
                 for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
                 {
-                    fields[fieldIndex] = new FieldWritePlan(fieldNames[fieldIndex],
-                        fieldMappings.TryGetValue(fieldIndex, out var mappings) ? mappings.ToArray() : NoFieldMappings);
+                    var mappings = fieldMappings.TryGetValue(fieldIndex, out var fieldMappingList) ? fieldMappingList.ToArray() : NoFieldMappings;
+                    var otherPropertyFieldNames = new string[mappings.Length];
+                    for (var mappingIndex = 0; mappingIndex < mappings.Length; mappingIndex++)
+                    {
+                        otherPropertyFieldNames[mappingIndex] = GetOtherPropertyFieldName(mappingFieldNames, mappings, mappings[mappingIndex].FieldName);
+                    }
+
+                    fields[fieldIndex] = new FieldWritePlan(fieldNames[fieldIndex], mappings, otherPropertyFieldNames,
+                        GetOtherPropertyFieldName(mappingFieldNames, mappings, fieldNames[fieldIndex]));
                 }
 
                 Fields = fields;
+            }
+
+            /// <summary>
+            /// Gets the name of the field that the mapping keyed by a field name maps its property to, if that mapping is not one of the field's
+            /// own mappings; otherwise empty.
+            /// </summary>
+            private static string GetOtherPropertyFieldName(Dictionary<string, string> mappingFieldNames, FieldMappingWritePlan[] fieldMappings, string fieldName)
+            {
+                if (fieldName.Length == 0 || !mappingFieldNames.TryGetValue(fieldName, out var otherPropertyFieldName))
+                {
+                    return string.Empty;
+                }
+
+                foreach (var fieldMapping in fieldMappings)
+                {
+                    if (string.Equals(fieldMapping.Mapping.Key, fieldName, StringComparison.Ordinal))
+                    {
+                        return string.Empty;
+                    }
+                }
+
+                return otherPropertyFieldName;
             }
 
             private static readonly FieldMappingWritePlan[] NoFieldMappings = new FieldMappingWritePlan[0];
@@ -1674,11 +1692,6 @@ namespace DataStandardizer.File.CSV
                 return false;
             }
 
-            /// <summary>
-            /// Gets whether a key is the key of one of the mapper's mappings: the key of the property it maps.
-            /// </summary>
-            internal bool IsMappingKey(string key) => _mappingKeys.Contains(key);
-
             internal string[] LineFieldNames { get; }
 
             internal int MapperVersion { get; }
@@ -1698,11 +1711,25 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private sealed class FieldWritePlan
         {
-            internal FieldWritePlan(string fieldName, FieldMappingWritePlan[] mappings)
+            internal FieldWritePlan(string fieldName, FieldMappingWritePlan[] mappings, string[] otherPropertyFieldNames, string fieldNameOtherPropertyFieldName)
             {
                 FieldName = fieldName;
                 Mappings = mappings;
+                OtherPropertyFieldNames = otherPropertyFieldNames;
+                FieldNameOtherPropertyFieldName = fieldNameOtherPropertyFieldName;
             }
+
+            /// <summary>
+            /// Gets, for each mapping, the name of the field that the mapping keyed by its field name maps its property to, if that is a mapping
+            /// of another field; otherwise empty.
+            /// </summary>
+            internal string[] OtherPropertyFieldNames { get; }
+
+            /// <summary>
+            /// Gets the name of the field that the mapping keyed by <see cref="FieldName"/> maps its property to, if that is a mapping of another
+            /// field; otherwise empty.
+            /// </summary>
+            internal string FieldNameOtherPropertyFieldName { get; }
 
             /// <summary>
             /// Gets the name of the field, which is also the key of its value on a record line, unless the line was built from a model whose

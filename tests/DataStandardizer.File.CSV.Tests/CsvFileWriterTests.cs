@@ -131,6 +131,7 @@ namespace DataStandardizer.File.CSV.Tests
         // line written when only that other property is set.
         private const string FieldNamedByKeyNameFieldName = "x";
         private const string FieldNamedByKeyNameOnlyRecordLine = ",N\r\n";
+        private const string FieldNamedByKeyHeaderAndNameOnlyRecordLines = "x,full_name\r\nN,\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
@@ -3268,6 +3269,49 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_LineWithFieldNamesOnlyAndMappedFieldNameIsKeyOfAnotherProperty_WritesFieldValues()
+        {
+            // arrange
+            var testLine = new FieldNamedByKeyLine();
+            testLine.Add(CrossKeyedNameKey, CrossKeyedTitle);
+            testLine.Add(FieldNamedByKeyNameFieldName, CrossKeyedName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_UnmappedHeaderFieldNamedByKeyOfMappedProperty_WritesBlankValue()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(FieldNamedByKeyNameFieldName, FieldNamedByKeyNameFieldName);
+            headerLine.Add(CrossKeyedNameKey, CrossKeyedNameKey);
+            var testLine = new UnmappedFieldNamedByKeyLine { Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<UnmappedFieldNamedByKeyLine>(stringWriter))
+            {
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(FieldNamedByKeyHeaderAndNameOnlyRecordLines);
+            }
+        }
+
+        [Fact]
         public void WriteLine_RenamedMappingAndLineWithFieldNamesOnly_WritesFieldValues()
         {
             // arrange
@@ -4047,6 +4091,20 @@ namespace DataStandardizer.File.CSV.Tests
                 set => SetPropertyValue(value);
             }
 
+            [CsvField(CrossKeyedNameKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose only mapped property is keyed by the name of a field that no mapping covers.
+        /// </summary>
+        private sealed class UnmappedFieldNamedByKeyLine : CsvFileRecordLine
+        {
             [CsvField(CrossKeyedNameKey)]
             [CsvFieldMapping(FieldNamedByKeyNameFieldName)]
             public string Name

@@ -306,12 +306,25 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets whether a property with the given key reads and writes the field with that key on this line, rather than a field with another
-        /// name that the line was filled through a mapping from.  A line built from the model holds every property's value under its key.
+        /// Gets whether the line holds a property's value under the property's key, rather than the value of a field named like the key, for
+        /// the writer, where a mapping maps the property to a field with another name.
         /// </summary>
-        internal bool IsPropertyKeyOwnField(string propertyKey)
+        /// <remarks>
+        /// A line filled through a mapping that maps the property to another field holds a value under the key only as a field's value.  Any
+        /// other line holds the property's value under its key, as a line built from the model does, unless it holds a value under the field
+        /// the property is mapped to, as a line built from field names does.
+        /// </remarks>
+        /// <param name="propertyKey">The property key.</param>
+        /// <param name="mappedFieldName">The name of the field the writer's mapping maps the property to.</param>
+        internal bool HoldsPropertyValueUnderKey(string propertyKey, string mappedFieldName)
         {
-            return string.Equals(GetMappedFieldName(propertyKey), propertyKey, StringComparison.Ordinal);
+            if (_mappedFieldNames != null && _mappedFieldNames.TryGetValue(propertyKey, out var fieldName)
+                && !string.Equals(fieldName, propertyKey, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return !_fieldBag.ContainsKey(mappedFieldName);
         }
 
         private protected string GetCsvFieldKey(string propertyName) => GetCachedPropertyKey(this.GetType(), propertyName);
