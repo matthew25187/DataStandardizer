@@ -108,6 +108,15 @@ namespace DataStandardizer.File.CSV.Tests
         private const string PersonKeyFieldName = "pid";
         private const int ChangedId = 6;
         private const string ChangedRecordLine = "6,bob\r\n";
+
+        // A property key that is also the name of another property with a CsvFieldAttribute key of its own, the keys and field
+        // names of the two properties, their values, and the line that results.
+        private const string CrossKeyedTitleKey = "Name";
+        private const string CrossKeyedTitleFieldName = "title_col";
+        private const string CrossKeyedNameKey = "full_name";
+        private const string CrossKeyedTitle = "T";
+        private const string CrossKeyedName = "N";
+        private const string CrossKeyedRecordLine = "T,N\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
@@ -3065,6 +3074,45 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_MappingKeyIsNameOfAnotherKeyedProperty_WritesMappedPropertyValue()
+        {
+            // arrange
+            var testLine = new CrossKeyedAttributeLine { Title = CrossKeyedTitle, Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CrossKeyedAttributeLine>(stringWriter))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_BuilderMappingKeyIsNameOfAnotherKeyedProperty_WritesMappedPropertyValue()
+        {
+            // arrange
+            var testLine = new CrossKeyedBuilderLine { Title = CrossKeyedTitle, Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CrossKeyedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<CrossKeyedBuilderLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
         public void WriteLine_RenamedMappingAndLineWithFieldNamesOnly_WritesFieldValues()
         {
             // arrange
@@ -3828,6 +3876,57 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
                 this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Title property is keyed by the name of its Name property, which has a key of its own.
+        /// </summary>
+        private sealed class CrossKeyedAttributeLine : CsvFileRecordLine
+        {
+            [CsvField(CrossKeyedTitleKey)]
+            [CsvFieldMapping(CrossKeyedTitleFieldName)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(CrossKeyedNameKey)]
+            [CsvFieldMapping(CrossKeyedNameKey)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// <see cref="CrossKeyedAttributeLine"/> with its field names given by <see cref="CrossKeyedBuilderLineMapper"/>.
+        /// </summary>
+        private sealed class CrossKeyedBuilderLine : CsvFileRecordLine
+        {
+            [CsvField(CrossKeyedTitleKey)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(CrossKeyedNameKey)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class CrossKeyedBuilderLineMapper : CsvFileMapperBase<CrossKeyedBuilderLine>
+        {
+            public CrossKeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Title).HasFieldName(CrossKeyedTitleFieldName);
+                this.Map().Property(x => x.Name).HasFieldName(CrossKeyedNameKey);
             }
         }
 
