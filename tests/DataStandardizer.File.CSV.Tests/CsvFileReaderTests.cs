@@ -1648,6 +1648,11 @@ namespace DataStandardizer.File.CSV.Tests
             { () => ReadConstant<TenthFloatLine<decimal>>(line => line.Value), TenthDecimal, typeof(decimal) },
             { () => ReadConstant<WholeDoubleLine<int>>(line => line.Value), WholeDoubleAsInt, typeof(int) },
             { () => ReadConstant<SixteenDigitWholeDoubleLine<decimal>>(line => line.Value), SixteenDigitWholeDecimal, typeof(decimal) },
+            { () => ReadConstant<TinyDoubleLine<decimal>>(line => line.Value), TinyDecimal, typeof(decimal) },
+            { () => ReadConstant<TinyDoubleLine<float>>(line => line.Value), TinyFloat, typeof(float) },
+            { () => ReadConstant<TinyFloatLine<double>>(line => line.Value), TinyDouble, typeof(double) },
+            { () => ReadConstant<FifteenDigitTinyDoubleLine<decimal>>(line => line.Value), FifteenDigitTinyDecimal, typeof(decimal) },
+            { () => ReadConstant<SmallestDecimalDoubleLine<decimal>>(line => line.Value), SmallestDecimal, typeof(decimal) },
             { () => ReadConstant<ULongMaxValueLine<decimal>>(line => line.Value), (decimal)ulong.MaxValue, typeof(decimal) },
             { () => ReadConstant<TwoToThe63Line<ulong>>(line => line.Value), TwoToThe63AsULong, typeof(ulong) },
             { () => ReadConstant<TwoToThe64Line<decimal>>(line => line.Value), TwoToThe64AsDecimal, typeof(decimal) },
@@ -3631,6 +3636,16 @@ namespace DataStandardizer.File.CSV.Tests
         private const double SixteenDigitWholeDouble = 1234567890123456.0;
         private const decimal SixteenDigitWholeDecimal = 1234567890123456m;
 
+        // Numbers whose decimal has a scale above 22, past the largest power of ten a double holds exactly (10^22), and the smallest decimal
+        // greater than zero, whose scale is 28.
+        private const double TinyDouble = 1e-23;
+        private const float TinyFloat = 1e-23f;
+        private const decimal TinyDecimal = 0.00000000000000000000001m;
+        private const double FifteenDigitTinyDouble = 9.87654321098765e-9;
+        private const decimal FifteenDigitTinyDecimal = 0.00000000987654321098765m;
+        private const double SmallestDecimalDouble = 1e-28;
+        private const decimal SmallestDecimal = 0.0000000000000000000000000001m;
+
         // A double with 17 significant digits, which no decimal of at most 15 significant digits converts back to.
         private const double SeventeenDigitDouble = 0.30000000000000004;
 
@@ -3746,6 +3761,46 @@ namespace DataStandardizer.File.CSV.Tests
         private sealed class TenthFloatLine<T> : CsvFileRecordLine
         {
             [CsvFieldMapping(0, ConstantValue = TenthFloat)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TinyDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TinyDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TinyFloatLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TinyFloat)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class FifteenDigitTinyDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = FifteenDigitTinyDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SmallestDecimalDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SmallestDecimalDouble)]
             public T Value
             {
                 get => GetPropertyValue<T>();
