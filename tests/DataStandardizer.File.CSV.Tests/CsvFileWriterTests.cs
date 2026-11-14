@@ -124,6 +124,31 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedRecordFile = "5,bob";
         private const string FirstLongRecordLine = "1,One,This is the first record\r\n";
 
+        // GapIndexedLineMapper maps Id to index 0, Name by name and Description to index 10, so Name fills position 1 and positions 2 to 9 are blank.
+        private const string GapIndexedRecordLine = "1,One,,,,,,,,,This is the first record\r\n";
+
+        // IndexGapLineMapper maps Id, Name and Description to indexes 0, 1 and 3, so position 2 is blank, or holds a field no mapping covers.
+        private const string IndexGapRecordLine = "1,One,,First\r\n";
+        private const string IndexGapUnmappedRecordLine = "1,One,Extra,First\r\n";
+        private const string IndexGapUntrimmedRecordLine = "1,One,,\r\n";
+        private const string UnmappedFieldName = "Notes";
+        private const string UnmappedFieldValue = "Extra";
+
+        // ContactLineMapper maps FirstName, LastName and City by name, Title to index 0 and Country to index 9.
+        private const string ContactFirstName = "Ann";
+        private const string ContactLastName = "Lee";
+        private const string ContactTitle = "Dr";
+        private const string ContactCity = "Oslo";
+        private const string ContactCountry = "Norway";
+        private const string ContactFirstNameFieldName = nameof(ContactLine.FirstName);
+        private const string ContactLastNameFieldName = nameof(ContactLine.LastName);
+        private const string ContactTitleFieldName = nameof(ContactLine.Title);
+        private const string ContactCityFieldName = nameof(ContactLine.City);
+        private const string ContactCountryFieldName = nameof(ContactLine.Country);
+        private const string ContactRecordLine = "Dr,Ann,Lee,Oslo,,,,,,Norway\r\n";
+        private const string ContactHeaderLine = "Title,FirstName,LastName,City,,,,,,Country\r\n";
+        private const string ContactHeaderAndRecordLines = "Title,FirstName,LastName,City,,,,,,Country\r\nDr,Ann,Lee,Oslo,,,,,,Norway\r\n";
+
         private const string OptionsParameterName = "options";
 
         // Keys of the CsvFileException data items that describe a record line with a field the first record line doesn't have, and the field
@@ -1055,7 +1080,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void WriteLine_RecordLineWithGapInIndexMapping_WritesCsvFieldsInOrderByIndexAndNameMapping()
+        public void WriteLine_RecordLineWithGapInIndexMapping_WritesBlankFieldsInGap()
         {
             // arrange
             ICsvFileLine testRecordLine = new GapIndexedLine { Name = FirstName, Description = FirstLongDescription, Id = 1 };
@@ -1070,7 +1095,216 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testRecordLine);
 
                 // assert
-                buffer.ToString().Should().Be(FirstLongRecordLine);
+                buffer.ToString().Should().Be(GapIndexedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperWithIndexGap_WritesFieldAtMappedIndex()
+        {
+            // arrange
+            var testLine = new IndexGapLine { Id = 1, Name = FirstName, Description = FirstDescription };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<IndexGapLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<IndexGapLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(IndexGapRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperWithIndexGapAndUnmappedField_WritesUnmappedFieldInGap()
+        {
+            // arrange
+            var testLine = new IndexGapLine { Id = 1, Name = FirstName, Description = FirstDescription };
+            ((ICsvFileLine)testLine).Add(UnmappedFieldName, UnmappedFieldValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<IndexGapLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<IndexGapLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(IndexGapUnmappedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperWithIndexGapAndBlankLastField_WritesBlankFields()
+        {
+            // arrange
+            var testLine = new IndexGapLine { Id = 1, Name = FirstName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<IndexGapLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<IndexGapLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(IndexGapUntrimmedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperWithIndexGapAndSuppressTrailingBlankFields_TrimsBlankFieldsOfLayout()
+        {
+            // arrange
+            var testLine = new IndexGapLine { Id = 1, Name = FirstName };
+            var options = new CsvFileOptions { SuppressTrailingBlankFields = true };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<IndexGapLine>(stringWriter, options))
+            {
+                csvWriter.RegisterMapper<IndexGapLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(FirstRecordLine);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderlessFileWrittenWithIndexGap_ReadsFieldAtMappedIndex()
+        {
+            // arrange
+            var testLine = new IndexGapLine { Id = 1, Name = FirstName, Description = FirstDescription };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<IndexGapLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<IndexGapLineMapper>();
+                csvWriter.WriteLine(testLine);
+            }
+
+            IndexGapLine testResult;
+            using (var csvReader = new CsvFileReader<IndexGapLine>(new StringReader(buffer.ToString())))
+            {
+                csvReader.RegisterMapper<IndexGapLineMapper>();
+
+                // act
+                testResult = (IndexGapLine)csvReader.ReadLine();
+            }
+
+            // assert
+            testResult.Description.Should().Be(FirstDescription);
+        }
+
+        [Fact]
+        public void WriteLine_HeaderlessMapperWithNameMappingsAroundIndexes_FillsFreePositionsInMapperOrder()
+        {
+            // arrange
+            var testLine = new ContactLine
+            {
+                Country = ContactCountry, City = ContactCity, Title = ContactTitle, LastName = ContactLastName, FirstName = ContactFirstName
+            };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ContactLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ContactRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithIndexMappedNames_WritesThemAtTheirIndexes()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(ContactFirstNameFieldName, ContactFirstNameFieldName);
+            testLine.Add(ContactLastNameFieldName, ContactLastNameFieldName);
+            testLine.Add(ContactTitleFieldName, ContactTitleFieldName);
+            testLine.Add(ContactCityFieldName, ContactCityFieldName);
+            testLine.Add(ContactCountryFieldName, ContactCountryFieldName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ContactLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ContactHeaderLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithoutIndexMappedNames_WritesMappingNamesAtTheirIndexes()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(ContactFirstNameFieldName, ContactFirstNameFieldName);
+            testLine.Add(ContactLastNameFieldName, ContactLastNameFieldName);
+            testLine.Add(ContactCityFieldName, ContactCityFieldName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ContactLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ContactHeaderLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordLineAfterHeaderLineWithIndexMappings_WritesFieldsInHeaderLayout()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(ContactFirstNameFieldName, ContactFirstNameFieldName);
+            headerLine.Add(ContactLastNameFieldName, ContactLastNameFieldName);
+            headerLine.Add(ContactTitleFieldName, ContactTitleFieldName);
+            headerLine.Add(ContactCityFieldName, ContactCityFieldName);
+            headerLine.Add(ContactCountryFieldName, ContactCountryFieldName);
+            var testLine = new ContactLine
+            {
+                Country = ContactCountry, City = ContactCity, Title = ContactTitle, LastName = ContactLastName, FirstName = ContactFirstName
+            };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ContactLineMapper>();
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ContactHeaderAndRecordLines);
             }
         }
 
@@ -3741,6 +3975,78 @@ namespace DataStandardizer.File.CSV.Tests
                     .Property(x => x.Id)
                     .HasFieldIndex(0)
                     .ConvertUsing(typeof(Int32Converter));
+            }
+        }
+
+        private sealed class IndexGapLine : TestLine
+        {
+        }
+
+        /// <summary>
+        /// Maps Id, Name and Description to indexes 0, 1 and 3, so no mapping covers position 2.
+        /// </summary>
+        private sealed class IndexGapLineMapper : CsvFileMapperBase<IndexGapLine>
+        {
+            public IndexGapLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldIndex(1);
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(3);
+            }
+        }
+
+        private sealed class ContactLine : CsvFileRecordLine
+        {
+            public string FirstName
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string LastName
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string City
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Country
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps FirstName and LastName by name, then Title to index 0, City by name and Country to index 9.
+        /// </summary>
+        private sealed class ContactLineMapper : CsvFileMapperBase<ContactLine>
+        {
+            public ContactLineMapper()
+            {
+                this.Map().Property(x => x.FirstName);
+                this.Map().Property(x => x.LastName);
+                this.Map().Property(x => x.Title).HasFieldIndex(0);
+                this.Map().Property(x => x.City);
+                this.Map().Property(x => x.Country).HasFieldIndex(9);
             }
         }
 

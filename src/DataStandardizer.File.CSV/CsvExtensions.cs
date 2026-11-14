@@ -100,9 +100,17 @@ namespace DataStandardizer.File.CSV
         /// <returns>Mapper containing collection of field mappings.</returns>
         public static ICsvFileMapper CreateMapper<TRecordLine>(this TRecordLine recordLine) where TRecordLine : CsvFileRecordLine
         {
+            return CreateMapper(recordLine.GetType());
+        }
+
+        /// <summary>
+        /// Creates a CSV field mapper from the declarative configuration on a record line type.
+        /// </summary>
+        internal static ICsvFileMapper CreateMapper(Type recordLineType)
+        {
             var propertyFieldMappings = new Dictionary<string, CsvFieldMapping>();
 
-            foreach (var propertyBinding in GetPropertyBindings(recordLine.GetType()))
+            foreach (var propertyBinding in GetPropertyBindings(recordLineType))
             {
                 var fieldAttribute = propertyBinding.MappingAttribute;
                 if (fieldAttribute is null)

@@ -46,7 +46,6 @@ namespace DataStandardizer.File.CSV.Tests
         private const string PositionalFieldName4 = "Field 4";
 
         // The names the reader gives a field when another field already has its positional name.
-        private const string SecondPositionalFieldName1 = "Field 1 (2)";
         private const string SecondPositionalFieldName2 = "Field 2 (2)";
         private const string SecondPositionalFieldName3 = "Field 3 (2)";
         private const string ThirdPositionalFieldName3 = "Field 3 (3)";
@@ -1497,19 +1496,19 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MappingPastLastFieldNamedLikeAPositionalField_RenamesPositionalField()
+        public void ReadLine_HeaderlessNameMappingBeforeIndexMapping_ReadsFieldBelowIndex()
         {
             // arrange
-            using (var csvReader = new CsvFileReader<PastLastPositionalNameLine>(new StringReader(TwoShortRecordsFile)))
+            using (var csvReader = new CsvFileReader<GapFillingNameLine>(new StringReader(TwoShortRecordsFile)))
             {
-                csvReader.RegisterMapper<PastLastPositionalNameLineMapper>();
+                csvReader.RegisterMapper<GapFillingNameLineMapper>();
 
                 // act
-                var testResult = csvReader.ReadLine() as PastLastPositionalNameLine;
+                var testResult = csvReader.ReadLine() as GapFillingNameLine;
 
                 // assert
-                ((ICsvFileLine)testResult).Keys.Should().Equal(SecondPositionalFieldName1, IdFieldName);
-                testResult.Name.Should().BeNull();
+                ((ICsvFileLine)testResult).Keys.Should().Equal(NameFieldName, IdFieldName);
+                testResult.Name.Should().Be(RecordValue1);
             }
         }
 
@@ -2772,25 +2771,23 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// A line whose Id <see cref="PastLastPositionalNameLineMapper"/> maps by index to the second field, and whose optional Name it maps, at the
-        /// third position, under the name the reader gives the first field of a line without a header line.
+        /// A line whose Id <see cref="GapFillingNameLineMapper"/> maps by index to the second field, and whose Name it maps by name, after Id, so
+        /// Name takes the first field, the free position below Id's index.
         /// </summary>
-        private sealed class PastLastPositionalNameLine : TestLine
+        private sealed class GapFillingNameLine : TestLine
         {
         }
 
-        private sealed class PastLastPositionalNameLineMapper : CsvFileMapperBase<PastLastPositionalNameLine>
+        private sealed class GapFillingNameLineMapper : CsvFileMapperBase<GapFillingNameLine>
         {
-            public PastLastPositionalNameLineMapper()
+            public GapFillingNameLineMapper()
             {
                 this.Map()
                     .Property(x => x.Id)
                     .HasFieldIndex(1)
                     .ConvertUsing(typeof(Int32Converter));
                 this.Map()
-                    .Property(x => x.Name)
-                    .HasFieldName(PositionalFieldName1)
-                    .IsOptional();
+                    .Property(x => x.Name);
             }
         }
 

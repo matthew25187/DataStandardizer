@@ -38,8 +38,8 @@ useful subset of the configuration: field name or index, optionality, a constant
 value, and a type converter. A model's inherited properties are mapped with
 their attributes, so a mapping declared on a base class applies to every class
 that derives from it. A base class's properties come before the derived
-class's own, so a field mapped without an index takes the next position after
-the inherited ones. A property hidden with `new` is mapped by its own
+class's own, so among the fields mapped without an index, the inherited ones
+take the lower positions. A property hidden with `new` is mapped by its own
 attributes, and an override keeps the attributes of the property it overrides
 unless it declares its own. A base class's property whose accessors are all
 private isn't inherited, so it isn't mapped on a derived class.
@@ -143,6 +143,14 @@ converter delegate's context gets the name of the field the index picked.
 
 A record with no field at that position has no field for the mapping, even if
 another of its fields has the mapping's name.
+
+Without a header line, a mapping by name has no name in the file to find, so
+it reads the field at a position worked out from the mapper. The mappings by
+index take their indexes, and the mappings by name fill the positions left, in
+turn from position 0, in mapper order. A mapping by name that has the same field
+name as an earlier mapping reads the same field. The writer puts the fields at
+the same positions, so a file written with a mapper reads back with it. See
+[field positions](../how-to/write-csv-files.md#field-positions).
 
 A mapping reads only the field it's mapped to. A mapping whose field the record
 doesn't have, by name or by index, has nothing to read, even if the record has a

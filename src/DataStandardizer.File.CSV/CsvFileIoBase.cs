@@ -214,6 +214,15 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
+        /// Gets the mapper for lines of <typeparamref name="TRecordLine"/> when there is no record line to resolve it from: the mapper registered on
+        /// this reader or writer if there is one, else the declarative mapper of <typeparamref name="TRecordLine"/> itself.
+        /// </summary>
+        private protected ICsvFileMapper GetMapper()
+        {
+            return _registeredMapper ?? CsvMapperCache.GetOrAddDeclarativeMapper(typeof(TRecordLine));
+        }
+
+        /// <summary>
         /// Read-only, live view of the mapper registered on a reader or writer.
         /// </summary>
         private sealed class RegisteredMapperView : IReadOnlyDictionary<Type, ICsvFileMapper>
