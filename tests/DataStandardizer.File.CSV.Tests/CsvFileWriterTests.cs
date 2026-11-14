@@ -132,6 +132,8 @@ namespace DataStandardizer.File.CSV.Tests
         private const string FieldNamedByKeyNameFieldName = "x";
         private const string FieldNamedByKeyNameOnlyRecordLine = ",N\r\n";
         private const string FieldNamedByKeyHeaderAndNameOnlyRecordLines = "x,full_name\r\nN,\r\n";
+        private const string FieldNamedByKeyTitleOnlyRecordFile = "T\r\n";
+        private const string FieldNamedByKeyTitleOnlyRecordLine = "T,\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
@@ -3269,6 +3271,28 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_LineReadWithoutFieldOfPropertyKeyedByMappedFieldName_WritesFieldValueToItsField()
+        {
+            // arrange
+            FieldNamedByKeyOptionalNameLine testLine;
+            using (var csvReader = new CsvFileReader<FieldNamedByKeyOptionalNameLine>(new StringReader(FieldNamedByKeyTitleOnlyRecordFile)))
+            {
+                testLine = (FieldNamedByKeyOptionalNameLine)csvReader.ReadLine();
+            }
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyOptionalNameLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(FieldNamedByKeyTitleOnlyRecordLine);
+            }
+        }
+
+        [Fact]
         public void WriteLine_LineWithFieldNamesOnlyAndMappedFieldNameIsKeyOfAnotherProperty_WritesFieldValues()
         {
             // arrange
@@ -4093,6 +4117,28 @@ namespace DataStandardizer.File.CSV.Tests
 
             [CsvField(CrossKeyedNameKey)]
             [CsvFieldMapping(FieldNamedByKeyNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// <see cref="FieldNamedByKeyLine"/> with its Name property's mapping optional.
+        /// </summary>
+        private sealed class FieldNamedByKeyOptionalNameLine : CsvFileRecordLine
+        {
+            [CsvField(CrossKeyedTitleKey)]
+            [CsvFieldMapping(CrossKeyedNameKey)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(CrossKeyedNameKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameFieldName, IsOptional = true)]
             public string Name
             {
                 get => GetPropertyValue<string>();

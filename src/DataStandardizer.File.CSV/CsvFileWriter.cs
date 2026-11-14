@@ -851,9 +851,10 @@ namespace DataStandardizer.File.CSV
                     return true;
                 }
 
-                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under.
+                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under, unless the line
+                // was read through a mapping and holds another field's value under it.
                 var propertyKey = mapping.Mapping.Key;
-                if (csvLine.Contains(propertyKey))
+                if (csvLine.Contains(propertyKey) && recordLine.IsPropertyValueKey(propertyKey))
                 {
                     fieldKey = propertyKey;
                     return true;

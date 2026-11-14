@@ -276,7 +276,7 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// The key is the name given by <see cref="CsvFieldAttribute"/>, else the property name.  On a line filled through a mapping that maps
         /// the property to a field with another name, it is that field's name instead, unless the line has no such field but does have one with
-        /// the property key.
+        /// the property key that isn't the field another property is mapped to.
         /// </remarks>
         protected string GetPropertyKey(string propertyName)
         {
@@ -296,13 +296,40 @@ namespace DataStandardizer.File.CSV
 
             if (mappedFieldNames.TryGetValue(propertyKey, out var mappedFieldName))
             {
-                if (_fieldBag.ContainsKey(mappedFieldName) || !_fieldBag.ContainsKey(propertyKey))
+                // A field named like the property key is the property's only if it isn't the field of another mapping, as field names and
+                // property keys share one key space on the line.
+                if (_fieldBag.ContainsKey(mappedFieldName) || !_fieldBag.ContainsKey(propertyKey) || IsOtherMappedFieldName(mappedFieldNames, propertyKey))
                 {
                     return mappedFieldName;
                 }
             }
 
             return propertyKey;
+        }
+
+        /// <summary>
+        /// Gets whether a property key is the name of the field that another property is mapped to.
+        /// </summary>
+        private static bool IsOtherMappedFieldName(Dictionary<string, string> mappedFieldNames, string propertyKey)
+        {
+            foreach (var mappedFieldName in mappedFieldNames)
+            {
+                if (string.Equals(mappedFieldName.Value, propertyKey, StringComparison.Ordinal)
+                    && !string.Equals(mappedFieldName.Key, propertyKey, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets whether the line holds a property's value under the property's key: the key the property reads and writes on this line.
+        /// </summary>
+        internal bool IsPropertyValueKey(string propertyKey)
+        {
+            return string.Equals(GetMappedFieldName(propertyKey), propertyKey, StringComparison.Ordinal);
         }
 
         /// <summary>
