@@ -27,7 +27,12 @@ namespace DataStandardizer.File.CSV
     /// <para>
     /// A byte order mark at the start of the stream chooses the encoding when none is declared, as for a <see cref="StreamReader"/> that detects
     /// one.  When an encoding is declared, a byte order mark of that encoding is passed over, and any other is read as the declared encoding's
-    /// characters, as the declared encoding wins.
+    /// characters, as the declared encoding wins.  Those that aren't valid in it are escaped, and those that are, such as a UTF-8 mark read as
+    /// ISO 8859-1, are read as the characters they are.
+    /// </para>
+    /// <para>
+    /// A custom <see cref="Encoding"/> whose decoder ignores <c>Decoder.Fallback</c> decodes a byte it can't decode its own way, so such a byte
+    /// isn't escaped.
     /// </para>
     /// </remarks>
     internal sealed class CsvStreamTextReader : TextReader
@@ -37,6 +42,10 @@ namespace DataStandardizer.File.CSV
 
         // The longest character of a .NET encoding is four bytes, so an unfinished one at the end of a block is at most three.
         private const int MaxUnfinishedCharacterLength = 3;
+
+        // The number of bytes counted at a time in a block the decoder falls back in, so that only the runs with a byte it can't decode are
+        // decoded a byte at a time.
+        private const int CheckedRunLength = 64;
 
         private const string Utf8WebName = "utf-8";
         private const string Utf16LittleEndianWebName = "utf-16";
@@ -227,22 +236,24 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private void StartDecoding()
         {
-            var declaredWebName = _isEncodingDeclared ? GetWebName(CurrentEncoding) : null;
+            var declaredWebName = _isEncodingDeclared ? CsvTextData.GetWebName(CurrentEncoding) : null;
             foreach (var byteOrderMark in ByteOrderMarks)
             {
                 if (!StartsWith(byteOrderMark.Value)) continue;
 
-                if (!_isEncodingDeclared)
+                if (_isEncodingDeclared)
                 {
-                    CurrentEncoding = CreateUnicodeEncoding(byteOrderMark.Key);
-                    _byteStart = byteOrderMark.Value.Length;
+                    // Only the declared encoding's own mark is passed over.  UTF-16 little endian's mark followed by U+0000 looks like UTF-32 little
+                    // endian's, so every mark is tried.
+                    if (!string.Equals(declaredWebName, byteOrderMark.Key, StringComparison.OrdinalIgnoreCase)) continue;
                 }
-                else if (string.Equals(declaredWebName, byteOrderMark.Key, StringComparison.OrdinalIgnoreCase))
+                else
                 {
-                    _byteStart = byteOrderMark.Value.Length;
+                    // The first mark that matches names the encoding, so a UTF-32 little endian mark isn't taken for UTF-16 little endian's.
+                    CurrentEncoding = CreateUnicodeEncoding(byteOrderMark.Key);
                 }
 
-                // Only the first mark that matches counts, so a UTF-32 little endian mark isn't taken for UTF-16 little endian's.
+                _byteStart = byteOrderMark.Value.Length;
                 break;
             }
 
@@ -296,36 +307,20 @@ namespace DataStandardizer.File.CSV
             }
         }
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static string? GetWebName(Encoding encoding)
-#else
-        private static string GetWebName(Encoding encoding)
-#endif
-        {
-            // An encoding of a code page that .NET doesn't know, such as a custom Encoding class, throws for its web name.
-            try
-            {
-                return encoding.WebName;
-            }
-            catch (NotSupportedException)
-            {
-                return null;
-            }
-        }
-
         /// <summary>
         /// Makes a decoder throw for a byte sequence it can't decode.
         /// </summary>
         /// <remarks>
         /// .NET Standard 1.1 has no <c>Decoder.Fallback</c>, though every .NET runtime that loads it does, so the property is found at run time.
+        /// A runtime whose reflection metadata leaves it out, such as .NET Native, keeps the encoding's own fallback, so it reads a byte it can't
+        /// decode as that fallback's replacement, as a caller's <see cref="StreamReader"/> does, rather than failing to read any stream.
         /// </remarks>
         private static void SetExceptionFallback(Decoder decoder)
         {
 #if NETSTANDARD1_1
             var fallbackProperty = typeof(Decoder).GetRuntimeProperty("Fallback");
             var exceptionFallbackType = typeof(Decoder).GetTypeInfo().Assembly.GetType("System.Text.DecoderExceptionFallback");
-            if (fallbackProperty is null || exceptionFallbackType is null)
-                throw new PlatformNotSupportedException("The runtime has no decoder exception fallback.");
+            if (fallbackProperty is null || exceptionFallbackType is null) return;
 
             fallbackProperty.SetValue(decoder, Activator.CreateInstance(exceptionFallbackType));
 #else
@@ -370,13 +365,28 @@ namespace DataStandardizer.File.CSV
                 return;
             }
 
-            for (var index = byteStart; index < byteStart + byteCount; index++)
+            // Each run of bytes is counted the same way, so only a run the decoder falls back in is decoded a byte at a time.
+            var end = byteStart + byteCount;
+            for (var runStart = byteStart; runStart < end; runStart += CheckedRunLength)
             {
-                EnsureCharCapacity(_charEnd + decoder.GetCharCount(bytes, index, 1, false));
+                var runLength = Math.Min(CheckedRunLength, end - runStart);
                 _fallback.Reset();
-                var decoded = decoder.GetChars(bytes, index, 1, _chars, _charEnd, false);
-                EscapeFallbackCharacters(_charEnd, decoded);
-                _charEnd += decoded;
+                var runCharCount = decoder.GetCharCount(bytes, runStart, runLength, false);
+                if (!_fallback.HasFallenBack)
+                {
+                    EnsureCharCapacity(_charEnd + runCharCount);
+                    _charEnd += decoder.GetChars(bytes, runStart, runLength, _chars, _charEnd, false);
+                    continue;
+                }
+
+                for (var index = runStart; index < runStart + runLength; index++)
+                {
+                    EnsureCharCapacity(_charEnd + decoder.GetCharCount(bytes, index, 1, false));
+                    _fallback.Reset();
+                    var decoded = decoder.GetChars(bytes, index, 1, _chars, _charEnd, false);
+                    EscapeFallbackCharacters(_charEnd, decoded);
+                    _charEnd += decoded;
+                }
             }
         }
 
@@ -407,13 +417,13 @@ namespace DataStandardizer.File.CSV
         /// </remarks>
         private void DecodeBytesByException(bool flush)
         {
-            if (TryDecodeBlock(_byteEnd)) return;
+            if (TryDecodeBlock(_byteEnd, flush)) return;
 
             if (!flush)
             {
                 for (var tailLength = 1; tailLength <= MaxUnfinishedCharacterLength && _byteEnd - tailLength > _byteStart; tailLength++)
                 {
-                    if (TryDecodeBlock(_byteEnd - tailLength)) return;
+                    if (TryDecodeBlock(_byteEnd - tailLength, false)) return;
                 }
             }
 
@@ -469,14 +479,18 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Decodes the unread bytes up to <paramref name="end"/> in one call, if they hold only whole characters the decoder can decode.
         /// </summary>
-        private bool TryDecodeBlock(int end)
+        /// <remarks>
+        /// Counting as if flushing finds an unfinished character at the end as well as bytes the decoder can't decode, and doesn't change its
+        /// state.  The bytes are then decoded without flushing, unless the stream has ended, so that a stateful encoding, such as ISO-2022-JP,
+        /// keeps its shift state into the next block.
+        /// </remarks>
+        private bool TryDecodeBlock(int end, bool flush)
         {
             var decoder = _decoder;
             try
             {
-                // Flushing leaves the decoder empty, and finds an unfinished character at the end as well as bytes it can't decode.
                 EnsureCharCapacity(decoder.GetCharCount(_bytes, _byteStart, end - _byteStart, true));
-                _charEnd = decoder.GetChars(_bytes, _byteStart, end - _byteStart, _chars, 0, true);
+                _charEnd = decoder.GetChars(_bytes, _byteStart, end - _byteStart, _chars, 0, flush);
             }
             catch (DecoderFallbackException)
             {

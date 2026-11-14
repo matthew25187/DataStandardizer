@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Text;
 using FluentAssertions;
 using Xunit;
@@ -23,6 +24,11 @@ namespace DataStandardizer.File.CSV.Tests
 
         // A declared encoding of UTF-8 without a preamble, so that a byte order mark isn't passed over only because the encoding writes one.
         private static readonly Encoding Utf8WithoutPreamble = new UTF8Encoding(false);
+
+        // 63 bytes of "a", then "\x00E9", whose two bytes straddle the end of the first 64-byte run the reader counts in a block it falls back
+        // in, then "b" and 0xFF, which is never in UTF-8.
+        private static readonly byte[] LongRunBytes = Enumerable.Repeat((byte)0x61, 63).Concat(new byte[] { 0xC3, 0xA9, 0x62, 0xFF }).ToArray();
+        private static readonly string LongRunExpected = new string('a', 63) + "\x00E9b\xDCFF";
 
         private static readonly DecodingCase[] Cases = new DecodingCase[]
         {
@@ -58,6 +64,12 @@ namespace DataStandardizer.File.CSV.Tests
             // A declared encoding passes over its own byte order mark, even when it doesn't write one.
             new DecodingCase("DeclaredUtf8WithItsByteOrderMark", new byte[] { 0xEF, 0xBB, 0xBF, 0x61 }, Utf8WithoutPreamble, true, "a"),
             new DecodingCase("DeclaredUtf16WithItsByteOrderMark", new byte[] { 0xFF, 0xFE, 0x61, 0x00 }, Encoding.Unicode, true, "a"),
+            // UTF-16 little endian's mark, then U+0000, looks like UTF-32 little endian's mark, but the declared encoding's own mark is passed over.
+            new DecodingCase("DeclaredUtf16WithItsByteOrderMarkBeforeNull", new byte[] { 0xFF, 0xFE, 0x00, 0x00, 0x61, 0x00 }, Encoding.Unicode, true,
+                "\x0000a"),
+            new DecodingCase("DeclaredUtf32WithItsByteOrderMark", new byte[] { 0xFF, 0xFE, 0x00, 0x00, 0x61, 0x00, 0x00, 0x00 }, Encoding.UTF32, true, "a"),
+            // A byte that isn't valid after a run of bytes that are, with a character that straddles the end of the run.
+            new DecodingCase("Utf8InvalidByteAfterLongRun", LongRunBytes, Encoding.UTF8, false, LongRunExpected),
             // A declared encoding wins over the byte order mark of another, which it reads as its own bytes.
             new DecodingCase("DeclaredUtf8WithUtf16ByteOrderMark", new byte[] { 0xFF, 0xFE, 0x61, 0x00 }, Utf8WithoutPreamble, true, "\xDCFF\xDCFEa\x0000"),
             // A stream shorter than any byte order mark.

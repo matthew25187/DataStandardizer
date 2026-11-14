@@ -126,7 +126,9 @@ throws `CsvFileException` for such a value, and writes nothing for the line.
 
 A reader constructed from a `Stream` or a file path decodes the file itself. When `Encoding`
 is set, it wins over a byte order mark of another encoding, whose bytes are read as
-characters of `Encoding`. A byte order mark of `Encoding` itself is passed over.
+characters of `Encoding`: a bad value where they aren't valid in it, and otherwise the
+characters they are, such as `ï»¿` for a UTF-8 mark read as ISO 8859-1. A byte order
+mark of `Encoding` itself is passed over.
 
 A byte the encoding can't decode, such as `0xFF` in UTF-8, or any byte above `0x7F` in
 US-ASCII, reads as the lone surrogate `U+DC00` plus the byte (`U+DCFF` for `0xFF`).
@@ -139,6 +141,9 @@ A `TextReader` the caller supplies decodes the file itself, so the reader can't 
 byte it replaced from the same character in the file. A `StreamReader` replaces a byte it
 can't decode with U+FFFD, which the reader reads as a character like any other.
 Construct the reader from a `Stream` or a file path to have such bytes reported.
+
+A custom `Encoding` whose decoder ignores `Decoder.Fallback` decodes such bytes its own
+way, so the reader can't report them.
 
 A writer throws `CsvFileException` for a value that holds a lone surrogate, whatever its
 encoding.

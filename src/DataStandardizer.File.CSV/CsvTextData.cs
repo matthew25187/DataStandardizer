@@ -102,22 +102,9 @@ namespace DataStandardizer.File.CSV
         {
             if (encoding is null) return AsciiTextData;
 
-            // An encoding of a code page that .NET doesn't know, such as a custom Encoding class, throws for its web name.  Its character set is
-            // found by encoding each character, as for any other encoding that isn't US-ASCII or Unicode.
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            string? webName;
-#else
-            string webName;
-#endif
-            try
-            {
-                webName = encoding.WebName;
-            }
-            catch (NotSupportedException)
-            {
-                webName = null;
-            }
-
+            // An encoding without a web name has its character set found by encoding each character, as for any other encoding that isn't
+            // US-ASCII or Unicode.
+            var webName = GetWebName(encoding);
             if (webName != null)
             {
                 if (string.Equals(webName, AsciiWebName, StringComparison.OrdinalIgnoreCase)) return AsciiTextData;
@@ -128,6 +115,28 @@ namespace DataStandardizer.File.CSV
             }
 
             return new CsvTextData(CharacterSetKind.Encoded, encoding, webName ?? encoding.GetType().Name);
+        }
+
+        /// <summary>
+        /// Gets an encoding's web name, or <c>null</c> if it has none.
+        /// </summary>
+        /// <remarks>
+        /// An encoding of a code page that .NET doesn't know, such as a custom Encoding class, throws for its web name.
+        /// </remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static string? GetWebName(Encoding encoding)
+#else
+        internal static string GetWebName(Encoding encoding)
+#endif
+        {
+            try
+            {
+                return encoding.WebName;
+            }
+            catch (NotSupportedException)
+            {
+                return null;
+            }
         }
 
         private static CsvTextData[] CreateUnicodeTextData()
@@ -376,15 +385,32 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the index of the first character to check that the characters from <see cref="GetSearchCharacters"/> leave out, or -1 if there is
         /// none: a C1 control character, <c>%x80-9F</c>, when <paramref name="searchC1Separately"/> is <c>true</c>, and, when the character set
-        /// has all of Unicode, a surrogate, so that a lone one is found.
+        /// has all of Unicode, a surrogate that may be alone, so that a lone one is found.
         /// </summary>
+        /// <remarks>
+        /// A surrogate pair inside the value is a character of Unicode, so the search passes over it.  A high surrogate at the end of the value is
+        /// returned, as the caller may find its low surrogate past the value.
+        /// </remarks>
         internal int IndexOfRangeToCheck(ReadOnlySpan<char> value, bool searchC1Separately)
         {
             var index = searchC1Separately ? value.IndexOfAnyInRange(FirstC1Control, LastC1Control) : -1;
             if (_kind != CharacterSetKind.Unicode) return index;
 
-            var surrogateIndex = (index < 0 ? value : value.Slice(0, index)).IndexOfAnyInRange(FirstSurrogate, LastSurrogate);
-            return surrogateIndex >= 0 ? surrogateIndex : index;
+            var searched = index < 0 ? value : value.Slice(0, index);
+            var start = 0;
+            while (true)
+            {
+                var surrogateIndex = searched.Slice(start).IndexOfAnyInRange(FirstSurrogate, LastSurrogate);
+                if (surrogateIndex < 0) return index;
+
+                var position = start + surrogateIndex;
+                if (!char.IsHighSurrogate(searched[position]) || position + 1 >= searched.Length || !char.IsLowSurrogate(searched[position + 1]))
+                {
+                    return position;
+                }
+
+                start = position + 2;
+            }
         }
 #endif
     }
