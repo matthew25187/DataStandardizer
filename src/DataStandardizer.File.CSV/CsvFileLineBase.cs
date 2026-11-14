@@ -24,18 +24,10 @@ namespace DataStandardizer.File.CSV
         private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string>> PropertyKeyCache =
             new ConcurrentDictionary<Type, ConcurrentDictionary<string, string>>();
 
-        // The keys of the properties of each runtime line type, which a mapping key is matched against before it is looked up as a property name.
-        private static readonly ConcurrentDictionary<Type, HashSet<string>> DeclaredPropertyKeyCache =
-            new ConcurrentDictionary<Type, HashSet<string>>();
-
         /// <summary>
         /// Removes every cached property key.  Called by <see cref="CsvMapperCache.Clear"/>.
         /// </summary>
-        internal static void ClearPropertyKeys()
-        {
-            PropertyKeyCache.Clear();
-            DeclaredPropertyKeyCache.Clear();
-        }
+        internal static void ClearPropertyKeys() => PropertyKeyCache.Clear();
 
         // Both stores keep the fields in position order, inline, with a name lookup beside them.  CsvFieldStore has the members of
         // the generic OrderedDictionary that this class uses, with the same behaviour, so the code below is the same for both.
@@ -311,36 +303,6 @@ namespace DataStandardizer.File.CSV
             }
 
             return propertyKey;
-        }
-
-        /// <summary>
-        /// Gets the key a mapping's property key resolves to on this line, for the writer to look a value up by when the line has no field with
-        /// the mapped field name.
-        /// </summary>
-        /// <remarks>
-        /// A mapping key that is the key of one of the line's properties is that property's key, even when it is also the name of another
-        /// property with a <see cref="CsvFieldAttribute"/> name of its own.  Any other key is looked up as a property name.
-        /// </remarks>
-        internal string ResolveMappedPropertyKey(string mappingKey)
-        {
-            var type = this.GetType();
-            if (!DeclaredPropertyKeyCache.TryGetValue(type, out var declaredPropertyKeys))
-            {
-                declaredPropertyKeys = DeclaredPropertyKeyCache.GetOrAdd(type, GetDeclaredPropertyKeys);
-            }
-
-            return declaredPropertyKeys.Contains(mappingKey) ? mappingKey : GetCsvFieldKey(mappingKey);
-        }
-
-        private static HashSet<string> GetDeclaredPropertyKeys(Type type)
-        {
-            var declaredPropertyKeys = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in CsvMappableProperty.GetAll(type))
-            {
-                declaredPropertyKeys.Add(property.Declaration.GetPropertyKey());
-            }
-
-            return declaredPropertyKeys;
         }
 
         private protected string GetCsvFieldKey(string propertyName) => GetCachedPropertyKey(this.GetType(), propertyName);

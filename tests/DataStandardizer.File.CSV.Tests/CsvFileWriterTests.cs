@@ -117,6 +117,15 @@ namespace DataStandardizer.File.CSV.Tests
         private const string CrossKeyedTitle = "T";
         private const string CrossKeyedName = "N";
         private const string CrossKeyedRecordLine = "T,N\r\n";
+
+        // Two properties, each keyed by the other's name, the fields they are mapped to, their values, and the line that results.
+        private const string SwappedKeyA = "B";
+        private const string SwappedKeyB = "A";
+        private const string SwappedFieldNameA = "a_col";
+        private const string SwappedFieldNameB = "b_col";
+        private const string SwappedValueA = "x";
+        private const string SwappedValueB = "y";
+        private const string SwappedRecordLine = "x,y\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
@@ -3083,7 +3092,6 @@ namespace DataStandardizer.File.CSV.Tests
             using (var stringWriter = new StringWriter(buffer))
             using (var csvWriter = new CsvFileWriter<CrossKeyedAttributeLine>(stringWriter))
             {
-
                 // act
                 csvWriter.WriteLine(testLine);
 
@@ -3109,6 +3117,44 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_DerivedLineWithMappingKeyThatIsNameOfAnotherKeyedProperty_WritesMappedPropertyValue()
+        {
+            // arrange
+            var testLine = new DerivedCrossKeyedBuilderLine { Title = CrossKeyedTitle, Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CrossKeyedBuilderLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<CrossKeyedBuilderLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_PropertiesKeyedByEachOthersNames_WritesEachPropertysValue()
+        {
+            // arrange
+            var testLine = new SwappedKeyLine { A = SwappedValueA, B = SwappedValueB };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<SwappedKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(SwappedRecordLine);
             }
         }
 
@@ -3904,7 +3950,7 @@ namespace DataStandardizer.File.CSV.Tests
         /// <summary>
         /// <see cref="CrossKeyedAttributeLine"/> with its field names given by <see cref="CrossKeyedBuilderLineMapper"/>.
         /// </summary>
-        private sealed class CrossKeyedBuilderLine : CsvFileRecordLine
+        private class CrossKeyedBuilderLine : CsvFileRecordLine
         {
             [CsvField(CrossKeyedTitleKey)]
             public string Title
@@ -3927,6 +3973,35 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Title).HasFieldName(CrossKeyedTitleFieldName);
                 this.Map().Property(x => x.Name).HasFieldName(CrossKeyedNameKey);
+            }
+        }
+
+        /// <summary>
+        /// A line of another type than <see cref="CrossKeyedBuilderLine"/>, written with the mapper registered for it.
+        /// </summary>
+        private sealed class DerivedCrossKeyedBuilderLine : CrossKeyedBuilderLine
+        {
+        }
+
+        /// <summary>
+        /// A line whose two properties are each keyed by the other's name.
+        /// </summary>
+        private sealed class SwappedKeyLine : CsvFileRecordLine
+        {
+            [CsvField(SwappedKeyA)]
+            [CsvFieldMapping(SwappedFieldNameA)]
+            public string A
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(SwappedKeyB)]
+            [CsvFieldMapping(SwappedFieldNameB)]
+            public string B
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
             }
         }
 
