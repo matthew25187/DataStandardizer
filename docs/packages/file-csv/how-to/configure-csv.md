@@ -245,9 +245,11 @@ which RFC 4180 section 2, rule 4, says a file should not have, so the option is
 off by default.
 
 A field is blank when the text written for it is empty; whitespace is not blank.
-Trailing fields are the last ones in the order the line is written: header line
-order, else mapper order followed by the unmapped fields of the first record line,
-else the order of the first record line. A record line
+Trailing fields are the last ones in the order the line is written. A field
+mapped by index is written at its index, and the other fields fill the positions
+left: in header line order, else the fields mapped by name in mapper order
+followed by the unmapped fields of the first record line, else the order of the
+first record line. A record line
 whose fields are all blank is still written with all of them.
 
 ```csharp

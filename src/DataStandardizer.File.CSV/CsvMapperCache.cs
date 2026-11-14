@@ -61,14 +61,22 @@ namespace DataStandardizer.File.CSV
         {
             // A declarative mapper is built from the line's own attributes, so key it by the line's runtime type rather than the reader's or writer's
             // record-line type, which may be a base of it.
-            var lineType = recordLine.GetType();
+            return GetOrAddDeclarativeMapper(recordLine.GetType());
+        }
+
+        /// <summary>
+        /// Gets the declarative mapper of a record line type, building and caching it if necessary.
+        /// </summary>
+        /// <param name="lineType">The record line type the mapper is built from and keyed by.</param>
+        internal static ICsvFileMapper GetOrAddDeclarativeMapper(Type lineType)
+        {
             if (DeclarativeMappers.TryGetValue(lineType, out var mapper))
             {
                 return mapper;
             }
 
             // Another thread may have added a mapper first; use whichever one won so all callers share an instance.
-            return DeclarativeMappers.GetOrAdd(lineType, recordLine.CreateMapper());
+            return DeclarativeMappers.GetOrAdd(lineType, CsvExtensions.CreateMapper(lineType));
         }
 
         /// <summary>

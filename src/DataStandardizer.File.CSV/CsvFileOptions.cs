@@ -117,8 +117,9 @@ namespace DataStandardizer.File.CSV
         /// the same number of fields throughout the file.
         /// <para>
         /// A field is blank when the text written for it is empty.  A field whose value is whitespace is not blank.  The fields at the end of a record
-        /// line are those last in the order they are written: header line order, else mapper order followed by the unmapped fields of the first
-        /// record line, else the order of the first record line.  A record line whose fields are all blank is written with all of them, so that it
+        /// line are those last in the order they are written.  A field mapped by index is written at its index, and the other fields fill the
+        /// positions left: in header line order, else the fields mapped by name in mapper order followed by the unmapped fields of the first record
+        /// line, else the order of the first record line.  A record line whose fields are all blank is written with all of them, so that it
         /// isn't written as an empty line.
         /// </para>
         /// </remarks>
