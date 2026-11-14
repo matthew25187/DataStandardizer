@@ -93,9 +93,16 @@ You can define your own record line model that uses properties to access
 individual fields. These custom record line models will derive from the base
 `CsvFileRecordLine` implementation.
 
+The reader stores each field's text as a `string`. It converts a field to its
+property's type only when the property is mapped to the field, so a property of
+any type other than `string` needs a mapping. The simplest is a
+`[CsvFieldMapping]` attribute, which maps the property to the field with the
+property's name.
+
 ```csharp
 public class MyRecordLine : CsvFileRecordLine
 {
+    [CsvFieldMapping]
     public int Id
     {
         get => GetPropertyValue<int>();
@@ -118,11 +125,15 @@ public class MyRecordLine : CsvFileRecordLine
 
 To use this custom line model, you would then specify this type when
 instantiating the CSV reader. The field names, in this case, would match the
-property names on the line model.
+property names on the line model, so the file needs a header line that names
+its fields `Id`, `Name` and `Description`, and the reader needs to be told to
+use it.
 
 ```csharp
+var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+
 using (var streamReader = new StreamReader("file_name.csv"))
-using (var csvReader = new CsvFileReader<MyRecordLine>(streamReader))
+using (var csvReader = new CsvFileReader<MyRecordLine>(streamReader, options))
 {
     var line = csvReader.ReadLine();
     while (line is not null)
@@ -143,28 +154,37 @@ using (var csvReader = new CsvFileReader<MyRecordLine>(streamReader))
 }
 ```
 
+Without a header line, the reader names the fields `Field 1`, `Field 2` and so
+on, so no property finds its field by name. Map each property to a field by its
+position instead, with `[CsvFieldMapping(0)]` and so on.
+
+A property that isn't mapped reads the field's text as it is. If the property's
+type is anything other than `string`, such as the `int` of `Id`, reading it
+throws an `InvalidCastException`, because the field holds a `string` that the
+property can't return. A property whose field the line doesn't have, or whose
+value is `null`, reads as the default value of its type.
+
 If you want to customise the field names associated with properties on the
-record line model, you can specify the field names in the metadata associated
-with the properties.
+record line model, you can name the fields in the mappings.
 
 ```csharp
 public class MyRecordLine : CsvFileRecordLine
 {
-    [CsvField("person_id")]
+    [CsvFieldMapping("person_id")]
     public int Id
     {
         get => GetPropertyValue<int>();
         set => SetPropertyValue(value);
     }
 
-    [CsvField("person_name")]
+    [CsvFieldMapping("person_name")]
     public string? Name
     {
         get => GetPropertyValue<string?>();
         set => SetPropertyValue(value);
     }
 
-    [CsvField("person_description")]
+    [CsvFieldMapping("person_description")]
     public string? Description
     {
         get => GetPropertyValue<string?>();
@@ -172,6 +192,12 @@ public class MyRecordLine : CsvFileRecordLine
     }
 }
 ```
+
+A `[CsvField("person_id")]` attribute also names a property's field, but it
+doesn't map the property, so the reader doesn't convert the field's value. Use it
+only on a `string` property. See [Map CSV files](map-csv-files.md) for the other
+ways to map a property, including a mapper class that keeps the mappings out of
+the model.
 
 See [The CSV line model](../concepts/csv-line-model.md) for more on how record
 lines and the field bag behind them work.

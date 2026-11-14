@@ -53,20 +53,27 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentNullException(nameof(mappedPropertyExpression));
             }
 
-            // Get the name of the member nominated by the caller.
-            string mappedPropertyName;
+            // Get the member nominated by the caller.
+            MemberExpression mappedMember;
             switch (mappedPropertyExpression.Body)
             {
                 case MemberExpression memberExpression:
-                    mappedPropertyName = memberExpression.Member.Name;
+                    mappedMember = memberExpression;
                     break;
                 case UnaryExpression unaryExpression when unaryExpression.Operand is MemberExpression operand:
-                    mappedPropertyName = operand.Member.Name;
+                    mappedMember = operand;
                     break;
 
                 default:
                     throw new ArgumentException("Expression must be a member access.", nameof(mappedPropertyExpression));
             }
+
+            // Key a member of the model as a declarative mapping is keyed: by the name CsvFieldAttribute gives the property, else the property
+            // name.  A member of another object, such as x.Address.City, isn't a property of the model, so it keeps its own name.
+            var mappedMemberName = mappedMember.Member.Name;
+            var mappedPropertyKey = mappedMember.Expression is ParameterExpression
+                ? CsvFileLineBase.GetCachedPropertyKey(typeof(TModel), mappedMemberName)
+                : mappedMemberName;
 
             // Extract property information relevant to the mapping.
             var fieldMapping = _fieldMapping;
@@ -82,7 +89,7 @@ namespace DataStandardizer.File.CSV
             // Notify the declaring type that a mapping has been created.
             if (_mappingCreatedDelegate != null)
             {
-                _mappingCreatedDelegate(mappedPropertyName, fieldMapping);
+                _mappingCreatedDelegate(mappedPropertyKey, fieldMapping);
             }
 
             return new CsvFieldMappingBuilder<TModel, T>(fieldMapping);

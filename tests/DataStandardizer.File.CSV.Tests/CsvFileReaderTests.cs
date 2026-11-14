@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -45,6 +45,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string PositionalFieldName3 = "Field 3";
         private const string PositionalFieldName4 = "Field 4";
 
+        // The names the reader gives a field when another field already has its positional name.
+        private const string SecondPositionalFieldName2 = "Field 2 (2)";
+        private const string SecondPositionalFieldName3 = "Field 3 (2)";
+        private const string ThirdPositionalFieldName3 = "Field 3 (3)";
+
         // Field values of the lines in the test files.
         private const string HeaderValue1 = "One";
         private const string HeaderValue2 = "Two";
@@ -62,6 +67,21 @@ namespace DataStandardizer.File.CSV.Tests
         private const string CafeLatin1Value = "Caf\x00E9";
         private const string NoelValue = "No\x00EBl";
 
+        // A byte that isn't part of a character of the encoding reads as the lone surrogate U+DC00 plus the byte, and a lone surrogate isn't a
+        // character, so the field that holds it is a bad value, reported up to and including it.
+        private const string EscapedLeadByteBadValue = "b\xDCC3";
+        private const string EscapedAsciiBadValue = "a\xDCE9";
+        private const string EscapedByteOrderMarkBadValue = "\xDCFF";
+        private const string ReplacementCharacterValue = "b\xFFFDc";
+        private const string LoneHighSurrogateLine = "a,b\xD800c";
+        private const string LoneHighSurrogateBadValue = "b\xD800";
+        private const string LoneLowSurrogateQuotedLine = "a,\"b\xDC00c\"";
+        private const string LoneLowSurrogateBadValue = "b\xDC00";
+
+        // U+1F600, a surrogate pair, which is one character.
+        private const string SurrogatePairLine = "a,b\xD83D\xDE00c";
+        private const string SurrogatePairValue = "b\xD83D\xDE00c";
+
         // Field names given by mappings and header lines.
         private const string IdFieldName = nameof(TestLine.Id);
         private const string NameFieldName = nameof(TestLine.Name);
@@ -75,6 +95,10 @@ namespace DataStandardizer.File.CSV.Tests
         private const string IgnoredHeaderFile = "ID,Name,Description\r\n1,One,This is the first";
         private const string ShortRecordAfterHeaderFile = "Field 1,Field 2,Field 3\r\n1,2";
         private const string ShortRecordAfterRecordFile = "1,2,3\r\n4,5";
+
+        // A header line whose last name is the one the reader gives the third field of a record without a header name for it.
+        private const string LongRecordAfterPositionalHeaderNameFile = "A,Field 3\r\n1,2,3";
+
         private const string EmbeddedQuoteLine = "One Two,Three\"Four,Five Six";
 
         // A record whose last field has text before its opening quote, which RFC 4180 section 2 paragraph 5 doesn't allow.
@@ -83,16 +107,103 @@ namespace DataStandardizer.File.CSV.Tests
         private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
         private const string InvalidConvertedFieldMappedLine = "x\"1\",One";
 
+        // A record whose last field opens a quote that the file never closes, which the escaped rule of RFC 4180 section 2 doesn't allow.
+        private const string UnterminatedQuoteFile = "One,\"Two\r\nThree,Four\r\n";
+
+        // Records whose last field breaks the field rules of RFC 4180 section 2: an escaped field is only DQUOTE *(...) DQUOTE, so whitespace
+        // can't come before or after it, and a non-escaped field is TEXTDATA, which holds no CR or LF.
+        private const string WhiteSpaceBeforeOpeningQuoteLine = "One, \"Two\"";
+        private const string WhiteSpaceAfterClosingQuoteLine = "One,\"Two\" ";
+        private const string BareLineFeedLine = "One,Two\nThree";
+
         private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
         private const string FieldNamesDataItem = "FieldNames";
+        private const string PropertyDataItem = "Property";
         private const string DuplicateFieldName = "a";
         private const string DuplicateFieldNamesHeaderFile = "a,a\r\n1,2";
         private const string TwoShortRecordsFile = "1,2\r\n3,4";
         private const string InvalidLastFieldHeaderFile = "One,x\"Two\"\r\n1,2";
         private const string HeaderHandlerFailureMessage = "Header handler failed.";
+        private const string HeaderDelegateNullFieldNameMessage = "The header handler returned a list of field names that contains null.";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
+
+        // Field names that differ from the property keys they are mapped to, and files that use them.
+        private const string PersonIdFieldName = "person_id";
+        private const string PersonNameFieldName = "person_name";
+        private const string PersonKeyFieldName = "pid";
+        private const int RenamedId = 5;
+        private const string RenamedName = "bob";
+        private const int SecondRenamedId = 6;
+        private const string SecondRenamedName = "amy";
+        private const string RenamedHeaderFile = "person_id,person_name\r\n5,bob";
+        private const string RenamedRecordFile = "5,bob";
+        private const string TwoRenamedRecordsWithHeaderFile = "person_id,person_name\r\n5,bob\r\n6,amy";
+        private const string RenamedIdHeaderFile = "person_id\r\n5";
+
+        // A property keyed by the name of the field another property is mapped to, the field it is mapped to, and a record that has only the
+        // other property's field, holding the title.
+        private const string FieldNamedByKeyTitleKey = "Name";
+        private const string FieldNamedByKeyNameKey = "full_name";
+        private const string FieldNamedByKeyNameFieldName = "x";
+        private const string FieldNamedByKeyTitle = "T";
+        private const string FieldNamedByKeyTitleOnlyRecordFile = "T";
+        private const string RenamedIdText = "5";
+        private const string InvalidRenamedIdHeaderFile = "person_id\r\nabc";
+        private const string InvalidRenamedIdText = "abc";
+        private const int AssignedId = 9;
+        private const int HandlerAssignedId = -1;
+        private const string KeyedIdHeaderFile = "pid\r\n5";
+
+        // A file with a column named like the property key that another field is mapped to.
+        private const string CompanyName = "Acme";
+        private const string PropertyKeyColumnFile = "person_id,Name,person_name\r\n5,Acme,bob";
+
+        // A file without the field that a required mapping is mapped to by name.
+        private const string MissingPersonIdHeaderFile = "person_name\r\nbob";
+        private const string MissingPersonIdMessage = "Found no field named 'person_id' for required property 'Id'.";
+
+        // The value a constant mapping gives a field that the line it reads doesn't have.
+        private const string AddedFieldValue = "Added";
+
+        // A file with a column named like the property key of a required mapping, but not the field it's mapped to.
+        private const string PropertyKeyIdHeaderFile = "Id,person_name\r\n5,bob";
+
+        // Files whose header has none of the fields that a test's mappings are mapped to by name.
+        private const string OneFieldHeaderFile = "x\r\na";
+        private const string TwoFieldHeaderFile = "x,y\r\na,b";
+        private const string MissingIndexedDescriptionMessage = "Found no field at index 2 for required property 'Description' in a record of 2 fields.";
+
+        // Files whose fields are mapped by index to properties whose names the files don't use.
+        private const string XFieldName = "x";
+        private const string YFieldName = "y";
+        private const string ZFieldName = "z";
+        private const string IndexedFieldValue1 = "a";
+        private const string IndexedFieldValue2 = "b";
+        private const string IndexedFieldValue3 = "c";
+        private const int IndexedId = 7;
+        private const string IndexedIdHeaderFile = "x,y,z\r\na,b,7";
+        private const string IndexedNameRecordFile = "a,b,c";
+        private const string GapRecordLine = "1,One,Skipped,This is the first";
+
+        // The position of the field that a mapping in a test is mapped to, past the last field of the line it reads.
+        private const int PastLastFieldIndex = 3;
+        private const string MissingIndexedIdMessage = "Found no field at index 3 for required property 'Id' in a record of 3 fields.";
+        private const string IndexedIdNameTakenMessage =
+            "Found no field at index 3 for property 'Id' in a record of 3 fields, and the record already has a field named 'Id'.";
+
+        // A file whose header names a field like the property that a mapping maps to a position past the last field.
+        private const string IndexedIdValue = "7";
+        private const string IdNamedHeaderFile = "Id,y,z\r\n7,b,c";
+
+        // A file with a record that has one field more than its header, whose extra field a mapping maps to by index.
+        private const string LongRecordIdHeaderFile = "Id,Name\r\n1,One,9";
+        private const string LongRecordFieldCountMessage = "Found 3 of 2 expected fields.";
+
+        // A file whose last field holds 1F, which is 31 in hexadecimal.
+        private const string HexIdHeaderFile = "x,y,z\r\na,b,1F";
+        private const int HexIndexedId = 31;
 
         // NumbersLine and TwoNumberLinesFile in ASCII.
         private static readonly byte[] NumbersLineBytes = new byte[] { 0x31, 0x2C, 0x32, 0x2C, 0x33 };
@@ -178,6 +289,242 @@ namespace DataStandardizer.File.CSV.Tests
                 testResult[fieldName1].Should().Be(RecordValue1);
                 testResult[fieldName2].Should().Be(FirstName);
                 testResult[fieldName3].Should().Be(FirstLongDescription);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegate_PassesFileHeaderLineToHeaderDelegateOnce()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { PersonIdFieldName, PersonNameFieldName, ExtraFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ThreeRecordsWithHeaderFile), options))
+            {
+
+                // act
+                var firstRecordLine = csvReader.ReadLine();
+                var secondRecordLine = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle()
+                    .Which.FieldNames.Should().Equal(IdFieldName, NameFieldName, DescriptionFieldName);
+                firstRecordLine[PersonNameFieldName].Should().Be(FirstName);
+                secondRecordLine[PersonNameFieldName].Should().Be(SecondName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredWithRepeatedNameAndUsingHeaderDelegate_ThrowsCsvFileException()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { PersonIdFieldName, PersonNameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(DuplicateFieldNamesHeaderFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_PassesFileHeaderLineToHeaderDelegateOnce()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { IdFieldName, NameFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoRenamedRecordsWithHeaderFile), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle()
+                    .Which.FieldNames.Should().Equal(PersonIdFieldName, PersonNameFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_ReturnsHeaderLineWithHeaderDelegateFieldNames()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().BeOfType<CsvFileHeaderLine>()
+                    .Which.FieldNames.Should().Equal(IdFieldName, NameFieldName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndUsingHeaderDelegate_ReturnsRecordLineWithHeaderDelegateFieldNames()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                var recordLine = csvReader.ReadLine();
+
+                // assert
+                recordLine[NameFieldName].Should().Be(RenamedName);
+                recordLine[PersonNameFieldName].Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineUsedAndHeaderDelegateReturnsNull_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => null);
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(RenamedHeaderFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        // A header delegate that returns another number of names than the two fields of RenamedHeaderFile's header line or first record,
+        // or the three fields of NumbersLine, and the message that gives.
+        private const string OneHeaderNameForTwoFieldsMessage =
+            "The header handler returned 1 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string ThreeHeaderNamesForTwoFieldsMessage =
+            "The header handler returned 3 field names for a header line of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string OneHeaderNameForTwoFirstRecordFieldsMessage =
+            "The header handler returned 1 field names for a first record of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string ThreeHeaderNamesForTwoFirstRecordFieldsMessage =
+            "The header handler returned 3 field names for a first record of 2 fields.  It can rename the fields, but not add or remove them.";
+        private const string TwoHeaderNamesForThreeFieldsMessage =
+            "The header handler returned 2 field names for a first record of 3 fields.  It can rename the fields, but not add or remove them.";
+        private const string FourHeaderNamesForThreeFieldsMessage =
+            "The header handler returned 4 field names for a first record of 3 fields.  It can rename the fields, but not add or remove them.";
+
+        public static TheoryData<CsvFileHeaderHandling, string, string[], string> HeaderDelegateFieldCountMismatchCases =>
+            new TheoryData<CsvFileHeaderHandling, string, string[], string>
+            {
+                { CsvFileHeaderHandling.Use, RenamedHeaderFile, new[] { IdFieldName }, OneHeaderNameForTwoFieldsMessage },
+                {
+                    CsvFileHeaderHandling.Use, RenamedHeaderFile, new[] { IdFieldName, NameFieldName, DescriptionFieldName },
+                    ThreeHeaderNamesForTwoFieldsMessage
+                },
+                { CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName }, OneHeaderNameForTwoFirstRecordFieldsMessage },
+                {
+                    CsvFileHeaderHandling.Ignore, RenamedHeaderFile, new[] { IdFieldName, NameFieldName, DescriptionFieldName },
+                    ThreeHeaderNamesForTwoFirstRecordFieldsMessage
+                },
+                { CsvFileHeaderHandling.None, NumbersLine, new[] { IdFieldName, NameFieldName }, TwoHeaderNamesForThreeFieldsMessage },
+                {
+                    CsvFileHeaderHandling.None, NumbersLine, new[] { IdFieldName, NameFieldName, DescriptionFieldName, ExtraFieldName },
+                    FourHeaderNamesForThreeFieldsMessage
+                }
+            };
+
+        [Theory]
+        [MemberData(nameof(HeaderDelegateFieldCountMismatchCases))]
+        public void ReadLine_HeaderDelegateReturnsOtherFieldCountThanHeaderLineOrFirstRecord_ThrowsInvalidOperationException(
+            CsvFileHeaderHandling headerHandling, string file, string[] headerDelegateFieldNames, string expectedMessage)
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => headerDelegateFieldNames);
+            var options = new CsvFileOptions { HeaderHandling = headerHandling, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(file), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegateWithRecordShorterThanHeaderLine_ReturnsRecordLineWithHeaderDelegateFieldNames()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, NameFieldName });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(ShortRecordAfterHeaderFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(IdFieldName, NameFieldName);
+            }
+        }
+
+        [Theory]
+        [InlineData(CsvFileHeaderHandling.Use, RenamedHeaderFile)]
+        [InlineData(CsvFileHeaderHandling.Ignore, RenamedHeaderFile)]
+        [InlineData(CsvFileHeaderHandling.None, TwoShortRecordsFile)]
+        public void ReadLine_HeaderDelegateReturnsNullFieldName_ThrowsInvalidOperationException(CsvFileHeaderHandling headerHandling, string file)
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { IdFieldName, null });
+            var options = new CsvFileOptions { HeaderHandling = headerHandling, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(file), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(HeaderDelegateNullFieldNameMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_NoHeaderLineAndUsingHeaderDelegate_PassesNullToHeaderDelegateOnce()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                return new[] { PersonIdFieldName, PersonNameFieldName };
+            });
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoShortRecordsFile), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+
+                // assert
+                headerHandlerCalls.Should().ContainSingle().Which.Should().BeNull();
             }
         }
 
@@ -342,6 +689,44 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_LongerRecordLineWhosePositionalFieldNameIsAHeaderName_CallsInconsistentFieldCountHandler()
+        {
+            // arrange
+            var handlerCalled = false;
+            var handler = new CsvFieldCount<CsvFileRecordLine>(_ => handlerCalled = true);
+
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, InconsistentFieldCountHandler = handler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LongRecordAfterPositionalHeaderNameFile), options))
+            {
+                _ = csvReader.ReadLine(); // the header line
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().BeNull();
+                handlerCalled.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_LongerRecordLineWhosePositionalFieldNameIsAHeaderName_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, InconsistentFieldCountHandler = null };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LongRecordAfterPositionalHeaderNameFile), options))
+            {
+                _ = csvReader.ReadLine(); // the header line
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(LongRecordFieldCountMessage);
+            }
+        }
+
+        [Fact]
         public void ReadLine_RecordLineWithUnquotedFieldValueHavingEmbeddedDoubleQuote_CallsBadValueHandler()
         {
             // arrange
@@ -372,6 +757,84 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_UnterminatedQuotedField_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, BadValueHandler = null };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(UnterminatedQuoteFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_UnterminatedQuotedFieldWithBadValueHandler_ReadsEmptyFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(UnterminatedQuoteFile), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Values.Should().Equal(FirstName, string.Empty);
+            }
+        }
+
+        [Theory]
+        [InlineData(WhiteSpaceBeforeOpeningQuoteLine)]
+        [InlineData(WhiteSpaceAfterClosingQuoteLine)]
+        [InlineData(BareLineFeedLine)]
+        public void ReadLine_FieldOutsideRfc4180Grammar_ThrowsCsvFileException(string line)
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, BadValueHandler = null };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(line), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Theory]
+        [InlineData(WhiteSpaceBeforeOpeningQuoteLine)]
+        [InlineData(WhiteSpaceAfterClosingQuoteLine)]
+        [InlineData(BareLineFeedLine)]
+        public void ReadLine_FieldOutsideRfc4180GrammarWithBadValueHandler_ReadsEmptyFieldValue(string line)
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(line), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Values.Should().Equal(FirstName, string.Empty);
             }
         }
 
@@ -705,10 +1168,10 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_RecordLineWithGapIndexMapper_ReadsCsvFieldsInOrderByMapping()
+        public void ReadLine_RecordLineWithGapIndexMapper_ReadsFieldAtEachMappedIndex()
         {
             // arrange
-            using (var csvReader = new CsvFileReader<GapIndexLine>(new StringReader(FirstLongRecordLine)))
+            using (var csvReader = new CsvFileReader<GapIndexLine>(new StringReader(GapRecordLine)))
             {
                 csvReader.RegisterMapper<GapIndexLineMapper>();
 
@@ -1021,6 +1484,64 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_HeaderNamesTakingPositionalFieldNameAndItsSuffix_NamesFieldPastHeaderWithNextSuffix()
+        {
+            // arrange
+            var inconsistentLines = new List<CsvFileRecordLine>();
+            var inconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => inconsistentLines.Add(context.Model));
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                InconsistentFieldCountHandler = inconsistentFieldCountHandler
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader("Field 3,Field 3 (2)\r\n1,2,3"), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+                _ = csvReader.ReadLine();
+
+                // assert
+                ((ICsvFileLine)inconsistentLines.Should().ContainSingle().Subject).Keys
+                    .Should().Equal(PositionalFieldName3, SecondPositionalFieldName3, ThirdPositionalFieldName3);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingNamedLikeALaterPositionalField_KeepsMappingNameAndRenamesLaterField()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<PositionalNameLine>(new StringReader(NumbersLine)))
+            {
+                csvReader.RegisterMapper<PositionalNameLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as PositionalNameLine;
+
+                // assert
+                ((ICsvFileLine)testResult).Keys.Should().Equal(PositionalFieldName2, SecondPositionalFieldName2, PositionalFieldName3);
+                testResult.Name.Should().Be(RecordValue1);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderlessNameMappingBeforeIndexMapping_ReadsFieldBelowIndex()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<GapFillingNameLine>(new StringReader(TwoShortRecordsFile)))
+            {
+                csvReader.RegisterMapper<GapFillingNameLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as GapFillingNameLine;
+
+                // assert
+                ((ICsvFileLine)testResult).Keys.Should().Equal(NameFieldName, IdFieldName);
+                testResult.Name.Should().Be(RecordValue1);
+            }
+        }
+
+        [Fact]
         public void ReadLine_SeveralMappedRecordLines_MapsFirstLine()
         {
             // arrange
@@ -1136,6 +1657,74 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        // Reads a line with a constant whose type isn't the property type, each with the value and type the property gets.
+        public static TheoryData<Func<object>, object, Type> ConvertibleConstants => new TheoryData<Func<object>, object, Type>
+        {
+            { () => ReadConstant<IntConstantLine<long>>(line => line.Value), (long)IntConstant, typeof(long) },
+            { () => ReadConstant<IntConstantLine<byte>>(line => line.Value), (byte)IntConstant, typeof(byte) },
+            { () => ReadConstant<IntConstantLine<long?>>(line => line.Value), (long)IntConstant, typeof(long) },
+            { () => ReadConstant<IntConstantLine<decimal>>(line => line.Value), (decimal)IntConstant, typeof(decimal) },
+            { () => ReadConstant<IntConstantLine<double>>(line => line.Value), (double)IntConstant, typeof(double) },
+            { () => ReadConstant<TenthDoubleLine<decimal>>(line => line.Value), TenthDecimal, typeof(decimal) },
+            { () => ReadConstant<TenthDoubleLine<float>>(line => line.Value), TenthFloat, typeof(float) },
+            { () => ReadConstant<TenthFloatLine<double>>(line => line.Value), TenthDouble, typeof(double) },
+            { () => ReadConstant<TenthFloatLine<decimal>>(line => line.Value), TenthDecimal, typeof(decimal) },
+            { () => ReadConstant<WholeDoubleLine<int>>(line => line.Value), WholeDoubleAsInt, typeof(int) },
+            { () => ReadConstant<SixteenDigitWholeDoubleLine<decimal>>(line => line.Value), SixteenDigitWholeDecimal, typeof(decimal) },
+            { () => ReadConstant<TinyDoubleLine<decimal>>(line => line.Value), TinyDecimal, typeof(decimal) },
+            { () => ReadConstant<TinyDoubleLine<float>>(line => line.Value), TinyFloat, typeof(float) },
+            { () => ReadConstant<TinyFloatLine<double>>(line => line.Value), TinyDouble, typeof(double) },
+            { () => ReadConstant<FifteenDigitTinyDoubleLine<decimal>>(line => line.Value), FifteenDigitTinyDecimal, typeof(decimal) },
+            { () => ReadConstant<SmallestDecimalDoubleLine<decimal>>(line => line.Value), SmallestDecimal, typeof(decimal) },
+            { () => ReadConstant<ULongMaxValueLine<decimal>>(line => line.Value), (decimal)ulong.MaxValue, typeof(decimal) },
+            { () => ReadConstant<TwoToThe63Line<ulong>>(line => line.Value), TwoToThe63AsULong, typeof(ulong) },
+            { () => ReadConstant<TwoToThe64Line<decimal>>(line => line.Value), TwoToThe64AsDecimal, typeof(decimal) },
+            { () => ReadConstant<TextConstantLine<int>>(line => line.Value), IntConstant, typeof(int) }
+        };
+
+        [Theory]
+        [MemberData(nameof(ConvertibleConstants))]
+        public void ReadLine_ConstantPropertyTypeHoldsAsWritten_SetsConvertedValue(Func<object> readConstant, object expectedValue, Type expectedType)
+        {
+            // act
+            var testResult = readConstant();
+
+            // assert
+            testResult.Should().BeOfType(expectedType).And.Be(expectedValue);
+        }
+
+        // Reads a line with a constant that the property type can't hold as it is written.
+        public static TheoryData<Func<object>> NotConvertibleConstants => new TheoryData<Func<object>>
+        {
+            () => ReadConstant<NegativeIntConstantLine<byte>>(line => line.Value),
+            () => ReadConstant<FractionalDoubleLine<int>>(line => line.Value),
+            () => ReadConstant<SeventeenDigitDoubleLine<decimal>>(line => line.Value),
+            () => ReadConstant<SeventeenDigitDoubleLine<float>>(line => line.Value),
+            () => ReadConstant<SeventeenDigitTinyDoubleLine<decimal>>(line => line.Value),
+            () => ReadConstant<NaNLine<decimal>>(line => line.Value),
+            () => ReadConstant<IntPastFloatPrecisionLine<float>>(line => line.Value),
+            () => ReadConstant<LongPastDoublePrecisionLine<double>>(line => line.Value),
+            () => ReadConstant<LongMaxValueLine<double>>(line => line.Value),
+            () => ReadConstant<ULongMaxValueLine<double>>(line => line.Value),
+            () => ReadConstant<ULongMaxValueLine<long>>(line => line.Value),
+            () => ReadConstant<TwoToThe63Line<long>>(line => line.Value),
+            () => ReadConstant<TwoToThe64Line<ulong>>(line => line.Value),
+            () => ReadConstant<IntConstantLine<string>>(line => line.Value),
+            () => ReadConstant<IntConstantLine<ConstantKind>>(line => line.Value),
+            () => ReadConstant<BooleanConstantLine<int>>(line => line.Value)
+        };
+
+        [Theory]
+        [MemberData(nameof(NotConvertibleConstants))]
+        public void ReadLine_ConstantPropertyTypeCantHold_ThrowsCsvFileException(Func<object> readConstant)
+        {
+            // act
+            Action testAction = () => readConstant();
+
+            // assert
+            testAction.Should().Throw<CsvFileException>();
+        }
+
         [Fact]
         public void ReadLine_MapperWithVariableValueGenerators_SetsGeneratedValuesOnFirstLine()
         {
@@ -1174,7 +1763,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MappingAddsFieldToLine_LaterOptionalMappingSeesAddedField()
+        public void ReadLine_MappingAddsFieldToLine_LaterOptionalMappingOfThatFieldIsSkipped()
         {
             // arrange
             using (var csvReader = new CsvFileReader<AddedFieldLine>(new StringReader("1")))
@@ -1186,8 +1775,781 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Id.Should().Be(1);
+                testResult.Name.Should().Be(AddedFieldValue);
+                testResult.Description.Should().BeNull();
                 ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, ExtraFieldName }, config => config.WithStrictOrdering());
-                testResult.ValidatedFieldNames.Should().Equal(ExtraFieldName);
+                testResult.ValidatedFieldNames.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AttributeMappingOnBaseLineType_PropertiesReturnConvertedFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<InheritedAttributeLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as InheritedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AttributeMappingRenamesHeaderField_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_BuilderMapperRenamesHeaderField_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedBuilderLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.RegisterMapper<RenamedBuilderLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedBuilderLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingWithOtherHeaderNames_PropertyReturnsFieldAtIndex()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<IndexedIdLine>(new StringReader(IndexedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<IndexedIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as IndexedIdLine;
+
+                // assert
+                testResult.Id.Should().Be(IndexedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingWithOtherHeaderNames_KeepsOtherFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<IndexedIdLine>(new StringReader(IndexedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<IndexedIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(XFieldName, YFieldName, ZFieldName);
+                testResult.Values.Should().Equal(IndexedFieldValue1, IndexedFieldValue2, IndexedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingWithoutHeader_PropertyReturnsFieldAtIndex()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<IndexedNameLine>(new StringReader(IndexedNameRecordFile)))
+            {
+                csvReader.RegisterMapper<IndexedNameLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as IndexedNameLine;
+
+                // assert
+                testResult.Name.Should().Be(IndexedFieldValue2);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingWithoutHeader_NamesOnlyMappedField()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<IndexedNameLine>(new StringReader(IndexedNameRecordFile)))
+            {
+                csvReader.RegisterMapper<IndexedNameLineMapper>();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(PositionalFieldName1, NameFieldName, PositionalFieldName3);
+                testResult.Values.Should().Equal(IndexedFieldValue1, IndexedFieldValue2, IndexedFieldValue3);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexAttributesWithOtherHeaderNames_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as AttributeMappedLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexAttributesWithOtherHeaderNames_AddsNoFields()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(PersonIdFieldName, PersonNameFieldName);
+                testResult.Values.Should().Equal(RenamedId, RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_OptionalIndexMappingPastLastField_SkipsMapping()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<PastLastFieldLine>(new StringReader(IndexedNameRecordFile)))
+            {
+                csvReader.RegisterMapper<PastLastFieldLineMapper>();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(PositionalFieldName1, PositionalFieldName2, PositionalFieldName3);
+                testResult.Values.Should().Equal(IndexedFieldValue1, IndexedFieldValue2, IndexedFieldValue3);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ConverterOnIndexMappingWithOtherHeaderNames_ConverterReadsFieldAtIndex()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<HexIndexedIdLine>(new StringReader(HexIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<HexIndexedIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as HexIndexedIdLine;
+
+                // assert
+                testResult.Id.Should().Be(HexIndexedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_OptionalIndexMappingPastLastFieldWithFieldOfSameName_LeavesFieldUnchanged()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<OptionalPastLastIdLine>(new StringReader(IdNamedHeaderFile), options))
+            {
+                csvReader.RegisterMapper<OptionalPastLastIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(IdFieldName, YFieldName, ZFieldName);
+                testResult.Values.Should().Equal(IndexedIdValue, IndexedFieldValue2, IndexedFieldValue3);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RequiredIndexMappingPastLastField_ThrowsCsvFileException()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<RequiredPastLastIdLine>(new StringReader(IndexedNameRecordFile)))
+            {
+                csvReader.RegisterMapper<RequiredPastLastIdLineMapper>();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingIndexedIdMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RequiredIndexMappingPastLastFieldWithFieldOfSameName_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RequiredPastLastIdLine>(new StringReader(IdNamedHeaderFile), options))
+            {
+                csvReader.RegisterMapper<RequiredPastLastIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingIndexedIdMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RequiredNameMappingWithPropertyKeyColumn_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(PropertyKeyIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingPersonIdMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingAddsFieldBeforeRequiredIndexMappingPastLastField_ReportsRecordFieldCount()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<AddedFieldPastLastLine>(new StringReader(TwoFieldHeaderFile), options))
+            {
+                csvReader.RegisterMapper<AddedFieldPastLastLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingIndexedDescriptionMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_GeneratedNameMappingMissingFromHeader_AddsFieldWithGeneratedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<GeneratedMissingFieldLine>(new StringReader(OneFieldHeaderFile), options))
+            {
+                csvReader.RegisterMapper<GeneratedMissingFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(XFieldName, ExtraFieldName);
+                testResult.Values.Should().Equal(IndexedFieldValue1, AddedFieldValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RequiredNameMappingMissingFromHeader_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(MissingPersonIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(MissingPersonIdMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ConstantIndexMappingPastLastField_AddsFieldWithConstantValue()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<ConstantPastLastIdLine>(new StringReader(IndexedNameRecordFile)))
+            {
+                csvReader.RegisterMapper<ConstantPastLastIdLineMapper>();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().Equal(PositionalFieldName1, PositionalFieldName2, PositionalFieldName3, IdFieldName);
+                testResult.Values.Should().Equal(IndexedFieldValue1, IndexedFieldValue2, IndexedFieldValue3, IndexedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ConstantIndexMappingPastLastFieldWithFieldOfSameName_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ConstantPastLastIdLine>(new StringReader(IdNamedHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ConstantPastLastIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(IndexedIdNameTakenMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingPastHeaderWithHeaderFieldName_ThrowsFieldCountMismatch()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<IndexedIdLine>(new StringReader(LongRecordIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<IndexedIdLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(LongRecordFieldCountMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AttributeMappingRenamesFieldWithoutHeader_PropertiesReturnFieldValues()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(RenamedRecordFile)))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Name.Should().Be(RenamedName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingRenamesHeaderField_KeepsFieldNamesAsKeys()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(RenamedHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                ICsvFileLine testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Keys.Should().BeEquivalentTo(new[] { PersonIdFieldName, PersonNameFieldName }, config => config.WithStrictOrdering());
+            }
+        }
+
+        [Fact]
+        public void ReadLine_LaterMappingFieldNamedLikeEarlierPropertyKey_KeepsEarlierPropertyValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<LegacyIdLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as LegacyIdLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.LegacyId.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_PropertyKeyIsFieldOfAnotherMappingAndOwnFieldMissing_PropertyNotSet()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<FieldNamedByKeyOptionalNameLine>(new StringReader(FieldNamedByKeyTitleOnlyRecordFile)))
+            {
+                // act
+                var testResult = csvReader.ReadLine() as FieldNamedByKeyOptionalNameLine;
+
+                // assert
+                testResult.Title.Should().Be(FieldNamedByKeyTitle);
+                testResult.Name.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderHasColumnNamedLikePropertyKey_KeepsColumnValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(PropertyKeyColumnFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Name.Should().Be(RenamedName);
+                ((ICsvFileLine)testResult)[NameFieldName].Should().Be(CompanyName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoMappingsWithSameFieldName_BothPropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Copy.Should().Be(RenamedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneFieldByName_PropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneFieldByAttribute_PropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedAttributeLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneFieldByIndex_PropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<IndexedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneField_LineHoldsLastMappingValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ReversedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                ((ICsvFileLine)testResult)[PersonIdFieldName].Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadForOneMappingWithBadValueHandler_OnlyThatPropertyReturnsDefault()
+        {
+            // arrange
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedTypedFieldLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(0);
+                testResult.Code.Should().Be(InvalidRenamedIdText);
+                badValues.Should().Equal(InvalidRenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadForLastMappingWithBadValueHandler_OnlyThatPropertyReturnsDefault()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedTypedFieldLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ReversedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(0);
+                testResult.Code.Should().Be(InvalidRenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadForOneMappingWithoutBadValueHandler_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().Which.Data[PropertyDataItem].Should().Be(nameof(SharedTypedFieldLine.Id));
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadWithBadValueHandlerSettingProperty_PropertyReturnsValueSet()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedTypedFieldLine>(context => context.Model.Id = HandlerAssignedId)
+            };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ReversedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(HandlerAssignedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldPropertyGetterOfAnotherType_ThrowsInvalidCastException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<MismatchedSharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+                var line = csvReader.ReadLine() as MismatchedSharedFieldLine;
+
+                // act
+                Action testAction = () => _ = line.Id;
+
+                // assert
+                testAction.Should().Throw<InvalidCastException>();
+            }
+        }
+
+        [Fact]
+        public void Add_FieldOfSkippedSharedMappingsAfterRead_PropertiesReturnAddedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<OptionalSharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<OptionalSharedFieldLineMapper>();
+                csvReader.ReadLine();
+                var testResult = csvReader.ReadLine() as OptionalSharedFieldLine;
+
+                // act
+                testResult.Add(ExtraFieldName, AddedFieldValue);
+
+                // assert
+                testResult.First.Should().Be(AddedFieldValue);
+                testResult.Second.Should().Be(AddedFieldValue);
+            }
+        }
+
+        [Fact]
+        public void Insert_FieldOfSkippedSharedMappingsAfterRead_PropertiesReturnInsertedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<OptionalSharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<OptionalSharedFieldLineMapper>();
+                csvReader.ReadLine();
+                var testResult = csvReader.ReadLine() as OptionalSharedFieldLine;
+
+                // act
+                ((ICsvFileLine)testResult).Insert(0, ExtraFieldName, AddedFieldValue);
+
+                // assert
+                testResult.First.Should().Be(AddedFieldValue);
+                testResult.Second.Should().Be(AddedFieldValue);
+            }
+        }
+
+        [Fact]
+        public void PropertySetter_FieldSharedByTwoTypesAfterRead_LineHoldsValueSet()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // act
+                testResult.Id = AssignedId;
+
+                // assert
+                testResult.Id.Should().Be(AssignedId);
+                ((ICsvFileLine)testResult)[PersonIdFieldName].Should().Be(AssignedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_BuilderMapperRenamesFieldOfPropertyWithCsvFieldAttribute_PropertyReturnsFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<KeyedBuilderLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<KeyedBuilderLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as KeyedBuilderLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_BuilderMapperMapsPropertyWithCsvFieldAttribute_PropertyReturnsValueOfFieldWithAttributeName()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<KeyedBuilderLine>(new StringReader(KeyedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<UnrenamedKeyedBuilderLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as KeyedBuilderLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SecondLineWithRenamedHeaderField_PropertiesReturnFieldValues()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RenamedAttributeLine>(new StringReader(TwoRenamedRecordsWithHeaderFile), options))
+            {
+                csvReader.ReadLine();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RenamedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(SecondRenamedId);
+                testResult.Name.Should().Be(SecondRenamedName);
             }
         }
 
@@ -1262,6 +2624,48 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_CallerSuppliedStreamReaderWithEncoding_ReadsCharactersOfItsCharacterSet()
+        {
+            // arrange
+            // "Caf\x00E9" in ISO 8859-1.  The character set is the caller's StreamReader's encoding, which has U+00E9.
+            using (var testStream = new MemoryStream(new byte[] { 0x43, 0x61, 0x66, 0xE9 }))
+            using (var streamReader = new StreamReader(testStream, Encoding.GetEncoding(Latin1CodePage)))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(streamReader))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[0].Should().Be(CafeLatin1Value);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithEncodingLackingCharacter_CallsBadValueHandler()
+        {
+            // arrange
+            // "a[b,c": the encoding, which has no web name, lacks '[', so the field that holds it is a bad value.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                Encoding = new RestrictedAsciiEncoding('['),
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x5B, 0x62, 0x2C, 0x63 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal("a[");
+            }
+        }
+
+        [Fact]
         public void ReadLine_CallerSuppliedReader_ReadsThroughCallerSuppliedReader()
         {
             // arrange
@@ -1300,6 +2704,230 @@ namespace DataStandardizer.File.CSV.Tests
                 testResult.Should().NotBeNull();
                 testResult[0].Should().Be(CafeLatin1Value);
                 testResult[1].Should().Be(NoelValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithInvalidUtf8_CallsBadValueHandlerWithEscapedBytes()
+        {
+            // arrange
+            // "a,b", a lone UTF-8 lead byte 0xC3, then "c": the byte reads as U+DCC3, which isn't a character, so the field is a bad value.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x2C, 0x62, 0xC3, 0x63 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(EscapedLeadByteBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithInvalidUtf8WithoutBadValueHandler_ThrowsCsvFileException()
+        {
+            // arrange
+            // "a,b", the byte 0xFF, which is never in UTF-8, then "c".
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x2C, 0x62, 0xFF, 0x63 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterStreamRecordWithInvalidUtf8_ReadsNextRecord()
+        {
+            // arrange
+            // "a,b", the byte 0xFF, then CRLF and "d,e": the record after the bad value is read as usual.
+            var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x2C, 0x62, 0xFF, 0x0D, 0x0A, 0x64, 0x2C, 0x65 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                var firstResult = csvReader.ReadLine();
+                var secondResult = csvReader.ReadLine();
+
+                // assert
+                firstResult.Should().NotBeNull();
+                firstResult[1].Should().Be(string.Empty);
+                secondResult.Should().NotBeNull();
+                secondResult[0].Should().Be("d");
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithAsciiEncodingAndByteOutsideAscii_CallsBadValueHandler()
+        {
+            // arrange
+            // "a" and 0xE9, which isn't a US-ASCII byte, so it reads as U+DCE9 rather than '?'.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                Encoding = Encoding.ASCII,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0xE9 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(EscapedAsciiBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithDeclaredEncodingAndOtherEncodingsByteOrderMark_CallsBadValueHandler()
+        {
+            // arrange
+            // A UTF-16 little endian byte order mark, then "a" in UTF-8: the declared encoding wins, and 0xFF isn't a UTF-8 byte.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                Encoding = Encoding.UTF8,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0xFF, 0xFE, 0x61 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(EscapedByteOrderMarkBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithDeclaredEncodingAndItsByteOrderMark_PassesOverByteOrderMark()
+        {
+            // arrange
+            // "Caf\x00E9" in UTF-16 little endian, after its byte order mark.
+            var options = new CsvFileOptions { Encoding = Encoding.Unicode };
+            using (var testStream = new MemoryStream(new byte[] { 0xFF, 0xFE, 0x43, 0x00, 0x61, 0x00, 0x66, 0x00, 0xE9, 0x00 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[0].Should().Be(CafeLatin1Value);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_CallerSuppliedStreamReaderWithReplacementCharacter_ReadsReplacementCharacterAsData()
+        {
+            // arrange
+            // "b", the byte 0xFF, which is never in UTF-8, then "c": the caller's StreamReader decodes the byte as U+FFFD, which the CSV reader
+            // can't tell from U+FFFD in the file, so it is a character of the field.
+            using (var testStream = new MemoryStream(new byte[] { 0x62, 0xFF, 0x63 }))
+            using (var streamReader = new StreamReader(testStream, Encoding.UTF8))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(streamReader))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[0].Should().Be(ReplacementCharacterValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithLoneHighSurrogateInUnquotedField_CallsBadValueHandler()
+        {
+            // arrange
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LoneHighSurrogateLine), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(LoneHighSurrogateBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithLoneLowSurrogateInQuotedField_CallsBadValueHandler()
+        {
+            // arrange
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LoneLowSurrogateQuotedLine), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(LoneLowSurrogateBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithLoneHighSurrogateAtEndOfBuffer_CallsBadValueHandler()
+        {
+            // arrange
+            // With a buffer of one character, the character after the high surrogate is read in a refill.
+            const int OneCharacterBufferSize = 1;
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LoneHighSurrogateLine), options, OneCharacterBufferSize))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(LoneHighSurrogateBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithSurrogatePair_ReadsSurrogatePair()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(SurrogatePairLine)))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[1].Should().Be(SurrogatePairValue);
             }
         }
 
@@ -1480,6 +3108,504 @@ namespace DataStandardizer.File.CSV.Tests
         {
         }
 
+        /// <summary>
+        /// A line whose Id <see cref="IndexedIdLineMapper"/> maps by index to the last of three fields.
+        /// </summary>
+        private sealed class IndexedIdLine : TestLine
+        {
+        }
+
+        private sealed class IndexedIdLineMapper : CsvFileMapperBase<IndexedIdLine>
+        {
+            public IndexedIdLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(2)
+                    .ConvertUsing(typeof(Int32Converter));
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="IndexedNameLineMapper"/> maps by index to the second of three fields.
+        /// </summary>
+        private sealed class IndexedNameLine : TestLine
+        {
+        }
+
+        private sealed class IndexedNameLineMapper : CsvFileMapperBase<IndexedNameLine>
+        {
+            public IndexedNameLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldIndex(1);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Description <see cref="PastLastFieldLineMapper"/> maps, as optional, to a position past the last field of a three-field line.
+        /// </summary>
+        private sealed class PastLastFieldLine : TestLine
+        {
+        }
+
+        /// <summary>
+        /// A line whose Id <see cref="HexIndexedIdLineMapper"/> maps by index to the last of three fields, with a converter that reads the field
+        /// by the name its context gives.
+        /// </summary>
+        private sealed class HexIndexedIdLine : TestLine
+        {
+        }
+
+        private sealed class HexIndexedIdLineMapper : CsvFileMapperBase<HexIndexedIdLine>
+        {
+            public HexIndexedIdLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(2)
+                    .ConvertUsing(new CsvFieldConvertFromString<HexIndexedIdLine, int>(context =>
+                        int.Parse((string)((ICsvFileLine)context.Model)[context.FieldName], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture)));
+            }
+        }
+
+        /// <summary>
+        /// A line whose Id <see cref="OptionalPastLastIdLineMapper"/> maps, as optional, to a position past the last field of a three-field line.
+        /// </summary>
+        private sealed class OptionalPastLastIdLine : TestLine
+        {
+        }
+
+        private sealed class OptionalPastLastIdLineMapper : CsvFileMapperBase<OptionalPastLastIdLine>
+        {
+            public OptionalPastLastIdLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(PastLastFieldIndex)
+                    .ConvertUsing(typeof(Int32Converter))
+                    .IsOptional();
+            }
+        }
+
+        /// <summary>
+        /// A line whose Id <see cref="RequiredPastLastIdLineMapper"/> maps to a position past the last field of a three-field line.
+        /// </summary>
+        private sealed class RequiredPastLastIdLine : TestLine
+        {
+        }
+
+        private sealed class RequiredPastLastIdLineMapper : CsvFileMapperBase<RequiredPastLastIdLine>
+        {
+            public RequiredPastLastIdLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(PastLastFieldIndex)
+                    .ConvertUsing(typeof(Int32Converter));
+            }
+        }
+
+        /// <summary>
+        /// A line whose Id <see cref="ConstantPastLastIdLineMapper"/> maps, with a constant value, to a position past the last field of a
+        /// three-field line.
+        /// </summary>
+        private sealed class ConstantPastLastIdLine : TestLine
+        {
+        }
+
+        private sealed class ConstantPastLastIdLineMapper : CsvFileMapperBase<ConstantPastLastIdLine>
+        {
+            public ConstantPastLastIdLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(PastLastFieldIndex)
+                    .HasConstantValue(IndexedId);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="AddedFieldPastLastLineMapper"/> maps, with a constant value, to a field the line doesn't have, and whose
+        /// Description it then maps to a position past the last field of a two-field line.
+        /// </summary>
+        private sealed class AddedFieldPastLastLine : TestLine
+        {
+        }
+
+        private sealed class AddedFieldPastLastLineMapper : CsvFileMapperBase<AddedFieldPastLastLine>
+        {
+            public AddedFieldPastLastLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName).HasConstantValue(AddedFieldValue);
+                this.Map().Property(x => x.Description).HasFieldIndex(2);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="GeneratedMissingFieldLineMapper"/> maps, with a generated value, to a field the line doesn't have.
+        /// </summary>
+        private sealed class GeneratedMissingFieldLine : TestLine
+        {
+        }
+
+        private sealed class GeneratedMissingFieldLineMapper : CsvFileMapperBase<GeneratedMissingFieldLine>
+        {
+            public GeneratedMissingFieldLineMapper()
+            {
+                this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName).HasVariableValue(() => AddedFieldValue);
+            }
+        }
+
+        private sealed class PastLastFieldLineMapper : CsvFileMapperBase<PastLastFieldLine>
+        {
+            public PastLastFieldLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(PastLastFieldIndex)
+                    .IsOptional();
+            }
+        }
+
+        /// <summary>
+        /// A line whose Name <see cref="PositionalNameLineMapper"/> maps to the first field, under the name the reader gives the second field of a
+        /// line without a header line.
+        /// </summary>
+        private sealed class PositionalNameLine : TestLine
+        {
+        }
+
+        private sealed class PositionalNameLineMapper : CsvFileMapperBase<PositionalNameLine>
+        {
+            public PositionalNameLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldName(PositionalFieldName2);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Id <see cref="GapFillingNameLineMapper"/> maps by index to the second field, and whose Name it maps by name, after Id, so
+        /// Name takes the first field, the free position below Id's index.
+        /// </summary>
+        private sealed class GapFillingNameLine : TestLine
+        {
+        }
+
+        private sealed class GapFillingNameLineMapper : CsvFileMapperBase<GapFillingNameLine>
+        {
+            public GapFillingNameLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(1)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Name);
+            }
+        }
+
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields with other names, for <see cref="InheritedAttributeLine"/> to inherit.
+        /// </summary>
+        private class RenamedAttributeBaseLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line that inherits every mapped property from <see cref="RenamedAttributeBaseLine"/>.
+        /// </summary>
+        private sealed class InheritedAttributeLine : RenamedAttributeBaseLine
+        {
+        }
+
+        /// <summary>
+        /// A line whose properties are mapped, by attribute, to fields with other names.
+        /// </summary>
+        private sealed class RenamedAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonNameFieldName)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose properties <see cref="RenamedBuilderLineMapper"/> maps to fields with other names.
+        /// </summary>
+        private sealed class RenamedBuilderLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class RenamedBuilderLineMapper : CsvFileMapperBase<RenamedBuilderLine>
+        {
+            public RenamedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.Name).HasFieldName(PersonNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// A line whose Title property is mapped to a field named by the key of its Name property, which is optionally mapped to a field of its
+        /// own.
+        /// </summary>
+        private sealed class FieldNamedByKeyOptionalNameLine : CsvFileRecordLine
+        {
+            [CsvField(FieldNamedByKeyTitleKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameKey)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(FieldNamedByKeyNameKey)]
+            [CsvFieldMapping(FieldNamedByKeyNameFieldName, IsOptional = true)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with an optional mapping whose field name is the property key of the line's other mapping.
+        /// </summary>
+        private sealed class LegacyIdLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(IdFieldName, IsOptional = true)]
+            public string LegacyId
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties mapped to the same field.
+        /// </summary>
+        private sealed class SharedFieldLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Copy
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties of different types, which its mappers map to the same field.
+        /// </summary>
+        private sealed class SharedTypedFieldLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="SharedTypedFieldLine"/> to the <c>person_id</c> field by name, <c>Id</c> first.
+        /// </summary>
+        private sealed class SharedTypedFieldLineMapper : CsvFileMapperBase<SharedTypedFieldLine>
+        {
+            public SharedTypedFieldLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName).ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Code).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="SharedTypedFieldLine"/> to the <c>person_id</c> field by name, <c>Code</c> first, so the line holds
+        /// the value of <c>Id</c>.
+        /// </summary>
+        private sealed class ReversedSharedTypedFieldLineMapper : CsvFileMapperBase<SharedTypedFieldLine>
+        {
+            public ReversedSharedTypedFieldLineMapper()
+            {
+                this.Map().Property(x => x.Code).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="SharedTypedFieldLine"/> to the first field by index.
+        /// </summary>
+        private sealed class IndexedSharedTypedFieldLineMapper : CsvFileMapperBase<SharedTypedFieldLine>
+        {
+            public IndexedSharedTypedFieldLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldIndex(0);
+                this.Map().Property(x => x.Code).HasFieldIndex(0);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties mapped by attribute to the same field, whose <c>Id</c> getter asks for a <see cref="long"/> although its
+        /// mapping converts the field to an <see cref="int"/>.
+        /// </summary>
+        private sealed class MismatchedSharedFieldLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => (int)GetPropertyValue<long>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonIdFieldName)]
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties that <see cref="OptionalSharedFieldLineMapper"/> maps to the same field.
+        /// </summary>
+        private sealed class OptionalSharedFieldLine : CsvFileRecordLine
+        {
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="OptionalSharedFieldLine"/>, as optional, to the <c>Extra</c> field, which the files read with it
+        /// don't have, so the reader skips both.
+        /// </summary>
+        private sealed class OptionalSharedFieldLineMapper : CsvFileMapperBase<OptionalSharedFieldLine>
+        {
+            public OptionalSharedFieldLineMapper()
+            {
+                this.Map().Property(x => x.First).HasFieldName(ExtraFieldName).IsOptional();
+                this.Map().Property(x => x.Second).HasFieldName(ExtraFieldName).IsOptional();
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties of different types mapped to the same field by attribute.
+        /// </summary>
+        private sealed class SharedTypedAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonIdFieldName)]
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose property has a key from <see cref="CsvFieldAttribute"/>, which <see cref="KeyedBuilderLineMapper"/>
+        /// maps to a field with another name.
+        /// </summary>
+        private sealed class KeyedBuilderLine : CsvFileRecordLine
+        {
+            [CsvField(PersonKeyFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class KeyedBuilderLineMapper : CsvFileMapperBase<KeyedBuilderLine>
+        {
+            public KeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps the property of <see cref="KeyedBuilderLine"/> without naming a field, so it maps to the field named by its
+        /// <see cref="CsvFieldAttribute"/>.
+        /// </summary>
+        private sealed class UnrenamedKeyedBuilderLineMapper : CsvFileMapperBase<KeyedBuilderLine>
+        {
+            public UnrenamedKeyedBuilderLineMapper()
+            {
+                this.Map().Property(x => x.Id);
+            }
+        }
+
         private sealed class AddedFieldLine : TestLine
         {
             /// <summary>
@@ -1582,7 +3708,7 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map().Property(x => x.Name);
                 this.Map()
                     .Property(x => x.Description)
-                    .HasFieldIndex(10);
+                    .HasFieldIndex(3);
             }
         }
 
@@ -1666,8 +3792,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Maps Name to a field the line does not have, so storing its value adds the field, which the optional
-        /// Description mapping then finds.
+        /// Maps Name to a field the line does not have, so storing its value adds the field.  The field wasn't read from the file, so the
+        /// optional Description mapping of the same field has no field and is skipped.
         /// </summary>
         private sealed class AddedFieldLineMapper : CsvFileMapperBase<AddedFieldLine>
         {
@@ -1677,7 +3803,7 @@ namespace DataStandardizer.File.CSV.Tests
                     .Property(x => x.Id)
                     .HasFieldIndex(0)
                     .ConvertUsing(typeof(Int32Converter));
-                this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName);
+                this.Map().Property(x => x.Name).HasFieldName(ExtraFieldName).HasConstantValue(AddedFieldValue);
                 this.Map()
                     .Property(x => x.Description)
                     .HasFieldName(ExtraFieldName)
@@ -1704,6 +3830,361 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
             }
+        }
+
+        // Options with a handler of a type the reader never calls: a delegate for a base type of the line type, or a delegate of another type.
+        public static TheoryData<CsvFileOptions> OptionsWithHandlerOfAnotherType => new TheoryData<CsvFileOptions>
+        {
+            new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { BadValueHandler = new Action<CsvFieldContext<HandlerLine>>(context => { }) },
+            new CsvFileOptions { BadValueHandler = new CsvFieldCount<HandlerLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<CsvFileRecordLine>(context => { }) },
+            new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldBadValue<HandlerLine>(context => { }) },
+            new CsvFileOptions { HeaderHandler = new Func<CsvFileHeaderLine, IReadOnlyList<string>>(headerLine => Array.Empty<string>()) }
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsWithHandlerOfAnotherType))]
+        public void Constructor_HandlerOfAnotherType_ThrowsArgumentException(CsvFileOptions options)
+        {
+            // act
+            Action testAction = () => _ = new CsvFileReader<HandlerLine>(TextReader.Null, options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        // The constructors that take options and no file path.  The file path constructor is covered by the integration tests.
+        public static TheoryData<Func<CsvFileOptions, IDisposable>> OptionsConstructors => new TheoryData<Func<CsvFileOptions, IDisposable>>
+        {
+            options => new CsvFileReader<HandlerLine>(Stream.Null, options),
+            options => new CsvFileReader<HandlerLine>(TextReader.Null, options)
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsConstructors))]
+        public void Constructor_AnyOverloadWithHandlerOfAnotherType_ThrowsArgumentException(Func<CsvFileOptions, IDisposable> constructor)
+        {
+            // arrange
+            var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+
+            // act
+            Action testAction = () => constructor(options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
+        }
+
+        [Fact]
+        public void Constructor_HandlerOfAnotherType_MessageNamesBothDelegateTypes()
+        {
+            // arrange
+            var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+
+            // act
+            Action testAction = () => _ = new CsvFileReader<HandlerLine>(TextReader.Null, options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>()
+                .WithMessage("BadValueHandler must be a CsvFieldBadValue<HandlerLine> delegate, or null, but it is a CsvFieldBadValue<CsvFileRecordLine>.*");
+        }
+
+        [Fact]
+        public void Constructor_HandlersOfLineType_DoesNotThrow()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<HandlerLine>(context => { }),
+                HeaderHandler = new CsvFileHeader(headerLine => Array.Empty<string>()),
+                InconsistentFieldCountHandler = new CsvFieldCount<HandlerLine>(context => { })
+            };
+
+            // act
+            Action testAction = () => _ = new CsvFileReader<HandlerLine>(TextReader.Null, options);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        // Constants of the types an attribute holds them as, which a reader converts to the type of the property they are mapped to, and a file
+        // with a field in their place.
+        private const string ConstantLineFile = "1";
+        private const int IntConstant = 5;
+        private const string IntConstantText = "5";
+        private const double TenthDouble = 0.1;
+        private const float TenthFloat = 0.1f;
+        private const decimal TenthDecimal = 0.1m;
+        private const double WholeDouble = 2.0;
+        private const int WholeDoubleAsInt = 2;
+
+        // A whole number with more significant digits than a cast of a double to decimal keeps.
+        private const double SixteenDigitWholeDouble = 1234567890123456.0;
+        private const decimal SixteenDigitWholeDecimal = 1234567890123456m;
+
+        // Numbers whose decimal has a scale above 22, past the largest power of ten a double holds exactly (10^22), and the smallest decimal
+        // greater than zero, whose scale is 28.
+        private const double TinyDouble = 1e-23;
+        private const float TinyFloat = 1e-23f;
+        private const decimal TinyDecimal = 0.00000000000000000000001m;
+        private const double FifteenDigitTinyDouble = 9.87654321098765e-9;
+        private const decimal FifteenDigitTinyDecimal = 0.00000000987654321098765m;
+        private const double SmallestDecimalDouble = 1e-28;
+        private const decimal SmallestDecimal = 0.0000000000000000000000000001m;
+
+        // The double after 1e-23, which no decimal of at most 15 significant digits converts to, though the runtime's cast of 1e-23m to double gives it.
+        private const double SeventeenDigitTinyDouble = 1.0000000000000001e-23;
+
+        // A double with 17 significant digits, which no decimal of at most 15 significant digits converts back to.
+        private const double SeventeenDigitDouble = 0.30000000000000004;
+
+        // 2^24 + 1 and 2^53 + 1, the first integers that a float and a double don't hold exactly.
+        private const int IntPastFloatPrecision = 16777217;
+        private const long LongPastDoublePrecision = 9007199254740993L;
+
+        // 2^63 and 2^64, the first numbers past the ranges of long and ulong.
+        private const double TwoToThe63 = 9223372036854775808.0;
+        private const ulong TwoToThe63AsULong = 9223372036854775808UL;
+        private const double TwoToThe64 = 18446744073709551616.0;
+        private const decimal TwoToThe64AsDecimal = 18446744073709551616m;
+
+        // Reads the one line of a file with a field in place of a constant, and gets the value of the property the constant is mapped to.
+        private static object ReadConstant<TLine>(Func<TLine, object> getValue) where TLine : CsvFileRecordLine, new()
+        {
+            using (var csvReader = new CsvFileReader<TLine>(new StringReader(ConstantLineFile)))
+            {
+                return getValue((TLine)csvReader.ReadLine());
+            }
+        }
+
+        private sealed class IntConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = IntConstant)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class NegativeIntConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = -1)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class IntPastFloatPrecisionLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = IntPastFloatPrecision)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class LongPastDoublePrecisionLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = LongPastDoublePrecision)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class LongMaxValueLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = long.MaxValue)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ULongMaxValueLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = ulong.MaxValue)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TwoToThe63Line<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TwoToThe63)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TwoToThe64Line<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TwoToThe64)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TenthDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TenthDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TenthFloatLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TenthFloat)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TinyDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TinyDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TinyFloatLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = TinyFloat)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class FifteenDigitTinyDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = FifteenDigitTinyDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SmallestDecimalDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SmallestDecimalDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SeventeenDigitTinyDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SeventeenDigitTinyDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SeventeenDigitDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SeventeenDigitDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class WholeDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = WholeDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SixteenDigitWholeDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SixteenDigitWholeDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class FractionalDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = 1.5)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class NaNLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = double.NaN)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class BooleanConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = true)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class TextConstantLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = IntConstantText)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private enum ConstantKind
+        {
+            None,
+            Some
+        }
+
+        private sealed class HandlerLine : CsvFileRecordLine
+        {
         }
     }
 }

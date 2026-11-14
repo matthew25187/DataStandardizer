@@ -21,6 +21,7 @@ field mapping is configured.
 public sealed class CsvFieldMappingBuilder<TModel, T>
     : ICsvFieldMappingInitialBuilder<TModel, T>,
       ICsvFieldMappingIdentityNextBuilder<TModel, T>,
+      ICsvFieldMappingLogicalNameNextBuilder<TModel, T>,
       ICsvFieldMappingTransformationNextBuilder<TModel>,
       ICsvFieldMappingValidationNextBuilder
     where TModel : class
@@ -46,7 +47,9 @@ rather than on separate pages:
 | --- | --- |
 | `ICsvFieldMappingInitialBuilder<TModel, in T>` | The pipeline entry point; aggregates identity, constant, variable, transformation, and optional steps. |
 | `ICsvFieldMappingIdentityBuilder<TModel, in T>` | Sets the field identity (`HasFieldName` / `HasFieldIndex`). |
-| `ICsvFieldMappingIdentityNextBuilder<TModel, in T>` | Continuation after an identity is set: constant, transformation, variable, or optional. |
+| `ICsvFieldMappingIdentityNextBuilder<TModel, in T>` | Continuation after an identity is set: field name once read, constant, transformation, variable, or optional. |
+| `ICsvFieldMappingLogicalNameBuilder<TModel, in T>` | Sets the name the field is known by once read (`UseFieldName`). |
+| `ICsvFieldMappingLogicalNameNextBuilder<TModel, in T>` | Continuation after `UseFieldName`: constant, transformation, variable, or optional. |
 | `ICsvFieldMappingConstantBuilder<in T>` | Sets a constant field value (`HasConstantValue`). |
 | `ICsvFieldMappingVariableBuilder<in T>` | Sets a generated field value (`HasVariableValue`). |
 | `ICsvFieldMappingTransformationBuilder<TModel, in T>` | Attaches a converter (`ConvertUsing`). |
@@ -65,13 +68,14 @@ the numeric, date, time, `bool`, `Guid` and enum types. See
 | --- | --- | --- |
 | `ConvertUsing(CsvFieldConvertFromString<TModel, T> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the deserialization converter (reading). It takes precedence over a `TypeConverter` and the reader's built-in parse. |
 | `ConvertUsing(CsvFieldConvertToString<TModel> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the serialization converter (writing). |
-| `ConvertUsing(Type typeConverterType)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type. Throws `ArgumentException` if it is not a `TypeConverter`. When reading, it takes precedence over the reader's built-in parse. |
+| `ConvertUsing(Type typeConverterType)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type. Throws `ArgumentException` if it is not a `TypeConverter`. When reading, it takes precedence over the reader's built-in parse if it converts from a string; otherwise it isn't used when reading. |
 | `ConvertUsing<TConverter>() where TConverter : TypeConverter` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type by type argument. |
 | `HasConstantValue(T value)` | `void` | Sets a constant field value. |
 | `HasFieldIndex(int fieldIndex)` | `ICsvFieldMappingIdentityNextBuilder<TModel, T>` | Maps to a field by index. Throws `ArgumentOutOfRangeException` if negative. |
 | `HasFieldName(string fieldName)` | `ICsvFieldMappingIdentityNextBuilder<TModel, T>` | Maps to a field by name. Throws `ArgumentNullException` if `null` or `ArgumentException` if all-whitespace. |
 | `HasVariableValue(CsvFieldGenerate<T> valueGenerator)` | `void` | Sets a generated field value. |
 | `IsOptional()` | `void` | Marks the field optional. |
+| `UseFieldName(string fieldName)` | `ICsvFieldMappingLogicalNameNextBuilder<TModel, T>` | Gives the field the name it is known by once read, in place of its name in the file. Required for a name that the header line repeats. Throws `ArgumentNullException` if `null` or `ArgumentException` if all-whitespace. See [header lines that repeat a name](../concepts/field-mapping.md#header-lines-that-repeat-a-name). |
 | `ValidateUsing(CsvFieldValidate<TModel> validator)` | `ICsvFieldMappingValidationNextBuilder` | Sets a validation delegate. |
 
 ## Constructors
@@ -99,6 +103,7 @@ the previous call returned (see *The step methods* above). *(All targets.)*
 | `ICsvFieldMappingIdentityBuilder<TModel, T>.HasFieldName(string fieldName)` | `ICsvFieldMappingIdentityNextBuilder<TModel, T>` |
 | `ICsvFieldMappingVariableBuilder<T>.HasVariableValue(CsvFieldGenerate<T> valueGenerator)` | `void` |
 | `ICsvFieldMappingOptionalBuilder.IsOptional()` | `void` |
+| `ICsvFieldMappingLogicalNameBuilder<TModel, T>.UseFieldName(string fieldName)` | `ICsvFieldMappingLogicalNameNextBuilder<TModel, T>` |
 | `ICsvFieldMappingValidationBuilder<TModel>.ValidateUsing(CsvFieldValidate<TModel> validator)` | `ICsvFieldMappingValidationNextBuilder` |
 
 ## Applies to

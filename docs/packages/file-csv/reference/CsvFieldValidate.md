@@ -25,7 +25,14 @@ public delegate bool CsvFieldValidate<TModel>(CsvFieldContext<TModel> context)
 Attached to a mapping with the `ValidateUsing` step of the fluent
 [CsvFieldMappingBuilder](CsvFieldMappingBuilder.md). Return `true` if the field value
 is valid; `false` triggers the [CsvFieldBadValue](CsvFieldBadValue.md) handler if one
-is set, otherwise a `CsvFileException`. See [CsvFieldContext](CsvFieldContext.md).
+is set, otherwise a `CsvFileException`. The context's `RawFieldValue` holds the
+field's text as read from the file, even when an earlier mapping of the same field
+has converted it, `FieldName` the name of the field the mapping resolved to on the
+line, and `FieldIndex` that field's position in the record as read. Both
+`RawFieldValue` and `FieldIndex` are `null` when the file has no such field, such
+as one that an earlier mapping's constant value added to the line. When the validator
+returns `false`, the bad-value handler is given the same context. See
+[CsvFieldContext](CsvFieldContext.md).
 
 ## Applies to
 

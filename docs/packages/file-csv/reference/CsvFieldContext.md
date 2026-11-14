@@ -24,12 +24,13 @@ public sealed record CsvFieldContext<TModel> where TModel : class
 **.NET Standard:**
 
 ```csharp
-public sealed class CsvFieldContext<TModel> where TModel : class
+public sealed class CsvFieldContext<TModel> : IEquatable<CsvFieldContext<TModel>>
+    where TModel : class
 ```
 
 ## Remarks
 
-On `net10.0` the type is a `record`; on .NET Standard it is a plain `class`.
+On `net10.0` the type is a `record`; on .NET Standard it is a `class`.
 You do not construct it — its constructor and property setters are `internal`. The
 library supplies a populated instance to your [CsvFieldBadValue](CsvFieldBadValue.md),
 [CsvFieldCount](CsvFieldCount.md), [CsvFieldValidate](CsvFieldValidate.md),
@@ -37,12 +38,17 @@ library supplies a populated instance to your [CsvFieldBadValue](CsvFieldBadValu
 [CsvFieldConvertToString](CsvFieldConvertToString.md) delegates. All properties are
 publicly read-only.
 
+On every target, two contexts are equal when each of their properties is equal, and
+`==`, `!=`, `GetHashCode` and `ToString` behave as they do for a record. The .NET
+Standard class implements `IEquatable<CsvFieldContext<TModel>>` to match the `net10.0`
+record.
+
 ## Properties
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `FieldIndex` | `int? FieldIndex { get; }` | The index of the field. |
-| `FieldName` | `string? FieldName { get; }` | The name of the field. |
+| `FieldIndex` | `int? FieldIndex { get; }` | The index of the field. When reading, its position in the record as read, and `null` when the file has no such field. When writing, its position in the line written. |
+| `FieldName` | `string? FieldName { get; }` | The name of the field. When reading, the name of the field in the line, which a mapping by index resolves through the header. When writing, the name of the field the line is written under, as a reader with the same mapper resolves it, so a field renamed with `UseFieldName` has the name it is renamed to. |
 | `HeaderLine` | `CsvFileHeaderLine? HeaderLine { get; }` | The header line, if any. |
 | `Model` | `TModel? Model { get; }` | The line model being read or written. |
 | `Options` | `ICsvFileOptions Options { get; }` | The options configuring the reader or writer. |
@@ -52,7 +58,7 @@ publicly read-only.
 
 Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 `CsvFieldContext<TModel>` is a `record` on the `net10.0` build and a
-plain `class` on the `netstandard1.1`, `netstandard2.0`, and `netstandard2.1`
+`class` on the `netstandard1.1`, `netstandard2.0`, and `netstandard2.1`
 builds. The nullable reference annotations apply to the
 `netstandard2.1` and `net10.0` builds.
 

@@ -52,12 +52,12 @@ returned are not affected.
 
 | Constructor | Notes |
 | --- | --- |
-| `CsvFileReader(Stream csvStream)` | Reads with a `StreamReader` using a 16 KB buffer, UTF-8 encoding and byte order mark detection. Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
-| `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
-| `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file for sequential reading with a 16 KB `FileStream` buffer and reads it with a `StreamReader` using a 16 KB buffer, UTF-8 encoding and byte order mark detection. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
+| `CsvFileReader(Stream csvStream)` | Reads the stream 16 KB at a time, decoding it as UTF-8, or as the encoding a byte order mark at its start names. A byte sequence that isn't valid in the encoding makes its field a bad value; see [Malformed input](../how-to/configure-csv.md#malformed-input). Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
+| `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`, which a byte order mark of another encoding doesn't replace. Throws `ArgumentNullException` if `options` is `null`, or `ArgumentException` if a handler in `options` is of the wrong type. |
+| `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file for sequential reading with a 16 KB `FileStream` buffer and reads it as `CsvFileReader(Stream csvStream)` does. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
+| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`, which a byte order mark of another encoding doesn't replace. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`, or `ArgumentException` if a handler in `options` is of the wrong type, before opening the file. |
 | `CsvFileReader(TextReader reader)` | Throws `ArgumentNullException` if `reader` is `null`. |
-| `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader. |
+| `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader — or if a handler in `options` is of the wrong type. |
 
 ## Properties
 
@@ -72,7 +72,7 @@ returned are not affected.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. Calling it again has no effect. |
-| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, `InvalidOperationException` if the header handler returns `null`, or `ObjectDisposedException` after `Dispose`. Once reading the header line or getting the header handler's field names fails, every later call throws the same exception and reads no further lines. |
+| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, `InvalidOperationException` if the header handler returns `null`, a list that contains `null`, or a different number of names from the expected field count (see [CsvFileHeader](CsvFileHeader.md)), or `ObjectDisposedException` after `Dispose`. Once reading the header line or getting the header handler's field names fails, every later call throws the same exception and reads no further lines. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

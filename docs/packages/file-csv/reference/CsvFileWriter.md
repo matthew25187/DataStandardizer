@@ -50,18 +50,48 @@ is still checked against the previous line.
 
 **Failed lines.** All of a line's field values are converted before any of them is
 written. If a converter, value generator or type converter throws, or `WriteLine`
-throws `CsvFileException`, nothing from that line is written.
+throws `CsvFileException`, nothing from that line is written, and the lines after it
+are written as if it had never been passed to `WriteLine`.
+
+**Handled lines.** When a record line's field count differs from the previous record
+line's, or the line has a field that isn't one of the fields written, and
+`InconsistentFieldCountHandler` is set, the handler is called and the line is skipped. Nothing is written for it, and the lines after it are checked against the
+same field count as before it. The reader skips a handled line in the same way.
+
+**Lines with no fields.** A line with no fields is never written, because a header line
+and each record have one or more fields (RFC 4180 section 2). A header line with no fields
+throws `CsvFileException`. A record line has no fields to write when there's no header
+line, no mapped field and no record line written before it, and it has no fields of its
+own. It is handled or throws `CsvFileException` in the same way as a line with an
+inconsistent field count. The exception's `Data` holds `0` under `ActualFieldCount`.
+A record line with one field whose value is blank is a record, so it's written, as an
+empty line, and the reader reads it back as that record.
+
+**Fields written.** With a header line, the fields written are those of the header
+line. Without one, they are the mapped fields, followed by the fields of the first
+record line written that no mapping covers, in the order they're on that line. Without
+a mapper either, they are the fields of the first record line written.
+
+A record line with a field that isn't one of the fields written is inconsistent, even
+if it has as many fields, so it is handled or throws `CsvFileException` rather than
+being written without that field. When the line has as many fields as the fields
+written, the exception's message names the field, and its `Data` holds the name under
+`FieldName` and the field count under `ExpectedFieldCount`. A field whose value is
+`null` or empty loses nothing, so it doesn't make the line inconsistent, and neither
+does a field whose value a mapping's constant or generator supplies. A record line
+that lacks one of the fields written is written with a blank value for it, unless the
+field's mapping supplies a constant or generated value, which is written instead.
 
 ## Constructors
 
 | Constructor | Notes |
 | --- | --- |
 | `CsvFileWriter(Stream csvStream)` | Writes with a `StreamWriter` using a 16K-character buffer and UTF-8 encoding without a byte order mark. Throws `ArgumentNullException` if `csvStream` is `null`. |
-| `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
+| `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`, or `ArgumentException` if `options.InconsistentFieldCountHandler` is of the wrong type or for options that would write output that can't be read back (see [`CsvFileOptions`](CsvFileOptions.md)). |
 | `CsvFileWriter(string csvFilePath)` | *(netstandard2.0+/.NET)* Creates (or overwrites) the file with a 16 KB `FileStream` buffer and writes it with a `StreamWriter` using a 16K-character buffer and UTF-8 encoding without a byte order mark. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
+| `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`, or `ArgumentException` if `options.InconsistentFieldCountHandler` is of the wrong type or for options that would write output that can't be read back (see [`CsvFileOptions`](CsvFileOptions.md)), before opening the file. |
 | `CsvFileWriter(TextWriter writer)` | Throws `ArgumentNullException` if `writer` is `null`. |
-| `CsvFileWriter(TextWriter writer, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the writer. |
+| `CsvFileWriter(TextWriter writer, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the writer — or if `options.InconsistentFieldCountHandler` is of the wrong type, or for options that would write output that can't be read back (see [`CsvFileOptions`](CsvFileOptions.md)). |
 
 ## Methods
 
@@ -70,7 +100,7 @@ throws `CsvFileException`, nothing from that line is written.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or inconsistent field count, or `ObjectDisposedException` after `Dispose`. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or a header line with no fields, or on a record line with no fields to write, an inconsistent field count or a field that isn't one of the fields written when no `InconsistentFieldCountHandler` is set, `InvalidOperationException` when the options have been changed since the writer was created (they have setters on .NET Standard) so they would write output that can't be read back, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).
