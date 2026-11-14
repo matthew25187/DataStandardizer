@@ -11,12 +11,14 @@
         None,
 
         /// <summary>
-        /// The file has a header line, and it should be used to set the field names.
+        /// The file has a header line, and it should be used to set the field names.  When there is a <see cref="CsvFileHeader"/>
+        /// delegate, the field names it returns for the header line are used instead.
         /// </summary>
         Use,
 
         /// <summary>
-        /// The file has a header line, and it should be ignored.  Field names can be customised using a <see cref="CsvFileHeader"/> delegate.
+        /// The file has a header line, and it should be ignored, as if the file had no header line.  Field names can be supplied by a
+        /// <see cref="CsvFileHeader"/> delegate, which is passed the ignored header line.
         /// </summary>
         Ignore
     }

@@ -69,6 +69,12 @@ record that breaks the quoting rules as an empty value, as it already did for
 every other field, instead of keeping its raw text. See
 [File.CSV invalid last field](removed-in-v2.md#filecsv-invalid-last-field).
 
+A File.CSV record line property that calls `GetPropertyValue<T>` now throws an
+`InvalidCastException` when its field holds a value of another type, such as the
+text a reader stores for a field that no mapping converts, instead of returning
+the default value of its type. See
+[File.CSV typed property values](removed-in-v2.md#filecsv-typed-property-values).
+
 `SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
 types of its records move to `DataStandardizer.LanguageTag.Registry`. See
 [where the registry types live](removed-in-v2.md#where-the-registry-types-live).

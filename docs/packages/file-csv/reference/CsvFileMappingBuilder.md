@@ -27,7 +27,10 @@ You obtain a `CsvFileMappingBuilder<TModel>` from the protected `Map()` method o
 [CsvFileMapperBase](CsvFileMapperBase.md) or
 [CsvFileCustomMapperBase](CsvFileCustomMapperBase.md); its constructors are
 `internal`. Call `Property<T>` once per property and chain the returned step
-interfaces to configure the field. See
+interfaces to configure the field. The mapping is keyed by the property key: the
+name given by [CsvFieldAttribute](CsvFieldAttribute.md), or else the property
+name. Without `HasFieldName` or `HasFieldIndex`, that key is also the field
+name. See
 [CsvFieldMappingBuilder](CsvFieldMappingBuilder.md) for the full fluent pipeline.
 
 ## Methods

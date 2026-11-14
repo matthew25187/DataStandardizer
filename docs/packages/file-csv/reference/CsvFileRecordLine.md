@@ -36,8 +36,12 @@ helpers are `protected` and therefore not part of the public surface; the public
 
 A value set through `SetPropertyValue<T>` is stored as an `object`, so a value-type
 property, such as an `int` or a `decimal`, is boxed when it is set.
-`GetPropertyValue<T>` returns the default of `T` if the field is missing or holds a
-value of another type.
+`GetPropertyValue<T>` returns the default of `T` if the field is missing or its
+value is `null`, or if the reader called the bad-value handler for the field. It
+throws an `InvalidCastException` if the field holds a value of another type. A reader stores the text of a field that no mapping converts, so a
+property of any type other than `string` needs a mapping, such as a
+[CsvFieldMappingAttribute](CsvFieldMappingAttribute.md), for its value to be read
+from a file.
 
 `CsvFileReader<TRecordLine>` requires a `CsvFileRecordLine`-derived type with a
 public parameterless constructor; `CsvFileWriter<TRecordLine>` does not.

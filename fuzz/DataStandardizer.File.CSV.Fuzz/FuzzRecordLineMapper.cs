@@ -10,11 +10,14 @@ public sealed class FuzzRecordLineMapper : CsvFileMapperBase<FuzzRecordLine>
         this.Map()
             .Property(x => x.First)
             .HasFieldIndex(0);
+        // Optional, so that records with fewer fields are still mapped rather than rejected as missing a required field.
         this.Map()
             .Property(x => x.Second)
-            .HasFieldIndex(1);
+            .HasFieldIndex(1)
+            .IsOptional();
         this.Map()
             .Property(x => x.Third)
-            .HasFieldIndex(2);
+            .HasFieldIndex(2)
+            .IsOptional();
     }
 }

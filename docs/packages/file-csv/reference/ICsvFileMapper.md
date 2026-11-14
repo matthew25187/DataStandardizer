@@ -11,8 +11,10 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.CSV`
 
-A read-only set of field mappings keyed by property name. The reader and writer
-consume a mapper to translate between CSV fields and model properties.
+A read-only set of field mappings keyed by property key: the name given by
+[CsvFieldAttribute](CsvFieldAttribute.md), or else the property name. The
+reader and writer consume a mapper to translate between CSV fields and model
+properties.
 
 **Syntax**
 

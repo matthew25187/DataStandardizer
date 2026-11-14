@@ -7,6 +7,10 @@ namespace DataStandardizer.File.CSV.IntegrationTests;
 
 public class CsvMapperCacheTests
 {
+    // The field of the line that is written.
+    private const string FieldName = "One";
+    private const string FieldValue = "1";
+
     [Fact]
     public void Clear_AfterLineOfCollectibleTypeWritten_ReleasesTypeForUnloading()
     {
@@ -31,9 +35,13 @@ public class CsvMapperCacheTests
     private static WeakReference WriteLineOfCollectibleType()
     {
         var lineType = CreateCollectibleLineType();
+        var line = (ICsvFileLine)Activator.CreateInstance(lineType)!;
+
+        // A record has one or more fields, so the line is given one to be written.
+        line.Add(FieldName, FieldValue);
         using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(new StringWriter()))
         {
-            csvWriter.WriteLine((ICsvFileLine)Activator.CreateInstance(lineType)!);
+            csvWriter.WriteLine(line);
         }
 
         return new WeakReference(lineType.Assembly);

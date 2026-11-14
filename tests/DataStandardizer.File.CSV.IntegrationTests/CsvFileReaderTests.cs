@@ -1,4 +1,6 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.Globalization;
+using System.IO;
 using System.Text;
 using FluentAssertions;
 
@@ -167,6 +169,58 @@ public class CsvFileReaderTests
         public string? Name
         {
             get => GetPropertyValue<string?>();
+            set => SetPropertyValue(value);
+        }
+    }
+
+    [Fact]
+    public void Constructor_FilePathWithHandlerOfAnotherType_ThrowsArgumentExceptionBeforeOpeningFile()
+    {
+        // arrange
+        // The file is deleted, so a reader that opened it before checking the options would throw FileNotFoundException instead.
+        using var testFile = TemporaryFile.Create();
+        System.IO.File.Delete(testFile.Path);
+        var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+
+        // act
+        Action testAction = () => _ = new CsvFileReader<HandlerLine>(testFile.Path, options);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("options");
+    }
+
+    private sealed class HandlerLine : CsvFileRecordLine
+    {
+    }
+
+    // 2 January 2024 in the round-trip pattern ("o"), as a writer writes a DateOnly.
+    private const string RoundTripDateText = "2024-01-02";
+
+    // Cultures whose default calendar isn't the Gregorian calendar: Thai Buddhist, Persian and Um Al Qura.  They come from the operating system's
+    // culture data, which is why these tests are integration tests.
+    [Theory]
+    [InlineData("th-TH")]
+    [InlineData("fa-IR")]
+    [InlineData("ar-SA")]
+    public void ReadLine_RoundTripDateWithNonGregorianCulture_ReadsGregorianDate(string cultureName)
+    {
+        // arrange
+        var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, Culture = new CultureInfo(cultureName) };
+        using var csvReader = new CsvFileReader<DateOnlyLine>(new StringReader(RoundTripDateText), options);
+
+        // act
+        var testResult = (DateOnlyLine)csvReader.ReadLine()!;
+
+        // assert
+        testResult.Value.Should().Be(new DateOnly(2024, 1, 2));
+    }
+
+    private sealed class DateOnlyLine : CsvFileRecordLine
+    {
+        [CsvFieldMapping(0)]
+        public DateOnly Value
+        {
+            get => GetPropertyValue<DateOnly>();
             set => SetPropertyValue(value);
         }
     }

@@ -45,7 +45,7 @@ The public types of **DataStandardizer.File.CSV**. All types are in the
 | Type | Description |
 | --- | --- |
 | [ICsvFileLine](ICsvFileLine.md) | A CSV line as an ordered, name-keyed bag of field values. |
-| [ICsvFileMapper](ICsvFileMapper.md) | A read-only set of field mappings keyed by property name. |
+| [ICsvFileMapper](ICsvFileMapper.md) | A read-only set of field mappings keyed by property key: the `[CsvField]` name, else the property name. |
 | [ICsvFileOptions](ICsvFileOptions.md) | The read-only view of a reader or writer's options. |
 
 ## Enumerations

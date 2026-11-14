@@ -25,7 +25,10 @@ public delegate T CsvFieldConvertFromString<TModel, out T>(CsvFieldContext<TMode
 
 Attached to a mapping with the `ConvertUsing` step of the fluent
 [CsvFieldMappingBuilder](CsvFieldMappingBuilder.md). Read the raw value from the
-`context` and return the converted property value. See
+`context` and return the converted property value. The context's `RawFieldValue`
+holds the text being converted, `FieldName` the name of the field the mapping
+resolved to on the line, and `FieldIndex` that field's position in the line,
+whether the mapping names the field or gives its index. See
 [CsvFieldContext](CsvFieldContext.md). An exception thrown by the delegate propagates
 from `ReadLine` unchanged.
 

@@ -17,9 +17,19 @@ namespace DataStandardizer.File.CSV.Tests
         private const string SecondCodeFieldName = "SecondCode";
         private const string BaseFieldName = "BaseField";
         private const string DerivedFieldName = "DerivedField";
+        private const string HidingFieldName = "HidingField";
+        private const string OverridingFieldName = "OverridingField";
 
         private const string FirstCode = "A";
         private const string SecondCode = "B";
+
+        // The field name of CountLine.Count, which has no [CsvField] attribute.
+        private const string CountFieldName = "Count";
+
+        private const int Count = 5;
+
+        // The text of Count, as a reader stores it for a field that no mapping converts.
+        private const string CountText = "5";
 
         [Fact]
         public void SetPropertyValue_SameNamedPropertyOnDifferentTypes_ResolvesFieldKeyPerType()
@@ -77,7 +87,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void SetPropertyValue_DerivedTypeInheritedPropertyWithCsvField_UsesPropertyName()
+        public void SetPropertyValue_DerivedTypeInheritedPropertyWithCsvField_UsesCsvFieldName()
         {
             // arrange
             var testLine = new DerivedLine();
@@ -86,7 +96,46 @@ namespace DataStandardizer.File.CSV.Tests
             testLine.Inherited = "inherited";
 
             // assert
-            FieldKeys(testLine).Should().BeEquivalentTo(new[] { nameof(BaseLine.Inherited) }, options => options.WithStrictOrdering());
+            FieldKeys(testLine).Should().BeEquivalentTo(new[] { BaseFieldName }, options => options.WithStrictOrdering());
+        }
+
+        [Fact]
+        public void SetPropertyValue_DerivedTypeOverridesPropertyWithCsvField_UsesBaseCsvFieldName()
+        {
+            // arrange
+            var testLine = new OverridingLine();
+
+            // act
+            testLine.Virtual = "overridden";
+
+            // assert
+            FieldKeys(testLine).Should().BeEquivalentTo(new[] { BaseFieldName }, options => options.WithStrictOrdering());
+        }
+
+        [Fact]
+        public void SetPropertyValue_DerivedTypeOverridesPropertyWithOwnCsvField_UsesOverridingCsvFieldName()
+        {
+            // arrange
+            var testLine = new OverridingWithFieldLine();
+
+            // act
+            testLine.Virtual = "overridden";
+
+            // assert
+            FieldKeys(testLine).Should().BeEquivalentTo(new[] { OverridingFieldName }, options => options.WithStrictOrdering());
+        }
+
+        [Fact]
+        public void SetPropertyValue_DerivedTypeHidesPropertyWithCsvField_UsesHidingCsvFieldName()
+        {
+            // arrange
+            var testLine = new HidingLine();
+
+            // act
+            testLine.Inherited = "hidden";
+
+            // assert
+            FieldKeys(testLine).Should().BeEquivalentTo(new[] { HidingFieldName }, options => options.WithStrictOrdering());
         }
 
         [Fact]
@@ -136,7 +185,71 @@ namespace DataStandardizer.File.CSV.Tests
             FieldKeys(testLine).Should().BeEquivalentTo(new[] { FirstCodeFieldName }, options => options.WithStrictOrdering());
         }
 
+        [Fact]
+        public void GetPropertyValue_FieldHoldsValueOfPropertyType_ReturnsValue()
+        {
+            // arrange
+            var testLine = new CountLine();
+            testLine.Add(CountFieldName, Count);
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(Count);
+        }
+
+        [Fact]
+        public void GetPropertyValue_FieldHoldsValueOfAnotherType_ThrowsInvalidCastException()
+        {
+            // arrange
+            var testLine = new CountLine();
+            testLine.Add(CountFieldName, CountText);
+
+            // act
+            Action testAction = () => _ = testLine.Count;
+
+            // assert
+            testAction.Should().Throw<InvalidCastException>();
+        }
+
+        [Fact]
+        public void GetPropertyValue_FieldValueIsNull_ReturnsDefaultValue()
+        {
+            // arrange
+            var testLine = new CountLine();
+            testLine.Add(CountFieldName, null);
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
+        [Fact]
+        public void GetPropertyValue_FieldMissing_ReturnsDefaultValue()
+        {
+            // arrange
+            var testLine = new CountLine();
+
+            // act
+            var testResult = testLine.Count;
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
         private static IReadOnlyList<string> FieldKeys(ICsvFileLine line) => line.Keys;
+
+        private class CountLine : CsvFileRecordLine
+        {
+            public int Count
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
 
         private class FirstCodeLine : CsvFileRecordLine
         {
@@ -172,6 +285,45 @@ namespace DataStandardizer.File.CSV.Tests
         {
             [CsvField(DerivedFieldName)]
             public string Own
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class HidingLine : BaseLine
+        {
+            [CsvField(HidingFieldName)]
+            public new string Inherited
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class VirtualLine : CsvFileRecordLine
+        {
+            [CsvField(BaseFieldName)]
+            public virtual string Virtual
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class OverridingWithFieldLine : VirtualLine
+        {
+            [CsvField(OverridingFieldName)]
+            public override string Virtual
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class OverridingLine : VirtualLine
+        {
+            public override string Virtual
             {
                 get => GetPropertyValue<string>();
                 set => SetPropertyValue(value);

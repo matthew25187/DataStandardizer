@@ -693,3 +693,52 @@ invalid last field name is now an empty name, where version 1.x used its text, s
 `Id,x"Name"` gives the field names `Id` and an empty name. If the header already
 has an empty name, such as `,x"Name"`, the two names are duplicates and the reader
 throws a `CsvFileException` for the duplicate field names.
+
+## File.CSV typed property values
+
+A property of a record line model that calls `GetPropertyValue<T>` reads the
+value its field holds. A reader stores a field's text, as a `string`, unless a
+mapping converts it to the property's type.
+
+In version 1.x, `GetPropertyValue<T>` returned the default value of `T` when the
+field held a value of another type. A property of any type other than `string`
+with no mapping, such as an `int Id` with only a `[CsvField]` attribute or no
+attribute at all, silently read as `0` whatever the file held.
+
+In version 2.0, `GetPropertyValue<T>` throws an `InvalidCastException` when the
+field holds a value of another type. A field that the line doesn't have, or whose
+value is `null`, still gives the default value of `T`.
+
+To read such a property from a file, map it, for example with a
+`[CsvFieldMapping]` attribute, which maps it to the field with the property's
+name, or with `[CsvFieldMapping("person_id")]` in place of
+`[CsvField("person_id")]`. The reader then converts the field's text to the
+property's type, as
+[File.CSV conversion of mapped properties](#filecsv-conversion-of-mapped-properties)
+describes.
+
+```csharp
+// Before
+[CsvField("person_id")]
+public int Id
+{
+    get => GetPropertyValue<int>();
+    set => SetPropertyValue(value);
+}
+
+// After
+[CsvFieldMapping("person_id")]
+public int Id
+{
+    get => GetPropertyValue<int>();
+    set => SetPropertyValue(value);
+}
+```
+
+The same applies to a line you build yourself: a value of another type set
+through the indexer or `Add`, such as a `long` for an `int` property, now throws
+rather than reading as `0`.
+
+A mapped field whose value the bad-value handler was called for still reads as
+the default value of the property type, as in version 1.x, and the line still
+holds the field's text.
