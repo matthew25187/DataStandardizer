@@ -6,14 +6,27 @@ namespace DataStandardizer.File.CSV
 {
     internal static class CsvMappingService
     {
+        /// <summary>
+        /// Gets the name of the field a mapping is mapped to, as a line knows it: the name the mapping gives it with
+        /// <see cref="CsvFieldMapping.UseFieldName"/>, else its field name, else its property key.
+        /// </summary>
         internal static string GetFieldNameFromMapping(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
         {
-            return propertyFieldMapping.Value.FieldName ?? propertyFieldMapping.Key;
+            return GetFieldNameFromMapping(propertyFieldMapping.Key, propertyFieldMapping.Value);
         }
 
+        /// <inheritdoc cref="GetFieldNameFromMapping(KeyValuePair{string, CsvFieldMapping})"/>
         internal static string GetFieldNameFromMapping(string propertyKey, CsvFieldMapping fieldMapping)
         {
-            return fieldMapping.FieldName ?? propertyKey;
+            return fieldMapping.UseFieldName ?? fieldMapping.FieldName ?? propertyKey;
+        }
+
+        /// <summary>
+        /// Gets the name of the field a mapping is mapped to, as a header line in a file names it: its field name, else its property key.
+        /// </summary>
+        internal static string GetFileFieldNameFromMapping(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
+        {
+            return propertyFieldMapping.Value.FieldName ?? propertyFieldMapping.Key;
         }
 
         /// <summary>
@@ -33,8 +46,8 @@ namespace DataStandardizer.File.CSV
 #endif
             foreach (var mapping in mapper)
             {
-                var fieldName = mapping.Value.FieldName;
-                if (fieldName is null || string.Equals(fieldName, mapping.Key, StringComparison.Ordinal))
+                var fieldName = GetFieldNameFromMapping(mapping);
+                if (string.Equals(fieldName, mapping.Key, StringComparison.Ordinal))
                 {
                     continue;
                 }

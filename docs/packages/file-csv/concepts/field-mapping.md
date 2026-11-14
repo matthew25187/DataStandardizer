@@ -68,6 +68,7 @@ each point in the chain are offered:
 ```text
 Property(expr)
   └─ HasFieldName(name) / HasFieldIndex(index)      // identity
+       ├─ UseFieldName(name)                         // name once read
        └─ ConvertUsing(...)                          // transformation
             └─ ValidateUsing(...)                    // validation
                  └─ IsOptional()                     // terminal
@@ -82,6 +83,7 @@ fields on `CsvFieldMapping` as follows:
 | Builder step | Configures |
 | --- | --- |
 | `HasFieldName(string)` / `HasFieldIndex(int)` | The target CSV field by name or position. |
+| `UseFieldName(string)` | The name the field is known by once read, in place of its name in the file. See [Header lines that repeat a name](#header-lines-that-repeat-a-name). |
 | `ConvertUsing(...)` | A converter: a `Type` of `TypeConverter`, a generic `<TConverter>`, or a `CsvFieldConvertFromString` / `CsvFieldConvertToString` delegate. Optional for the types the reader parses itself; see [Converting field values](#converting-field-values). |
 | `ValidateUsing(CsvFieldValidate<TModel>)` | A delegate that returns `false` for invalid incoming values. |
 | `IsOptional()` | Marks the field optional, so a missing field does not error. |
@@ -177,6 +179,69 @@ A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
 yet, so it holds the value under the property key: the name given by
 `[CsvField]`, or else the property name. The writer looks a mapped value up by
 its field name, and if the line has no such field, by the property key.
+
+## Header lines that repeat a name
+
+RFC 4180 doesn't require the names on a header line to be unique, so a file can
+have two `name` fields that hold different kinds of name. A line can't hold two
+fields with the same name, so the mapper says what each one is called once
+read. `UseFieldName` gives a field that name, in place of its name in the file:
+its key on the line, the name a header handler is given for it, and the name
+other mappings find it by. `[CsvFieldMapping]` has a `UseFieldName` property
+that does the same.
+
+Mappings by the same name take the first, second and so on field of that name,
+in mapper order. This is the one case where the order of the mappings matters.
+A caller may know that a file has two `name` fields, and which holds which kind
+of name, without knowing their positions.
+
+```csharp
+public class PersonNamesLineMapper : CsvFileMapperBase<PersonNamesLine>
+{
+    public PersonNamesLineMapper()
+    {
+        this.Map()
+            .Property(x => x.LegalName)
+            .HasFieldName("name")            // 1st "name" in the file
+            .UseFieldName("legal_name");
+        this.Map()
+            .Property(x => x.PreferredName)
+            .HasFieldName("name")            // 2nd "name" in the file
+            .UseFieldName("preferred_name");
+    }
+}
+```
+
+With this mapper, the header line `name,name` reads as a header line with the
+fields `legal_name` and `preferred_name`, and each record holds its values under
+those names. Every field stays reachable by position.
+
+- The mapper in effect when the header line is read, registered or declarative,
+  gives the names. With `CsvFileHeaderHandling.Use`, and with `Ignore` when
+  there is a header handler, the handler is passed the header line with those
+  names, and the names it returns must still be unique.
+- Each mapping of a repeated name must use `UseFieldName`, or `ReadLine` throws
+  `CsvFileException`. A repeated name that no mapping covers is a duplicate
+  name, so `ReadLine` throws `CsvFileException`, and `line["name"]` is never
+  ambiguous.
+- A mapping by name past the last field of that name takes the last one, and
+  shares it with the mapping before it.
+- Mappings that share a field must give it the same name, or `ReadLine` throws
+  `CsvFileException`. A mapping that shares a field without `UseFieldName`
+  finds it by the name another mapping gives it.
+- A mapping by index takes the field at its index, whatever the header line
+  calls it, so a mapping by index can also rename a field whose name is
+  repeated.
+- `UseFieldName` can rename any field, repeated or not. Without a header line,
+  mappings by the same field name that give different names with
+  `UseFieldName` are different fields, which take positions in mapper order.
+
+The writer writes a field that a mapping by name renames under its name in the
+file, so a header line read with the mapper, and written again with it, keeps
+the file's names, repeated as they are in the file. The record fields are
+written at their positions, as for any other header line. A mapping by index
+doesn't say what its field is called in the file, so a field it renames is
+written under the name it gives.
 
 ## Converting field values
 

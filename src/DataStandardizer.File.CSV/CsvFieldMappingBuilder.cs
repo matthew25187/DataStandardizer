@@ -37,7 +37,38 @@ namespace DataStandardizer.File.CSV
     }
 
     public interface ICsvFieldMappingIdentityNextBuilder<TModel, in T>
-        : ICsvFieldMappingConstantBuilder<T>, ICsvFieldMappingTransformationBuilder<TModel, T>, ICsvFieldMappingVariableBuilder<T>, ICsvFieldMappingOptionalBuilder where TModel : class
+        : ICsvFieldMappingLogicalNameBuilder<TModel, T>, ICsvFieldMappingConstantBuilder<T>, ICsvFieldMappingTransformationBuilder<TModel, T>,
+            ICsvFieldMappingVariableBuilder<T>, ICsvFieldMappingOptionalBuilder where TModel : class
+    {
+    }
+
+    public interface ICsvFieldMappingLogicalNameBuilder<TModel, in T> where TModel : class
+    {
+        /// <summary>
+        /// Specify the name the field is known by once read, in place of its name in the file: its key on a line, the name a header handler is
+        /// given for it, and the name other mappings find it by.
+        /// </summary>
+        /// <param name="fieldName">The field's name once read.</param>
+        /// <returns>This mapping builder.</returns>
+        /// <remarks>
+        /// <para>
+        /// RFC 4180 §2 ¶3 doesn't require the names on a header line to be unique, but the fields of a line must have unique names.  Mappings by
+        /// the same name take the first, second and so on field of that name on the header line, in mapper order, and each must give its field a
+        /// name of its own with this method.  A mapping past the last field of that name takes the last one.  A field whose name is repeated and
+        /// that no mapping renames makes the reader throw a <see cref="CsvFileException"/>.
+        /// </para>
+        /// <para>
+        /// A field whose name isn't repeated can be renamed too.  Mappings that share a field must give it the same name.  A writer writes the field
+        /// of a mapping by name under the name the mapping gives with <see cref="ICsvFieldMappingIdentityBuilder{TModel, T}.HasFieldName"/>, so a header line
+        /// read and written again keeps the file's names, repeated as they are in the file.
+        /// </para>
+        /// </remarks>
+        ICsvFieldMappingLogicalNameNextBuilder<TModel, T> UseFieldName(string fieldName);
+    }
+
+    public interface ICsvFieldMappingLogicalNameNextBuilder<TModel, in T>
+        : ICsvFieldMappingConstantBuilder<T>, ICsvFieldMappingTransformationBuilder<TModel, T>, ICsvFieldMappingVariableBuilder<T>, ICsvFieldMappingOptionalBuilder
+        where TModel : class
     {
     }
 
@@ -108,7 +139,8 @@ namespace DataStandardizer.File.CSV
         void HasVariableValue(CsvFieldGenerate<T> valueGenerator);
     }
 
-    public sealed class CsvFieldMappingBuilder<TModel, T> : ICsvFieldMappingInitialBuilder<TModel,T>, ICsvFieldMappingIdentityNextBuilder<TModel, T>, ICsvFieldMappingTransformationNextBuilder<TModel>, ICsvFieldMappingValidationNextBuilder
+    public sealed class CsvFieldMappingBuilder<TModel, T> : ICsvFieldMappingInitialBuilder<TModel,T>, ICsvFieldMappingIdentityNextBuilder<TModel, T>,
+        ICsvFieldMappingLogicalNameNextBuilder<TModel, T>, ICsvFieldMappingTransformationNextBuilder<TModel>, ICsvFieldMappingValidationNextBuilder
         where TModel : class
     {
         private readonly CsvFieldMapping _fieldMapping;
@@ -175,6 +207,21 @@ namespace DataStandardizer.File.CSV
             }
 
             _fieldMapping.FieldName = fieldName;
+            return this;
+        }
+
+        ICsvFieldMappingLogicalNameNextBuilder<TModel, T> ICsvFieldMappingLogicalNameBuilder<TModel, T>.UseFieldName(string fieldName)
+        {
+            if (fieldName is null)
+            {
+                throw new ArgumentNullException(nameof(fieldName));
+            }
+            else if (string.IsNullOrWhiteSpace(fieldName))
+            {
+                throw new ArgumentException("Expected a field name.", nameof(fieldName));
+            }
+
+            _fieldMapping.UseFieldName = fieldName;
             return this;
         }
 

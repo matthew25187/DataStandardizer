@@ -46,6 +46,7 @@ with its built-in parse for `PropertyType`. See
 | `IsOptional` | `bool IsOptional { get; }` | `true` if the field is optional. |
 | `PropertyType` | `Type PropertyType { get; }` | The type of the mapped property. |
 | `ToStringConverter` | `Delegate? ToStringConverter { get; }` | A [CsvFieldConvertToString](CsvFieldConvertToString.md) delegate (writing only). |
+| `UseFieldName` | `string? UseFieldName { get; }` | The name the field is known by once read, in place of its name in the file, or `null` if it keeps that name. See [header lines that repeat a name](../concepts/field-mapping.md#header-lines-that-repeat-a-name). |
 | `TypeConverterType` | `Type? TypeConverterType { get; }` | The `TypeConverter` type used for (de)serialization. When reading, a converter that converts from a string takes precedence over the reader's built-in parse, and a value the converter throws for is a bad value. One that doesn't convert from a string isn't used when reading. |
 | `Validator` | `Delegate? Validator { get; }` | A [CsvFieldValidate](CsvFieldValidate.md) delegate. |
 | `VariableValueGenerator` | `Delegate? VariableValueGenerator { get; }` | A [CsvFieldGenerate](CsvFieldGenerate.md) delegate. |

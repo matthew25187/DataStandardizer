@@ -28,6 +28,21 @@ namespace DataStandardizer.File.CSV
 #endif
 
         /// <summary>
+        /// Gets the name the field is known by once read: its key on a line, the name a header handler is given for it, and the name other
+        /// mappings find it by.  <c>null</c> if the field keeps the name it has in the file.
+        /// </summary>
+        /// <remarks>
+        /// A writer writes a field that a mapping by name renames under its name in the file, so a header line read and written again keeps the
+        /// file's names.
+        /// </remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public string? UseFieldName { get; internal set; }
+#else
+        [MaybeNull, AllowNull]
+        public string UseFieldName { get; internal set; }
+#endif
+
+        /// <summary>
         /// Gets or sets the index of the CSV field.
         /// </summary>
         public int? FieldIndex

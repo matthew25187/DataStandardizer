@@ -122,6 +122,7 @@ namespace DataStandardizer.File.CSV
                 {
                     FieldIndex = fieldAttribute.FieldIndex,
                     FieldName = fieldAttribute.FieldName,
+                    UseFieldName = fieldAttribute.UseFieldName,
                     ConstantValue = fieldAttribute.ConstantValue,
                     IsOptional = fieldAttribute.IsOptional,
                     TypeConverterType = propertyBinding.TypeConverterType,

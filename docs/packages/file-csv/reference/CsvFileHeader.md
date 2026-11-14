@@ -35,8 +35,12 @@ after it reads the first record, before it returns that record, and passes the
 ignored header line, or `null` with `None`; `ReadLine` returns no header line.
 For a file with no records, it doesn't call the delegate. A header line can't
 hold two fields with the same name, so with `Use`, and with `Ignore` when there
-is a delegate, a header line that repeats a name makes `ReadLine` throw
-`CsvFileException` as the header line is read, before the delegate is called. The delegate renames fields; it can't add or remove
+is a delegate, the mapper in effect gives a name that the header line repeats
+the names its mappings give with `UseFieldName`, and the delegate is passed the
+line with those names. A repeated name that no mapping renames makes `ReadLine`
+throw `CsvFileException` as the header line is read, before the delegate is
+called. See [header lines that repeat a name](../concepts/field-mapping.md#header-lines-that-repeat-a-name).
+The delegate renames fields; it can't add or remove
 them. With `Use`, the header line sets how many fields each record is expected
 to have; with `Ignore` and `None`, the first record does; returning a different number
 of names makes `ReadLine` throw `InvalidOperationException`. Returning

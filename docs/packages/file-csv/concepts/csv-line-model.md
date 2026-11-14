@@ -70,7 +70,10 @@ with the properties of your own record model; reach them through an
 themselves. When the reader is configured with
 `CsvFileHeaderHandling.Use`, it materialises the first line as a
 `CsvFileHeaderLine`, adding each name as both key and value, and checks for
-duplicate names (throwing a `CsvFileException` if any are found). Its
+duplicate names (throwing a `CsvFileException` if any are found). RFC 4180
+allows a header line to repeat a name, so a mapper can give each field of a
+repeated name a name of its own first; see
+[header lines that repeat a name](field-mapping.md#header-lines-that-repeat-a-name). Its
 `FieldNames` property exposes the names as an `IReadOnlyList<string>`, which the
 reader then uses to name the fields of subsequent record lines.
 
