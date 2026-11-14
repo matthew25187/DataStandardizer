@@ -119,7 +119,7 @@ namespace DataStandardizer.File.CSV
             if (!csvStream.CanRead)
                 throw new ArgumentException("Expected a stream supporting read.", nameof(csvStream));
 
-            _reader = CreateStreamReader(csvStream, DefaultEncoding);
+            _reader = CreateStreamReader(csvStream, DefaultEncoding, false);
             _isInternalReader = true;
         }
 
@@ -137,7 +137,7 @@ namespace DataStandardizer.File.CSV
             _options = options;
 
             // Create the reader once, with the requested encoding if any, so no buffer is allocated and discarded.
-            _reader = CreateStreamReader(csvStream, _options.Encoding ?? DefaultEncoding);
+            _reader = CreateStreamReader(csvStream, _options.Encoding ?? DefaultEncoding, _options.Encoding != null);
             _isInternalReader = true;
         }
 
@@ -147,7 +147,7 @@ namespace DataStandardizer.File.CSV
             if (csvFilePath is null)
                 throw new ArgumentNullException(nameof(csvFilePath));
 
-            _reader = CreateFileReader(csvFilePath, DefaultEncoding);
+            _reader = CreateFileReader(csvFilePath, DefaultEncoding, false);
             _isInternalReader = true;
         }
 
@@ -163,7 +163,7 @@ namespace DataStandardizer.File.CSV
             _options = options;
 
             // Open the file once, with the requested encoding if any, so no handle is left orphaned.
-            _reader = CreateFileReader(csvFilePath, _options.Encoding ?? DefaultEncoding);
+            _reader = CreateFileReader(csvFilePath, _options.Encoding ?? DefaultEncoding, _options.Encoding != null);
             _isInternalReader = true;
         }
 #endif
@@ -214,19 +214,27 @@ namespace DataStandardizer.File.CSV
             ValidateHandler<CsvFileHeader>(options.HeaderHandler, nameof(ICsvFileOptions.HeaderHandler), paramName);
         }
 
-        private static StreamReader CreateStreamReader(Stream stream, Encoding encoding)
+        /// <summary>
+        /// Creates the reader of a stream, which reads each byte that isn't part of a character of the encoding as a lone surrogate, so that the
+        /// field that holds it is a bad value.
+        /// </summary>
+        /// <param name="isEncodingDeclared">
+        /// <c>true</c> if the encoding is <see cref="ICsvFileOptions.Encoding"/>, which a byte order mark of another encoding doesn't replace;
+        /// <c>false</c> if it is the default, which a byte order mark replaces.
+        /// </param>
+        private static CsvStreamTextReader CreateStreamReader(Stream stream, Encoding encoding, bool isEncodingDeclared)
         {
-            return new StreamReader(stream, encoding, true, StreamBufferSize);
+            return new CsvStreamTextReader(stream, encoding, isEncodingDeclared, StreamBufferSize);
         }
 
 #if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
-        private static StreamReader CreateFileReader(string path, Encoding encoding)
+        private static CsvStreamTextReader CreateFileReader(string path, Encoding encoding, bool isEncodingDeclared)
         {
             // Open the file stream explicitly so both buffering layers are sized together.
             var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan);
             try
             {
-                return CreateStreamReader(fileStream, encoding);
+                return CreateStreamReader(fileStream, encoding, isEncodingDeclared);
             }
             catch
             {
@@ -847,7 +855,7 @@ namespace DataStandardizer.File.CSV
             // ref. RFC 4180§2¶2
             if (!EnsureAvailable(1)) return false;
 
-            // The characters a field may hold come from the reader's encoding, which a StreamReader settles once it has read the start of the stream.
+            // The characters a field may hold come from the reader's encoding, which a reader of a stream settles once it has read the start of it.
             // ref. RFC 4180§2 (TEXTDATA), RFC 4180§3 (charset)
             var textData = GetTextData();
 #if NET8_0_OR_GREATER
@@ -874,11 +882,8 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
                     var quotedUnread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var quoteIndex = quotedStopExcept ? quotedUnread.IndexOfAnyExcept(quotedStopCharacters) : quotedUnread.IndexOfAny(quotedStopCharacters);
-                    if (quotedStopC1Separately)
-                    {
-                        var c1Index = CsvTextData.IndexOfC1Control(quoteIndex < 0 ? quotedUnread : quotedUnread.Slice(0, quoteIndex));
-                        if (c1Index >= 0) quoteIndex = c1Index;
-                    }
+                    var quotedRangeIndex = textData.IndexOfRangeToCheck(quoteIndex < 0 ? quotedUnread : quotedUnread.Slice(0, quoteIndex), quotedStopC1Separately);
+                    if (quotedRangeIndex >= 0) quoteIndex = quotedRangeIndex;
 #else
                     var quotedUnread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var quoteIndex = quotedUnread.IndexOf(QuoteCharacter);
@@ -962,11 +967,8 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
                     var unread = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition);
                     var stopIndex = unquotedStopExcept ? unread.IndexOfAnyExcept(unquotedStopCharacters) : unread.IndexOfAny(unquotedStopCharacters);
-                    if (unquotedStopC1Separately)
-                    {
-                        var c1Index = CsvTextData.IndexOfC1Control(stopIndex < 0 ? unread : unread.Slice(0, stopIndex));
-                        if (c1Index >= 0) stopIndex = c1Index;
-                    }
+                    var rangeIndex = textData.IndexOfRangeToCheck(stopIndex < 0 ? unread : unread.Slice(0, stopIndex), unquotedStopC1Separately);
+                    if (rangeIndex >= 0) stopIndex = rangeIndex;
 #else
                     // Without SearchValues, an IndexOfAny of more than three values searches once for each value, so search for the three that end
                     // the field first, then for a line break, then for a character outside TEXTDATA, each only up to where the search before it
@@ -1138,9 +1140,16 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private CsvTextData GetTextData()
         {
-            if (_reader is StreamReader streamReader)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            Encoding? encoding = null;
+#else
+            Encoding encoding = null;
+#endif
+            if (_reader is CsvStreamTextReader csvStreamReader) encoding = csvStreamReader.CurrentEncoding;
+            else if (_reader is StreamReader streamReader) encoding = streamReader.CurrentEncoding;
+
+            if (encoding != null)
             {
-                var encoding = streamReader.CurrentEncoding;
                 if (_textData is null || !ReferenceEquals(encoding, _textDataEncoding))
                 {
                     _textData = CsvTextData.ForEncoding(encoding);
