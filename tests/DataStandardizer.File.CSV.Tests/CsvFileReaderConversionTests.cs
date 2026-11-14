@@ -107,6 +107,70 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private const int Int32Value = 5;
 
+        /// <summary>
+        /// The double nearest to <c>5.882948112288285E-204</c>, the text a writer writes for it.  .NET Framework reads that text as the double
+        /// above it, <c>5.8829481122882854E-204</c>.
+        /// </summary>
+        private const double SixteenDigitExponentDouble = 5.8829481122882847E-204;
+
+        /// <summary>
+        /// The smallest normal double, 2^-1022.  .NET Framework reads <c>2.2250738585072012E-308</c>, whose nearest double this is, as the largest
+        /// subnormal double.
+        /// </summary>
+        private const double SmallestNormalDouble = 2.2250738585072014E-308;
+
+        /// <summary>
+        /// 2^53, the double below 2^53 + 1, which lies halfway between it and <see cref="TwoToThe53PlusTwo"/>.
+        /// </summary>
+        private const double TwoToThe53 = 9007199254740992d;
+
+        /// <summary>
+        /// 2^53 + 2, the double above 2^53 + 1.
+        /// </summary>
+        private const double TwoToThe53PlusTwo = 9007199254740994d;
+
+        /// <summary>
+        /// 2^53 + 1, written with a last digit far beyond the 17 significant digits a double needs, which puts it just above halfway between
+        /// <see cref="TwoToThe53"/> and <see cref="TwoToThe53PlusTwo"/>.  .NET Framework ignores the last digit and reads <see cref="TwoToThe53"/>.
+        /// </summary>
+        private const string JustAboveHalfwayText = "9007199254740993.0000000000000001";
+
+        /// <summary>
+        /// The float nearest to <c>7.038531E-26</c>, the text a writer writes for it.  .NET Framework reads that text as the float above it.
+        /// </summary>
+        private const float SevenDigitExponentFloat = 7.038531E-26f;
+
+        /// <summary>
+        /// The float above 1, 1 + 2^-23.  <c>1.0000000596046448</c> is just above halfway between 1 and this float, so this is its nearest float,
+        /// but its nearest double is exactly halfway, which .NET Framework rounds to 1.
+        /// </summary>
+        private const float FloatAboveOne = 1.0000001f;
+
+        public static TheoryData<string, Func<long>, long> NearestDoubleCases => new TheoryData<string, Func<long>, long>
+        {
+            { "16 digits and an exponent", () => ReadDoubleBits("5.882948112288285E-204"), BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
+            { "smallest normal", () => ReadDoubleBits("2.2250738585072012E-308"), BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "just above halfway", () => ReadDoubleBits(JustAboveHalfwayText), BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "exactly halfway, odd neighbour above", () => ReadDoubleBits("9007199254740993"), BitConverter.DoubleToInt64Bits(TwoToThe53) },
+            { "just above halfway, with thousands separators", () => ReadDoubleBits("\"9,007,199,254,740,993.0000000000000001\""), BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just above halfway, with a comma decimal separator", () => ReadDoubleBits("\"9007199254740993,0000000000000001\"", CreateCommaDecimalCulture()), BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just above halfway, in more digits than a halfway value can have", () => ReadDoubleBits("9007199254740993." + new string('0', 1000) + "1"), BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just below half the smallest subnormal", () => ReadDoubleBits("2.4703282292062327E-324"), BitConverter.DoubleToInt64Bits(0d) },
+            { "just above half the smallest subnormal", () => ReadDoubleBits("2.4703282292062327208828439643411068618252990130716238221279284125033775364E-324"), BitConverter.DoubleToInt64Bits(double.Epsilon) },
+            { "far below the smallest subnormal", () => ReadDoubleBits("1E-99999999999"), BitConverter.DoubleToInt64Bits(0d) },
+            { "just below halfway above the largest", () => ReadDoubleBits("1.797693134862315807937289714053E+308"), BitConverter.DoubleToInt64Bits(double.MaxValue) },
+            { "negative zero", () => ReadDoubleBits("-0"), BitConverter.DoubleToInt64Bits(-0d) },
+        };
+
+        public static TheoryData<string, Func<int>, int> NearestFloatCases => new TheoryData<string, Func<int>, int>
+        {
+            { "7 digits and an exponent", () => ReadSingleBits("7.038531E-26"), SingleBits(SevenDigitExponentFloat) },
+            { "just above halfway", () => ReadSingleBits("1.0000000596046448"), SingleBits(FloatAboveOne) },
+            { "just above half the smallest subnormal", () => ReadSingleBits("7.0064923216240854E-46"), SingleBits(float.Epsilon) },
+            { "just below halfway above the largest", () => ReadSingleBits("3.4028235677973366E+38"), SingleBits(float.MaxValue) },
+            { "negative zero", () => ReadSingleBits("-0"), SingleBits(-0f) },
+        };
+
         public static TheoryData<string, Func<string, object>, string, object> ParsedValueCases => new TheoryData<string, Func<string, object>, string, object>
         {
             { "int", ReadValue<int>, "-42", -42 },
@@ -175,7 +239,9 @@ namespace DataStandardizer.File.CSV.Tests
             { "double, too large and negative", ReadValue<double>, "-1e999" },
             { "double, infinity symbol in other case", ReadValue<double>, "infinity" },
             { "double, NaN symbol in other case", ReadValue<double>, "nan" },
+            { "double, nearest is infinity", ReadValue<double>, "1.797693134862315807937289714054e308" },
             { "float, too large", ReadValue<float>, "1e39" },
+            { "float, nearest is infinity", ReadValue<float>, "3.4028235677973367e38" },
             { "bool, not a Boolean", ReadValue<bool>, "yes" },
             { "char, two characters", ReadValue<char>, "xy" },
             { "DateTime, not a date", ReadValue<DateTime>, "2026-13-45" },
@@ -196,6 +262,34 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(NearestDoubleCases))]
+        public void ReadLine_DoubleFieldWithoutConverter_ReadsNearestDouble(string text, Func<long> readDoubleBits, long expectedBits)
+        {
+            // arrange
+            _ = text;
+
+            // act
+            var testResult = readDoubleBits();
+
+            // assert
+            testResult.Should().Be(expectedBits);
+        }
+
+        [Theory]
+        [MemberData(nameof(NearestFloatCases))]
+        public void ReadLine_FloatFieldWithoutConverter_ReadsNearestFloat(string text, Func<int> readSingleBits, int expectedBits)
+        {
+            // arrange
+            _ = text;
+
+            // act
+            var testResult = readSingleBits();
+
+            // assert
+            testResult.Should().Be(expectedBits);
         }
 
         [Fact]
@@ -842,6 +936,32 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 return ((ValueLine<T>)csvReader.ReadLine()).Value;
             }
+        }
+
+        /// <summary>
+        /// Reads a line holding one double field, and gives the bits of the value read, which tell negative zero from zero.
+        /// </summary>
+        private static long ReadDoubleBits(string line)
+        {
+            return BitConverter.DoubleToInt64Bits((double)ReadValue<double>(line));
+        }
+
+        private static long ReadDoubleBits(string line, CultureInfo culture)
+        {
+            return BitConverter.DoubleToInt64Bits((double)ReadValue<double>(line, new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, Culture = culture }));
+        }
+
+        /// <summary>
+        /// Reads a line holding one float field, and gives the bits of the value read, which tell negative zero from zero.
+        /// </summary>
+        private static int ReadSingleBits(string line)
+        {
+            return SingleBits((float)ReadValue<float>(line));
+        }
+
+        private static int SingleBits(float value)
+        {
+            return BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
         }
 
         /// <summary>

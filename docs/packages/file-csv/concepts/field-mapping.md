@@ -295,7 +295,7 @@ on every target:
 | --- | --- |
 | `int`, `long`, `short`, `sbyte`, `uint`, `ulong`, `ushort`, `byte` | `TryParse` with `NumberStyles.Integer` |
 | `decimal` | `TryParse` with `NumberStyles.Number` |
-| `double`, `float` | `TryParse` with `NumberStyles.Float \| NumberStyles.AllowThousands`. Infinity and NaN only as the culture's symbols, such as `Infinity`, `-Infinity` and `NaN`, written in the same case. A number too large for the type is a bad value. |
+| `double`, `float` | `TryParse` with `NumberStyles.Float \| NumberStyles.AllowThousands`. The value nearest to the text, with a tie going to the even value, and `-0` as negative zero, as .NET Core 3.0 and later read it. On .NET Framework, whose parse isn't correctly rounded, the package works the value out itself. Infinity and NaN only as the culture's symbols, such as `Infinity`, `-Infinity` and `NaN`, written in the same case. A number too large for the type, or whose nearest value is infinity, is a bad value. |
 | `DateTime` | `TryParse` with `DateTimeStyles.RoundtripKind` |
 | `DateTimeOffset` | `TryParse` with `DateTimeStyles.None` |
 | `TimeSpan` | `TryParse` |
