@@ -165,16 +165,25 @@ namespace DataStandardizer.File.CSV
 
         // .NET Core 3.0 and later parse a number too large for the type as infinity, where .NET Framework fails, and they match the infinity and NaN
         // symbols without regard to case, where .NET Framework doesn't.  Accepting infinity or NaN only for the culture's own symbol, as written,
-        // gives the same result on every runtime.
+        // gives the same result on every runtime.  .NET Framework's parse isn't correctly rounded, so the targets that may run on it read the
+        // nearest value themselves.
         private static bool TryParseDouble(string value, CultureInfo culture, out double result)
         {
+#if NETCOREAPP3_0_OR_GREATER
             return double.TryParse(value, FloatingPointStyles, culture, out result)
+#else
+            return CsvFloatingPointParser.TryParseDouble(value, FloatingPointStyles, culture.NumberFormat, out result)
+#endif
                    && ((!double.IsInfinity(result) && !double.IsNaN(result)) || IsSpecialValueSymbol(value, culture.NumberFormat));
         }
 
         private static bool TryParseSingle(string value, CultureInfo culture, out float result)
         {
+#if NETCOREAPP3_0_OR_GREATER
             return float.TryParse(value, FloatingPointStyles, culture, out result)
+#else
+            return CsvFloatingPointParser.TryParseSingle(value, FloatingPointStyles, culture.NumberFormat, out result)
+#endif
                    && ((!float.IsInfinity(result) && !float.IsNaN(result)) || IsSpecialValueSymbol(value, culture.NumberFormat));
         }
 

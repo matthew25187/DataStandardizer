@@ -92,7 +92,7 @@ namespace DataStandardizer.File.CSV
             if (float.IsPositiveInfinity(value)) return numberFormat.PositiveInfinitySymbol;
             if (float.IsNegativeInfinity(value)) return numberFormat.NegativeInfinitySymbol;
 
-            var bits = BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
+            var bits = CsvFloatingPointBits.SingleToInt32Bits(value);
             return FormatShortest(bits < 0, (ulong)(bits & SingleFractionMask), (bits >> SingleFractionBits) & SingleExponentMask, SingleFractionBits,
                 SingleExponentBias, SingleMaxDigits, numberFormat);
 #endif
@@ -112,16 +112,17 @@ namespace DataStandardizer.File.CSV
             && string.Equals(0.90000004f.ToString("R", CultureInfo.InvariantCulture), "0.90000004", StringComparison.Ordinal)
             && string.Equals(1E+8f.ToString("R", CultureInfo.InvariantCulture), "100000000", StringComparison.Ordinal);
 
-        // The IEEE 754 binary64 and binary32 layouts, and the most significant digits "R" writes before it switches to scientific notation.
-        private const int DoubleFractionBits = 52;
+        // The IEEE 754 binary64 and binary32 layouts, which CsvFloatingPointParser also uses, and the most significant digits "R" writes before it
+        // switches to scientific notation.
+        internal const int DoubleFractionBits = 52;
         private const ulong DoubleFractionMask = (1UL << DoubleFractionBits) - 1;
-        private const int DoubleExponentMask = 0x7FF;
-        private const int DoubleExponentBias = 1023;
+        internal const int DoubleExponentMask = 0x7FF;
+        internal const int DoubleExponentBias = 1023;
         private const int DoubleMaxDigits = 17;
-        private const int SingleFractionBits = 23;
+        internal const int SingleFractionBits = 23;
         private const int SingleFractionMask = (1 << SingleFractionBits) - 1;
-        private const int SingleExponentMask = 0xFF;
-        private const int SingleExponentBias = 127;
+        internal const int SingleExponentMask = 0xFF;
+        internal const int SingleExponentBias = 127;
         private const int SingleMaxDigits = 9;
 
         // "R" writes a value in scientific notation if its decimal point would be more than this many places to the left of its first digit.
