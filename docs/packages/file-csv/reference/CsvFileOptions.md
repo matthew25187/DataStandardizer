@@ -60,7 +60,7 @@ object after that isn't checked.
 | `BadValueHandler` | `Delegate? BadValueHandler { get; init; }` | `null` | A [CsvFieldBadValue](CsvFieldBadValue.md) delegate for the reader's record line type. `get; set;` on .NET Standard. |
 | `Culture` | `CultureInfo? Culture { get; init; }` | `null` | Culture for value (de)serialization. When `null`, values are converted with the invariant culture, never the current culture. `get; set;` on .NET Standard. |
 | `EmbeddedLineBreak` | `string? EmbeddedLineBreak { get; init; }` | `null` | Replacement for line breaks embedded in field values. `get; set;` on .NET Standard. |
-| `Encoding` | `Encoding? Encoding { get; init; }` | `null` | File encoding. `get; set;` on .NET Standard. |
+| `Encoding` | `Encoding? Encoding { get; init; }` | `null` | File encoding. Its character set is the one whose printable characters a field may hold (RFC 4180 section 3, `charset`); see [Characters allowed in a field](../how-to/configure-csv.md#characters-allowed-in-a-field). `get; set;` on .NET Standard. |
 | `FieldDelimiterCharacter` | `char FieldDelimiterCharacter { get; init; }` | `','` | Field separator. A writer rejects a double quote or the first character of `TerminatorLineBreak`. `get; set;` on .NET Standard. |
 | `HeaderHandler` | `Delegate? HeaderHandler { get; init; }` | `null` | A [CsvFileHeader](CsvFileHeader.md) delegate supplying field names. `get; set;` on .NET Standard. |
 | `HeaderHandling` | `CsvFileHeaderHandling HeaderHandling { get; init; }` | `None` | How the header line is handled (reading only). `get; set;` on .NET Standard. |

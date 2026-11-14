@@ -136,6 +136,54 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ActualFieldCountDataItem = "ActualFieldCount";
         private const int NoFieldCount = 0;
 
+        // Key of the CsvFileException data item that gives the index of a field.
+        private const string FieldIndexDataItem = "FieldIndex";
+
+        // Values of a character, and the line each is written as.  TEXTDATA is %x20-21 / %x23-2B / %x2D-7E (RFC 4180 section 2), read as the
+        // printable characters of the character set the writer writes (RFC 4180 section 3, charset).  A control character is never printable.
+        private const string TabValue = "\x0009";
+        private const string NullValue = "\x0000";
+        private const string DeleteValue = "\x007F";
+        private const string NextLineValue = "\x0085";
+        private const string LatinSmallLetterEWithAcuteValue = "\x00E9";
+        private const string CjkUnifiedIdeographOneValue = "\x4E00";
+        private const string EuroSignValue = "\x20AC";
+        private const string GrinningFaceValue = "\xD83D\xDE00";
+        private const string LatinSmallLetterEWithAcuteLine = "\x00E9\r\n";
+        private const string CjkUnifiedIdeographOneLine = "\x4E00\r\n";
+        private const string GrinningFaceLine = "\xD83D\xDE00\r\n";
+
+        // What a writer throws for each of the values, as the first field of a line, with the name of the writer's character set.
+        private const string TabMessage = "The value of the field at index 0 holds U+0009, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string NullMessage = "The value of the field at index 0 holds U+0000, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string DeleteMessage = "The value of the field at index 0 holds U+007F, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string NextLineMessage = "The value of the field at index 0 holds U+0085, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string LeftTabRightMessage = "The value of the field at index 0 holds U+0009, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string SecondFieldTabMessage = "The value of the field at index 1 holds U+0009, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string AsciiLatinSmallLetterEWithAcuteMessage = "The value of the field at index 0 holds U+00E9, which isn't a printable character of the writer's character set, us-ascii, so RFC 4180 doesn't allow it in a field.";
+        private const string AsciiGrinningFaceMessage = "The value of the field at index 0 holds U+1F600, which isn't a printable character of the writer's character set, us-ascii, so RFC 4180 doesn't allow it in a field.";
+        private const string Latin1EuroSignMessage = "The value of the field at index 0 holds U+20AC, which isn't a printable character of the writer's character set, iso-8859-1, so RFC 4180 doesn't allow it in a field.";
+        private const string Latin1GrinningFaceMessage = "The value of the field at index 0 holds U+1F600, which isn't a printable character of the writer's character set, iso-8859-1, so RFC 4180 doesn't allow it in a field.";
+        private const string RestrictedAsciiBracketMessage = "The value of the field at index 0 holds U+005B, which isn't a printable character of the writer's character set, RestrictedAsciiEncoding, so RFC 4180 doesn't allow it in a field.";
+        private const string AsciiSectionSignDelimiterMessage = "The field delimiter U+00A7 isn't a character of the writer's character set, us-ascii.";
+        private const string Latin1LineSeparatorTerminatorMessage = "The terminator line break holds U+2028, which isn't a character of the writer's character set, iso-8859-1.";
+        private const string VerticalTabEmbeddedLineBreakMessage = "The embedded line break holds U+000B, which isn't a printable character of the writer's character set, utf-16, so RFC 4180 doesn't allow it in a field.";
+        private const string Utf8TabMessage = "The value of the field at index 0 holds U+0009, which isn't a printable character of the writer's character set, utf-8, so RFC 4180 doesn't allow it in a field.";
+
+        // A value with a character that a national variant of ISO 646 without '[' doesn't have, and that character.
+        private const string BracketedValue = "a[b";
+        private const char LeftSquareBracket = '[';
+
+        // Options characters that a character set may not have: SECTION SIGN, LINE SEPARATOR and a vertical tab, a control character.
+        private const char SectionSign = '\x00A7';
+        private const string LineSeparator = "\x2028";
+        private const string VerticalTab = "\x000B";
+
+        // A tab delimiter, a value that holds it, and the line it is written as: quoted, as the delimiter takes the place of COMMA (RFC 4180 section 2).
+        private const char TabDelimiter = '\x0009';
+        private const string ValueWithTab = "Left\x0009Right";
+        private const string QuotedValueWithTabLine = "\"Left\x0009Right\"\r\n";
+
         // A header line of the fields FieldName1 and FieldName2, its field count, and the lines that result from writing it and then a record line
         // that has values for both fields, only for FieldName1, or for neither.
         private const string TwoFieldHeaderLine = "One,Two\r\n";
@@ -1917,6 +1965,236 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 // The buffer is full once the field value is in it, so it is written, and the line break is left in the buffer.
                 testStream.WriteSizes.Should().Equal(StreamBufferSize);
+            }
+        }
+
+        [Theory]
+        [InlineData(TabValue, TabMessage)]
+        [InlineData(NullValue, NullMessage)]
+        [InlineData(DeleteValue, DeleteMessage)]
+        [InlineData(NextLineValue, NextLineMessage)]
+        public void WriteLine_RecordValueWithControlCharacter_ThrowsCsvFileException(string fieldValue, string expectedMessage)
+        {
+            // arrange
+            // A string is UTF-16, whose character set has every character, but a control character isn't printable.
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, fieldValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(expectedMessage)
+                    .Which.Data[FieldIndexDataItem].Should().Be(0);
+            }
+        }
+
+        public static TheoryData<string, Encoding, string> ValuesOutsideEncodingsCharacterSet => new TheoryData<string, Encoding, string>
+        {
+            { LatinSmallLetterEWithAcuteValue, Encoding.ASCII, AsciiLatinSmallLetterEWithAcuteMessage },
+            { GrinningFaceValue, Encoding.ASCII, AsciiGrinningFaceMessage },
+            { EuroSignValue, Encoding.GetEncoding(Latin1CodePage), Latin1EuroSignMessage },
+            { GrinningFaceValue, Encoding.GetEncoding(Latin1CodePage), Latin1GrinningFaceMessage },
+            { TabValue, new UTF8Encoding(false), Utf8TabMessage },
+        };
+
+        [Theory]
+        [MemberData(nameof(ValuesOutsideEncodingsCharacterSet))]
+        public void WriteLine_RecordValueOutsideEncodingsCharacterSet_ThrowsCsvFileException(string fieldValue, Encoding encoding, string expectedMessage)
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, fieldValue);
+
+            var options = new CsvFileOptions { Encoding = encoding };
+            using (var testStream = new MemoryStream())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueWithCharacterCustomEncodingLacks_ThrowsCsvFileException()
+        {
+            // arrange
+            // The encoding has no web name, and lacks a character of printable US-ASCII, so the writer checks each character against it.
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, BracketedValue);
+
+            var options = new CsvFileOptions { Encoding = new RestrictedAsciiEncoding(LeftSquareBracket) };
+            using (var testStream = new MemoryStream())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(RestrictedAsciiBracketMessage);
+            }
+        }
+
+        public static TheoryData<CsvFileOptions, string> OptionsOutsideCharacterSet => new TheoryData<CsvFileOptions, string>
+        {
+            { new CsvFileOptions { Encoding = Encoding.ASCII, FieldDelimiterCharacter = SectionSign }, AsciiSectionSignDelimiterMessage },
+            { new CsvFileOptions { Encoding = Encoding.GetEncoding(Latin1CodePage), TerminatorLineBreak = LineSeparator }, Latin1LineSeparatorTerminatorMessage },
+        };
+
+        [Theory]
+        [MemberData(nameof(OptionsOutsideCharacterSet))]
+        public void WriteLine_OptionsCharacterOutsideCharacterSet_ThrowsInvalidOperationException(CsvFileOptions options, string expectedMessage)
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, NumberValue);
+
+            using (var testStream = new MemoryStream())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(expectedMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_EmbeddedLineBreakWithControlCharacter_ThrowsInvalidOperationException()
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, NumberValue);
+
+            var options = new CsvFileOptions { EmbeddedLineBreak = VerticalTab };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(VerticalTabEmbeddedLineBreakMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueOutsideAsciiToWriterWithoutEncoding_ThrowsCsvFileException()
+        {
+            // arrange
+            // A writer that has no encoding writes US-ASCII.
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, LatinSmallLetterEWithAcuteValue);
+
+            using (var unencodedWriter = new UnencodedStringWriter())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(unencodedWriter))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(AsciiLatinSmallLetterEWithAcuteMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueWithControlCharacter_WritesNothing()
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(FieldName1, NumberValue);
+            testRecordLine.Add(FieldName2, TabValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(SecondFieldTabMessage);
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderValueWithControlCharacter_ThrowsCsvFileException()
+        {
+            // arrange
+            var headerLine = new CsvFileHeaderLine();
+            ((ICsvFileLine)headerLine).Add(ZeroFieldName, ValueWithTab);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(headerLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(LeftTabRightMessage);
+            }
+        }
+
+        [Theory]
+        [InlineData(LatinSmallLetterEWithAcuteValue, LatinSmallLetterEWithAcuteLine)]
+        [InlineData(CjkUnifiedIdeographOneValue, CjkUnifiedIdeographOneLine)]
+        [InlineData(GrinningFaceValue, GrinningFaceLine)]
+        public void WriteLine_RecordValueOutsideAsciiToStringWriter_WritesValue(string fieldValue, string expectedLine)
+        {
+            // arrange
+            // A string is UTF-16, whose character set has every character.
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, fieldValue);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            {
+                var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter);
+
+                // act
+                WriteLineAndDispose(csvWriter, testRecordLine);
+
+                // assert
+                buffer.ToString().Should().Be(expectedLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueWithControlDelimiter_WritesQuotedValue()
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, ValueWithTab);
+
+            var options = new CsvFileOptions { FieldDelimiterCharacter = TabDelimiter };
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            {
+                var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+                // act
+                WriteLineAndDispose(csvWriter, testRecordLine);
+
+                // assert
+                buffer.ToString().Should().Be(QuotedValueWithTabLine);
             }
         }
 
