@@ -146,6 +146,11 @@ namespace DataStandardizer.File.CSV.Tests
         /// </summary>
         private const float FloatAboveOne = 1.0000001f;
 
+        /// <summary>
+        /// The <see cref="NumberFormatInfo.NumberNegativePattern"/> <c>"- n"</c>: a negative sign, a space, and the number.
+        /// </summary>
+        private const int SpacedNegativePattern = 2;
+
         public static TheoryData<string, Func<long>, long> NearestDoubleCases => new TheoryData<string, Func<long>, long>
         {
             { "16 digits and an exponent", () => ReadDoubleBits("5.882948112288285E-204"), BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
@@ -160,6 +165,8 @@ namespace DataStandardizer.File.CSV.Tests
             { "far below the smallest subnormal", () => ReadDoubleBits("1E-99999999999"), BitConverter.DoubleToInt64Bits(0d) },
             { "just below halfway above the largest", () => ReadDoubleBits("1.797693134862315807937289714053E+308"), BitConverter.DoubleToInt64Bits(double.MaxValue) },
             { "negative zero", () => ReadDoubleBits("-0"), BitConverter.DoubleToInt64Bits(-0d) },
+            { "space for a no-break space group separator", () => ReadDoubleBits("\"9 007 199 254 740 993,0000000000000001\"", CreateNoBreakSpaceGroupCulture()), BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "space after the sign, negative pattern \"- n\"", () => ReadDoubleBits("- 9007199254740993.0000000000000001", CreateSpacedNegativePatternCulture()), BitConverter.DoubleToInt64Bits(-TwoToThe53PlusTwo) },
         };
 
         public static TheoryData<string, Func<int>, int> NearestFloatCases => new TheoryData<string, Func<int>, int>
@@ -962,6 +969,28 @@ namespace DataStandardizer.File.CSV.Tests
         private static int SingleBits(float value)
         {
             return BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
+        }
+
+        /// <summary>
+        /// Creates a culture whose group separator is a no-break space (U+00A0), as in the culture data of some operating systems for ru-RU and
+        /// fr-FR, and whose decimal separator is a comma.  The runtime's parse matches a space in the text to a no-break space in a symbol.
+        /// </summary>
+        private static CultureInfo CreateNoBreakSpaceGroupCulture()
+        {
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ",";
+            culture.NumberFormat.NumberGroupSeparator = " ";
+            return culture;
+        }
+
+        /// <summary>
+        /// Creates a culture whose negative number pattern is <c>"- n"</c> (2), with which the runtime's parse allows white space after the sign.
+        /// </summary>
+        private static CultureInfo CreateSpacedNegativePatternCulture()
+        {
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberNegativePattern = SpacedNegativePattern;
+            return culture;
         }
 
         /// <summary>

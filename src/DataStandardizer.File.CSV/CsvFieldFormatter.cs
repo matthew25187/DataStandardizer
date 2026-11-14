@@ -92,7 +92,7 @@ namespace DataStandardizer.File.CSV
             if (float.IsPositiveInfinity(value)) return numberFormat.PositiveInfinitySymbol;
             if (float.IsNegativeInfinity(value)) return numberFormat.NegativeInfinitySymbol;
 
-            var bits = BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
+            var bits = CsvFloatingPointBits.SingleToInt32Bits(value);
             return FormatShortest(bits < 0, (ulong)(bits & SingleFractionMask), (bits >> SingleFractionBits) & SingleExponentMask, SingleFractionBits,
                 SingleExponentBias, SingleMaxDigits, numberFormat);
 #endif
