@@ -10,7 +10,7 @@
       "notes": [
         {
           "category": "fixed",
-          "text": "`CsvFileReader` no longer silently accepts a quoted field that the file ends inside (RFC 4180 section 2); it calls `BadValueHandler`, or throws `CsvFileException` when no handler is set"
+          "text": "`CsvFileReader` rejects a quoted field the file ends inside, whitespace around a quoted field, and a CR or LF in an unquoted field (RFC 4180 section 2), calling `BadValueHandler` or throwing `CsvFileException`"
         }
       ]
     },
@@ -510,6 +510,329 @@
     "40a6745312f976263b202d2ca54d3e892740a943": {
       "subject": "A double constant with a decimal scale above 22 converts to a decimal property (#923)",
       "notes": []
+    },
+    "141264128a1f58039a0c2c634140ebd11ecd4d6e": {
+      "subject": "A field mapping with another field name keeps its values when a line is read or written (#869)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A property mapped to a field with another name now reads and writes that field's value"
+        }
+      ]
+    },
+    "44feff8b4177e26c9659937f65be9434a779f989": {
+      "subject": "A field index mapping reads the field at that position of the record (#870)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A property mapped by index reads the field at that position of the record, not another column"
+        },
+        {
+          "category": "fixed",
+          "text": "A required mapping whose field the record doesn't have, by name or by index, throws `CsvFileException` instead of giving the property its default value"
+        }
+      ]
+    },
+    "57ea2b771df8d8e11d706f0bf83a17ed64d0d0ca": {
+      "subject": "CsvFileWriter writes nothing for a line that InconsistentFieldCountHandler handled (#874)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter.WriteLine` writes nothing for a line that `InconsistentFieldCountHandler` handled, instead of a blank record"
+        },
+        {
+          "category": "fixed",
+          "text": "Without a header line, a record line that `CsvFileWriter.WriteLine` handled as inconsistent or threw for no longer adds its fields to later lines"
+        }
+      ]
+    },
+    "8b71143f64eeccfe909cbc6e4070db737a01a862": {
+      "subject": "CsvFileWriter without a header no longer drops the values of a field the first record line doesn't have (#875)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Without a header line, `CsvFileWriter.WriteLine` no longer drops the value of a field the first record line doesn't have; it handles the line as an inconsistent field count"
+        }
+      ]
+    },
+    "69b2e1016d3d6d2cca193db4fb4da37b0d589ba1": {
+      "subject": "CsvFileWriter with SuppressTrailingBlankFields no longer drops values or keeps blanks when a record line's fields are in another order (#876)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` with `SuppressTrailingBlankFields` no longer drops values or keeps blanks when a record line's fields are in another order"
+        },
+        {
+          "category": "changed",
+          "text": "`SuppressTrailingBlankFields` judges a trailing field by the text written for it: a converter writing nothing leaves it out, and a constant or generated value is written"
+        }
+      ]
+    },
+    "e82f9a9c31f967387f3980feeddb82e57257dbba": {
+      "subject": "CsvFileReader rejects whitespace around a quoted field and a line break in an unquoted field (#880)",
+      "notes": []
+    },
+    "f6b8f498f813c269bbeaa0c85aebb8e7cffbd53c": {
+      "subject": "CsvFieldConvertFromString and CsvFieldValidate contexts give the field's raw value and its position in the line (#891)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFieldConvertFromString` and `CsvFieldValidate` contexts give the field's raw value and position, and `CsvFieldConvertToString` contexts the position and name of the field written"
+        }
+      ]
+    },
+    "671ac391cf411a30a811ae33c0ad5d1d2dc508fc": {
+      "subject": "CsvFieldConvertToString context gives the position and name of the field being written (#921)",
+      "notes": []
+    },
+    "1ec71b2067b7c25148a5c8e8251cb189196230fa": {
+      "subject": "Configured converters now run for string properties on read and write (#893)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`ConvertUsing` delegates and type converters configured for a `string` property now run on read and write, instead of being skipped"
+        }
+      ]
+    },
+    "0136a30810e2527eec1f2efc3c72418c403231a2": {
+      "subject": "File.CSV mapping now covers inherited properties and their attributes (#894)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Mapping covers inherited properties and their attributes, so a `[CsvField]` or `[CsvFieldMapping]` on a base class applies to derived record lines and models"
+        }
+      ]
+    },
+    "b197f36289e4683aee7896fb1be4c90b8ec6f6ac": {
+      "subject": "CsvFileReader no longer throws ArgumentException when a generated field name matches another field's name (#895)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileReader` no longer throws `ArgumentException` when a header or mapped field is named like a generated `Field N`; it reports an inconsistent field count or renames the generated field `Field N (2)`"
+        }
+      ]
+    },
+    "4c7501fc6c00d0f2804401a936e512c130e13273": {
+      "subject": "CsvFileRecordLine properties throw InvalidCastException for a field value they can't return, instead of reading as the default (#896)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "A `CsvFileRecordLine` property that calls `GetPropertyValue<T>` throws `InvalidCastException` when its field holds another type's value instead of returning the default; map the property to convert it"
+        }
+      ]
+    },
+    "e2d009f7079b1e40e0ccd8f439b8a233cf2ee005": {
+      "subject": "CsvFileWriter no longer drops a record line's fields that aren't in the header line or mapper (#897)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` no longer drops a record line's fields that aren't in the header line or mapper; a field not in the header line makes the line inconsistent"
+        }
+      ]
+    },
+    "89f6e89a7170b7a6cba390449bdb58c1f6495ca7": {
+      "subject": "CsvFileReader and CsvFileWriter throw ArgumentException for a handler they would never call, instead of ignoring it (#899)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileReader` and `CsvFileWriter` throw `ArgumentException` for a `BadValueHandler`, `InconsistentFieldCountHandler` or `HeaderHandler` of a type they never call, instead of ignoring it"
+        }
+      ]
+    },
+    "51a2403f90bf59cb8c6478618f450f05b494cfb2": {
+      "subject": "ToObject and ToCsvLine apply the whole mapper, not just field names (#900)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`ToObject` and `ToCsvLine` apply the whole custom mapper, not just its field names"
+        },
+        {
+          "category": "changed",
+          "text": "`ToObject` no longer falls back to the field named after the property when the mapping names a field the line doesn't have"
+        }
+      ]
+    },
+    "13c723180ebf68f3504531f92e17fbade7267d9f": {
+      "subject": "A mapped constant of another number type is converted to the property's type instead of reading as the default (#901)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A mapped `ConstantValue` of another number type, such as `5` on a `long` property, converts to the property's type, and one the type can't hold, such as `-1` on a `byte`, throws `CsvFileException`, instead of reading as the default"
+        }
+      ]
+    },
+    "f2254a9b063b38fb6320501f8988b676b3d5f43e": {
+      "subject": "CsvFileWriter writes dates and floating-point values so they read back unchanged, as the same text on every target (#905)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` writes a `DateTime`, `DateTimeOffset`, `DateOnly` or `TimeOnly` it has no converter for with the round-trip pattern (`\"o\"`), keeping fractional seconds, `Kind` and offset"
+        },
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` writes a `double` or `float` it has no converter for in the fewest digits that read back as the same value, as the same text on every target"
+        },
+        {
+          "category": "changed",
+          "text": "A `DateTime` field with a UTC designator (`Z` or `GMT`) reads as UTC, with `DateTimeKind.Utc`, instead of being converted to the machine's local time"
+        },
+        {
+          "category": "changed",
+          "text": "On `net10.0`, a `DateOnly` field in the round-trip pattern (`yyyy-MM-dd`) reads as that Gregorian date in every culture"
+        }
+      ]
+    },
+    "5cd8f5bd0e47e52a0e43e53f5ad053ca1c033161": {
+      "subject": "CsvFileReader calls the header handler with the file's header line, whatever the header handling (#908)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A header handler is called whatever the header handling, with the file's header line; with `CsvFileHeaderHandling.Use` it was ignored, and with `Ignore` passed null"
+        },
+        {
+          "category": "breaking",
+          "text": "A header handler must return as many field names as each record is expected to have, none of them null, or `ReadLine` throws `InvalidOperationException`"
+        },
+        {
+          "category": "breaking",
+          "text": "With `CsvFileHeaderHandling.Ignore` and a header handler, a header line that repeats a field name makes `ReadLine` throw `CsvFileException`"
+        }
+      ]
+    },
+    "262bf0be2679f53c34d3cb4347971aedcbf5b17a": {
+      "subject": "A builder mapping of a property with [CsvField] now reads and writes the field that attribute names (#909)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A `Map().Property()` mapping of a property with `[CsvField]` uses the field that attribute names for reading, writing and its key, as a declarative mapping does"
+        }
+      ]
+    },
+    "c1cb5c393e5b1115f02efddc9c8a96fa25ee5072": {
+      "subject": "CsvFileWriter no longer writes a header or record line with no fields as an empty line (#911)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter.WriteLine` no longer writes a header or record line with no fields as an empty line; it throws `CsvFileException`, or calls `InconsistentFieldCountHandler` for a record line"
+        }
+      ]
+    },
+    "43c26a3598c5ced0d96c0f50bd417b30c1a06023": {
+      "subject": "CsvFileWriter rejects options whose output can't be read back (#912)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`CsvFileWriter` throws `ArgumentException` for options whose output can't be read back: an empty or `null` `TerminatorLineBreak`, a `FieldDelimiterCharacter` that is a quote or starts the terminator, a terminator starting with a quote, or an undefined `QuoteHandling`"
+        },
+        {
+          "category": "breaking",
+          "text": "On .NET Standard, `CsvFileWriter.WriteLine` throws `InvalidOperationException`, and writes nothing, when the options have been changed to such values"
+        }
+      ]
+    },
+    "92108b4b9dd2d3662309dfe2b401834a67c91d27": {
+      "subject": "CsvFileReader and CsvFileWriter reject characters outside RFC 4180 TEXTDATA by default (#914)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`CsvFileReader` reports a field holding a control character, such as TAB, or a character outside its encoding as a bad value, and `CsvFileWriter` throws `CsvFileException` for one, as RFC 4180 `TEXTDATA` requires"
+        },
+        {
+          "category": "breaking",
+          "text": "`CsvFileWriter.WriteLine` throws `InvalidOperationException` when the field delimiter or terminator holds a character its encoding can't write, or `EmbeddedLineBreak` one that isn't printable in it"
+        }
+      ]
+    },
+    "b832341555cb08dd074c79a4d81c0c6f9ceadd0a": {
+      "subject": "CsvFileWriter writes a field mapped by index at its index, so the same mapper reads the file back (#917)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` writes a field mapped by index at its index, so the same mapper reads the file back"
+        },
+        {
+          "category": "changed",
+          "text": "`CsvFileWriter` puts a header line's index-mapped fields at their indexes, its other mapped fields in the gaps and unmapped ones last, and a record line's unmapped fields in the gaps"
+        },
+        {
+          "category": "breaking",
+          "text": "Without a header line, a field mapped by name takes the first position no other mapping takes, so one mapped after a field index fills the gap below that index"
+        },
+        {
+          "category": "breaking",
+          "text": "`CsvFileWriter` throws `CsvFileException` for a header line with no field for a required mapping by name, which a reader with the same mapper couldn't read"
+        }
+      ]
+    },
+    "6138c8face0f7cb02911c33f3fa9d60903bf4e70": {
+      "subject": "CsvFileReader gives each property mapped to a shared field the field's value, whatever its type (#919)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Properties of different types mapped to the same field each read the field's value, instead of 0 and null"
+        },
+        {
+          "category": "breaking",
+          "text": "A mapping of a field the file doesn't have no longer reads the value another mapping's constant or generator adds for it: an optional one is skipped, a required one throws `CsvFileException`"
+        }
+      ]
+    },
+    "fc973f462bc3b517ab71ec287dc6e2ff149e2062": {
+      "subject": "CsvFileReader reads a header line that repeats a field name, as RFC 4180 allows (#920)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileReader` reads a header line that repeats a field name, as RFC 4180 allows, when the mapper gives each field of that name a name of its own"
+        },
+        {
+          "category": "added",
+          "text": "`UseFieldName` on a field mapping, and `CsvFieldMappingAttribute.UseFieldName`, give a field the name it is known by once read; `CsvFileWriter` writes it under its name in the file"
+        }
+      ]
+    },
+    "f0e6e2b2fb3f89e25988a7d43bc340ed5e2f712f": {
+      "subject": "CsvFileOptions and CsvFieldContext compare by value on .NET Standard, as on net10.0 (#913)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "On .NET Standard, `CsvFileOptions` and `CsvFieldContext<TModel>` compare by value and print their properties from `ToString`, as on .NET 10"
+        }
+      ]
+    },
+    "c2666811ab96dfad75dd30af12e1cb465b183e14": {
+      "subject": "CsvFileWriter writes a mapped property's own value when its key is the name of another property with [CsvField] (#926)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` writes a mapped property's own value when its field name or `[CsvField]` name is another property's `[CsvField]` key, instead of that property's value"
+        }
+      ]
+    },
+    "4e698e3520ef41da6074fd511a1d7778421a3831": {
+      "subject": "CsvFileWriter writes a mapped property's own value when its field name is another property's key (#929)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A property of a line read through a mapping reads as not set when the record has no field for it, instead of the value of another field named like its `[CsvField]` key"
+        }
+      ]
+    },
+    "d7e4ff670213f7d81c1d5ccfb9942ef66100d3b7": {
+      "subject": "CsvFileReader reports a byte its encoding can't decode as a bad value (#928)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`CsvFileReader` reports a field holding a lone surrogate, or bytes that aren't valid in the file's encoding, as a bad value, instead of reading U+FFFD or `?`"
+        },
+        {
+          "category": "breaking",
+          "text": "`CsvFileReader` reads a file in `CsvFileOptions.Encoding` even when it starts with the byte order mark of another encoding"
+        },
+        {
+          "category": "fixed",
+          "text": "`CsvFileWriter` throws `CsvFileException`, not `EncoderFallbackException`, for a value that holds a lone surrogate"
+        }
+      ]
     }
   }
 }
