@@ -38,6 +38,15 @@ namespace DataStandardizer.File.CSV.Tests
         private const string FieldNamesDataItem = "FieldNames";
         private const string NotRenamedMessage =
             "The header line has 2 fields named 'name', so the mapping of property 'Second' must give its field a name of its own with UseFieldName.";
+        private const string SharedFieldNotRenamedMessage =
+            "The mappings of properties 'Id' and 'Code' share the field at index 0, but give it different names, 'person_id' and 'id'.";
+
+        // A header line with one count field, whose value isn't a number.
+        private const string InvalidCountFile = "count\r\nx";
+        private const string CountFieldName = "count";
+        private const string RenamedCountFieldName = "item_count";
+        private const string InvalidRenamedCountMessage = "Encountered invalid value 'x' in CSV field item_count.";
+
         private const string SharedFieldRenamedMessage =
             "The mappings of properties 'Id' and 'Code' share the field at index 0, but give it different names, 'person_id' and 'code'.";
 
@@ -185,20 +194,114 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MappingSharesFieldThatAnotherMappingRenames_PropertyReturnsField()
+        public void ReadLine_MappingSharesFieldThatAnotherMappingRenames_ThrowsCsvFileException()
         {
             // arrange
             var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
             using (var csvReader = new CsvFileReader<SharedIdLine>(new StringReader(IdFile), options))
             {
                 csvReader.RegisterMapper<RenamedSharedIdLineMapper>();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(SharedFieldNotRenamedMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappingsShareFieldAndRenameItAlike_PropertiesReturnField()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedIdLine>(new StringReader(IdFile), options))
+            {
+                csvReader.RegisterMapper<AlikeRenamedSharedIdLineMapper>();
                 csvReader.ReadLine();
 
                 // act
                 var testResult = csvReader.ReadLine() as SharedIdLine;
 
                 // assert
+                testResult.Id.Should().Be(Id);
                 testResult.Code.Should().Be(Id);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingRenamesOneOfRepeatedNameAndNameMappingDoesNot_PropertiesReturnFields()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RepeatedNameLine>(new StringReader(RepeatedNameFile), options))
+            {
+                csvReader.RegisterMapper<IndexAndNameRepeatedNameLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RepeatedNameLine;
+
+                // assert
+                testResult.First.Should().Be(FirstName);
+                testResult.Second.Should().Be(SecondName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_IndexMappingTakesFirstOfRepeatedName_NameMappingTakesNextField()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<RepeatedNameLine>(new StringReader(RepeatedNameFile), options))
+            {
+                csvReader.RegisterMapper<IndexFirstRepeatedNameLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as RepeatedNameLine;
+
+                // assert
+                testResult.First.Should().Be(FirstName);
+                testResult.Second.Should().Be(SecondName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_NameMappingsGiveSameNameToRepeatedName_ShareOneField()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<ThreeNameLine>(new StringReader(RepeatedNameFile), options))
+            {
+                csvReader.RegisterMapper<SharedFirstThreeNameLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as ThreeNameLine;
+
+                // assert
+                testResult.First.Should().Be(FirstName);
+                testResult.Second.Should().Be(FirstName);
+                testResult.Third.Should().Be(SecondName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_InvalidValueInRenamedField_ThrowsCsvFileExceptionNamingRenamedField()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<CountLine>(new StringReader(InvalidCountFile), options))
+            {
+                csvReader.RegisterMapper<RenamedCountLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(InvalidRenamedCountMessage);
             }
         }
 
@@ -546,6 +649,76 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldName(IdFieldName).UseFieldName(RenamedIdFieldName);
                 this.Map().Property(x => x.Code).HasFieldName(IdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties to the <c>id</c> field, both renaming it <c>person_id</c>.
+        /// </summary>
+        private sealed class AlikeRenamedSharedIdLineMapper : CsvFileMapperBase<SharedIdLine>
+        {
+            public AlikeRenamedSharedIdLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(IdFieldName).UseFieldName(RenamedIdFieldName);
+                this.Map().Property(x => x.Code).HasFieldName(IdFieldName).UseFieldName(RenamedIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps <c>Second</c> to the field at index 1 as <c>preferred_name</c>, and <c>First</c> to the <c>name</c> field without renaming it.
+        /// </summary>
+        private sealed class IndexAndNameRepeatedNameLineMapper : CsvFileMapperBase<RepeatedNameLine>
+        {
+            public IndexAndNameRepeatedNameLineMapper()
+            {
+                this.Map().Property(x => x.Second).HasFieldIndex(1).UseFieldName(PreferredNameFieldName);
+                this.Map().Property(x => x.First).HasFieldName(NameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps <c>First</c> to the field at index 0 as <c>legal_name</c>, and <c>Second</c> to the <c>name</c> field as <c>preferred_name</c>.
+        /// </summary>
+        private sealed class IndexFirstRepeatedNameLineMapper : CsvFileMapperBase<RepeatedNameLine>
+        {
+            public IndexFirstRepeatedNameLineMapper()
+            {
+                this.Map().Property(x => x.First).HasFieldIndex(0).UseFieldName(LegalNameFieldName);
+                this.Map().Property(x => x.Second).HasFieldName(NameFieldName).UseFieldName(PreferredNameFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps three properties to the <c>name</c> field: <c>First</c> and <c>Second</c> as <c>legal_name</c>, then <c>Third</c> as
+        /// <c>preferred_name</c>.
+        /// </summary>
+        private sealed class SharedFirstThreeNameLineMapper : CsvFileMapperBase<ThreeNameLine>
+        {
+            public SharedFirstThreeNameLineMapper()
+            {
+                this.Map().Property(x => x.First).HasFieldName(NameFieldName).UseFieldName(LegalNameFieldName);
+                this.Map().Property(x => x.Second).HasFieldName(NameFieldName).UseFieldName(LegalNameFieldName);
+                this.Map().Property(x => x.Third).HasFieldName(NameFieldName).UseFieldName(PreferredNameFieldName);
+            }
+        }
+
+        private sealed class CountLine : CsvFileRecordLine
+        {
+            public int Count
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps <c>Count</c> to the <c>count</c> field as <c>item_count</c>.
+        /// </summary>
+        private sealed class RenamedCountLineMapper : CsvFileMapperBase<CountLine>
+        {
+            public RenamedCountLineMapper()
+            {
+                this.Map().Property(x => x.Count).HasFieldName(CountFieldName).UseFieldName(RenamedCountFieldName);
             }
         }
 

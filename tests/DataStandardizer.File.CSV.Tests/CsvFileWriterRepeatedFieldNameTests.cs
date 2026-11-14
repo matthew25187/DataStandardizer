@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text;
 using FluentAssertions;
@@ -14,6 +15,12 @@ namespace DataStandardizer.File.CSV.Tests
         private const string NameFieldName = "name";
         private const string LegalNameFieldName = "legal_name";
         private const string PreferredNameFieldName = "preferred_name";
+        private const string IdFieldName = "id";
+        private const string KeyFieldName = "key";
+
+        // The id field and the key field, which is renamed from id, would both be written as id, which the mapper can't read back.
+        private const string NotReadBackMessage =
+            "The header line would be written as 'id,id', which the mapper doesn't read back with the same field names.";
         private const string FirstName = "Ann";
         private const string SecondName = "Bob";
 
@@ -120,6 +127,56 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be(IndexRenamedHeaderLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RenamedFieldWhoseFileNameAnotherMappedFieldHas_ThrowsCsvFileException()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(KeyFieldName, KeyFieldName);
+            headerLine.Add(IdFieldName, IdFieldName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<KeyLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<RenamedKeyLineMapper>();
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(headerLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(NotReadBackMessage);
+            }
+        }
+
+        private sealed class KeyLine : CsvFileRecordLine
+        {
+            public string Key
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Id
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps <c>Key</c> to the <c>id</c> field as <c>key</c>, and <c>Id</c> to the <c>id</c> field without renaming it, so they are different
+        /// fields that a header line names alike.
+        /// </summary>
+        private sealed class RenamedKeyLineMapper : CsvFileMapperBase<KeyLine>
+        {
+            public RenamedKeyLineMapper()
+            {
+                this.Map().Property(x => x.Key).HasFieldName(IdFieldName).UseFieldName(KeyFieldName);
+                this.Map().Property(x => x.Id).HasFieldName(IdFieldName);
             }
         }
 

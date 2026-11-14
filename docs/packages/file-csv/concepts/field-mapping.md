@@ -224,21 +224,28 @@ those names. Every field stays reachable by position.
   `CsvFileException`. A repeated name that no mapping covers is a duplicate
   name, so `ReadLine` throws `CsvFileException`, and `line["name"]` is never
   ambiguous.
-- A mapping by name past the last field of that name takes the last one, and
-  shares it with the mapping before it.
-- Mappings that share a field must give it the same name, or `ReadLine` throws
-  `CsvFileException`. A mapping that shares a field without `UseFieldName`
-  finds it by the name another mapping gives it.
+- A mapping by name that gives the same name as an earlier mapping by that
+  name shares its field rather than taking the next one. A mapping by name past
+  the last field of that name takes the last one, and shares it with the
+  mapping before it.
+- Mappings that share a field must all give it the same name with
+  `UseFieldName`, or all keep its name, or `ReadLine` throws
+  `CsvFileException`.
 - A mapping by index takes the field at its index, whatever the header line
   calls it, so a mapping by index can also rename a field whose name is
-  repeated.
+  repeated. The mappings by name take the fields of that name that no mapping
+  by index takes, so with `name,name` and a mapping by index of field 1, a
+  mapping by name of `name` takes field 0 and needs no `UseFieldName`.
 - `UseFieldName` can rename any field, repeated or not. Without a header line,
   mappings by the same field name that give different names with
   `UseFieldName` are different fields, which take positions in mapper order.
 
 The writer writes a field that a mapping by name renames under its name in the
 file, so a header line read with the mapper, and written again with it, keeps
-the file's names, repeated as they are in the file. The record fields are
+the file's names, repeated as they are in the file. A header line that the
+mapper wouldn't read back with the same names, such as one where a renamed
+field and another mapped field would both be written as `id`, makes `WriteLine`
+throw `CsvFileException`. The record fields are
 written at their positions, as for any other header line. A mapping by index
 doesn't say what its field is called in the file, so a field it renames is
 written under the name it gives.

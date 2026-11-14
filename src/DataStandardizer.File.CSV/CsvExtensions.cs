@@ -354,7 +354,7 @@ namespace DataStandardizer.File.CSV
             var exception = new CsvFileException($"Property '{propertyFieldMapping.Key}' unable to be mapped.");
             exception.Data.Add(DataItemName.PropertyName, propertyFieldMapping.Key);
             exception.Data.Add(DataItemName.FieldIndex, propertyFieldMapping.Value.FieldIndex);
-            exception.Data.Add(DataItemName.FieldName, propertyFieldMapping.Value.FieldName);
+            exception.Data.Add(DataItemName.FieldName, propertyFieldMapping.Value.UseFieldName ?? propertyFieldMapping.Value.FieldName);
             return exception;
         }
 

@@ -38,10 +38,6 @@ namespace DataStandardizer.File.CSV
                 "Found no field at index {0} for property '{1}' in a record of {2} fields, and the record already has a field named '{3}'.";
             internal const string MissingIndexedFieldTemplate = "Found no field at index {0} for required property '{1}' in a record of {2} fields.";
             internal const string MissingNamedFieldTemplate = "Found no field named '{0}' for required property '{1}'.";
-            internal const string RepeatedFieldNameNotRenamedTemplate =
-                "The header line has {0} fields named '{1}', so the mapping of property '{2}' must give its field a name of its own with UseFieldName.";
-            internal const string SharedFieldRenamedTemplate =
-                "The mappings of properties '{0}' and '{1}' share the field at index {2}, but give it different names, '{3}' and '{4}'.";
         }
         private const int DefaultBufferSize = 16 * 1024;
         private const char CarriageReturn = '\r';
@@ -68,7 +64,6 @@ namespace DataStandardizer.File.CSV
         private ExceptionDispatchInfo? _headerFailure;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
-        private Dictionary<string, string>? _headerMappingFieldNames;
         private CsvFileHeaderLine? _ignoredHeaderLine;
         private List<KeyValuePair<int, int>>? _invalidFieldValues;
         private Dictionary<int, string>? _invalidRawFieldValues;
@@ -81,7 +76,6 @@ namespace DataStandardizer.File.CSV
         [MaybeNull] private ExceptionDispatchInfo _headerFailure;
         [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
         [MaybeNull] private CsvFileHeaderLine _headerLine;
-        [MaybeNull] private Dictionary<string, string> _headerMappingFieldNames;
         [MaybeNull] private CsvFileHeaderLine _ignoredHeaderLine;
         [MaybeNull] private List<KeyValuePair<int, int>> _invalidFieldValues;
         [MaybeNull] private Dictionary<int, string> _invalidRawFieldValues;
@@ -114,7 +108,6 @@ namespace DataStandardizer.File.CSV
         private readonly StringBuilder _fieldValueBuilder = new StringBuilder();
         private int _fieldValueStart;
         private bool _headerLineIgnored;
-        private int _headerMapperVersion = -1;
         private readonly bool _isInternalReader;
         private readonly ICsvFileOptions _options = new CsvFileOptions();
         private readonly List<string> _rawFieldValues = new List<string>();
@@ -418,8 +411,7 @@ namespace DataStandardizer.File.CSV
 
             // The mapper in effect gives the fields their names once read, so a name that the header line repeats is made unique.  Every name must
             // then be unique.
-            var mapperVersion = MapperVersion;
-            var headerFieldNames = ResolveHeaderFieldNames(rawFieldValues, GetMapper(), out var headerMappingFieldNames);
+            var headerFieldNames = ResolveHeaderFieldNames(rawFieldValues, GetMapper());
             var headerLine = CreateHeaderLine(headerFieldNames);
 
             // An ignored header line is kept only to pass to the header handler, which is called as the first record is read, as for a file
@@ -440,8 +432,6 @@ namespace DataStandardizer.File.CSV
             }
 
             _expectedFieldCount = rawFieldValues.Count;
-            _headerMapperVersion = mapperVersion;
-            _headerMappingFieldNames = headerMappingFieldNames;
             _headerLine = headerLine;
             return headerLine;
         }
@@ -541,107 +531,14 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <param name="fileFieldNames">The names on the header line, as they are in the file.</param>
         /// <param name="mapper">The mapper in effect as the header line is read.</param>
-        /// <param name="mappingFieldNames">The name of the field each mapping that has a field on the header line is mapped to, keyed by property
-        /// key, or <c>null</c> if the mapper has no mappings.</param>
         /// <returns>The field names, which are unique.</returns>
-        /// <remarks>
-        /// A mapping by index takes the field at its index, and a mapping by name the field with its name.  Mappings by the same name take the
-        /// first, second and so on field of that name, in mapper order, and one past the last takes the last.  A mapping that renames its field with
-        /// <see cref="CsvFieldMapping.UseFieldName"/> gives the field that name.  RFC 4180 §2 ¶3 allows a header line to repeat a name, but a line's
-        /// field names must be unique, so a mapping of a repeated name must rename its field.
-        /// </remarks>
         /// <exception cref="CsvFileException">A mapping of a repeated name doesn't rename its field, mappings that share a field give it different
         /// names, or two fields have the same name once renamed, such as a repeated name that no mapping covers.</exception>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private string[] ResolveHeaderFieldNames(List<string> fileFieldNames, ICsvFileMapper mapper, out Dictionary<string, string>? mappingFieldNames)
-#else
-        private string[] ResolveHeaderFieldNames(List<string> fileFieldNames, ICsvFileMapper mapper, [MaybeNull] out Dictionary<string, string> mappingFieldNames)
-#endif
+        private string[] ResolveHeaderFieldNames(List<string> fileFieldNames, ICsvFileMapper mapper)
         {
-            var fieldNames = fileFieldNames.ToArray();
-            mappingFieldNames = null;
-            if (mapper.Count > 0)
+            if (!CsvMappingService.TryResolveHeaderFieldNames(fileFieldNames, mapper, out var fieldNames, out var errorMessage, out var errorData))
             {
-                var positionsByFileFieldName = new Dictionary<string, List<int>>(StringComparer.Ordinal);
-                for (var position = 0; position < fieldNames.Length; position++)
-                {
-                    if (!positionsByFileFieldName.TryGetValue(fieldNames[position], out var namePositions))
-                    {
-                        namePositions = new List<int>();
-                        positionsByFileFieldName.Add(fieldNames[position], namePositions);
-                    }
-
-                    namePositions.Add(position);
-                }
-
-                // The property key of the mapping that renamed each field, if any, and how many mappings have taken a field of each name.
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                var renamingPropertyKeys = new string?[fieldNames.Length];
-#else
-                var renamingPropertyKeys = new string[fieldNames.Length];
-#endif
-                var takenFieldCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-                var mappingPositions = new List<KeyValuePair<string, int>>(mapper.Count);
-                foreach (var mapping in mapper)
-                {
-                    int position;
-                    if (mapping.Value.FieldIndex is int fieldIndex)
-                    {
-                        if (fieldIndex >= fieldNames.Length)
-                        {
-                            continue;
-                        }
-
-                        position = fieldIndex;
-                    }
-                    else
-                    {
-                        var fileFieldName = CsvMappingService.GetFileFieldNameFromMapping(mapping);
-                        if (!positionsByFileFieldName.TryGetValue(fileFieldName, out var namePositions))
-                        {
-                            continue;
-                        }
-
-                        if (namePositions.Count > 1 && mapping.Value.UseFieldName is null)
-                        {
-                            var message = string.Format(ErrorMessage.RepeatedFieldNameNotRenamedTemplate, namePositions.Count, fileFieldName, mapping.Key);
-                            throw BuildException(message,
-                                new Dictionary<string, object> { { DataItemName.FieldName, fileFieldName }, { DataItemName.PropertyName, mapping.Key } });
-                        }
-
-                        takenFieldCounts.TryGetValue(fileFieldName, out var takenFieldCount);
-                        takenFieldCounts[fileFieldName] = takenFieldCount + 1;
-                        position = namePositions[Math.Min(takenFieldCount, namePositions.Count - 1)];
-                    }
-
-                    mappingPositions.Add(new KeyValuePair<string, int>(mapping.Key, position));
-                    if (mapping.Value.UseFieldName is string useFieldName)
-                    {
-                        if (renamingPropertyKeys[position] is string renamingPropertyKey)
-                        {
-                            if (!string.Equals(fieldNames[position], useFieldName, StringComparison.Ordinal))
-                            {
-                                var message = string.Format(ErrorMessage.SharedFieldRenamedTemplate, renamingPropertyKey, mapping.Key, position,
-                                    fieldNames[position], useFieldName);
-                                throw BuildException(message,
-                                    new Dictionary<string, object> { { DataItemName.FieldIndex, position }, { DataItemName.PropertyName, mapping.Key } });
-                            }
-                        }
-                        else
-                        {
-                            renamingPropertyKeys[position] = mapping.Key;
-                            fieldNames[position] = useFieldName;
-                        }
-                    }
-                }
-
-                // A mapping finds its field by the name the field has once every mapping has renamed its own, so a mapping that shares a field
-                // that another mapping renames still finds it.
-                mappingFieldNames = new Dictionary<string, string>(mappingPositions.Count, StringComparer.Ordinal);
-                foreach (var mappingPosition in mappingPositions)
-                {
-                    mappingFieldNames.Add(mappingPosition.Key, fieldNames[mappingPosition.Value]);
-                }
+                throw BuildException(errorMessage, errorData ?? new Dictionary<string, object>());
             }
 
             ThrowIfDuplicateFieldNames(fieldNames);
@@ -717,9 +614,7 @@ namespace DataStandardizer.File.CSV
                 return fieldPlan;
             }
 
-            // The names the header line's mapper gave its mappings' fields apply only while that mapper is in effect.
-            var headerMappingFieldNames = mapperVersion == _headerMapperVersion ? _headerMappingFieldNames : null;
-            fieldPlan = new FieldPlan(mapperVersion, GetMapper(recordLine, out _), _headerFieldNames, headerMappingFieldNames);
+            fieldPlan = new FieldPlan(mapperVersion, GetMapper(recordLine, out _), _headerFieldNames);
             _fieldPlan = fieldPlan;
             return fieldPlan;
         }
@@ -906,15 +801,16 @@ namespace DataStandardizer.File.CSV
         private static CsvFileException BuildInvalidMappedValueException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string rawFieldValue, [AllowNull] Exception innerException)
 #endif
         {
-            var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
+            var fieldName = fieldMapping.Value.UseFieldName ?? fieldMapping.Value.FieldName;
+            var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {fieldName}.";
             var dataItems = new Dictionary<string, object>
             {
                 { DataItemName.PropertyName, fieldMapping.Key },
                 { DataItemName.FieldValue, rawFieldValue }
             };
-            if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
+            if (!string.IsNullOrWhiteSpace(fieldName))
             {
-                dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
+                dataItems.Add(DataItemName.FieldName, fieldName);
             }
 
             return BuildException(message, dataItems, innerException);
@@ -1458,11 +1354,6 @@ namespace DataStandardizer.File.CSV
 
             private readonly string[] _headerFieldNames;
             private readonly Dictionary<int, string> _mapperFieldNames;
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            private readonly Dictionary<string, string>? _headerMappingFieldNames;
-#else
-            [MaybeNull] private readonly Dictionary<string, string> _headerMappingFieldNames;
-#endif
 
             // Every header and mapping name, then each Field N name in the order GetFieldNames gives them out.  It is only ever added to, so
             // _fieldNames can only be extended, never rebuilt.
@@ -1479,15 +1370,12 @@ namespace DataStandardizer.File.CSV
 #endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal FieldPlan(int mapperVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames,
-                Dictionary<string, string>? headerMappingFieldNames)
+            internal FieldPlan(int mapperVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames)
 #else
-            internal FieldPlan(int mapperVersion, [DisallowNull] ICsvFileMapper mapper, [AllowNull] IReadOnlyList<string> headerFieldNames,
-                [AllowNull] Dictionary<string, string> headerMappingFieldNames)
+            internal FieldPlan(int mapperVersion, [DisallowNull] ICsvFileMapper mapper, [AllowNull] IReadOnlyList<string> headerFieldNames)
 #endif
             {
                 MapperVersion = mapperVersion;
-                _headerMappingFieldNames = headerMappingFieldNames;
                 Mapper = mapper;
                 HeaderFieldNames = headerFieldNames;
                 _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
@@ -1615,21 +1503,9 @@ namespace DataStandardizer.File.CSV
                     // field for the mapping, even if another of its fields has the mapping's name.
                     var fieldIndex = fieldMapping.Value.FieldIndex;
                     var isPastLastField = fieldIndex.HasValue && fieldIndex.Value >= fieldCount;
-                    // A mapping by name finds the field that the header line's mapper gave it, which is the one of a repeated name that it takes.
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    string? mappedFieldName;
-#else
-                    string mappedFieldName;
-#endif
-                    if (fieldIndex.HasValue && !isPastLastField)
-                    {
-                        mappedFieldName = lineFieldNames[fieldIndex.Value];
-                    }
-                    else if (fieldIndex.HasValue || _headerMappingFieldNames is null || !_headerMappingFieldNames.TryGetValue(fieldMapping.Key, out mappedFieldName))
-                    {
-                        mappedFieldName = CsvMappingService.GetFieldNameFromMapping(fieldMapping);
-                    }
-
+                    var mappedFieldName = fieldIndex.HasValue && !isPastLastField
+                        ? lineFieldNames[fieldIndex.Value]
+                        : CsvMappingService.GetFieldNameFromMapping(fieldMapping);
                     if (!string.Equals(mappedFieldName, fieldMapping.Key, StringComparison.Ordinal))
                     {
                         if (mappedFieldNames is null)
