@@ -47,7 +47,7 @@ record.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `FieldIndex` | `int? FieldIndex { get; }` | The index of the field. When reading, its position in the record as read, and `null` when the file has no such field. When writing, its position in the line written. `null` for a constant or generated value, which doesn't come from a field. |
+| `FieldIndex` | `int? FieldIndex { get; }` | The index of the field. When reading, its position in the record as read, and `null` when the file has no such field. When writing, its position in the line written. |
 | `FieldName` | `string? FieldName { get; }` | The name of the field. When reading, the name of the field in the line, which a mapping by index resolves through the header. When writing, the name of the field the line is written under, as a reader with the same mapper resolves it, so a field renamed with `UseFieldName` has the name it is renamed to. |
 | `HeaderLine` | `CsvFileHeaderLine? HeaderLine { get; }` | The header line, if any. |
 | `Model` | `TModel? Model { get; }` | The line model being read or written. |

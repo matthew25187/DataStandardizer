@@ -12,6 +12,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string OtherFieldName = "Other";
         private const string AmountFieldName = "Amount";
         private const string TotalFieldName = "Total";
+
+        /// <summary>
+        /// The name that <see cref="RenamedAmountMapper"/> gives the <c>Amount</c> field once read.
+        /// </summary>
+        private const string SumFieldName = "Sum";
         private const string OtherValue = "x";
         private const int AmountValue = 7;
 
@@ -24,6 +29,17 @@ namespace DataStandardizer.File.CSV.Tests
         /// The position of the <c>Amount</c> field in a line whose fields are <c>Other,Amount</c>.
         /// </summary>
         private const int AmountFieldPosition = 1;
+
+        /// <summary>
+        /// The record line written for <see cref="OtherValue"/> and a converted <c>Amount</c>, ended by CRLF (RFC 4180§2¶1).
+        /// </summary>
+        private const string ConvertedRecordLine = "x,converted\r\n";
+
+        /// <summary>
+        /// The header line written for <see cref="RenamedAmountMapper"/>, with the renamed field under its name in the file, then
+        /// <see cref="ConvertedRecordLine"/>.
+        /// </summary>
+        private const string RenamedHeaderAndConvertedRecordLines = "Other,Amount\r\nx,converted\r\n";
 
         [Fact]
         public void WriteLine_ToStringConverterOnNamedFieldAfterAnotherField_GivesFieldPosition()
@@ -125,20 +141,45 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void WriteLine_ToStringConverterOnConstantValueMappedByIndex_GivesNoFieldPosition()
+        public void WriteLine_ToStringConverterOnRenamedField_GivesRenamedFieldName()
         {
             // arrange
-            var testLine = new ContextRecordingLine { Other = OtherValue };
-            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
-            using (var csvWriter = new CsvFileWriter<ContextRecordingLine>(new StringWriter(), options))
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(OtherFieldName, OtherFieldName);
+            headerLine.Add(SumFieldName, SumFieldName);
+            var testLine = new ContextRecordingLine { Other = OtherValue, Amount = AmountValue };
+            using (var csvWriter = new CsvFileWriter<ContextRecordingLine>(new StringWriter()))
             {
-                csvWriter.RegisterMapper<ConstantAmountMapper>();
+                csvWriter.RegisterMapper<RenamedAmountMapper>();
+                csvWriter.WriteLine(headerLine);
 
                 // act
                 csvWriter.WriteLine(testLine);
 
                 // assert
-                testLine.WrittenContext.FieldIndex.Should().BeNull();
+                testLine.WrittenContext.FieldName.Should().Be(SumFieldName);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_ToStringConverterOnRenamedField_WritesFieldUnderItsNameInFile()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(OtherFieldName, OtherFieldName);
+            headerLine.Add(SumFieldName, SumFieldName);
+            var testLine = new ContextRecordingLine { Other = OtherValue, Amount = AmountValue };
+            var stringWriter = new StringWriter();
+            using (var csvWriter = new CsvFileWriter<ContextRecordingLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<RenamedAmountMapper>();
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                stringWriter.ToString().Should().Be(RenamedHeaderAndConvertedRecordLines);
             }
         }
 
@@ -157,7 +198,7 @@ namespace DataStandardizer.File.CSV.Tests
                 csvWriter.WriteLine(testLine);
 
                 // assert
-                stringWriter.ToString().Should().Be("x,converted\r\n");
+                stringWriter.ToString().Should().Be(ConvertedRecordLine);
             }
         }
 
@@ -245,17 +286,15 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Maps <c>Amount</c> to index 0 with a constant value and a converter, and <c>Other</c> by name.  The mapping builder doesn't offer a
-        /// constant with a converter, so the constant is set on the mapping directly.
+        /// Maps <c>Other</c> by name, and <c>Amount</c> to the <c>Amount</c> field renamed <c>Sum</c>, with a converter on <c>Amount</c>.
         /// </summary>
-        public sealed class ConstantAmountMapper : CsvFileMapperBase<ContextRecordingLine>
+        public sealed class RenamedAmountMapper : CsvFileMapperBase<ContextRecordingLine>
         {
-            public ConstantAmountMapper()
+            public RenamedAmountMapper()
             {
-                this.Map().Property(x => x.Amount).HasFieldIndex(0)
-                    .ConvertUsing(new CsvFieldConvertToString<ContextRecordingLine>(ContextRecordingLine.RecordContext));
                 this.Map().Property(x => x.Other).HasFieldName(OtherFieldName);
-                ((ICsvFileMapper)this)[nameof(ContextRecordingLine.Amount)].ConstantValue = AmountValue;
+                this.Map().Property(x => x.Amount).HasFieldName(AmountFieldName).UseFieldName(SumFieldName)
+                    .ConvertUsing(new CsvFieldConvertToString<ContextRecordingLine>(ContextRecordingLine.RecordContext));
             }
         }
     }

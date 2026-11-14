@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 #if NET8_0_OR_GREATER
 using System.Buffers;
 #endif
@@ -714,8 +714,9 @@ namespace DataStandardizer.File.CSV
                     continue;
                 }
 
-                // Convert the field value to a string.  A converter is given the field's position in the line, unless the mapping supplies a
-                // constant or generated value, which didn't come from a field, as when reading.
+                // Convert the field value to a string.  A converter is given the field's position in the line.  A constant or generated value
+                // didn't come from a field, so has no position, as when reading, though the mapping builder doesn't let a mapping that supplies
+                // its value have a converter.
                 var fieldIndex = fieldMapping != null && fieldMapping.IsSupplied ? (int?)null : fieldValueCount;
                 var rawFieldValue = SerializeFieldValue(recordLine, fieldMapping, fieldKey, field.FieldName, fieldIndex);
 

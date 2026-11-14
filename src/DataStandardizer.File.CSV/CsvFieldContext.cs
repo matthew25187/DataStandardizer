@@ -31,7 +31,7 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// When reading, this is the position of the field in the record as read from the file, whether the mapping names the field or gives its
         /// index; <c>null</c> when the file has no such field.  When writing, it is the position of the field in the line written, whether the
-        /// mapping names the field or gives its index.  It is <c>null</c> for a constant or generated value, which doesn't come from a field.
+        /// mapping names the field or gives its index.
         /// </remarks>
         public int? FieldIndex
         {
