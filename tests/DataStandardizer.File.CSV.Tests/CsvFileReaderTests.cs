@@ -130,6 +130,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string InvalidRenamedIdHeaderFile = "person_id\r\nabc";
         private const string InvalidRenamedIdText = "abc";
         private const int AssignedId = 9;
+        private const int HandlerAssignedId = -1;
         private const string KeyedIdHeaderFile = "pid\r\n5";
 
         // A file with a column named like the property key that another field is mapped to.
@@ -2354,6 +2355,86 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void ReadLine_SharedFieldValueBadWithBadValueHandlerSettingProperty_PropertyReturnsValueSet()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedTypedFieldLine>(context => context.Model.Id = HandlerAssignedId)
+            };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ReversedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(HandlerAssignedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldPropertyGetterOfAnotherType_ThrowsInvalidCastException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<MismatchedSharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+                var line = csvReader.ReadLine() as MismatchedSharedFieldLine;
+
+                // act
+                Action testAction = () => _ = line.Id;
+
+                // assert
+                testAction.Should().Throw<InvalidCastException>();
+            }
+        }
+
+        [Fact]
+        public void Add_FieldOfSkippedSharedMappingsAfterRead_PropertiesReturnAddedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<OptionalSharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<OptionalSharedFieldLineMapper>();
+                csvReader.ReadLine();
+                var testResult = csvReader.ReadLine() as OptionalSharedFieldLine;
+
+                // act
+                testResult.Add(ExtraFieldName, AddedFieldValue);
+
+                // assert
+                testResult.First.Should().Be(AddedFieldValue);
+                testResult.Second.Should().Be(AddedFieldValue);
+            }
+        }
+
+        [Fact]
+        public void Insert_FieldOfSkippedSharedMappingsAfterRead_PropertiesReturnInsertedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<OptionalSharedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<OptionalSharedFieldLineMapper>();
+                csvReader.ReadLine();
+                var testResult = csvReader.ReadLine() as OptionalSharedFieldLine;
+
+                // act
+                ((ICsvFileLine)testResult).Insert(0, ExtraFieldName, AddedFieldValue);
+
+                // assert
+                testResult.First.Should().Be(AddedFieldValue);
+                testResult.Second.Should().Be(AddedFieldValue);
+            }
+        }
+
+        [Fact]
         public void PropertySetter_FieldSharedByTwoTypesAfterRead_LineHoldsValueSet()
         {
             // arrange
@@ -3125,6 +3206,58 @@ namespace DataStandardizer.File.CSV.Tests
             {
                 this.Map().Property(x => x.Id).HasFieldIndex(0);
                 this.Map().Property(x => x.Code).HasFieldIndex(0);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties mapped by attribute to the same field, whose <c>Id</c> getter asks for a <see cref="long"/> although its
+        /// mapping converts the field to an <see cref="int"/>.
+        /// </summary>
+        private sealed class MismatchedSharedFieldLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => (int)GetPropertyValue<long>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonIdFieldName)]
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties that <see cref="OptionalSharedFieldLineMapper"/> maps to the same field.
+        /// </summary>
+        private sealed class OptionalSharedFieldLine : CsvFileRecordLine
+        {
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="OptionalSharedFieldLine"/>, as optional, to the <c>Extra</c> field, which the files read with it
+        /// don't have, so the reader skips both.
+        /// </summary>
+        private sealed class OptionalSharedFieldLineMapper : CsvFileMapperBase<OptionalSharedFieldLine>
+        {
+            public OptionalSharedFieldLineMapper()
+            {
+                this.Map().Property(x => x.First).HasFieldName(ExtraFieldName).IsOptional();
+                this.Map().Property(x => x.Second).HasFieldName(ExtraFieldName).IsOptional();
             }
         }
 

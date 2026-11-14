@@ -607,10 +607,11 @@ namespace DataStandardizer.File.CSV
 
             // Mappings with a constant or generated value can add fields to the line, so errors report the number of fields as read.
             var recordFieldCount = csvLine.Count;
-            fieldPlan.GetMappings(recordFieldCount, out var fieldMappingPlans, out var mappedFieldNames);
+            fieldPlan.GetMappings(recordFieldCount, out var fieldMappingPlans, out var mappedFieldNames, out var sharedFieldLayout);
 
             // The mapped values stay under their field names, so a property mapped to a field with another name, or by index, reads that field.
             recordLine.SetMappedFieldNames(mappedFieldNames);
+            recordLine.SetSharedFieldLayout(sharedFieldLayout);
             foreach (var fieldMappingPlan in fieldMappingPlans)
             {
                 // A mapping reads only a field read from the file, never one that another mapping's constant or generated value added to the line.
@@ -621,9 +622,9 @@ namespace DataStandardizer.File.CSV
                 if (fieldMappingPlan.IsSkipped)
                 {
                     // Another mapping of the same field may add it to the line, but its value isn't this mapping's.
-                    if (fieldMappingPlan.IsSharedField)
+                    if (fieldMappingPlan.SharedFieldSlot >= 0)
                     {
-                        recordLine.MarkSkippedSharedField(mappedFieldName, fieldMapping.Key);
+                        recordLine.MarkSkippedSharedField(fieldMappingPlan.SharedFieldSlot);
                     }
 
                     continue;
@@ -659,8 +660,9 @@ namespace DataStandardizer.File.CSV
                     {
                         if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
                         {
+                            // Marked first, so a value the handler sets through the model is the one the line keeps.
+                            recordLine.MarkBadValueField(mappedFieldName, fieldMappingPlan.SharedFieldSlot);
                             badValueHandler(fieldContext);
-                            recordLine.MarkBadValueField(mappedFieldName, fieldMapping.Key, fieldMappingPlan.IsSharedField);
                             continue;
                         }
 
@@ -708,8 +710,9 @@ namespace DataStandardizer.File.CSV
                             HeaderLine = _headerLine,
                             RawFieldValue = rawFieldValue
                         };
+                        // Marked first, so a value the handler sets through the model is the one the line keeps.
+                        recordLine.MarkBadValueField(mappedFieldName, fieldMappingPlan.SharedFieldSlot);
                         badValueHandler(fieldContext);
-                        recordLine.MarkBadValueField(mappedFieldName, fieldMapping.Key, fieldMappingPlan.IsSharedField);
                         continue;
                     }
 
@@ -717,7 +720,7 @@ namespace DataStandardizer.File.CSV
                 }
 
                 // The field holds the value of the last mapping that shares it; each of them keeps its own value for its property.
-                recordLine.SetMappedFieldValue(mappedFieldName, fieldMapping.Key, propertyValue, fieldMappingPlan.IsSharedField);
+                recordLine.SetMappedFieldValue(mappedFieldName, propertyValue, fieldMappingPlan.SharedFieldSlot);
             }
         }
 
@@ -1340,8 +1343,10 @@ namespace DataStandardizer.File.CSV
             private FieldMappingPlan[] _mappings = NoMappings;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             private Dictionary<string, string>? _mappedFieldNames;
+            private CsvSharedFieldLayout? _sharedFieldLayout;
 #else
             private Dictionary<string, string> _mappedFieldNames;
+            private CsvSharedFieldLayout _sharedFieldLayout;
 #endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1440,10 +1445,14 @@ namespace DataStandardizer.File.CSV
             /// </summary>
             /// <param name="mappedFieldNames">The field name of each mapping that maps a property to a field with another name, keyed by property key,
             /// or <c>null</c> if there are none.  Every line with this number of fields shares it, so it is never changed.</param>
+            /// <param name="sharedFieldLayout">The slots of the mappings that share a field with another mapping, or <c>null</c> if there are none.
+            /// Every line with this number of fields shares it, so it is never changed.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal void GetMappings(int fieldCount, out FieldMappingPlan[] mappings, out Dictionary<string, string>? mappedFieldNames)
+            internal void GetMappings(int fieldCount, out FieldMappingPlan[] mappings, out Dictionary<string, string>? mappedFieldNames,
+                out CsvSharedFieldLayout? sharedFieldLayout)
 #else
-            internal void GetMappings(int fieldCount, out FieldMappingPlan[] mappings, [MaybeNull] out Dictionary<string, string> mappedFieldNames)
+            internal void GetMappings(int fieldCount, out FieldMappingPlan[] mappings, [MaybeNull] out Dictionary<string, string> mappedFieldNames,
+                [MaybeNull] out CsvSharedFieldLayout sharedFieldLayout)
 #endif
             {
                 if (_mappedFieldCount != fieldCount)
@@ -1453,6 +1462,7 @@ namespace DataStandardizer.File.CSV
 
                 mappings = _mappings;
                 mappedFieldNames = _mappedFieldNames;
+                sharedFieldLayout = _sharedFieldLayout;
             }
 
             private void BuildMappings(int fieldCount)
@@ -1499,19 +1509,46 @@ namespace DataStandardizer.File.CSV
                     mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, readFieldIndex, isSkipped, isFieldNameTaken, isMissing, accessor));
                 }
 
-                // The line holds one value for each field, so the mappings that share a field each keep their own value for their property.
-                foreach (var sharedField in mappings.GroupBy(mapping => mapping.FieldName, StringComparer.Ordinal).Where(group => group.Count() > 1))
-                {
-                    foreach (var mapping in sharedField)
-                    {
-                        mapping.IsSharedField = true;
-                    }
-                }
-
-                // Lines already read keep the field names they were read with, so this is a new dictionary rather than a change to the old one.
+                // Lines already read keep the field names and layout they were read with, so these are new rather than changes to the old ones.
                 _mappedFieldNames = mappedFieldNames;
+                _sharedFieldLayout = BuildSharedFieldLayout(mappings);
                 _mappings = mappings.ToArray();
                 _mappedFieldCount = fieldCount;
+            }
+
+            /// <summary>
+            /// Gives each mapping that shares its field with another mapping a slot, in which a line keeps the value its property reads.  The line
+            /// holds one value for each field, so properties of different types can't all read theirs from it.
+            /// </summary>
+            /// <returns>The layout of the slots, or <c>null</c> if no mapping shares its field.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            private static CsvSharedFieldLayout? BuildSharedFieldLayout(List<FieldMappingPlan> mappings)
+#else
+            [return: MaybeNull]
+            private static CsvSharedFieldLayout BuildSharedFieldLayout(List<FieldMappingPlan> mappings)
+#endif
+            {
+                var sharedMappings = mappings
+                    .GroupBy(mapping => mapping.FieldName, StringComparer.Ordinal)
+                    .Where(group => group.Count() > 1)
+                    .SelectMany(group => group)
+                    .ToArray();
+                if (sharedMappings.Length == 0)
+                {
+                    return null;
+                }
+
+                var slotsByPropertyKey = new Dictionary<string, int>(sharedMappings.Length, StringComparer.Ordinal);
+                var fieldNames = new string[sharedMappings.Length];
+                for (var sharedFieldSlot = 0; sharedFieldSlot < sharedMappings.Length; sharedFieldSlot++)
+                {
+                    var mapping = sharedMappings[sharedFieldSlot];
+                    mapping.SharedFieldSlot = sharedFieldSlot;
+                    slotsByPropertyKey.Add(mapping.Mapping.Key, sharedFieldSlot);
+                    fieldNames[sharedFieldSlot] = mapping.FieldName;
+                }
+
+                return new CsvSharedFieldLayout(slotsByPropertyKey, fieldNames);
             }
         }
 
@@ -1560,9 +1597,10 @@ namespace DataStandardizer.File.CSV
             internal int? ReadFieldIndex { get; }
 
             /// <summary>
-            /// Gets a flag indicating if other mappings resolve to the same field.  Set once, as the plan is built.
+            /// Gets the mapping's slot in the plan's shared field layout, or <c>-1</c> if no other mapping resolves to the same field.  Set once, as
+            /// the plan is built.
             /// </summary>
-            internal bool IsSharedField { get; set; }
+            internal int SharedFieldSlot { get; set; } = -1;
 
             /// <summary>
             /// Gets a flag indicating if the mapping is required, reads its value from a field, and the line has no field for it.

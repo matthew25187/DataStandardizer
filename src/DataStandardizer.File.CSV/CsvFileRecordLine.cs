@@ -29,12 +29,19 @@ namespace DataStandardizer.File.CSV
 #if NET5_0_OR_GREATER
         protected virtual T? GetPropertyValue<T>([CallerMemberName] string? propertyName = null)
         {
-            var fieldName = GetPropertyKey(propertyName!);
+            var propertyKey = GetCsvFieldKey(propertyName!);
+            var fieldName = GetMappedFieldName(propertyKey);
 
             // A property that shares its field with another property's mapping reads the value the reader converted for it.
-            if (TryGetSharedFieldValue(propertyName!, fieldName, out var sharedFieldValue))
+            if (TryGetSharedFieldValue(propertyKey, fieldName, out var sharedFieldValue))
             {
-                return sharedFieldValue is T sharedValue ? sharedValue : default;
+                if (sharedFieldValue is T sharedValue)
+                {
+                    return sharedValue;
+                }
+
+                CheckSharedValueReadsAsDefault(fieldName, sharedFieldValue, typeof(T));
+                return default;
             }
 
             var fieldValue = GetFieldValue(fieldName);
@@ -57,12 +64,19 @@ namespace DataStandardizer.File.CSV
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
         protected virtual T GetPropertyValue<T>([CallerMemberName] string? propertyName = null)
         {
-            var fieldName = GetPropertyKey(propertyName!);
+            var propertyKey = GetCsvFieldKey(propertyName!);
+            var fieldName = GetMappedFieldName(propertyKey);
 
             // A property that shares its field with another property's mapping reads the value the reader converted for it.
-            if (TryGetSharedFieldValue(propertyName!, fieldName, out var sharedFieldValue))
+            if (TryGetSharedFieldValue(propertyKey, fieldName, out var sharedFieldValue))
             {
-                return sharedFieldValue is T sharedValue ? sharedValue : default!;
+                if (sharedFieldValue is T sharedValue)
+                {
+                    return sharedValue;
+                }
+
+                CheckSharedValueReadsAsDefault(fieldName, sharedFieldValue, typeof(T));
+                return default!;
             }
 
             var fieldValue = GetFieldValue(fieldName);
@@ -85,12 +99,19 @@ namespace DataStandardizer.File.CSV
         [return: MaybeNull]
         protected virtual T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
         {
-            var fieldName = GetPropertyKey(propertyName);
+            var propertyKey = GetCsvFieldKey(propertyName);
+            var fieldName = GetMappedFieldName(propertyKey);
 
             // A property that shares its field with another property's mapping reads the value the reader converted for it.
-            if (TryGetSharedFieldValue(propertyName, fieldName, out var sharedFieldValue))
+            if (TryGetSharedFieldValue(propertyKey, fieldName, out var sharedFieldValue))
             {
-                return sharedFieldValue is T sharedValue ? sharedValue : default;
+                if (sharedFieldValue is T sharedValue)
+                {
+                    return sharedValue;
+                }
+
+                CheckSharedValueReadsAsDefault(fieldName, sharedFieldValue, typeof(T));
+                return default;
             }
 
             var fieldValue = GetFieldValue(fieldName);
@@ -126,7 +147,30 @@ namespace DataStandardizer.File.CSV
                 return;
             }
 
-            throw new InvalidCastException(
+            throw BuildInvalidCastException(fieldName, fieldValue, propertyType);
+        }
+
+        /// <summary>
+        /// Throws unless the value a property kept from a shared field reads as the property's default value: when it is <c>null</c>.  Another
+        /// mapping's bad value on the field doesn't make this property's value read as its default.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static void CheckSharedValueReadsAsDefault(string fieldName, object? fieldValue, Type propertyType)
+#else
+        private static void CheckSharedValueReadsAsDefault(string fieldName, [AllowNull] object fieldValue, Type propertyType)
+#endif
+        {
+            if (fieldValue is null)
+            {
+                return;
+            }
+
+            throw BuildInvalidCastException(fieldName, fieldValue, propertyType);
+        }
+
+        private static InvalidCastException BuildInvalidCastException(string fieldName, object fieldValue, Type propertyType)
+        {
+            return new InvalidCastException(
                 $"The field '{fieldName}' holds a value of type '{fieldValue.GetType()}', which the property can't return as '{propertyType}'. " +
                 "A reader stores a field's text unless a mapping converts it to the property's type.");
         }
