@@ -305,12 +305,6 @@ namespace DataStandardizer.File.CSV
             return propertyKey;
         }
 
-        /// <summary>
-        /// Gets the key a mapping's property key resolves to on this line, for the writer to look a value up by when the line has no field with
-        /// the mapped field name.
-        /// </summary>
-        internal string ResolveMappedPropertyKey(string mappingKey) => GetCsvFieldKey(mappingKey);
-
         private protected string GetCsvFieldKey(string propertyName) => GetCachedPropertyKey(this.GetType(), propertyName);
 
         /// <summary>

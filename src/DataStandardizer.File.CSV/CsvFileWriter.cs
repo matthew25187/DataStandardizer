@@ -806,8 +806,7 @@ namespace DataStandardizer.File.CSV
 
             // A mapper that is not registered was created from the record line's type, so the plan only holds for lines of that type.
             var mapper = GetMapper(recordLine, out var isMapperRegistered);
-            fieldPlan = new FieldPlan(mapperVersion, isMapperRegistered ? null : recordLine.GetType(), mapper, _headerLineFieldNames, _fieldNames, _unmappedFieldNames,
-                recordLine);
+            fieldPlan = new FieldPlan(mapperVersion, isMapperRegistered ? null : recordLine.GetType(), mapper, _headerLineFieldNames, _fieldNames, _unmappedFieldNames);
             _fieldPlan = fieldPlan;
             return fieldPlan;
         }
@@ -818,8 +817,8 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <remarks>
         /// A constant or generated value is supplied by the mapping, so is written whether or not the line holds the field, as it is read.  A line
-        /// read or converted with the mapping holds any other mapped value under the field name.  A line built from the model holds it under the key
-        /// that the property resolves to on the line, which differs from the field name when the field is renamed.  Where several mappings share the
+        /// read or converted with the mapping holds any other mapped value under the field name.  A line built from the model holds it under the
+        /// mapping's key, the property key, which differs from the field name when the field is renamed.  Where several mappings share the
         /// field, only one value can be written, so the last mapping, in mapper order, that has a value gives it.
         /// </remarks>
         /// <returns><c>true</c> if the field has a value; <c>false</c> if it is written as a blank value.</returns>
@@ -851,7 +850,8 @@ namespace DataStandardizer.File.CSV
                     return true;
                 }
 
-                var propertyKey = recordLine.ResolveMappedPropertyKey(mapping.Mapping.Key);
+                // A mapper is keyed by property key, so the mapping's key is the key the line holds the property's value under.
+                var propertyKey = mapping.Mapping.Key;
                 if (csvLine.Contains(propertyKey))
                 {
                     fieldKey = propertyKey;
@@ -1409,19 +1409,15 @@ namespace DataStandardizer.File.CSV
             // The keys a record line holds the values of the fields output under, apart from the keys of the properties mapped to them.
             private readonly HashSet<string> _fieldKeys;
 
-            // The keys of the properties mapped to the fields output, as they resolve on a line of the type the plan was built for.
+            // The keys of the properties mapped to the fields output: the keys of the mappings that cover them.
             private readonly HashSet<string> _propertyKeys;
-
-            // The keys of the mappings that cover a field of a record line, for resolving their property keys on a line of another type.
-            private readonly string[] _coveringMappingKeys;
-            private readonly Type _lineType;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldPlan(int mapperVersion, Type? mapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames,
-                string[] unmappedCandidateFieldNames, TRecordLine recordLine)
+                string[] unmappedCandidateFieldNames)
 #else
             internal FieldPlan(int mapperVersion, [AllowNull] Type mapperLineType, [DisallowNull] ICsvFileMapper mapper, [DisallowNull] string[] headerLineFieldNames,
-                [DisallowNull] string[] lineFieldNames, [DisallowNull] string[] unmappedCandidateFieldNames, [DisallowNull] TRecordLine recordLine)
+                [DisallowNull] string[] lineFieldNames, [DisallowNull] string[] unmappedCandidateFieldNames)
 #endif
             {
                 MapperVersion = mapperVersion;
@@ -1430,7 +1426,6 @@ namespace DataStandardizer.File.CSV
                 LineFieldNames = lineFieldNames;
                 UnmappedCandidateFieldNames = unmappedCandidateFieldNames;
                 UnmappedLineFieldNames = unmappedCandidateFieldNames;
-                _lineType = recordLine.GetType();
 
                 // A field mapped by index is output at its index.  The other fields fill the positions left: in header line order if there is a
                 // header line, else the fields mapped by name in mapper order, followed by the fields of the first record line that no mapping
@@ -1505,13 +1500,7 @@ namespace DataStandardizer.File.CSV
                     }
                 }
 
-                _coveringMappingKeys = new string[coveringMappingKeys.Count];
-                coveringMappingKeys.CopyTo(_coveringMappingKeys);
-                _propertyKeys = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var mappingKey in _coveringMappingKeys)
-                {
-                    _propertyKeys.Add(recordLine.ResolveMappedPropertyKey(mappingKey));
-                }
+                _propertyKeys = coveringMappingKeys;
 
                 if (isMapperOutput)
                 {
@@ -1627,8 +1616,7 @@ namespace DataStandardizer.File.CSV
                         continue;
                     }
 
-                    // A property key depends on the line's type, and a registered mapper's plan is used for lines of every type.
-                    if (recordLine.GetType() == _lineType ? _propertyKeys.Contains(lineFieldName) : IsCoveredByMappedProperty(recordLine, lineFieldName))
+                    if (_propertyKeys.Contains(lineFieldName))
                     {
                         continue;
                     }
@@ -1638,23 +1626,6 @@ namespace DataStandardizer.File.CSV
                 }
 
                 fieldName = string.Empty;
-                return false;
-            }
-
-            /// <summary>
-            /// Gets whether a field of a record line is the property that a covering mapping is mapped from, for a line of another type than the one
-            /// the plan was built for.
-            /// </summary>
-            private bool IsCoveredByMappedProperty(TRecordLine recordLine, string lineFieldName)
-            {
-                foreach (var mappingKey in _coveringMappingKeys)
-                {
-                    if (string.Equals(recordLine.ResolveMappedPropertyKey(mappingKey), lineFieldName, StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
-                }
-
                 return false;
             }
 
