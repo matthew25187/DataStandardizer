@@ -216,7 +216,8 @@ namespace DataStandardizer.File.CSV
         /// <paramref name="csvLine"/> is neither a <see cref="CsvFileHeaderLine"/> nor a <typeparamref name="TRecordLine"/>.  Nothing is written.
         /// </exception>
         /// <exception cref="CsvFileException">
-        /// Invalid field name detected, or a header line has no fields.  Or a field value holds a character that RFC 4180§2 doesn't allow in a
+        /// Invalid field name detected, or a header line has no fields, or a header line has no field for a required mapping by name that doesn't
+        /// supply a constant or generated value.  Or a field value holds a character that RFC 4180§2 doesn't allow in a
         /// field, as it isn't a printable character of the writer's character set.  Or a record line has no fields to write, or a different number of fields
         /// from the previous record line, or a field with a value that isn't one of the fields written, and
         /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> isn't set.  Nothing is written.
@@ -242,7 +243,8 @@ namespace DataStandardizer.File.CSV
         /// </para>
         /// <para>
         /// A field mapped by index is written at its index, on the header line and on each record line.  The other fields fill the positions
-        /// left, in turn from position 0.  With a header line, they are the header line's other fields, in its order.  A header line that has
+        /// left, in turn from position 0.  With a header line, they are the header line's other fields that a mapping covers by name, followed by
+        /// those that no mapping covers, each in the header line's order.  A header line that has
         /// none of the names of the mappings at an index gets the field name of the first of them, or else its property name, at that index.
         /// Without a header line, they are the fields mapped by name, in mapper order, followed by the fields of the first record line written
         /// that no mapping covers, in the order they're on that line.  A position still free below the highest index is written as a blank
@@ -431,16 +433,30 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <remarks>
         /// A field mapped by index goes at its index.  Its name is the first name, of the mappings at that index, that the header line has, or else
-        /// the field name of the first of them.  Every other name of the header line fills the positions left, in turn from position 0, in the header
-        /// line's order.  A position still free below the highest index is a blank field.
+        /// the field name of the first of them.  The header line's other fields fill the positions left, in turn from position 0: first those that a
+        /// mapping covers by name, then those that no mapping covers, each in the header line's order.  A position still free below the highest
+        /// index is a blank field.
         /// </remarks>
         /// <returns>The field names in the order they are written, with an empty name for each blank field.</returns>
+        /// <exception cref="CsvFileException">
+        /// A required mapping by name, which doesn't supply a constant or generated value, has no field on the header line, so a reader with the
+        /// mapper couldn't read the file.
+        /// </exception>
         private static string[] LayOutHeaderLineFieldNames(string[] fieldNames, int fieldNameCount, ICsvFileMapper mapper)
         {
-            // The names of the mappings at each index, in mapper order.
+            var headerFieldNames = new HashSet<string>(StringComparer.Ordinal);
+            for (var fieldIndex = 0; fieldIndex < fieldNameCount; fieldIndex++)
+            {
+                headerFieldNames.Add(fieldNames[fieldIndex]);
+            }
+
+            // The names of the mappings at each index, in mapper order, and the names of the mappings by name.  A required mapping by name reads
+            // nothing from a file whose header line doesn't have its field, so the reader throws.
             var mappedFieldNamesByIndex = new SortedDictionary<int, List<string>>();
+            var nameMappedFieldNames = new HashSet<string>(StringComparer.Ordinal);
             foreach (var mapping in mapper)
             {
+                var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(mapping);
                 if (mapping.Value.FieldIndex is int mappedIndex)
                 {
                     if (!mappedFieldNamesByIndex.TryGetValue(mappedIndex, out var mappedFieldNames))
@@ -449,18 +465,20 @@ namespace DataStandardizer.File.CSV
                         mappedFieldNamesByIndex.Add(mappedIndex, mappedFieldNames);
                     }
 
-                    mappedFieldNames.Add(CsvMappingService.GetFieldNameFromMapping(mapping));
+                    mappedFieldNames.Add(mappedFieldName);
+                    continue;
+                }
+
+                nameMappedFieldNames.Add(mappedFieldName);
+                if (!headerFieldNames.Contains(mappedFieldName) && !mapping.Value.IsOptional && !mapping.Value.SuppliesValue)
+                {
+                    throw BuildException($"The header line has no field '{mappedFieldName}', which a required mapping is mapped to.",
+                        new Dictionary<string, object> { { DataItemName.FieldName, mappedFieldName } });
                 }
             }
 
             // A name that the header line has, and that no lower index has taken, is preferred to the first mapping's name, so the header line's own
             // field moves to the index.
-            var headerFieldNames = new HashSet<string>(StringComparer.Ordinal);
-            for (var fieldIndex = 0; fieldIndex < fieldNameCount; fieldIndex++)
-            {
-                headerFieldNames.Add(fieldNames[fieldIndex]);
-            }
-
             var indexedFieldNames = new SortedDictionary<int, string>();
             var takenFieldNames = new HashSet<string>(StringComparer.Ordinal);
             foreach (var mappedFieldNames in mappedFieldNamesByIndex)
@@ -479,19 +497,29 @@ namespace DataStandardizer.File.CSV
                 takenFieldNames.Add(indexedFieldName);
             }
 
-            if (indexedFieldNames.Count == 0)
-            {
-                var unchangedFieldNames = new string[fieldNameCount];
-                Array.Copy(fieldNames, unchangedFieldNames, fieldNameCount);
-                return unchangedFieldNames;
-            }
-
             var layout = new List<string>(fieldNameCount + indexedFieldNames.Count);
             var position = 0;
+            AddLayoutFieldNames(layout, ref position, fieldNames, fieldNameCount, indexedFieldNames, takenFieldNames, nameMappedFieldNames, true);
+            AddLayoutFieldNames(layout, ref position, fieldNames, fieldNameCount, indexedFieldNames, takenFieldNames, nameMappedFieldNames, false);
+            foreach (var indexedFieldName in indexedFieldNames)
+            {
+                SetLayoutFieldName(layout, indexedFieldName.Key, indexedFieldName.Value);
+            }
+
+            return layout.ToArray();
+        }
+
+        /// <summary>
+        /// Puts the header line's fields that a mapping covers by name, or those that no mapping covers, in the free positions of a layout, in the
+        /// header line's order.
+        /// </summary>
+        private static void AddLayoutFieldNames(List<string> layout, ref int position, string[] fieldNames, int fieldNameCount,
+            SortedDictionary<int, string> indexedFieldNames, HashSet<string> takenFieldNames, HashSet<string> nameMappedFieldNames, bool isNameMapped)
+        {
             for (var fieldIndex = 0; fieldIndex < fieldNameCount; fieldIndex++)
             {
                 var fieldName = fieldNames[fieldIndex];
-                if (takenFieldNames.Contains(fieldName))
+                if (takenFieldNames.Contains(fieldName) || nameMappedFieldNames.Contains(fieldName) != isNameMapped)
                 {
                     continue;
                 }
@@ -503,13 +531,6 @@ namespace DataStandardizer.File.CSV
 
                 SetLayoutFieldName(layout, position++, fieldName);
             }
-
-            foreach (var indexedFieldName in indexedFieldNames)
-            {
-                SetLayoutFieldName(layout, indexedFieldName.Key, indexedFieldName.Value);
-            }
-
-            return layout.ToArray();
         }
 
         /// <summary>

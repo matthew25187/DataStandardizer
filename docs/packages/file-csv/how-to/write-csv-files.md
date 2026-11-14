@@ -74,7 +74,9 @@ so a reader with the same mapper reads it from there. The writer writes whole
 lines, so every other field, mapped by name or not mapped at all, fills the
 positions that are left, in turn from position 0:
 
-- With a header line, they are the header line's other fields, in its order.
+- With a header line, they are the header line's other fields: first those
+  mapped by name, then those that no mapping covers, each in the header line's
+  order.
 - Without one, they are the fields mapped by name, in mapper order, followed by
   the fields of the first record line that no mapping covers.
 
@@ -89,9 +91,15 @@ this.Map().Property(x => x.City);
 this.Map().Property(x => x.Country).HasFieldIndex(9);
 ```
 
-the header line `FirstName,LastName,Title,City,Country` is written as
-`Title,FirstName,LastName,City,,,,,,Country`, and a record is written in the
-same layout, such as `Dr,Ann,Lee,Oslo,,,,,,Norway`. Without a header line, the
-record is written the same way. If the header line doesn't have the name of a
-field mapped by index, the mapping's field name, or else its property name, is
-written at the index.
+the header line `FirstName,Phone,LastName,Title,City,Country` is written as
+`Title,FirstName,LastName,City,Phone,,,,,Country`, with the unmapped `Phone`
+after the mapped fields, and a record is written in the same layout, such as
+`Dr,Ann,Lee,Oslo,555,,,,,Norway`. Without a header line, the mapped fields are
+written the same way. If the header line doesn't have the name of a field mapped
+by index, the mapping's field name, or else its property name, is written at the
+index.
+
+A field mapped by name that the header line doesn't have is left out if the
+mapping is optional. If it's required, and has no constant or generated value,
+writing the header line throws `CsvFileException`, as a reader with the mapper
+couldn't read the file.

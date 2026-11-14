@@ -148,6 +148,10 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ContactRecordLine = "Dr,Ann,Lee,Oslo,,,,,,Norway\r\n";
         private const string ContactHeaderLine = "Title,FirstName,LastName,City,,,,,,Country\r\n";
         private const string ContactHeaderAndRecordLines = "Title,FirstName,LastName,City,,,,,,Country\r\nDr,Ann,Lee,Oslo,,,,,,Norway\r\n";
+        private const string ContactPhoneFieldName = "Phone";
+        private const string ContactPhone = "555";
+        private const string ContactPhoneHeaderAndRecordLines = "Title,FirstName,LastName,City,Phone,,,,,Country\r\nDr,Ann,Lee,Oslo,555,,,,,Norway\r\n";
+        private const string ContactNoCityHeaderLine = "Title,FirstName,LastName,,,,,,,Country\r\n";
 
         private const string OptionsParameterName = "options";
 
@@ -1275,6 +1279,88 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be(ContactHeaderLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithUnmappedField_WritesUnmappedFieldAfterMappedFields()
+        {
+            // arrange
+            ICsvFileLine headerLine = new CsvFileHeaderLine();
+            headerLine.Add(ContactFirstNameFieldName, ContactFirstNameFieldName);
+            headerLine.Add(ContactPhoneFieldName, ContactPhoneFieldName);
+            headerLine.Add(ContactLastNameFieldName, ContactLastNameFieldName);
+            headerLine.Add(ContactTitleFieldName, ContactTitleFieldName);
+            headerLine.Add(ContactCityFieldName, ContactCityFieldName);
+            headerLine.Add(ContactCountryFieldName, ContactCountryFieldName);
+            var testLine = new ContactLine
+            {
+                Country = ContactCountry, City = ContactCity, Title = ContactTitle, LastName = ContactLastName, FirstName = ContactFirstName
+            };
+            ((ICsvFileLine)testLine).Add(ContactPhoneFieldName, ContactPhone);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ContactLineMapper>();
+                csvWriter.WriteLine(headerLine);
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ContactPhoneHeaderAndRecordLines);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithoutRequiredNameMappedField_ThrowsCsvFileException()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(ContactFirstNameFieldName, ContactFirstNameFieldName);
+            testLine.Add(ContactLastNameFieldName, ContactLastNameFieldName);
+            testLine.Add(ContactTitleFieldName, ContactTitleFieldName);
+            testLine.Add(ContactCountryFieldName, ContactCountryFieldName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<ContactLineMapper>();
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .Which.Data[FieldNameDataItem].Should().Be(ContactCityFieldName);
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_HeaderLineWithoutOptionalNameMappedField_WritesHeaderLineWithoutIt()
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileHeaderLine();
+            testLine.Add(ContactFirstNameFieldName, ContactFirstNameFieldName);
+            testLine.Add(ContactLastNameFieldName, ContactLastNameFieldName);
+            testLine.Add(ContactTitleFieldName, ContactTitleFieldName);
+            testLine.Add(ContactCountryFieldName, ContactCountryFieldName);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ContactLine>(stringWriter))
+            {
+                csvWriter.RegisterMapper<OptionalCityContactLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ContactNoCityHeaderLine);
             }
         }
 
@@ -4046,6 +4132,21 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map().Property(x => x.LastName);
                 this.Map().Property(x => x.Title).HasFieldIndex(0);
                 this.Map().Property(x => x.City);
+                this.Map().Property(x => x.Country).HasFieldIndex(9);
+            }
+        }
+
+        /// <summary>
+        /// Maps the fields as <see cref="ContactLineMapper"/> does, except that City is optional.
+        /// </summary>
+        private sealed class OptionalCityContactLineMapper : CsvFileMapperBase<ContactLine>
+        {
+            public OptionalCityContactLineMapper()
+            {
+                this.Map().Property(x => x.FirstName);
+                this.Map().Property(x => x.LastName);
+                this.Map().Property(x => x.Title).HasFieldIndex(0);
+                this.Map().Property(x => x.City).IsOptional();
                 this.Map().Property(x => x.Country).HasFieldIndex(9);
             }
         }
