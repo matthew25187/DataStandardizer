@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -66,6 +66,21 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ThirdDescription = "Third";
         private const string CafeLatin1Value = "Caf\x00E9";
         private const string NoelValue = "No\x00EBl";
+
+        // A byte that isn't part of a character of the encoding reads as the lone surrogate U+DC00 plus the byte, and a lone surrogate isn't a
+        // character, so the field that holds it is a bad value, reported up to and including it.
+        private const string EscapedLeadByteBadValue = "b\xDCC3";
+        private const string EscapedAsciiBadValue = "a\xDCE9";
+        private const string EscapedByteOrderMarkBadValue = "\xDCFF";
+        private const string ReplacementCharacterValue = "b\xFFFDc";
+        private const string LoneHighSurrogateLine = "a,b\xD800c";
+        private const string LoneHighSurrogateBadValue = "b\xD800";
+        private const string LoneLowSurrogateQuotedLine = "a,\"b\xDC00c\"";
+        private const string LoneLowSurrogateBadValue = "b\xDC00";
+
+        // U+1F600, a surrogate pair, which is one character.
+        private const string SurrogatePairLine = "a,b\xD83D\xDE00c";
+        private const string SurrogatePairValue = "b\xD83D\xDE00c";
 
         // Field names given by mappings and header lines.
         private const string IdFieldName = nameof(TestLine.Id);
@@ -2666,6 +2681,230 @@ namespace DataStandardizer.File.CSV.Tests
                 testResult.Should().NotBeNull();
                 testResult[0].Should().Be(CafeLatin1Value);
                 testResult[1].Should().Be(NoelValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithInvalidUtf8_CallsBadValueHandlerWithEscapedBytes()
+        {
+            // arrange
+            // "a,b", a lone UTF-8 lead byte 0xC3, then "c": the byte reads as U+DCC3, which isn't a character, so the field is a bad value.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x2C, 0x62, 0xC3, 0x63 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(EscapedLeadByteBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithInvalidUtf8WithoutBadValueHandler_ThrowsCsvFileException()
+        {
+            // arrange
+            // "a,b", the byte 0xFF, which is never in UTF-8, then "c".
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x2C, 0x62, 0xFF, 0x63 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterStreamRecordWithInvalidUtf8_ReadsNextRecord()
+        {
+            // arrange
+            // "a,b", the byte 0xFF, then CRLF and "d,e": the record after the bad value is read as usual.
+            var options = new CsvFileOptions { BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => { }) };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0x2C, 0x62, 0xFF, 0x0D, 0x0A, 0x64, 0x2C, 0x65 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                var firstResult = csvReader.ReadLine();
+                var secondResult = csvReader.ReadLine();
+
+                // assert
+                firstResult.Should().NotBeNull();
+                firstResult[1].Should().Be(string.Empty);
+                secondResult.Should().NotBeNull();
+                secondResult[0].Should().Be("d");
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithAsciiEncodingAndByteOutsideAscii_CallsBadValueHandler()
+        {
+            // arrange
+            // "a" and 0xE9, which isn't a US-ASCII byte, so it reads as U+DCE9 rather than '?'.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                Encoding = Encoding.ASCII,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0x61, 0xE9 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(EscapedAsciiBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithDeclaredEncodingAndOtherEncodingsByteOrderMark_CallsBadValueHandler()
+        {
+            // arrange
+            // A UTF-16 little endian byte order mark, then "a" in UTF-8: the declared encoding wins, and 0xFF isn't a UTF-8 byte.
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                Encoding = Encoding.UTF8,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var testStream = new MemoryStream(new byte[] { 0xFF, 0xFE, 0x61 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(EscapedByteOrderMarkBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithDeclaredEncodingAndItsByteOrderMark_PassesOverByteOrderMark()
+        {
+            // arrange
+            // "Caf\x00E9" in UTF-16 little endian, after its byte order mark.
+            var options = new CsvFileOptions { Encoding = Encoding.Unicode };
+            using (var testStream = new MemoryStream(new byte[] { 0xFF, 0xFE, 0x43, 0x00, 0x61, 0x00, 0x66, 0x00, 0xE9, 0x00 }))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testStream, options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[0].Should().Be(CafeLatin1Value);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_CallerSuppliedStreamReaderWithReplacementCharacter_ReadsReplacementCharacterAsData()
+        {
+            // arrange
+            // "b", the byte 0xFF, which is never in UTF-8, then "c": the caller's StreamReader decodes the byte as U+FFFD, which the CSV reader
+            // can't tell from U+FFFD in the file, so it is a character of the field.
+            using (var testStream = new MemoryStream(new byte[] { 0x62, 0xFF, 0x63 }))
+            using (var streamReader = new StreamReader(testStream, Encoding.UTF8))
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(streamReader))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[0].Should().Be(ReplacementCharacterValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithLoneHighSurrogateInUnquotedField_CallsBadValueHandler()
+        {
+            // arrange
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LoneHighSurrogateLine), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(LoneHighSurrogateBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithLoneLowSurrogateInQuotedField_CallsBadValueHandler()
+        {
+            // arrange
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LoneLowSurrogateQuotedLine), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(LoneLowSurrogateBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithLoneHighSurrogateAtEndOfBuffer_CallsBadValueHandler()
+        {
+            // arrange
+            // With a buffer of one character, the character after the high surrogate is read in a refill.
+            const int OneCharacterBufferSize = 1;
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(LoneHighSurrogateLine), options, OneCharacterBufferSize))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(LoneHighSurrogateBadValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StringReaderWithSurrogatePair_ReadsSurrogatePair()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(SurrogatePairLine)))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult[1].Should().Be(SurrogatePairValue);
             }
         }
 

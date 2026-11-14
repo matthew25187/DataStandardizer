@@ -203,6 +203,12 @@ namespace DataStandardizer.File.CSV.Tests
         private const string CjkUnifiedIdeographOneValue = "\x4E00";
         private const string EuroSignValue = "\x20AC";
         private const string GrinningFaceValue = "\xD83D\xDE00";
+
+        // A surrogate without its other half isn't a character of any character set.
+        private const string LoneHighSurrogateValue = "a\xD800";
+        private const string LoneLowSurrogateValue = "\xDC00a";
+        private const string LoneHighSurrogateMessage = "The value of the field at index 0 holds U+D800, a surrogate without its other half, which isn't a character, so it can't be written.";
+        private const string LoneLowSurrogateMessage = "The value of the field at index 0 holds U+DC00, a surrogate without its other half, which isn't a character, so it can't be written.";
         private const string LatinSmallLetterEWithAcuteLine = "\x00E9\r\n";
         private const string CjkUnifiedIdeographOneLine = "\x4E00\r\n";
         private const string GrinningFaceLine = "\xD83D\xDE00\r\n";
@@ -2393,6 +2399,46 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(expectedMessage)
                     .Which.Data[FieldIndexDataItem].Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueWithLoneHighSurrogateToStringWriter_ThrowsCsvFileException()
+        {
+            // arrange
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, LoneHighSurrogateValue);
+
+            using (var stringWriter = new StringWriter())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(LoneHighSurrogateMessage)
+                    .Which.Data[FieldIndexDataItem].Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_RecordValueWithLoneLowSurrogateToStream_ThrowsCsvFileException()
+        {
+            // arrange
+            // The default encoding, UTF-8, would throw EncoderFallbackException for it.
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add(ZeroFieldName, LoneLowSurrogateValue);
+
+            using (var testStream = new MemoryStream())
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream))
+            {
+
+                // act
+                Action testAction = () => csvWriter.WriteLine(testRecordLine);
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(LoneLowSurrogateMessage);
             }
         }
 

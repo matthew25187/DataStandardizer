@@ -15,7 +15,9 @@ namespace DataStandardizer.File.CSV
     /// an encoding, the character set is US-ASCII.
     /// <para>
     /// A control character, <c>%x00-1F</c>, <c>%x7F</c> or <c>%x80-9F</c>, isn't printable, so it is never allowed, whatever the character set.
-    /// DQUOTE, the field delimiter and the terminator line break are left to the caller.
+    /// Nor is a lone surrogate, which isn't a character of any character set: a string can hold one, and a reader the CSV reader creates reads a
+    /// byte that isn't part of a character of its encoding as one.  DQUOTE, the field delimiter and the terminator line break are left to the
+    /// caller.
     /// </para>
     /// </remarks>
     internal sealed class CsvTextData
@@ -25,6 +27,8 @@ namespace DataStandardizer.File.CSV
         private const char LastAscii = '\x7F';
         private const char FirstC1Control = '\x80';
         private const char LastC1Control = '\x9F';
+        private const char FirstSurrogate = '\xD800';
+        private const char LastSurrogate = '\xDFFF';
         private const int PageSize = 256;
 
         // The name of US-ASCII.
@@ -141,11 +145,13 @@ namespace DataStandardizer.File.CSV
         /// Gets the field characters of the character set a reader reads.
         /// </summary>
         /// <remarks>
-        /// A <see cref="StreamReader"/> decodes its encoding, which, when the CSV reader creates it, is the one in the options or the default.  A
-        /// <see cref="StringReader"/> reads a string, which is UTF-16.  Any other reader has no encoding, so the character set is US-ASCII.
+        /// A reader the CSV reader creates decodes the encoding in the options, the default, or the one a byte order mark names, and a caller's
+        /// <see cref="StreamReader"/> decodes its own.  A <see cref="StringReader"/> reads a string, which is UTF-16.  Any other reader has no
+        /// encoding, so the character set is US-ASCII.
         /// </remarks>
         internal static CsvTextData ForReader(TextReader reader)
         {
+            if (reader is CsvStreamTextReader csvStreamReader) return ForEncoding(csvStreamReader.CurrentEncoding);
             if (reader is StreamReader streamReader) return ForEncoding(streamReader.CurrentEncoding);
             if (reader is StringReader) return StringTextData;
 
@@ -171,7 +177,7 @@ namespace DataStandardizer.File.CSV
             switch (_kind)
             {
                 case CharacterSetKind.Unicode:
-                    return true;
+                    return !char.IsSurrogate(character);
                 case CharacterSetKind.Encoded:
                     return !char.IsSurrogate(character) && IsEncodable(character, character, 1);
                 default:
@@ -275,7 +281,8 @@ namespace DataStandardizer.File.CSV
 #if !NET8_0_OR_GREATER
         /// <summary>
         /// Gets the index of the first character that has to be checked, or -1 if there is none: one that isn't printable US-ASCII the character
-        /// set has, unless the character set has all of Unicode and it isn't a control character, and isn't one of <paramref name="exemptCharacters"/>.
+        /// set has, unless the character set has all of Unicode and it is neither a control character nor a surrogate, and isn't one of
+        /// <paramref name="exemptCharacters"/>.
         /// </summary>
         internal int IndexOfCharacterToCheck(ReadOnlySpan<char> value, char[] exemptCharacters)
         {
@@ -285,7 +292,7 @@ namespace DataStandardizer.File.CSV
                 var character = value[index];
                 if (character >= FirstPrintableAscii && character <= LastPrintableAscii
                     && (hasAllPrintableAscii || Array.IndexOf(_missingPrintableAscii, character) < 0)) continue;
-                if (character > LastC1Control && _kind == CharacterSetKind.Unicode) continue;
+                if (character > LastC1Control && _kind == CharacterSetKind.Unicode && !char.IsSurrogate(character)) continue;
                 if (Array.IndexOf(exemptCharacters, character) >= 0) continue;
 
                 return index;
@@ -306,12 +313,12 @@ namespace DataStandardizer.File.CSV
         /// </param>
         /// <param name="searchC1Separately">
         /// <c>true</c> if the characters returned leave out the C1 control characters, <c>%x80-9F</c>, which the caller then searches for with
-        /// <c>IndexOfAnyInRange</c> up to where the search stopped.
+        /// <c>IndexOfAnyInRange</c> up to where the search stopped, as <see cref="IndexOfRangeToCheck"/> does.
         /// </param>
         /// <remarks>
         /// Unless the character set has all of Unicode, every character outside US-ASCII stops the search to be checked, so the set is the
         /// characters passed over, nearly all in US-ASCII.  With all of Unicode, the characters that stop the search are the control characters
-        /// and <paramref name="stopCharacters"/>.  A set of US-ASCII characters is searched with vector instructions, and one with a character
+        /// and <paramref name="stopCharacters"/>, and <see cref="IndexOfRangeToCheck"/> searches for the surrogates as a range.  A set of US-ASCII characters is searched with vector instructions, and one with a character
         /// above <c>%x7F</c> isn't, so the C1 controls are left out of it and searched for as a range, unless another character of the set is above
         /// <c>%x7F</c> anyway or one of them is exempt.
         /// </remarks>
@@ -367,9 +374,18 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the index of the first C1 control character, <c>%x80-9F</c>, in a value, or -1 if there is none.
+        /// Gets the index of the first character to check that the characters from <see cref="GetSearchCharacters"/> leave out, or -1 if there is
+        /// none: a C1 control character, <c>%x80-9F</c>, when <paramref name="searchC1Separately"/> is <c>true</c>, and, when the character set
+        /// has all of Unicode, a surrogate, so that a lone one is found.
         /// </summary>
-        internal static int IndexOfC1Control(ReadOnlySpan<char> value) => value.IndexOfAnyInRange(FirstC1Control, LastC1Control);
+        internal int IndexOfRangeToCheck(ReadOnlySpan<char> value, bool searchC1Separately)
+        {
+            var index = searchC1Separately ? value.IndexOfAnyInRange(FirstC1Control, LastC1Control) : -1;
+            if (_kind != CharacterSetKind.Unicode) return index;
+
+            var surrogateIndex = (index < 0 ? value : value.Slice(0, index)).IndexOfAnyInRange(FirstSurrogate, LastSurrogate);
+            return surrogateIndex >= 0 ? surrogateIndex : index;
+        }
 #endif
     }
 }

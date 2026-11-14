@@ -106,7 +106,8 @@ The encoding is chosen in this order:
 
 1. `Encoding`, when the reader or writer is constructed from a `Stream` or a file path.
 2. The default, UTF-8, when it is constructed from a `Stream` or a file path without
-   `Encoding`.
+   `Encoding`. A reader then takes the encoding a byte order mark at the start of the
+   file names, if it has one.
 3. The encoding of the `TextReader` or `TextWriter` it is given: a `StreamReader`'s
    current encoding, or a `TextWriter`'s `Encoding`. A `StringReader` or `StringWriter`
    holds a string, which is UTF-16, so it accepts every printable character.
@@ -120,6 +121,27 @@ throws `CsvFileException` for such a value, and writes nothing for the line.
 > `Encoding` can't be combined with it. If a specific encoding is required, such as
 > ISO 8859-1 or US-ASCII, construct the reader or writer from a `Stream` or a file path
 > with `Encoding` set, rather than from a `StringReader` or `StringWriter`.
+
+### Malformed input
+
+A reader constructed from a `Stream` or a file path decodes the file itself. When `Encoding`
+is set, it wins over a byte order mark of another encoding, whose bytes are read as
+characters of `Encoding`. A byte order mark of `Encoding` itself is passed over.
+
+A byte the encoding can't decode, such as `0xFF` in UTF-8, or any byte above `0x7F` in
+US-ASCII, reads as the lone surrogate `U+DC00` plus the byte (`U+DCFF` for `0xFF`).
+A lone surrogate isn't a character of any character set, so the field that holds it is
+a bad value, reported like any other character outside the set. `RawFieldValue` shows
+the bytes this way. Only that field is affected: the reader carries on with the next
+field and the next record. A lone surrogate read from a `StringReader` is a bad value too.
+
+A `TextReader` the caller supplies decodes the file itself, so the reader can't tell a
+byte it replaced from the same character in the file. A `StreamReader` replaces a byte it
+can't decode with U+FFFD, which the reader reads as a character like any other.
+Construct the reader from a `Stream` or a file path to have such bytes reported.
+
+A writer throws `CsvFileException` for a value that holds a lone surrogate, whatever its
+encoding.
 
 ## Field delimiter character
 

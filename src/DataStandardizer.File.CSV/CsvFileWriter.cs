@@ -1170,11 +1170,8 @@ namespace DataStandardizer.File.CSV
                 var remaining = fieldValue.AsSpan(start);
 #if NET8_0_OR_GREATER
                 var offset = searchExcept ? remaining.IndexOfAnyExcept(searchValues) : remaining.IndexOfAny(searchValues);
-                if (searchC1Separately)
-                {
-                    var c1Offset = CsvTextData.IndexOfC1Control(offset < 0 ? remaining : remaining.Slice(0, offset));
-                    if (c1Offset >= 0) offset = c1Offset;
-                }
+                var rangeOffset = textData.IndexOfRangeToCheck(offset < 0 ? remaining : remaining.Slice(0, offset), searchC1Separately);
+                if (rangeOffset >= 0) offset = rangeOffset;
 #else
                 var offset = textData.IndexOfCharacterToCheck(remaining, exemptCharacters);
 #endif
@@ -1185,6 +1182,7 @@ namespace DataStandardizer.File.CSV
                 var character = fieldValue[index];
                 int codePoint;
                 bool isAllowed;
+                var isLoneSurrogate = false;
                 if (char.IsHighSurrogate(character) && index + 1 < fieldValue.Length && char.IsLowSurrogate(fieldValue[index + 1]))
                 {
                     isAllowed = textData.IsAllowed(character, fieldValue[index + 1]);
@@ -1194,8 +1192,17 @@ namespace DataStandardizer.File.CSV
                 else
                 {
                     isAllowed = textData.IsAllowed(character);
+                    isLoneSurrogate = char.IsSurrogate(character);
                     codePoint = character;
                     start = index + 1;
+                }
+
+                if (isLoneSurrogate)
+                {
+                    var message = string.Format(CultureInfo.InvariantCulture,
+                        "The value of the field at index {0} holds U+{1:X4}, a surrogate without its other half, which isn't a character, so it can't be written.",
+                        fieldIndex, codePoint);
+                    throw BuildException(message, new Dictionary<string, object> { { DataItemName.FieldIndex, fieldIndex }, { DataItemName.FieldValue, fieldValue } });
                 }
 
                 if (!isAllowed)
