@@ -1,19 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace DataStandardizer.File.CSV
 {
     internal static class CsvMappingService
     {
+        private const string FieldIndexDataItem = "FieldIndex";
+        private const string FieldNameDataItem = "FieldName";
+        private const string PropertyDataItem = "Property";
+        private const string RepeatedFieldNameNotRenamedTemplate =
+            "The header line has {0} fields named '{1}', so the mapping of property '{2}' must give its field a name of its own with UseFieldName.";
+        private const string SharedFieldRenamedTemplate =
+            "The mappings of properties '{0}' and '{1}' share the field at index {2}, but give it different names, '{3}' and '{4}'.";
+
+        /// <summary>
+        /// Gets the name of the field a mapping is mapped to, as a line knows it: the name the mapping gives it with
+        /// <see cref="CsvFieldMapping.UseFieldName"/>, else its field name, else its property key.
+        /// </summary>
         internal static string GetFieldNameFromMapping(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
         {
-            return propertyFieldMapping.Value.FieldName ?? propertyFieldMapping.Key;
+            return GetFieldNameFromMapping(propertyFieldMapping.Key, propertyFieldMapping.Value);
         }
 
+        /// <inheritdoc cref="GetFieldNameFromMapping(KeyValuePair{string, CsvFieldMapping})"/>
         internal static string GetFieldNameFromMapping(string propertyKey, CsvFieldMapping fieldMapping)
         {
-            return fieldMapping.FieldName ?? propertyKey;
+            return fieldMapping.UseFieldName ?? fieldMapping.FieldName ?? propertyKey;
+        }
+
+        /// <summary>
+        /// Gets the name of the field a mapping is mapped to, as a header line in a file names it: its field name, else its property key.
+        /// </summary>
+        internal static string GetFileFieldNameFromMapping(KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
+        {
+            return propertyFieldMapping.Value.FieldName ?? propertyFieldMapping.Key;
         }
 
         /// <summary>
@@ -33,8 +57,8 @@ namespace DataStandardizer.File.CSV
 #endif
             foreach (var mapping in mapper)
             {
-                var fieldName = mapping.Value.FieldName;
-                if (fieldName is null || string.Equals(fieldName, mapping.Key, StringComparison.Ordinal))
+                var fieldName = GetFieldNameFromMapping(mapping);
+                if (string.Equals(fieldName, mapping.Key, StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -141,6 +165,169 @@ namespace DataStandardizer.File.CSV
             }
 
             return positions;
+        }
+
+        /// <summary>
+        /// Gives the fields of a header line in a file the names they are known by once read, as the mappings of a mapper give them with
+        /// <see cref="CsvFieldMapping.UseFieldName"/>.
+        /// </summary>
+        /// <param name="fileFieldNames">The names on the header line, as they are in the file.</param>
+        /// <param name="mapper">The mapper that reads the header line.</param>
+        /// <param name="fieldNames">The field names once read, by position.  They may repeat a name that no mapping renames; the caller checks.</param>
+        /// <param name="errorMessage">Why the mapper can't name the fields, or empty if it can.</param>
+        /// <param name="errorData">The data items of the error, or <c>null</c> if there is none.</param>
+        /// <returns><c>true</c> if the mapper names the fields; <c>false</c> if a mapping of a repeated name doesn't rename its field, or mappings
+        /// that share a field give it different names.</returns>
+        /// <remarks>
+        /// A mapping by index takes the field at its index.  The mappings by name are given their fields after them: a field of a repeated name
+        /// that a mapping by index takes isn't given to a mapping by name, unless every field of that name is.  Mappings by the same name take the
+        /// first, second and so on of its fields left, in mapper order, and one past the last takes the last.  A mapping that gives the same name
+        /// with <see cref="CsvFieldMapping.UseFieldName"/> as an earlier mapping by the same name shares its field rather than taking the next one.
+        /// Every mapping of a field must give it the same name, or none.  RFC 4180 §2 ¶3 allows a header line to repeat a name, but a line's field
+        /// names must be unique, so a mapping of a repeated name must rename its field.
+        /// </remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryResolveHeaderFieldNames(IReadOnlyList<string> fileFieldNames, ICsvFileMapper mapper, out string[] fieldNames,
+            out string errorMessage, out Dictionary<string, object>? errorData)
+#else
+        internal static bool TryResolveHeaderFieldNames(IReadOnlyList<string> fileFieldNames, ICsvFileMapper mapper, out string[] fieldNames,
+            out string errorMessage, [MaybeNull] out Dictionary<string, object> errorData)
+#endif
+        {
+            fieldNames = fileFieldNames.ToArray();
+            errorMessage = string.Empty;
+            errorData = null;
+            if (mapper.Count == 0)
+            {
+                return true;
+            }
+
+            // The first mapping of each field, and the name it gives the field once read (null if it keeps its name in the file).
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            var firstPropertyKeys = new string?[fieldNames.Length];
+            var useFieldNames = new string?[fieldNames.Length];
+#else
+            var firstPropertyKeys = new string[fieldNames.Length];
+            var useFieldNames = new string[fieldNames.Length];
+#endif
+            var isIndexed = new bool[fieldNames.Length];
+            foreach (var mapping in mapper)
+            {
+                if (mapping.Value.FieldIndex is int fieldIndex && fieldIndex < fieldNames.Length)
+                {
+                    isIndexed[fieldIndex] = true;
+                    if (!TryBindHeaderField(fileFieldNames, fieldNames, firstPropertyKeys, useFieldNames, fieldIndex, mapping, out errorMessage, out errorData))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            var positionsByFileFieldName = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            for (var position = 0; position < fieldNames.Length; position++)
+            {
+                if (!positionsByFileFieldName.TryGetValue(fileFieldNames[position], out var namePositions))
+                {
+                    namePositions = new List<int>();
+                    positionsByFileFieldName.Add(fileFieldNames[position], namePositions);
+                }
+
+                namePositions.Add(position);
+            }
+
+            // How many fields of each name the mappings by name have taken, and the field each name given with UseFieldName took, by file name.
+            var takenFieldCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            var renamedPositions = new Dictionary<string, Dictionary<string, int>>(StringComparer.Ordinal);
+            foreach (var mapping in mapper)
+            {
+                if (mapping.Value.FieldIndex.HasValue)
+                {
+                    continue;
+                }
+
+                var fileFieldName = GetFileFieldNameFromMapping(mapping);
+                if (!positionsByFileFieldName.TryGetValue(fileFieldName, out var namePositions))
+                {
+                    continue;
+                }
+
+                var freePositions = namePositions.Where(position => !isIndexed[position]).ToList();
+                if (freePositions.Count == 0)
+                {
+                    freePositions = namePositions;
+                }
+
+                var useFieldName = mapping.Value.UseFieldName;
+                if (freePositions.Count > 1 && useFieldName is null)
+                {
+                    errorMessage = string.Format(RepeatedFieldNameNotRenamedTemplate, freePositions.Count, fileFieldName, mapping.Key);
+                    errorData = new Dictionary<string, object> { { FieldNameDataItem, fileFieldName }, { PropertyDataItem, mapping.Key } };
+                    return false;
+                }
+
+                if (!renamedPositions.TryGetValue(fileFieldName, out var positionsByUseFieldName))
+                {
+                    positionsByUseFieldName = new Dictionary<string, int>(StringComparer.Ordinal);
+                    renamedPositions.Add(fileFieldName, positionsByUseFieldName);
+                }
+
+                if (useFieldName is null || !positionsByUseFieldName.TryGetValue(useFieldName, out var fieldPosition))
+                {
+                    takenFieldCounts.TryGetValue(fileFieldName, out var takenFieldCount);
+                    takenFieldCounts[fileFieldName] = takenFieldCount + 1;
+                    fieldPosition = freePositions[Math.Min(takenFieldCount, freePositions.Count - 1)];
+                    if (useFieldName != null)
+                    {
+                        positionsByUseFieldName.Add(useFieldName, fieldPosition);
+                    }
+                }
+
+                if (!TryBindHeaderField(fileFieldNames, fieldNames, firstPropertyKeys, useFieldNames, fieldPosition, mapping, out errorMessage, out errorData))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Binds a mapping to a field of a header line, giving the field the mapping's name if it is the field's first mapping, else checking that
+        /// it gives the same name as the first one.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static bool TryBindHeaderField(IReadOnlyList<string> fileFieldNames, string[] fieldNames, string?[] firstPropertyKeys, string?[] useFieldNames,
+            int position, KeyValuePair<string, CsvFieldMapping> mapping, out string errorMessage, out Dictionary<string, object>? errorData)
+#else
+        private static bool TryBindHeaderField(IReadOnlyList<string> fileFieldNames, string[] fieldNames, string[] firstPropertyKeys, string[] useFieldNames,
+            int position, KeyValuePair<string, CsvFieldMapping> mapping, out string errorMessage, [MaybeNull] out Dictionary<string, object> errorData)
+#endif
+        {
+            errorMessage = string.Empty;
+            errorData = null;
+            var useFieldName = mapping.Value.UseFieldName;
+            if (firstPropertyKeys[position] is string firstPropertyKey)
+            {
+                if (!string.Equals(useFieldNames[position], useFieldName, StringComparison.Ordinal))
+                {
+                    var fileFieldName = fileFieldNames[position];
+                    errorMessage = string.Format(SharedFieldRenamedTemplate, firstPropertyKey, mapping.Key, position, useFieldNames[position] ?? fileFieldName,
+                        useFieldName ?? fileFieldName);
+                    errorData = new Dictionary<string, object> { { FieldIndexDataItem, position }, { PropertyDataItem, mapping.Key } };
+                    return false;
+                }
+
+                return true;
+            }
+
+            firstPropertyKeys[position] = mapping.Key;
+            useFieldNames[position] = useFieldName;
+            if (useFieldName != null)
+            {
+                fieldNames[position] = useFieldName;
+            }
+
+            return true;
         }
     }
 }

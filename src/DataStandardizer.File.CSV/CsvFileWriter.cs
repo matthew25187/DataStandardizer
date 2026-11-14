@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
@@ -22,6 +23,7 @@ namespace DataStandardizer.File.CSV
             internal const string ExpectedFieldCount = "ExpectedFieldCount";
             internal const string FieldIndex = "FieldIndex";
             internal const string FieldName = "FieldName";
+            internal const string FieldNames = "FieldNames";
             internal const string FieldValue = "FieldValue";
         }
         private const char QuoteCharacter = '"';
@@ -409,14 +411,30 @@ namespace DataStandardizer.File.CSV
             }
 
             // The fields mapped by index are put at their indexes, and the header line's other fields fill the positions left, in order.
-            var headerLineFieldNames = LayOutHeaderLineFieldNames(fieldNames, fieldNameCount, GetMapper());
+            var mapper = GetMapper();
+            var headerLineFieldNames = LayOutHeaderLineFieldNames(fieldNames, fieldNameCount, mapper);
+            var fileFieldNames = GetFileFieldNames(mapper);
+            var writtenFieldNames = headerLineFieldNames;
+            if (fileFieldNames != null)
+            {
+                writtenFieldNames = new string[headerLineFieldNames.Length];
+                for (var fieldIndex = 0; fieldIndex < writtenFieldNames.Length; fieldIndex++)
+                {
+                    writtenFieldNames[fieldIndex] = fileFieldNames.TryGetValue(headerLineFieldNames[fieldIndex], out var fileFieldName)
+                        ? fileFieldName
+                        : headerLineFieldNames[fieldIndex];
+                }
+
+                ThrowIfNotReadBack(writtenFieldNames, headerLineFieldNames, mapper);
+            }
 
             // Each name is kept as it is, to order the fields on the record lines, and written with the embedded line break, as the reader, which
-            // applies it to every field, will give it back.
+            // applies it to every field, will give it back.  A field that a mapping by name renames is written under its name in the file, which
+            // the header line may repeat.
             var fieldValues = GetFieldValueBuffer(headerLineFieldNames.Length);
             for (var fieldIndex = 0; fieldIndex < headerLineFieldNames.Length; fieldIndex++)
             {
-                var fieldName = headerLineFieldNames[fieldIndex];
+                var fieldName = writtenFieldNames[fieldIndex];
                 var headerFieldValue = _options.EmbeddedLineBreak != null && fieldName.IndexOfAny(LineBreakCharacters) >= 0
                     ? NormalizeFieldValueLineBreaks(fieldName, _options)
                     : fieldName;
@@ -428,6 +446,60 @@ namespace DataStandardizer.File.CSV
             _headerLineFieldNames = headerLineFieldNames;
 
             return headerLineFieldNames.Length;
+        }
+
+        /// <summary>
+        /// Gets the name in the file of each field that a mapping by name renames with <see cref="CsvFieldMapping.UseFieldName"/>, keyed by the name
+        /// it is renamed to.  Where mappings that share a field name it differently in the file, the first one's name is used.
+        /// </summary>
+        /// <returns>The names, or <c>null</c> if no mapping by name renames its field.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static Dictionary<string, string>? GetFileFieldNames(ICsvFileMapper mapper)
+#else
+        [return: MaybeNull]
+        private static Dictionary<string, string> GetFileFieldNames(ICsvFileMapper mapper)
+#endif
+        {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            Dictionary<string, string>? fileFieldNames = null;
+#else
+            Dictionary<string, string> fileFieldNames = null;
+#endif
+            foreach (var mapping in mapper)
+            {
+                if (mapping.Value.UseFieldName is string useFieldName && !mapping.Value.FieldIndex.HasValue)
+                {
+                    if (fileFieldNames is null)
+                    {
+                        fileFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
+                    }
+
+                    if (!fileFieldNames.ContainsKey(useFieldName))
+                    {
+                        fileFieldNames.Add(useFieldName, CsvMappingService.GetFileFieldNameFromMapping(mapping));
+                    }
+                }
+            }
+
+            return fileFieldNames;
+        }
+
+        /// <summary>
+        /// Checks that the mapper reads the names a header line is written with back as the names the line has, as the reader names them.
+        /// </summary>
+        /// <exception cref="CsvFileException">The mapper can't name the fields written, or names them differently, such as a renamed field written
+        /// under a name that another field of the line already has.</exception>
+        private static void ThrowIfNotReadBack(string[] writtenFieldNames, string[] headerLineFieldNames, ICsvFileMapper mapper)
+        {
+            if (CsvMappingService.TryResolveHeaderFieldNames(writtenFieldNames, mapper, out var readFieldNames, out _, out _)
+                && readFieldNames.SequenceEqual(headerLineFieldNames, StringComparer.Ordinal))
+            {
+                return;
+            }
+
+            var writtenHeaderLine = string.Join(",", writtenFieldNames);
+            throw BuildException($"The header line would be written as '{writtenHeaderLine}', which the mapper doesn't read back with the same field names.",
+                new Dictionary<string, object> { { DataItemName.FieldNames, writtenFieldNames } });
         }
 
         /// <summary>

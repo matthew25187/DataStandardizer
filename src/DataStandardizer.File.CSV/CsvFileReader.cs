@@ -409,10 +409,10 @@ namespace DataStandardizer.File.CSV
                 return null;
             }
 
-            // Make sure all field names are unique.
-            ThrowIfDuplicateFieldNames(rawFieldValues);
-
-            var headerLine = CreateHeaderLine(rawFieldValues);
+            // The mapper in effect gives the fields their names once read, so a name that the header line repeats is made unique.  Every name must
+            // then be unique.
+            var headerFieldNames = ResolveHeaderFieldNames(rawFieldValues, GetMapper());
+            var headerLine = CreateHeaderLine(headerFieldNames);
 
             // An ignored header line is kept only to pass to the header handler, which is called as the first record is read, as for a file
             // without a header line.
@@ -426,9 +426,9 @@ namespace DataStandardizer.File.CSV
             if (headerHandler != null)
             {
                 // The handler renames the fields of the header line; the line, not the handler, sets how many fields there are.
-                var headerFieldNames =
+                var handlerFieldNames =
                     CallHeaderHandler(headerHandler, headerLine, rawFieldValues.Count, ErrorMessage.HeaderHandlerFieldCountTemplate);
-                headerLine = CreateHeaderLine(headerFieldNames);
+                headerLine = CreateHeaderLine(handlerFieldNames);
             }
 
             _expectedFieldCount = rawFieldValues.Count;
@@ -524,6 +524,25 @@ namespace DataStandardizer.File.CSV
             var ignoredHeaderLine = _ignoredHeaderLine;
             _ignoredHeaderLine = null;
             return CallHeaderHandler(headerHandler, ignoredHeaderLine, firstRecordFieldCount, ErrorMessage.HeaderHandlerFirstRecordFieldCountTemplate);
+        }
+
+        /// <summary>
+        /// Gives the fields of a header line read from the file the names they are known by once read, as the mappings of a mapper give them.
+        /// </summary>
+        /// <param name="fileFieldNames">The names on the header line, as they are in the file.</param>
+        /// <param name="mapper">The mapper in effect as the header line is read.</param>
+        /// <returns>The field names, which are unique.</returns>
+        /// <exception cref="CsvFileException">A mapping of a repeated name doesn't rename its field, mappings that share a field give it different
+        /// names, or two fields have the same name once renamed, such as a repeated name that no mapping covers.</exception>
+        private string[] ResolveHeaderFieldNames(List<string> fileFieldNames, ICsvFileMapper mapper)
+        {
+            if (!CsvMappingService.TryResolveHeaderFieldNames(fileFieldNames, mapper, out var fieldNames, out var errorMessage, out var errorData))
+            {
+                throw BuildException(errorMessage, errorData ?? new Dictionary<string, object>());
+            }
+
+            ThrowIfDuplicateFieldNames(fieldNames);
+            return fieldNames;
         }
 
         private static void ThrowIfNoFields(List<string> rawFieldValues)
@@ -782,15 +801,16 @@ namespace DataStandardizer.File.CSV
         private static CsvFileException BuildInvalidMappedValueException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string rawFieldValue, [AllowNull] Exception innerException)
 #endif
         {
-            var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
+            var fieldName = fieldMapping.Value.UseFieldName ?? fieldMapping.Value.FieldName;
+            var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {fieldName}.";
             var dataItems = new Dictionary<string, object>
             {
                 { DataItemName.PropertyName, fieldMapping.Key },
                 { DataItemName.FieldValue, rawFieldValue }
             };
-            if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
+            if (!string.IsNullOrWhiteSpace(fieldName))
             {
-                dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
+                dataItems.Add(DataItemName.FieldName, fieldName);
             }
 
             return BuildException(message, dataItems, innerException);
