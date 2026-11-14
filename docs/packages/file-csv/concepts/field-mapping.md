@@ -180,11 +180,11 @@ yet, so it holds the value under the property key: the name given by
 `[CsvField]`, or else the property name. The writer looks a mapped value up by
 its field name, and if the line has no such field, by the property key. Field
 names and property keys share one set of keys on the line, so a field name can
-be the property key of another property that's mapped to another field. A line
-built from the model holds that other property's value under the key, and
-doesn't hold the other property's field, so the writer doesn't write the value
-to this field, and uses this property's key instead. A line the reader returns,
-or that has the other property's field, holds this field's value under the key.
+be the property key of another property that's mapped to another field. The
+line remembers which of its values a property set, so the writer writes each
+field its own value: a value that the other property set goes to the other
+property's field, and a value that was read or set through the line goes to the
+field it's named after.
 
 ## Header lines that repeat a name
 

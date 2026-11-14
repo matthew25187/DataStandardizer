@@ -134,6 +134,14 @@ namespace DataStandardizer.File.CSV.Tests
         private const string FieldNamedByKeyHeaderAndNameOnlyRecordLines = "x,full_name\r\nN,\r\n";
         private const string FieldNamedByKeyTitleOnlyRecordFile = "T\r\n";
         private const string FieldNamedByKeyTitleOnlyRecordLine = "T,\r\n";
+
+        // Three properties, each mapped to a field named by the next one's key, a third value, and the line that results.
+        private const string ChainedKeyA = "a";
+        private const string ChainedKeyB = "b";
+        private const string ChainedKeyC = "c";
+        private const string ChainedFieldNameD = "d";
+        private const string ChainedOther = "O";
+        private const string ChainedRecordLine = "T,N,O\r\n";
         private const string RenamedIdLine = "5\r\n";
         private const string KeyedIdHeaderAndRecordLines = "pid\r\n5\r\n";
         private const string RenamedNameLine = "bob\r\n";
@@ -3293,6 +3301,85 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void WriteLine_PropertySetOnLineReadWithoutItsField_WritesEachPropertysValue()
+        {
+            // arrange
+            FieldNamedByKeyOptionalNameLine testLine;
+            using (var csvReader = new CsvFileReader<FieldNamedByKeyOptionalNameLine>(new StringReader(FieldNamedByKeyTitleOnlyRecordFile)))
+            {
+                testLine = (FieldNamedByKeyOptionalNameLine)csvReader.ReadLine();
+            }
+
+            testLine.Name = CrossKeyedName;
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyOptionalNameLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_LineWithOnlyFieldNamedByKeyOfAnotherProperty_WritesFieldValueToItsField()
+        {
+            // arrange
+            var testLine = new FieldNamedByKeyLine();
+            testLine.Add(CrossKeyedNameKey, CrossKeyedTitle);
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<FieldNamedByKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(FieldNamedByKeyTitleOnlyRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_MappedFieldNamesChainedThroughPropertyKeys_WritesEachPropertysValue()
+        {
+            // arrange
+            var testLine = new ChainedKeyLine { Title = CrossKeyedTitle, Name = CrossKeyedName, Other = ChainedOther };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ChainedKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(ChainedRecordLine);
+            }
+        }
+
+        [Fact]
+        public void WriteLine_PropertiesMappedToEachOthersKeys_WritesEachPropertysValue()
+        {
+            // arrange
+            var testLine = new CyclicKeyLine { Title = CrossKeyedTitle, Name = CrossKeyedName };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CyclicKeyLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(CrossKeyedRecordLine);
+            }
+        }
+
+        [Fact]
         public void WriteLine_LineWithFieldNamesOnlyAndMappedFieldNameIsKeyOfAnotherProperty_WritesFieldValues()
         {
             // arrange
@@ -4139,6 +4226,58 @@ namespace DataStandardizer.File.CSV.Tests
 
             [CsvField(CrossKeyedNameKey)]
             [CsvFieldMapping(FieldNamedByKeyNameFieldName, IsOptional = true)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose properties are each mapped to a field named by the next property's key.
+        /// </summary>
+        private sealed class ChainedKeyLine : CsvFileRecordLine
+        {
+            [CsvField(ChainedKeyA)]
+            [CsvFieldMapping(ChainedKeyB)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(ChainedKeyB)]
+            [CsvFieldMapping(ChainedKeyC)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(ChainedKeyC)]
+            [CsvFieldMapping(ChainedFieldNameD)]
+            public string Other
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// A line whose two properties are each mapped to a field named by the other's key.
+        /// </summary>
+        private sealed class CyclicKeyLine : CsvFileRecordLine
+        {
+            [CsvField(ChainedKeyA)]
+            [CsvFieldMapping(ChainedKeyB)]
+            public string Title
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvField(ChainedKeyB)]
+            [CsvFieldMapping(ChainedKeyA)]
             public string Name
             {
                 get => GetPropertyValue<string>();

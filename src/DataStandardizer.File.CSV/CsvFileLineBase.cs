@@ -64,7 +64,7 @@ namespace DataStandardizer.File.CSV
         {
             // The indexer adds the key when it is missing, so no separate lookup is needed.
             _fieldBag[fieldName] = value;
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
         }
 #else
         private protected IReadOnlyList<object> FieldValues => _fieldBag.Values;
@@ -79,7 +79,7 @@ namespace DataStandardizer.File.CSV
         {
             // The indexer adds the key when it is missing, so no separate lookup is needed.
             _fieldBag[fieldName] = value;
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
         }
 #endif
 
@@ -126,6 +126,7 @@ namespace DataStandardizer.File.CSV
 #endif
         {
             _fieldBag[fieldName] = value;
+            _propertyValueKeys?.Remove(fieldName);
             if (sharedFieldSlot >= 0)
             {
                 SetSharedFieldValue(sharedFieldSlot, value ?? SharedFieldDefault);
@@ -184,6 +185,60 @@ namespace DataStandardizer.File.CSV
         internal void MarkSkippedSharedField(int sharedFieldSlot)
         {
             SetSharedFieldValue(sharedFieldSlot, SharedFieldDefault);
+        }
+
+        // The key of the property that set each field's value through its setter, by field name; null if no property has set a value.  A field
+        // whose value was read, or set through the line, has none.  Field names and property keys share one key space on the line, so this is how
+        // the writer tells a property's value held under its key from a field's value with the same name.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private Dictionary<string, string>? _propertyValueKeys;
+#else
+        private Dictionary<string, string> _propertyValueKeys;
+#endif
+
+        /// <summary>
+        /// Sets a field's value through a property, recording the key of the property that set it.
+        /// </summary>
+        /// <param name="fieldName">The key of the field the property writes.</param>
+        /// <param name="propertyKey">The property's key.</param>
+        /// <param name="value">The value.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected void SetPropertyFieldValue(string fieldName, string propertyKey, object? value)
+#else
+        private protected void SetPropertyFieldValue(string fieldName, string propertyKey, [AllowNull] object value)
+#endif
+        {
+            SetFieldValue(fieldName, value);
+            if (_propertyValueKeys is null)
+            {
+                _propertyValueKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+            }
+
+            _propertyValueKeys[fieldName] = propertyKey;
+        }
+
+        /// <summary>
+        /// Gets the key of the property that set a field's value through its setter, if a property set it.
+        /// </summary>
+        internal bool TryGetPropertyValueKey(string fieldName, out string propertyKey)
+        {
+            if (_propertyValueKeys != null && _propertyValueKeys.TryGetValue(fieldName, out var key))
+            {
+                propertyKey = key;
+                return true;
+            }
+
+            propertyKey = string.Empty;
+            return false;
+        }
+
+        /// <summary>
+        /// Forgets where a field's value came from, once the field's value is changed or removed through the line.
+        /// </summary>
+        private void ForgetFieldValueOrigin(string fieldName)
+        {
+            _propertyValueKeys?.Remove(fieldName);
+            ForgetSharedFieldValues(fieldName);
         }
 
         /// <summary>
@@ -324,36 +379,6 @@ namespace DataStandardizer.File.CSV
             return false;
         }
 
-        /// <summary>
-        /// Gets whether the line holds a property's value under the property's key: the key the property reads and writes on this line.
-        /// </summary>
-        internal bool IsPropertyValueKey(string propertyKey)
-        {
-            return string.Equals(GetMappedFieldName(propertyKey), propertyKey, StringComparison.Ordinal);
-        }
-
-        /// <summary>
-        /// Gets whether the line holds a property's value under the property's key, rather than the value of a field named like the key, for
-        /// the writer, where a mapping maps the property to a field with another name.
-        /// </summary>
-        /// <remarks>
-        /// A line filled through a mapping that maps the property to another field holds a value under the key only as a field's value.  Any
-        /// other line holds the property's value under its key, as a line built from the model does, unless it holds a value under the field
-        /// the property is mapped to, as a line built from field names does.
-        /// </remarks>
-        /// <param name="propertyKey">The property key.</param>
-        /// <param name="mappedFieldName">The name of the field the writer's mapping maps the property to.</param>
-        internal bool HoldsPropertyValueUnderKey(string propertyKey, string mappedFieldName)
-        {
-            if (_mappedFieldNames != null && _mappedFieldNames.TryGetValue(propertyKey, out var fieldName)
-                && !string.Equals(fieldName, propertyKey, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            return !_fieldBag.ContainsKey(mappedFieldName);
-        }
-
         private protected string GetCsvFieldKey(string propertyName) => GetCachedPropertyKey(this.GetType(), propertyName);
 
         /// <summary>
@@ -395,7 +420,7 @@ namespace DataStandardizer.File.CSV
         public void Add(string fieldName, object? value)
         {
             _fieldBag.Add(fieldName, value);
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
         }
 
         object? ICsvFileLine.this[int index]
@@ -403,7 +428,7 @@ namespace DataStandardizer.File.CSV
             get => _fieldBag.GetAt(index).Value;
             set
             {
-                ForgetSharedFieldValues(_fieldBag.GetAt(index).Key);
+                ForgetFieldValueOrigin(_fieldBag.GetAt(index).Key);
                 _fieldBag.SetAt(index, value);
             }
         }
@@ -429,7 +454,7 @@ namespace DataStandardizer.File.CSV
         void ICsvFileLine.Insert(int index, string fieldName, object? value)
         {
             _fieldBag.Insert(index, fieldName, value);
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
         }
 
         IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator()
@@ -443,7 +468,7 @@ namespace DataStandardizer.File.CSV
         public void Add(string fieldName, [AllowNull] object value)
         {
             _fieldBag.Add(fieldName, value);
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
         }
 
         [MaybeNull]
@@ -452,7 +477,7 @@ namespace DataStandardizer.File.CSV
             get => _fieldBag.GetAt(index).Value;
             set
             {
-                ForgetSharedFieldValues(_fieldBag.GetAt(index).Key);
+                ForgetFieldValueOrigin(_fieldBag.GetAt(index).Key);
                 _fieldBag.SetAt(index, value);
             }
         }
@@ -479,7 +504,7 @@ namespace DataStandardizer.File.CSV
         void ICsvFileLine.Insert(int index, string fieldName, [AllowNull] object value)
         {
             _fieldBag.Insert(index, fieldName, value);
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
         }
 
         IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
@@ -504,19 +529,20 @@ namespace DataStandardizer.File.CSV
 
         bool ICsvFileLine.Remove(string fieldName)
         {
-            ForgetSharedFieldValues(fieldName);
+            ForgetFieldValueOrigin(fieldName);
             return _fieldBag.Remove(fieldName);
         }
 
         void ICsvFileLine.RemoveAt(int index)
         {
-            ForgetSharedFieldValues(_fieldBag.GetAt(index).Key);
+            ForgetFieldValueOrigin(_fieldBag.GetAt(index).Key);
             _fieldBag.RemoveAt(index);
         }
 
         void ICsvFileLine.Clear()
         {
             _sharedFieldValues = null;
+            _propertyValueKeys = null;
             _fieldBag.Clear();
         }
 

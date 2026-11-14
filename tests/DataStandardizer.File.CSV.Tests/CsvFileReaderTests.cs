@@ -3383,9 +3383,6 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// A line with an optional mapping whose field name is the property key of the line's other mapping.
-        /// </summary>
-        /// <summary>
         /// A line whose Title property is mapped to a field named by the key of its Name property, which is optionally mapped to a field of its
         /// own.
         /// </summary>
@@ -3408,6 +3405,9 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        /// <summary>
+        /// A line with an optional mapping whose field name is the property key of the line's other mapping.
+        /// </summary>
         private sealed class LegacyIdLine : CsvFileRecordLine
         {
             [CsvFieldMapping(PersonIdFieldName)]
