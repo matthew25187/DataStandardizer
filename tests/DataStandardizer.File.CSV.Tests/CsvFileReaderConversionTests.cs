@@ -563,25 +563,20 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_ValidatorOnFieldAnEarlierConstantAdded_CallsHandlerWithNoField()
+        public void ReadLine_RequiredMappingOfFieldAnEarlierConstantAdded_ThrowsCsvFileException()
         {
             // arrange
-            var badValues = new List<KeyValuePair<int?, string>>();
-            var options = new CsvFileOptions
-            {
-                HeaderHandling = CsvFileHeaderHandling.Use,
-                BadValueHandler = new CsvFieldBadValue<AddedFieldLine>(context => badValues.Add(new KeyValuePair<int?, string>(context.FieldIndex, context.RawFieldValue)))
-            };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
             using (var csvReader = new CsvFileReader<AddedFieldLine>(new StringReader(AmountSecondFile), options))
             {
                 csvReader.RegisterMapper<AddedFieldLineMapper>();
                 _ = csvReader.ReadLine();
 
                 // act
-                _ = csvReader.ReadLine();
+                Action testAction = () => csvReader.ReadLine();
 
                 // assert
-                badValues.Should().Equal(new[] { new KeyValuePair<int?, string>(null, null) });
+                testAction.Should().Throw<CsvFileException>().Which.Data[PropertyDataItem].Should().Be(nameof(AddedFieldLine.Validated));
             }
         }
 
@@ -730,7 +725,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_TypeConverterNotFromStringOnFieldAnEarlierMappingConverted_ReadsLineValue()
+        public void ReadLine_TypeConverterNotFromStringOnFieldAnEarlierMappingConverted_ReadsFieldAsRead()
         {
             // arrange
             var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
@@ -743,7 +738,7 @@ namespace DataStandardizer.File.CSV.Tests
                 var testResult = (SharedTextLine)csvReader.ReadLine();
 
                 // assert
-                testResult.Second.Should().Be(ConvertedText);
+                testResult.Second.Should().Be(AmountFieldText);
             }
         }
 
@@ -1053,7 +1048,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Adds the <c>Extra</c> field to the line with a constant value first, and then rejects that field.
+        /// Adds the <c>Extra</c> field to the line with a constant value first, and then maps a required, validated property to that field, which
+        /// wasn't read from the file.
         /// </summary>
         private sealed class AddedFieldLineMapper : CsvFileMapperBase<AddedFieldLine>
         {
@@ -1218,7 +1214,7 @@ namespace DataStandardizer.File.CSV.Tests
 
         /// <summary>
         /// Converts the <c>Amount</c> field to <see cref="ConvertedText"/> first, so the line holds that under the field's name, and then reads the
-        /// field again with a type converter that doesn't convert from a string.
+        /// field again with a type converter that doesn't convert from a string, so the field's text is parsed.
         /// </summary>
         private sealed class SharedToStringOnlyTextLineMapper : CsvFileMapperBase<SharedTextLine>
         {

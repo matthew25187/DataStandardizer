@@ -161,6 +161,18 @@ generated value. That value is added to the line under the mapping's name. If
 the mapping is by index and the record already has a field with that name, the
 reader throws `CsvFileException` rather than overwrite it.
 
+Several mappings can read the same field, by name or by index, and their
+properties can be of different types, such as an `int Id` and a `string Code`
+both mapped to `id`. Each mapping converts the field's text as it was read from
+the file. A value that one of them converted is never given to another. A value
+that doesn't convert is a bad value for that mapping alone. The line holds one
+value for each field: the value of the last of these mappings, in mapper order.
+Each property still returns its own value, or its default value if it had a bad
+value, until the field is set again, through a property or the line. From then
+on, they all read the value set, and the writer writes it. A field that a
+constant or generated value added to the line wasn't read from the file, so
+another mapping of that field has no field to read.
+
 A line built from the model, such as `new PersonLine { Id = 5 }`, has no mapping
 yet, so it holds the value under the property key: the name given by
 `[CsvField]`, or else the property name. The writer looks a mapped value up by

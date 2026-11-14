@@ -607,52 +607,46 @@ namespace DataStandardizer.File.CSV
 
             // Mappings with a constant or generated value can add fields to the line, so errors report the number of fields as read.
             var recordFieldCount = csvLine.Count;
-            var isStatic = fieldPlan.GetMappings(recordFieldCount, out var fieldMappingPlans, out var mappedFieldNames);
+            fieldPlan.GetMappings(recordFieldCount, out var fieldMappingPlans, out var mappedFieldNames);
 
             // The mapped values stay under their field names, so a property mapped to a field with another name, or by index, reads that field.
             recordLine.SetMappedFieldNames(mappedFieldNames);
             foreach (var fieldMappingPlan in fieldMappingPlans)
             {
+                // A mapping reads only a field read from the file, never one that another mapping's constant or generated value added to the line.
+                // A mapping past the last field has no field.  Its value is added under the mapping's name, unless the record already has a field
+                // with that name, which the value would overwrite.
                 var fieldMapping = fieldMappingPlan.Mapping;
                 var mappedFieldName = fieldMappingPlan.FieldName;
-                if (isStatic || fieldMappingPlan.IsPastLastField)
+                if (fieldMappingPlan.IsSkipped)
                 {
-                    // A mapping past the last field has no field, whatever fields earlier mappings added to the line.  Its value is added under the
-                    // mapping's name, unless the record already has a field with that name, which the value would overwrite.
-                    if (fieldMappingPlan.IsSkipped)
+                    // Another mapping of the same field may add it to the line, but its value isn't this mapping's.
+                    if (fieldMappingPlan.IsSharedField)
                     {
-                        continue;
+                        recordLine.MarkSkippedSharedField(mappedFieldName, fieldMapping.Key);
                     }
 
-                    if (fieldMappingPlan.IsMissing)
-                    {
-                        throw BuildMissingFieldException(fieldMapping, mappedFieldName, recordFieldCount);
-                    }
-
-                    if (fieldMappingPlan.IsFieldNameTaken)
-                    {
-                        throw BuildIndexedFieldNameTakenException(fieldMapping, mappedFieldName, recordFieldCount);
-                    }
+                    continue;
                 }
-                else if (!csvLine.Contains(mappedFieldName))
+
+                if (fieldMappingPlan.IsMissing)
                 {
-                    // An earlier mapping may have added a field to this line, so check the line's fields as they are now.
-                    if (fieldMapping.Value.IsOptional)
-                    {
-                        continue;
-                    }
-
-                    if (!fieldMapping.Value.SuppliesValue)
-                    {
-                        throw BuildMissingFieldException(fieldMapping, mappedFieldName, recordFieldCount);
-                    }
+                    throw BuildMissingFieldException(fieldMapping, mappedFieldName, recordFieldCount);
                 }
+
+                if (fieldMappingPlan.IsFieldNameTaken)
+                {
+                    throw BuildIndexedFieldNameTakenException(fieldMapping, mappedFieldName, recordFieldCount);
+                }
+
+                // Each mapping is given the field's text as it was read from the file, not a value that an earlier mapping of the same field put
+                // on the line, so mappings that share a field each convert it to their own type.
+                var readFieldIndex = fieldMappingPlan.ReadFieldIndex;
+                var readFieldValue = GetReadFieldValue(readFieldIndex);
 
                 // Validate CSV field value.
                 if (fieldMapping.Value.Validator is CsvFieldValidate<TRecordLine> validator)
                 {
-                    var readFieldIndex = GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount);
-                    var readFieldValue = GetReadFieldValue(readFieldIndex);
                     var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                     {
                         Model = recordLine,
@@ -666,7 +660,7 @@ namespace DataStandardizer.File.CSV
                         if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
                         {
                             badValueHandler(fieldContext);
-                            recordLine.MarkBadValueField(mappedFieldName);
+                            recordLine.MarkBadValueField(mappedFieldName, fieldMapping.Key, fieldMappingPlan.IsSharedField);
                             continue;
                         }
 
@@ -676,7 +670,11 @@ namespace DataStandardizer.File.CSV
                 }
 
                 // Get the mapped field value, then deserialize it.
-                var fieldValue = fieldMappingPlan.IsPastLastField ? null : csvLine[mappedFieldName];
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                object? fieldValue = readFieldValue;
+#else
+                object fieldValue = readFieldValue;
+#endif
                 if (fieldMapping.Value.ConstantValue != null)
                 {
                     // A constant the property can't hold is a mistake in the mapping, not in the file, so no bad-value handler is given it.
@@ -692,17 +690,9 @@ namespace DataStandardizer.File.CSV
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
                 }
 
-                // A constant or generated value didn't come from a field, so has no position.  The position is only looked up for a converter, which
-                // is given the field's text as it was read from the file, not a value an earlier mapping of the same field put on the line.
+                // A constant or generated value didn't come from a field, so has no position.  The position is only given to a converter.
                 var isFieldValue = !fieldMapping.Value.SuppliesValue;
-                var fieldIndex = isFieldValue && CsvMapperCache.HasFromStringConverter(fieldMapping.Value)
-                    ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount)
-                    : null;
-                if (fieldIndex.HasValue)
-                {
-                    fieldValue = GetReadFieldValue(fieldIndex);
-                }
-
+                var fieldIndex = isFieldValue && CsvMapperCache.HasFromStringConverter(fieldMapping.Value) ? readFieldIndex : null;
                 if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, mappedFieldName, fieldIndex, fieldValue, out var propertyValue,
                         out var error))
                 {
@@ -713,36 +703,22 @@ namespace DataStandardizer.File.CSV
                         var fieldContext = new CsvFieldContext<TRecordLine>(_options)
                         {
                             Model = recordLine,
-                            FieldIndex = isFieldValue ? GetReadFieldPosition(csvLine, fieldMappingPlan, recordFieldCount) : null,
+                            FieldIndex = isFieldValue ? readFieldIndex : null,
                             FieldName = mappedFieldName,
                             HeaderLine = _headerLine,
                             RawFieldValue = rawFieldValue
                         };
                         badValueHandler(fieldContext);
-                        recordLine.MarkBadValueField(mappedFieldName);
+                        recordLine.MarkBadValueField(mappedFieldName, fieldMapping.Key, fieldMappingPlan.IsSharedField);
                         continue;
                     }
 
                     throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, error);
                 }
 
-                csvLine[mappedFieldName] = propertyValue;
+                // The field holds the value of the last mapping that shares it; each of them keeps its own value for its property.
+                recordLine.SetMappedFieldValue(mappedFieldName, fieldMapping.Key, propertyValue, fieldMappingPlan.IsSharedField);
             }
-        }
-
-        /// <summary>
-        /// Gets the position of the field a mapping resolved to among the fields read from the file, or <c>null</c> if the mapping is past the last
-        /// field, or its field is one that an earlier mapping's constant or generated value added to the line.
-        /// </summary>
-        private static int? GetReadFieldPosition(ICsvFileLine csvLine, FieldMappingPlan fieldMappingPlan, int recordFieldCount)
-        {
-            if (fieldMappingPlan.IsPastLastField)
-            {
-                return null;
-            }
-
-            var fieldIndex = csvLine.IndexOf(fieldMappingPlan.FieldName);
-            return fieldIndex < 0 || fieldIndex >= recordFieldCount ? (int?)null : fieldIndex;
         }
 
         /// <summary>
@@ -1362,7 +1338,6 @@ namespace DataStandardizer.File.CSV
             private string[] _fieldNames = NoFieldNames;
             private int _mappedFieldCount = -1;
             private FieldMappingPlan[] _mappings = NoMappings;
-            private bool _mappingsAreStatic;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             private Dictionary<string, string>? _mappedFieldNames;
 #else
@@ -1465,12 +1440,10 @@ namespace DataStandardizer.File.CSV
             /// </summary>
             /// <param name="mappedFieldNames">The field name of each mapping that maps a property to a field with another name, keyed by property key,
             /// or <c>null</c> if there are none.  Every line with this number of fields shares it, so it is never changed.</param>
-            /// <returns><c>true</c> if the planned field keys and skips hold for the whole line; <c>false</c> if a mapping adds a field to the line, so
-            /// they must be checked against the line as each mapping is applied.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal bool GetMappings(int fieldCount, out FieldMappingPlan[] mappings, out Dictionary<string, string>? mappedFieldNames)
+            internal void GetMappings(int fieldCount, out FieldMappingPlan[] mappings, out Dictionary<string, string>? mappedFieldNames)
 #else
-            internal bool GetMappings(int fieldCount, out FieldMappingPlan[] mappings, [MaybeNull] out Dictionary<string, string> mappedFieldNames)
+            internal void GetMappings(int fieldCount, out FieldMappingPlan[] mappings, [MaybeNull] out Dictionary<string, string> mappedFieldNames)
 #endif
             {
                 if (_mappedFieldCount != fieldCount)
@@ -1480,7 +1453,6 @@ namespace DataStandardizer.File.CSV
 
                 mappings = _mappings;
                 mappedFieldNames = _mappedFieldNames;
-                return _mappingsAreStatic;
             }
 
             private void BuildMappings(int fieldCount)
@@ -1489,8 +1461,6 @@ namespace DataStandardizer.File.CSV
                 var lineFieldNames = GetFieldNames(fieldCount).Take(fieldCount).ToArray();
                 var lineFieldNameSet = new HashSet<string>(lineFieldNames, StringComparer.Ordinal);
 
-                // The planned keys hold unless a mapping stores its value in a field the line does not have, which adds that field to the line.
-                var isStatic = true;
                 var mappings = new List<FieldMappingPlan>(Mapper.Count);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
                 Dictionary<string, string>? mappedFieldNames = null;
@@ -1516,26 +1486,31 @@ namespace DataStandardizer.File.CSV
                         mappedFieldNames[fieldMapping.Key] = mappedFieldName;
                     }
 
-                    // A mapping reads only the field it is mapped to.  An optional mapping without that field is skipped; a required one is an error
-                    // unless it supplies its own value, which is then added to the line under the mapping's name.
+                    // A mapping reads only the field it is mapped to, among the fields read from the file; a field that another mapping's value
+                    // adds to the line isn't one.  An optional mapping without that field is skipped; a required one is an error unless it supplies
+                    // its own value, which is then added to the line under the mapping's name.
                     var hasField = !isPastLastField && lineFieldNameSet.Contains(mappedFieldName);
                     var suppliesValue = fieldMapping.Value.SuppliesValue;
                     var isSkipped = !hasField && fieldMapping.Value.IsOptional;
                     var isMissing = !hasField && !isSkipped && !suppliesValue;
                     var isFieldNameTaken = isPastLastField && !isSkipped && suppliesValue && lineFieldNameSet.Contains(mappedFieldName);
-                    if (!hasField && !isSkipped)
-                    {
-                        isStatic = false;
-                    }
-
+                    int? readFieldIndex = hasField ? Array.IndexOf(lineFieldNames, mappedFieldName) : (int?)null;
                     var accessor = CsvFieldValueAccessor<TRecordLine>.For(fieldMapping.Value.PropertyType);
-                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, isSkipped, isPastLastField, isFieldNameTaken, isMissing, accessor));
+                    mappings.Add(new FieldMappingPlan(fieldMapping, mappedFieldName, readFieldIndex, isSkipped, isFieldNameTaken, isMissing, accessor));
+                }
+
+                // The line holds one value for each field, so the mappings that share a field each keep their own value for their property.
+                foreach (var sharedField in mappings.GroupBy(mapping => mapping.FieldName, StringComparer.Ordinal).Where(group => group.Count() > 1))
+                {
+                    foreach (var mapping in sharedField)
+                    {
+                        mapping.IsSharedField = true;
+                    }
                 }
 
                 // Lines already read keep the field names they were read with, so this is a new dictionary rather than a change to the old one.
                 _mappedFieldNames = mappedFieldNames;
                 _mappings = mappings.ToArray();
-                _mappingsAreStatic = isStatic;
                 _mappedFieldCount = fieldCount;
             }
         }
@@ -1545,13 +1520,13 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private sealed class FieldMappingPlan
         {
-            internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, bool isSkipped, bool isPastLastField,
+            internal FieldMappingPlan(KeyValuePair<string, CsvFieldMapping> mapping, string fieldName, int? readFieldIndex, bool isSkipped,
                 bool isFieldNameTaken, bool isMissing, CsvFieldValueAccessor<TRecordLine> accessor)
             {
                 Mapping = mapping;
                 FieldName = fieldName;
+                ReadFieldIndex = readFieldIndex;
                 IsSkipped = isSkipped;
-                IsPastLastField = isPastLastField;
                 IsFieldNameTaken = isFieldNameTaken;
                 IsMissing = isMissing;
                 Accessor = accessor;
@@ -1578,6 +1553,18 @@ namespace DataStandardizer.File.CSV
             internal bool IsConstantConvertible { get; }
 
             /// <summary>
+            /// Gets the position of the mapping's field among the fields read from the file, or <c>null</c> if no field read from the file is the
+            /// mapping's.  The line's fields are added in the order they are read, and a mapping only ever adds a field after them, so a field's
+            /// position on the line is its position in the record.
+            /// </summary>
+            internal int? ReadFieldIndex { get; }
+
+            /// <summary>
+            /// Gets a flag indicating if other mappings resolve to the same field.  Set once, as the plan is built.
+            /// </summary>
+            internal bool IsSharedField { get; set; }
+
+            /// <summary>
             /// Gets a flag indicating if the mapping is required, reads its value from a field, and the line has no field for it.
             /// </summary>
             internal bool IsMissing { get; }
@@ -1596,11 +1583,6 @@ namespace DataStandardizer.File.CSV
             /// Gets a flag indicating if the mapping is skipped because it is optional and its field is missing from the line.
             /// </summary>
             internal bool IsSkipped { get; }
-
-            /// <summary>
-            /// Gets a flag indicating if the mapping has a field index past the last field of the line, so the line has no field for it.
-            /// </summary>
-            internal bool IsPastLastField { get; }
 
             /// <summary>
             /// Gets a flag indicating if the mapping is past the last field of the line, supplies its own value, and the line already has a field

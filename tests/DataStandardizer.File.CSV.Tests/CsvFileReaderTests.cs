@@ -103,6 +103,7 @@ namespace DataStandardizer.File.CSV.Tests
 
         private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
         private const string FieldNamesDataItem = "FieldNames";
+        private const string PropertyDataItem = "Property";
         private const string DuplicateFieldName = "a";
         private const string DuplicateFieldNamesHeaderFile = "a,a\r\n1,2";
         private const string TwoShortRecordsFile = "1,2\r\n3,4";
@@ -125,6 +126,10 @@ namespace DataStandardizer.File.CSV.Tests
         private const string RenamedRecordFile = "5,bob";
         private const string TwoRenamedRecordsWithHeaderFile = "person_id,person_name\r\n5,bob\r\n6,amy";
         private const string RenamedIdHeaderFile = "person_id\r\n5";
+        private const string RenamedIdText = "5";
+        private const string InvalidRenamedIdHeaderFile = "person_id\r\nabc";
+        private const string InvalidRenamedIdText = "abc";
+        private const int AssignedId = 9;
         private const string KeyedIdHeaderFile = "pid\r\n5";
 
         // A file with a column named like the property key that another field is mapped to.
@@ -1728,7 +1733,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MappingAddsFieldToLine_LaterOptionalMappingSeesAddedField()
+        public void ReadLine_MappingAddsFieldToLine_LaterOptionalMappingOfThatFieldIsSkipped()
         {
             // arrange
             using (var csvReader = new CsvFileReader<AddedFieldLine>(new StringReader("1")))
@@ -1740,8 +1745,10 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Id.Should().Be(1);
+                testResult.Name.Should().Be(AddedFieldValue);
+                testResult.Description.Should().BeNull();
                 ((ICsvFileLine)testResult).Keys.Should().BeEquivalentTo(new[] { IdFieldName, ExtraFieldName }, config => config.WithStrictOrdering());
-                testResult.ValidatedFieldNames.Should().Equal(ExtraFieldName);
+                testResult.ValidatedFieldNames.Should().BeEmpty();
             }
         }
 
@@ -2202,6 +2209,167 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 testResult.Id.Should().Be(RenamedId);
                 testResult.Copy.Should().Be(RenamedId);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneFieldByName_PropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneFieldByAttribute_PropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedAttributeLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedAttributeLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneFieldByIndex_PropertiesReturnFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<IndexedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TwoTypesMappedToOneField_LineHoldsLastMappingValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ReversedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                ((ICsvFileLine)testResult)[PersonIdFieldName].Should().Be(RenamedId);
+                testResult.Code.Should().Be(RenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadForOneMappingWithBadValueHandler_OnlyThatPropertyReturnsDefault()
+        {
+            // arrange
+            var badValues = new List<string>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedTypedFieldLine>(context => badValues.Add(context.RawFieldValue))
+            };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(0);
+                testResult.Code.Should().Be(InvalidRenamedIdText);
+                badValues.Should().Equal(InvalidRenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadForLastMappingWithBadValueHandler_OnlyThatPropertyReturnsDefault()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<SharedTypedFieldLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<ReversedSharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // assert
+                testResult.Id.Should().Be(0);
+                testResult.Code.Should().Be(InvalidRenamedIdText);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_SharedFieldValueBadForOneMappingWithoutBadValueHandler_ThrowsCsvFileException()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(InvalidRenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().Which.Data[PropertyDataItem].Should().Be(nameof(SharedTypedFieldLine.Id));
+            }
+        }
+
+        [Fact]
+        public void PropertySetter_FieldSharedByTwoTypesAfterRead_LineHoldsValueSet()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<SharedTypedFieldLine>(new StringReader(RenamedIdHeaderFile), options))
+            {
+                csvReader.RegisterMapper<SharedTypedFieldLineMapper>();
+                csvReader.ReadLine();
+                var testResult = csvReader.ReadLine() as SharedTypedFieldLine;
+
+                // act
+                testResult.Id = AssignedId;
+
+                // assert
+                testResult.Id.Should().Be(AssignedId);
+                ((ICsvFileLine)testResult)[PersonIdFieldName].Should().Be(AssignedId);
             }
         }
 
@@ -2906,6 +3074,81 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
+        /// A line with two properties of different types, which its mappers map to the same field.
+        /// </summary>
+        private sealed class SharedTypedFieldLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="SharedTypedFieldLine"/> to the <c>person_id</c> field by name, <c>Id</c> first.
+        /// </summary>
+        private sealed class SharedTypedFieldLineMapper : CsvFileMapperBase<SharedTypedFieldLine>
+        {
+            public SharedTypedFieldLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName).ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Code).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="SharedTypedFieldLine"/> to the <c>person_id</c> field by name, <c>Code</c> first, so the line holds
+        /// the value of <c>Id</c>.
+        /// </summary>
+        private sealed class ReversedSharedTypedFieldLineMapper : CsvFileMapperBase<SharedTypedFieldLine>
+        {
+            public ReversedSharedTypedFieldLineMapper()
+            {
+                this.Map().Property(x => x.Code).HasFieldName(PersonIdFieldName);
+                this.Map().Property(x => x.Id).HasFieldName(PersonIdFieldName);
+            }
+        }
+
+        /// <summary>
+        /// Maps both properties of <see cref="SharedTypedFieldLine"/> to the first field by index.
+        /// </summary>
+        private sealed class IndexedSharedTypedFieldLineMapper : CsvFileMapperBase<SharedTypedFieldLine>
+        {
+            public IndexedSharedTypedFieldLineMapper()
+            {
+                this.Map().Property(x => x.Id).HasFieldIndex(0);
+                this.Map().Property(x => x.Code).HasFieldIndex(0);
+            }
+        }
+
+        /// <summary>
+        /// A line with two properties of different types mapped to the same field by attribute.
+        /// </summary>
+        private sealed class SharedTypedAttributeLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(PersonIdFieldName)]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(PersonIdFieldName)]
+            public string Code
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        /// <summary>
         /// A line whose property has a key from <see cref="CsvFieldAttribute"/>, which <see cref="KeyedBuilderLineMapper"/>
         /// maps to a field with another name.
         /// </summary>
@@ -3125,8 +3368,8 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// Maps Name to a field the line does not have, so storing its value adds the field, which the optional
-        /// Description mapping then finds.
+        /// Maps Name to a field the line does not have, so storing its value adds the field.  The field wasn't read from the file, so the
+        /// optional Description mapping of the same field has no field and is skipped.
         /// </summary>
         private sealed class AddedFieldLineMapper : CsvFileMapperBase<AddedFieldLine>
         {

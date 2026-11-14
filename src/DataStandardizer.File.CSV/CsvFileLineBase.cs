@@ -64,6 +64,7 @@ namespace DataStandardizer.File.CSV
         {
             // The indexer adds the key when it is missing, so no separate lookup is needed.
             _fieldBag[fieldName] = value;
+            ForgetSharedFieldValues(fieldName);
         }
 #else
         private protected IReadOnlyList<object> FieldValues => _fieldBag.Values;
@@ -78,8 +79,117 @@ namespace DataStandardizer.File.CSV
         {
             // The indexer adds the key when it is missing, so no separate lookup is needed.
             _fieldBag[fieldName] = value;
+            ForgetSharedFieldValues(fieldName);
         }
 #endif
+
+        // Stands in a shared field's values for a property that has no value of its own: the reader skipped its mapping, or called the bad-value
+        // handler for its value.  The property reads as its default value.
+        private static readonly object SharedFieldNoValue = new object();
+
+        // The value each property read from a field that it shares with another property's mapping, keyed by field name, then property key, or
+        // null if the line was read without such a mapping.  The line holds one value per field, so properties of different types can't all read
+        // theirs from it.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private Dictionary<string, Dictionary<string, object?>>? _sharedFieldValues;
+#else
+        private Dictionary<string, Dictionary<string, object>> _sharedFieldValues;
+#endif
+
+        /// <summary>
+        /// Sets the value of a field to a mapping's converted value, as the reader does.  When the field is shared with another mapping, the
+        /// value is also kept for the mapping's property, which then reads it whatever value the field is left with.
+        /// </summary>
+        /// <param name="fieldName">The name of the field the mapping resolved to.</param>
+        /// <param name="propertyKey">The key of the mapping, which is the key of its property.</param>
+        /// <param name="value">The mapping's converted value.</param>
+        /// <param name="isSharedField"><c>true</c> if other mappings resolve to the same field.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal void SetMappedFieldValue(string fieldName, string propertyKey, object? value, bool isSharedField)
+#else
+        internal void SetMappedFieldValue(string fieldName, string propertyKey, [AllowNull] object value, bool isSharedField)
+#endif
+        {
+            _fieldBag[fieldName] = value;
+            if (isSharedField)
+            {
+                SetSharedFieldValue(fieldName, propertyKey, value);
+            }
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private void SetSharedFieldValue(string fieldName, string propertyKey, object? value)
+#else
+        private void SetSharedFieldValue(string fieldName, string propertyKey, [AllowNull] object value)
+#endif
+        {
+            if (_sharedFieldValues is null)
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                _sharedFieldValues = new Dictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
+#else
+                _sharedFieldValues = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
+#endif
+            }
+
+            if (!_sharedFieldValues.TryGetValue(fieldName, out var propertyValues))
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                propertyValues = new Dictionary<string, object?>(StringComparer.Ordinal);
+#else
+                propertyValues = new Dictionary<string, object>(StringComparer.Ordinal);
+#endif
+                _sharedFieldValues.Add(fieldName, propertyValues);
+            }
+
+            propertyValues[propertyKey] = value;
+        }
+
+        /// <summary>
+        /// Gets the value that a property read from a field it shares with another property's mapping.
+        /// </summary>
+        /// <param name="propertyName">The name of the property.</param>
+        /// <param name="fieldName">The name of the field the property reads and writes.</param>
+        /// <param name="value">The property's value, or <c>null</c> if it has none.</param>
+        /// <returns><c>true</c> if the property has its own value; <c>false</c> if it reads the field's value.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected bool TryGetSharedFieldValue(string propertyName, string fieldName, out object? value)
+#else
+        private protected bool TryGetSharedFieldValue(string propertyName, string fieldName, [MaybeNull] out object value)
+#endif
+        {
+            if (_sharedFieldValues != null
+                && _sharedFieldValues.TryGetValue(fieldName, out var propertyValues)
+                && propertyValues.TryGetValue(GetCsvFieldKey(propertyName), out value))
+            {
+                if (ReferenceEquals(value, SharedFieldNoValue))
+                {
+                    value = null;
+                }
+
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Records that the reader skipped a mapping of a field shared with other mappings, because the field wasn't read from the file, so the
+        /// mapping's property reads as its default value rather than another mapping's value.
+        /// </summary>
+        internal void MarkSkippedSharedField(string fieldName, string propertyKey)
+        {
+            SetSharedFieldValue(fieldName, propertyKey, SharedFieldNoValue);
+        }
+
+        /// <summary>
+        /// Forgets the values that properties read from a field they share, once the field's value is changed, so they all read the new value.
+        /// </summary>
+        private void ForgetSharedFieldValues(string fieldName)
+        {
+            _sharedFieldValues?.Remove(fieldName);
+        }
 
         // The field names of the mappings that map a property to a field with another name, keyed by property key, or null if
         // the line was not filled through such a mapping.
@@ -100,7 +210,10 @@ namespace DataStandardizer.File.CSV
         /// Records that the reader called the bad-value handler for a field's value, so a property of another type than the value reads as its
         /// default value instead of throwing.  The field keeps its value, so a line read and then written gives back the field's text.
         /// </summary>
-        internal void MarkBadValueField(string fieldName)
+        /// <param name="fieldName">The name of the field.</param>
+        /// <param name="propertyKey">The key of the mapping whose value was bad.</param>
+        /// <param name="isSharedField"><c>true</c> if other mappings resolve to the same field, whose values the mapping's property doesn't read.</param>
+        internal void MarkBadValueField(string fieldName, string propertyKey, bool isSharedField)
         {
             if (_badValueFieldNames is null)
             {
@@ -108,6 +221,10 @@ namespace DataStandardizer.File.CSV
             }
 
             _badValueFieldNames.Add(fieldName);
+            if (isSharedField)
+            {
+                SetSharedFieldValue(fieldName, propertyKey, SharedFieldNoValue);
+            }
         }
 
         /// <summary>
@@ -214,13 +331,17 @@ namespace DataStandardizer.File.CSV
         object? ICsvFileLine.this[int index]
         {
             get => _fieldBag.GetAt(index).Value;
-            set => _fieldBag.SetAt(index, value);
+            set
+            {
+                ForgetSharedFieldValues(_fieldBag.GetAt(index).Key);
+                _fieldBag.SetAt(index, value);
+            }
         }
 
         object? ICsvFileLine.this[string fieldName]
         {
             get => _fieldBag.TryGetValue(fieldName, out var value) ? value : null;
-            set => _fieldBag[fieldName] = value;
+            set => SetFieldValue(fieldName, value);
         }
 
         IReadOnlyList<object?> ICsvFileLine.Values => _fieldBag.Values;
@@ -257,14 +378,18 @@ namespace DataStandardizer.File.CSV
         object ICsvFileLine.this[int index]
         {
             get => _fieldBag.GetAt(index).Value;
-            set => _fieldBag.SetAt(index, value);
+            set
+            {
+                ForgetSharedFieldValues(_fieldBag.GetAt(index).Key);
+                _fieldBag.SetAt(index, value);
+            }
         }
 
         [MaybeNull]
         object ICsvFileLine.this[string fieldName]
         {
             get => _fieldBag.TryGetValue(fieldName, out var value) ? value : null;
-            set => _fieldBag[fieldName] = value;
+            set => SetFieldValue(fieldName, value);
         }
 
         IReadOnlyList<object> ICsvFileLine.Values => _fieldBag.Values;
@@ -306,16 +431,19 @@ namespace DataStandardizer.File.CSV
 
         bool ICsvFileLine.Remove(string fieldName)
         {
+            ForgetSharedFieldValues(fieldName);
             return _fieldBag.Remove(fieldName);
         }
 
         void ICsvFileLine.RemoveAt(int index)
         {
+            ForgetSharedFieldValues(_fieldBag.GetAt(index).Key);
             _fieldBag.RemoveAt(index);
         }
 
         void ICsvFileLine.Clear()
         {
+            _sharedFieldValues = null;
             _fieldBag.Clear();
         }
 
