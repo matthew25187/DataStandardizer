@@ -1677,6 +1677,7 @@ namespace DataStandardizer.File.CSV.Tests
             () => ReadConstant<FractionalDoubleLine<int>>(line => line.Value),
             () => ReadConstant<SeventeenDigitDoubleLine<decimal>>(line => line.Value),
             () => ReadConstant<SeventeenDigitDoubleLine<float>>(line => line.Value),
+            () => ReadConstant<SeventeenDigitTinyDoubleLine<decimal>>(line => line.Value),
             () => ReadConstant<NaNLine<decimal>>(line => line.Value),
             () => ReadConstant<IntPastFloatPrecisionLine<float>>(line => line.Value),
             () => ReadConstant<LongPastDoublePrecisionLine<double>>(line => line.Value),
@@ -3646,6 +3647,9 @@ namespace DataStandardizer.File.CSV.Tests
         private const double SmallestDecimalDouble = 1e-28;
         private const decimal SmallestDecimal = 0.0000000000000000000000000001m;
 
+        // The double after 1e-23, which no decimal of at most 15 significant digits converts to, though the runtime's cast of 1e-23m to double gives it.
+        private const double SeventeenDigitTinyDouble = 1.0000000000000001e-23;
+
         // A double with 17 significant digits, which no decimal of at most 15 significant digits converts back to.
         private const double SeventeenDigitDouble = 0.30000000000000004;
 
@@ -3801,6 +3805,16 @@ namespace DataStandardizer.File.CSV.Tests
         private sealed class SmallestDecimalDoubleLine<T> : CsvFileRecordLine
         {
             [CsvFieldMapping(0, ConstantValue = SmallestDecimalDouble)]
+            public T Value
+            {
+                get => GetPropertyValue<T>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class SeventeenDigitTinyDoubleLine<T> : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0, ConstantValue = SeventeenDigitTinyDouble)]
             public T Value
             {
                 get => GetPropertyValue<T>();

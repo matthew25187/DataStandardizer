@@ -337,65 +337,60 @@ namespace DataStandardizer.File.CSV
         /// <remarks>
         /// A cast divides by a power of ten as a double, which isn't exact past 10^22, so it can give a neighbour of the nearest double.
         /// </remarks>
-        private static double ToDouble(decimal value)
-        {
-            var bits = decimal.GetBits(value);
-            var significand = ToNearestBinary(bits, DoubleSignificandBits, out var exponent);
-
-            // The significand is below 2^53 and the result is between 2^-146 and 2^96 in magnitude, so both multiplication and the power of two are
-            // exact.
-            var magnitude = significand * BitConverter.Int64BitsToDouble((long)(exponent + DoubleExponentBias) << (DoubleSignificandBits - 1));
-            return bits[DecimalFlagsIndex] < 0 ? -magnitude : magnitude;
-        }
+        internal static double ToDouble(decimal value) => ToNearestBinary(value, DoubleSignificandBits);
 
         /// <summary>
         /// Converts a decimal to the nearest float, and a tie to the one with the even significand.
         /// </summary>
         /// <remarks>
-        /// A cast rounds to a double first, so it can round twice.
+        /// A cast converts to a double first, so it can round twice.  The double <see cref="ToNearestBinary"/> gives has a significand of at most
+        /// 24 bits and is within the range of float, so the float holds it exactly.
         /// </remarks>
-        private static float ToSingle(decimal value)
-        {
-            var bits = decimal.GetBits(value);
-            var significand = ToNearestBinary(bits, SingleSignificandBits, out var exponent);
+        internal static float ToSingle(decimal value) => (float)ToNearestBinary(value, SingleSignificandBits);
 
-            // The significand is below 2^24 and the result is between 2^-117 and 2^96 in magnitude, so it is a double that a float holds exactly.
-            var magnitude = significand * BitConverter.Int64BitsToDouble((long)(exponent + DoubleExponentBias) << (DoubleSignificandBits - 1));
-            return (float)(bits[DecimalFlagsIndex] < 0 ? -magnitude : magnitude);
+        /// <summary>
+        /// Rounds a decimal to the nearest number whose significand has at most <paramref name="significandBits"/> bits, and a tie to the one with
+        /// the even significand, in exact integer arithmetic.
+        /// </summary>
+        /// <param name="value">The decimal.</param>
+        /// <param name="significandBits">The bits of the significand, counting the leading bit: at most 53.</param>
+        /// <returns>The rounded number, as the double that holds it exactly.</returns>
+        private static double ToNearestBinary(decimal value, int significandBits)
+        {
+            // The decimal is numerator / 10^scale, whose numerator is the 96-bit integer of its first three parts.
+            var bits = decimal.GetBits(value);
+            var numerator = ((new BigInteger((uint)bits[2]) << 32 | (uint)bits[1]) << 32) | (uint)bits[0];
+            var magnitude = numerator.IsZero
+                ? 0d
+                : RoundToBinary(numerator, BigInteger.Pow(10, (bits[DecimalFlagsIndex] >> DecimalScaleShift) & DecimalScaleMask), significandBits);
+            return bits[DecimalFlagsIndex] < 0 ? -magnitude : magnitude;
         }
 
         /// <summary>
-        /// Rounds the magnitude of a decimal, given by <see cref="decimal.GetBits(decimal)"/>, to a significand of at most
-        /// <paramref name="significandBits"/> bits times a power of two, and a tie to the even significand.
+        /// Rounds a positive fraction to the nearest number whose significand has at most <paramref name="significandBits"/> bits, and a tie to the
+        /// one with the even significand.
         /// </summary>
-        /// <returns>The significand, or 0 for a decimal of zero.</returns>
-        private static ulong ToNearestBinary(int[] bits, int significandBits, out int exponent)
+        /// <remarks>
+        /// The fraction is a decimal's magnitude: at least 10^-28, which is above 2^-94, and below 2^96.  So the rounded number is a significand
+        /// below 2^53 times 2^exponent, where exponent is between -94 - 52 = -146 and 96 - 23 = 73.  That is inside a double's normal range, so
+        /// 2^exponent is built from its bits, and multiplying by it is exact.
+        /// </remarks>
+        private static double RoundToBinary(BigInteger numerator, BigInteger denominator, int significandBits)
         {
-            // The decimal is numerator / 10^scale, whose numerator is the 96-bit integer of its first three parts.
-            var numerator = ((new BigInteger((uint)bits[2]) << 32 | (uint)bits[1]) << 32) | (uint)bits[0];
-            exponent = 0;
-            if (numerator.IsZero)
-            {
-                return 0;
-            }
-
-            var denominator = BigInteger.Pow(10, (bits[DecimalFlagsIndex] >> DecimalScaleShift) & DecimalScaleMask);
-
             // Scale by 2^shift so that the quotient has significandBits bits.  Shifting by the difference in bit lengths gives a quotient of either
             // significandBits or significandBits + 1 bits, and the second is shifted one less.
             var shift = significandBits - GetBitLength(numerator) + GetBitLength(denominator);
-            var quotient = DivideScaled(numerator, denominator, shift, out var remainder);
+            var quotient = DivideScaled(numerator, denominator, shift, out var divisor, out var remainder);
             var limit = BigInteger.One << significandBits;
             if (quotient >= limit)
             {
                 shift--;
-                quotient = DivideScaled(numerator, denominator, shift, out remainder);
+                quotient = DivideScaled(numerator, denominator, shift, out divisor, out remainder);
             }
 
             // Round the quotient to the nearest whole number, and a tie to the even one.  Rounding up to 2^significandBits leaves a significand of
             // significandBits + 1 bits, which is halved exactly.
-            var twiceRemainder = remainder << 1;
-            var comparison = twiceRemainder.CompareTo(denominator << (shift < 0 ? -shift : 0));
+            var comparison = (remainder << 1).CompareTo(divisor);
             if (comparison > 0 || (comparison == 0 && !quotient.IsEven))
             {
                 quotient++;
@@ -406,22 +401,35 @@ namespace DataStandardizer.File.CSV
                 }
             }
 
-            exponent = -shift;
-            return (ulong)quotient;
+            var powerOfTwo = BitConverter.Int64BitsToDouble((long)(DoubleExponentBias - shift) << (DoubleSignificandBits - 1));
+            return (ulong)quotient * powerOfTwo;
         }
 
-        // Divides numerator * 2^shift by the denominator.  A negative shift multiplies the denominator by 2^-shift instead, so the remainder is
-        // to be compared with that denominator.
-        private static BigInteger DivideScaled(BigInteger numerator, BigInteger denominator, int shift, out BigInteger remainder)
+        // Divides numerator * 2^shift by the denominator.  A negative shift multiplies the denominator by 2^-shift instead.  The divisor is the
+        // number divided by, of which the remainder is a fraction.
+        private static BigInteger DivideScaled(BigInteger numerator, BigInteger denominator, int shift, out BigInteger divisor, out BigInteger remainder)
         {
-            return shift >= 0
-                ? BigInteger.DivRem(numerator << shift, denominator, out remainder)
-                : BigInteger.DivRem(numerator, denominator << -shift, out remainder);
+            BigInteger dividend;
+            if (shift >= 0)
+            {
+                dividend = numerator << shift;
+                divisor = denominator;
+            }
+            else
+            {
+                dividend = numerator;
+                divisor = denominator << -shift;
+            }
+
+            return BigInteger.DivRem(dividend, divisor, out remainder);
         }
 
         // The number of bits of a positive integer, up to and including its highest set bit.
         private static int GetBitLength(BigInteger value)
         {
+#if NET5_0_OR_GREATER
+            return (int)value.GetBitLength();
+#else
             var bitLength = 0;
             while (value > ulong.MaxValue)
             {
@@ -435,6 +443,7 @@ namespace DataStandardizer.File.CSV
             }
 
             return bitLength;
+#endif
         }
 
         private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
