@@ -750,12 +750,32 @@ public class MoneyParsingTests
 
     #region Test: TryParse_WhiteSpace
 
-    // NumberStyles reads U+0009 to U+000D and U+0020 as white space, and no other character.
     private const decimal Five = 5m;
 
+    // NumberStyles reads U+0009 to U+000D and U+0020 as white space, and no other character.
     private const string EmSpace = "\x2003";
     private const string NoBreakSpace = "\x00A0";
 
+    private const string NzdCode = "NZD";
+    private const MoneyStyles CurrencyCodeWithoutWhiteStyles = MoneyStyles.AllowCurrencyCode;
+    private const MoneyStyles CurrencyCodeAndTrailingSignStyles = MoneyStyles.AllowCurrencyCode | MoneyStyles.AllowTrailingSign;
+
+    // The NumberFormatInfo.NumberNegativePattern "- n", under which NumberStyles reads white space between a
+    // leading sign and the number.
+    private const int SpaceAfterSignNumberNegativePattern = 2;
+
+    /// <summary>
+    /// An en-US culture whose number formatting has the negative pattern "- n".
+    /// </summary>
+    private static CultureInfo SpaceAfterSignCulture()
+    {
+        var culture = new CultureInfo(UnitedStatesCulture);
+        culture.NumberFormat.NumberNegativePattern = SpaceAfterSignNumberNegativePattern;
+        return culture;
+    }
+
+    // Each row is rejected by decimal.TryParse with the matching NumberStyles, the invariant culture and $ for
+    // the currency token.
     [Theory]
     [MemberData(nameof(DisallowedWhiteSpaceTestCases))]
     public void TryParse_WhiteSpaceTheStylesDoNotAllow_ReturnsFalse(string testValue, MoneyStyles testStyles)
@@ -769,22 +789,26 @@ public class MoneyParsingTests
 
     public static TheoryData<string, MoneyStyles> DisallowedWhiteSpaceTestCases => new()
     {
-        // Inside parentheses.
+        // After an opening parenthesis that no currency token precedes, whatever the styles.
         { "( 5 )", MoneyStyles.AllowParentheses },
         { "( 5)", MoneyStyles.Currency },
-        { "(NZD5 )", MoneyStyles.Currency },
-        // Between a sign and the number.
+        { "( " + NzdCode + "5)", MoneyStyles.Currency },
+        // After a leading sign that no currency token precedes, whatever the styles.
         { "-" + EmSpace + EmSpace + "5", MoneyStyles.AllowLeadingSign },
         { "- 5", MoneyStyles.Currency },
-        { "5 -", MoneyStyles.Currency },
-        // Between a sign and a currency token on the far side of it from the amount.
-        { "- NZD5", MoneyStyles.Currency },
-        { "NZD5 -", MoneyStyles.Currency },
+        { "- " + NzdCode + "5", MoneyStyles.Currency },
+        // Without AllowTrailingWhite, before a closing parenthesis or trailing sign.
+        { "(5 )", MoneyStyles.AllowParentheses },
+        { "5 -", MoneyStyles.AllowTrailingSign },
+        { NzdCode + "5 -", CurrencyCodeAndTrailingSignStyles },
+        // Without AllowLeadingWhite or AllowTrailingWhite, between a currency token and the amount.
+        { NzdCode + " 5", CurrencyCodeWithoutWhiteStyles },
+        { "5 " + NzdCode, CurrencyCodeWithoutWhiteStyles },
         // Characters that are white space to Unicode but not to NumberStyles.
         { EmSpace + "5", MoneyStyles.AllowLeadingWhite },
         { "5" + EmSpace, MoneyStyles.AllowTrailingWhite },
         { NoBreakSpace + "5", MoneyStyles.Currency },
-        { "NZD" + EmSpace + "5", MoneyStyles.Currency },
+        { NzdCode + EmSpace + "5", MoneyStyles.Currency },
     };
 
     [Theory]
@@ -810,11 +834,41 @@ public class MoneyParsingTests
         { " 5", MoneyStyles.AllowLeadingWhite, Five },
         { "5 ", MoneyStyles.AllowTrailingWhite, Five },
         { " (5) ", MoneyStyles.Currency, NegativeFive },
-        // Between a currency token and the amount, whatever lies between them.
-        { "NZD\t5", MoneyStyles.Currency, Five },
-        { "5  NZD", MoneyStyles.Currency, Five },
-        { "NZD - 5", MoneyStyles.Currency, NegativeFive },
+        // Under AllowTrailingWhite, anywhere after the amount.
+        { "(5 )", MoneyStyles.Currency, NegativeFive },
+        { "5 -", MoneyStyles.Currency, NegativeFive },
+        { NzdCode + "5 -", MoneyStyles.Currency, NegativeFive },
+        { "5  " + NzdCode, MoneyStyles.Currency, Five },
+        // Under AllowLeadingWhite, after a currency token, including either side of a sign that follows it.
+        { NzdCode + "\t5", MoneyStyles.Currency, Five },
+        { NzdCode + " - 5", MoneyStyles.Currency, NegativeFive },
     };
+
+    [Theory]
+    [MemberData(nameof(SpaceAfterSignNumberPatternTestCases))]
+    public void TryParse_WhiteAfterSignWhereNumberPatternIsSpaceAfterSign_ReturnsTrueAndReadsAmount(string testValue)
+    {
+        // arrange
+        var testProvider = new MoneyInfo(SpaceAfterSignCulture());
+
+        // act
+        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, testProvider, out var result);
+
+        // assert
+        testResult.Should().BeTrue("decimal.TryParse reads white space after the sign where the number pattern is \"- n\"");
+        ((decimal)result).Should().Be(NegativeFive);
+    }
+
+    public static TheoryData<string> SpaceAfterSignNumberPatternTestCases => new()
+    {
+        "- 5",
+        "- " + NzdCode + "5",
+    };
+
+    // The euro sign, the ISO 4217 code of the euro, and 5 as the invariant currency formatting renders it.
+    private const string EuroSign = "\x20AC";
+    private const string EuroCode = "EUR";
+    private const string FiveRendering = "5.00";
 
     // Every NumberFormatInfo.CurrencyPositivePattern and CurrencyNegativePattern layout, as the C and I formats
     // render EUR 5 and EUR -5 under the invariant separators and hyphen-minus sign. The H format renders EUR
@@ -834,49 +888,49 @@ public class MoneyParsingTests
     public static TheoryData<string, decimal> CurrencyPatternRenderingTestCases => new()
     {
         // Positive patterns 0 to 3.
-        { "\x20AC5.00", Five },
-        { "5.00\x20AC", Five },
-        { "\x20AC 5.00", Five },
-        { "5.00 \x20AC", Five },
-        { "EUR5.00", Five },
-        { "5.00EUR", Five },
-        { "EUR 5.00", Five },
-        { "5.00 EUR", Five },
+        { EuroSign + FiveRendering, Five },
+        { FiveRendering + EuroSign, Five },
+        { EuroSign + " " + FiveRendering, Five },
+        { FiveRendering + " " + EuroSign, Five },
+        { EuroCode + FiveRendering, Five },
+        { FiveRendering + EuroCode, Five },
+        { EuroCode + " " + FiveRendering, Five },
+        { FiveRendering + " " + EuroCode, Five },
         // Negative patterns 0 to 16.
-        { "(\x20AC5.00)", NegativeFive },
-        { "-\x20AC5.00", NegativeFive },
-        { "\x20AC-5.00", NegativeFive },
-        { "\x20AC5.00-", NegativeFive },
-        { "(5.00\x20AC)", NegativeFive },
-        { "-5.00\x20AC", NegativeFive },
-        { "5.00-\x20AC", NegativeFive },
-        { "5.00\x20AC-", NegativeFive },
-        { "-5.00 \x20AC", NegativeFive },
-        { "-\x20AC 5.00", NegativeFive },
-        { "5.00 \x20AC-", NegativeFive },
-        { "\x20AC 5.00-", NegativeFive },
-        { "\x20AC -5.00", NegativeFive },
-        { "5.00- \x20AC", NegativeFive },
-        { "(\x20AC 5.00)", NegativeFive },
-        { "(5.00 \x20AC)", NegativeFive },
-        { "\x20AC- 5.00", NegativeFive },
-        { "(EUR5.00)", NegativeFive },
-        { "-EUR5.00", NegativeFive },
-        { "EUR-5.00", NegativeFive },
-        { "EUR5.00-", NegativeFive },
-        { "(5.00EUR)", NegativeFive },
-        { "-5.00EUR", NegativeFive },
-        { "5.00-EUR", NegativeFive },
-        { "5.00EUR-", NegativeFive },
-        { "-5.00 EUR", NegativeFive },
-        { "-EUR 5.00", NegativeFive },
-        { "5.00 EUR-", NegativeFive },
-        { "EUR 5.00-", NegativeFive },
-        { "EUR -5.00", NegativeFive },
-        { "5.00- EUR", NegativeFive },
-        { "(EUR 5.00)", NegativeFive },
-        { "(5.00 EUR)", NegativeFive },
-        { "EUR- 5.00", NegativeFive },
+        { "(" + EuroSign + FiveRendering + ")", NegativeFive },
+        { "-" + EuroSign + FiveRendering, NegativeFive },
+        { EuroSign + "-" + FiveRendering, NegativeFive },
+        { EuroSign + FiveRendering + "-", NegativeFive },
+        { "(" + FiveRendering + EuroSign + ")", NegativeFive },
+        { "-" + FiveRendering + EuroSign, NegativeFive },
+        { FiveRendering + "-" + EuroSign, NegativeFive },
+        { FiveRendering + EuroSign + "-", NegativeFive },
+        { "-" + FiveRendering + " " + EuroSign, NegativeFive },
+        { "-" + EuroSign + " " + FiveRendering, NegativeFive },
+        { FiveRendering + " " + EuroSign + "-", NegativeFive },
+        { EuroSign + " " + FiveRendering + "-", NegativeFive },
+        { EuroSign + " -" + FiveRendering, NegativeFive },
+        { FiveRendering + "- " + EuroSign, NegativeFive },
+        { "(" + EuroSign + " " + FiveRendering + ")", NegativeFive },
+        { "(" + FiveRendering + " " + EuroSign + ")", NegativeFive },
+        { EuroSign + "- " + FiveRendering, NegativeFive },
+        { "(" + EuroCode + FiveRendering + ")", NegativeFive },
+        { "-" + EuroCode + FiveRendering, NegativeFive },
+        { EuroCode + "-" + FiveRendering, NegativeFive },
+        { EuroCode + FiveRendering + "-", NegativeFive },
+        { "(" + FiveRendering + EuroCode + ")", NegativeFive },
+        { "-" + FiveRendering + EuroCode, NegativeFive },
+        { FiveRendering + "-" + EuroCode, NegativeFive },
+        { FiveRendering + EuroCode + "-", NegativeFive },
+        { "-" + FiveRendering + " " + EuroCode, NegativeFive },
+        { "-" + EuroCode + " " + FiveRendering, NegativeFive },
+        { FiveRendering + " " + EuroCode + "-", NegativeFive },
+        { EuroCode + " " + FiveRendering + "-", NegativeFive },
+        { EuroCode + " -" + FiveRendering, NegativeFive },
+        { FiveRendering + "- " + EuroCode, NegativeFive },
+        { "(" + EuroCode + " " + FiveRendering + ")", NegativeFive },
+        { "(" + FiveRendering + " " + EuroCode + ")", NegativeFive },
+        { EuroCode + "- " + FiveRendering, NegativeFive },
     };
 
     #endregion
