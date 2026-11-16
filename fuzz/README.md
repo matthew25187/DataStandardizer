@@ -20,6 +20,7 @@
 | | `jcard` | `JcardReader`, then `Validate`, the lookups by name and every typed member of each card it reads | `Corpus/jcard` |
 | | `xcard` | `XcardReader`, then `Validate`, the lookups by name and every typed member of each card it reads | `Corpus/xcard` |
 | `DataStandardizer.LanguageTag.Fuzz` | (only one) | `Bcp47LanguageTag.TryParse`, string and span overloads | `Corpus` |
+| `DataStandardizer.Money.Fuzz` | (only one) | `Money.TryParse` and `Parse` with each set of styles, then `TryParseExact` with the input's format string, and `ToString` and `TryFormat` of fixed values with it, under cultures, a `MoneyInfo`, a `CurrencyFormatInfo` and a `NumberFormatInfo` | `Corpus` |
 
 Each harness treats only the exceptions that the API documents as expected. Anything else, a hang or a crash, is a finding. The seeds come from the test data of the same package.
 
