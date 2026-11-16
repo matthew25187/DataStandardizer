@@ -31,9 +31,19 @@ string.Format(new CultureInfo("de-DE"), "{0:C}", money);   // 1.234,50 NZ$
 
 Case is not significant: `C` and `c` are equivalent, as they are for `decimal`.
 
-Each specifier may be followed by a precision, as `C2` or `I3`. Where none is
-given, the number of minor units of the currency is used, so a Japanese Yen
-amount is shown with no decimals and a Kuwaiti Dinar amount with three.
+Each of `C`, `H`, `I` and `N` may be followed by a precision, the number of
+decimal places, as `C2` or `I3`. Where none is given, the number of minor units
+of the currency is used, so a Japanese Yen amount is shown with no decimals and
+a Kuwaiti Dinar amount with three.
+
+`G` is `decimal`'s general format, and it and its precision mean what they mean
+for `decimal`. The precision is a number of significant digits, the result may
+be in scientific notation, and with no precision the minor units aren't applied:
+
+```csharp
+Money.Create(1234.56m, Iso4217CurrencyCurrent.USD).ToString("G2", CultureInfo.InvariantCulture);   // 1.2E+03
+Money.Create(5m, Iso4217CurrencyCurrent.USD).ToString("G", CultureInfo.InvariantCulture);          // 5
+```
 
 ```csharp
 Money.Create(1234.5m, Iso4217CurrencyCurrent.JPY).ToString("C", enNz);   // ¥1,235
