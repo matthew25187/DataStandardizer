@@ -8,9 +8,10 @@ Includes:
 - Supports use of ISO 4217, "Codes for the representation of currencies and funds"
   - Table A.1 – Current currency &amp; funds code list
   - Table A.3 – List of codes for historic denominations of currencies &amp; funds
-- Money data type as described in "Patterns of Enterprise Application Architecture" by Martin Fowler.  Combines an amount with an ISO 4217 currency code to manage a monetary value.</Description>
+- Money data type as described in "Patterns of Enterprise Application Architecture" by Martin Fowler.  Combines an amount with an ISO 4217 currency code to manage a monetary value.
+- Culture-specific currency formatting, and the currency of each region, from the Unicode Common Locale Data Repository (CLDR).</Description>
     <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;money;amount;currency</PackageTags>
+    <PackageTags>data;standard;money;amount;currency;cldr</PackageTags>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
@@ -21,21 +22,6 @@ Includes:
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
     <ProjectReference Include="..\DataStandardizer.LanguageTag\DataStandardizer.LanguageTag.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

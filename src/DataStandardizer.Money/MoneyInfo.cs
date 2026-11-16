@@ -39,7 +39,7 @@ namespace DataStandardizer.Money
         /// Initialises a new instance of the <see cref="MoneyInfo"/> class with culture-independent information.
         /// </summary>
         public MoneyInfo()
-            : this(GetCulture(null, null))
+            : this(default(CultureInfo))
         {
         }
 
@@ -48,10 +48,12 @@ namespace DataStandardizer.Money
         /// </summary>
         /// <param name="languageCode">ISO 639-1 code of the language.</param>
         /// <remarks>
-        /// Where the language is not a culture known to the host, the culture-independent information is used.
+        /// The currency formatting information is that of the Unicode CLDR locale the language names, whether or
+        /// not the host knows the culture. Custom numeric formats and the general format use the host's number
+        /// formatting for the culture, or the invariant number formatting where the host doesn't know it.
         /// </remarks>
         public MoneyInfo(Iso639Part1Language languageCode)
-            : this(GetCulture(languageCode, null))
+            : this(GetCultureName(languageCode, null))
         {
         }
 
@@ -61,10 +63,12 @@ namespace DataStandardizer.Money
         /// <param name="languageCode">ISO 639-1 code of the language.</param>
         /// <param name="countryCode">ISO 3166-1 alpha-2 code of the country.</param>
         /// <remarks>
-        /// Where the combination is not a culture known to the host, the culture-independent information is used.
+        /// The currency formatting information is that of the Unicode CLDR locale the combination names, whether
+        /// or not the host knows the culture. Custom numeric formats and the general format use the host's number
+        /// formatting for the culture, or the invariant number formatting where the host doesn't know it.
         /// </remarks>
         public MoneyInfo(Iso639Part1Language languageCode, Iso3166Part1Alpha2Country countryCode)
-            : this(GetCulture(languageCode, countryCode))
+            : this(GetCultureName(languageCode, countryCode))
         {
         }
 
@@ -74,10 +78,12 @@ namespace DataStandardizer.Money
         /// <param name="languageCode">ISO 639-1 code of the language.</param>
         /// <param name="countryCode">ISO 3166-1 alpha-3 code of the country.</param>
         /// <remarks>
-        /// Where the combination is not a culture known to the host, the culture-independent information is used.
+        /// The currency formatting information is that of the Unicode CLDR locale the combination names, whether
+        /// or not the host knows the culture. Custom numeric formats and the general format use the host's number
+        /// formatting for the culture, or the invariant number formatting where the host doesn't know it.
         /// </remarks>
         public MoneyInfo(Iso639Part1Language languageCode, Iso3166Part1Alpha3Country countryCode)
-            : this(GetCulture(languageCode, (Iso3166Part1Alpha2Country?)(ushort)countryCode))
+            : this(GetCultureName(languageCode, (Iso3166Part1Alpha2Country)(ushort)countryCode))
         {
         }
 
@@ -97,6 +103,16 @@ namespace DataStandardizer.Money
         {
             CurrencyFormat = CurrencyFormatInfo.CreateForCulture(culture);
             _numberFormat = culture != null ? culture.NumberFormat : NumberFormatInfo.InvariantInfo;
+        }
+
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class for a culture name, which the host
+        /// need not know.
+        /// </summary>
+        private MoneyInfo(string cultureName)
+        {
+            CurrencyFormat = CurrencyFormatInfo.CreateForCultureName(cultureName);
+            _numberFormat = GetHostNumberFormat(cultureName);
         }
 
         /// <summary>
@@ -327,33 +343,30 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
-        /// Resolve the culture denoted by a language and country code.
+        /// Determine the culture name denoted by a language and an optional country code.
         /// </summary>
-        /// <returns>The culture, or <c>null</c> where none is specified or the combination is not a culture known to the host.</returns>
-#if NETCOREAPP3_0_OR_GREATER
-        private static CultureInfo? GetCulture(Iso639Part1Language? languageCode, Iso3166Part1Alpha2Country? countryCode)
-#else
-        private static CultureInfo GetCulture(Iso639Part1Language? languageCode, Iso3166Part1Alpha2Country? countryCode)
-#endif
+        private static string GetCultureName(Iso639Part1Language languageCode, Iso3166Part1Alpha2Country? countryCode)
         {
-            if (!languageCode.HasValue)
-            {
-                return null;
-            }
+            return countryCode.HasValue
+                ? string.Concat(languageCode.ToString(), "-", countryCode.Value.ToString())
+                : languageCode.ToString();
+        }
 
-            var cultureName = countryCode.HasValue
-                ? string.Concat(languageCode.Value.ToString(), "-", countryCode.Value.ToString())
-                : languageCode.Value.ToString();
-
+        /// <summary>
+        /// Get the host's number formatting for a culture name, or the invariant number formatting where the
+        /// host doesn't know the culture.
+        /// </summary>
+        private static NumberFormatInfo GetHostNumberFormat(string cultureName)
+        {
             try
             {
-                return new CultureInfo(cultureName);
+                return new CultureInfo(cultureName).NumberFormat;
             }
             catch (CultureNotFoundException)
             {
                 // Not every well-formed combination of a language and a country is a culture the host knows
-                // about. Falling back to the neutral resources is preferable to failing to construct at all.
-                return null;
+                // about, and a host in invariant globalization mode knows none.
+                return NumberFormatInfo.InvariantInfo;
             }
         }
 

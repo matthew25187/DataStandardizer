@@ -21,6 +21,7 @@ namespace DataStandardizer.Money
     internal static class MoneyParser
     {
         private const int CurrencyCodeLength = 3;
+        private const string HyphenMinus = "-";
 
         /// <summary>
         /// Attempt to parse the string representation of a monetary value.
@@ -286,9 +287,13 @@ namespace DataStandardizer.Money
         /// </remarks>
         private static bool TryExtractSign(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, ref bool isNegative)
         {
-            var negativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
+            var negativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? HyphenMinus : currencyFormat.NegativeSign;
 
-            if (value.StartsWith(negativeSign, StringComparison.Ordinal))
+            // As for decimal, a hyphen-minus is also read as the sign where the sign is a single dash such as
+            // U+2212 MINUS SIGN, which few keyboards can type.
+            var alternativeSign = AllowsHyphenMinus(negativeSign) ? HyphenMinus : null;
+
+            if (StartsWithSign(value, negativeSign, alternativeSign, out var leadingSignLength))
             {
                 if ((styles & MoneyStyles.AllowLeadingSign) == 0 || isNegative)
                 {
@@ -296,11 +301,11 @@ namespace DataStandardizer.Money
                 }
 
                 isNegative = true;
-                value = value.Substring(negativeSign.Length);
+                value = value.Substring(leadingSignLength);
                 return true;
             }
 
-            if (value.EndsWith(negativeSign, StringComparison.Ordinal))
+            if (EndsWithSign(value, negativeSign, alternativeSign, out var trailingSignLength))
             {
                 if ((styles & MoneyStyles.AllowTrailingSign) == 0 || isNegative)
                 {
@@ -308,11 +313,62 @@ namespace DataStandardizer.Money
                 }
 
                 isNegative = true;
-                value = value.Substring(0, value.Length - negativeSign.Length);
+                value = value.Substring(0, value.Length - trailingSignLength);
                 return true;
             }
 
             return true;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool StartsWithSign(string value, string negativeSign, string? alternativeSign, out int signLength)
+#else
+        private static bool StartsWithSign(string value, string negativeSign, string alternativeSign, out int signLength)
+#endif
+        {
+            signLength = value.StartsWith(negativeSign, StringComparison.Ordinal) ? negativeSign.Length
+                : alternativeSign != null && value.StartsWith(alternativeSign, StringComparison.Ordinal) ? alternativeSign.Length
+                : 0;
+            return signLength != 0;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool EndsWithSign(string value, string negativeSign, string? alternativeSign, out int signLength)
+#else
+        private static bool EndsWithSign(string value, string negativeSign, string alternativeSign, out int signLength)
+#endif
+        {
+            signLength = value.EndsWith(negativeSign, StringComparison.Ordinal) ? negativeSign.Length
+                : alternativeSign != null && value.EndsWith(alternativeSign, StringComparison.Ordinal) ? alternativeSign.Length
+                : 0;
+            return signLength != 0;
+        }
+
+        /// <summary>
+        /// Determine whether a hyphen-minus is also read as a negative sign, by the rule
+        /// <see cref="NumberFormatInfo"/> applies when parsing a number.
+        /// </summary>
+        private static bool AllowsHyphenMinus(string negativeSign)
+        {
+            if (negativeSign.Length != 1)
+            {
+                return false;
+            }
+
+            switch (negativeSign[0])
+            {
+                case '\x2012': // FIGURE DASH
+                case '\x207B': // SUPERSCRIPT MINUS
+                case '\x208B': // SUBSCRIPT MINUS
+                case '\x2212': // MINUS SIGN
+                case '\x2796': // HEAVY MINUS SIGN
+                case '\xFE63': // SMALL HYPHEN-MINUS
+                case '\xFF0D': // FULLWIDTH HYPHEN-MINUS
+                    return true;
+
+                default:
+                    return false;
+            }
         }
 
         private static bool TryParseAmount(string value, MoneyStyles styles, NumberFormatInfo numberFormat, out decimal amount)

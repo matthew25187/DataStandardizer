@@ -19,7 +19,7 @@ public class Iso4217ExtensionsTests
     private const byte BahrainiDinarMinorUnits = 3;
     private const byte UnidadPrevisionalMinorUnits = 4;
 
-    // Standard currency symbols from the Unicode CLDR 47 currency data for the en locale.
+    // Standard currency symbols from the Unicode CLDR 49 currency data for the en locale.
     private const string DollarSign = "$";
     private const string EuroSign = "\x20AC";
     private const string IndianRupeeSign = "\x20B9";
@@ -27,11 +27,12 @@ public class Iso4217ExtensionsTests
     private const string CanadianDollarSymbol = "CA$";
     private const string BrazilianRealSymbol = "R$";
 
-    // Narrow currency symbols from the Unicode CLDR 47 currency data for the en locale.
+    // Narrow currency symbols from the Unicode CLDR 49 currency data for the en locale.
     private const string CzechKorunaNarrowSymbol = "K\x010D";
     private const string PolishZlotyNarrowSymbol = "z\x0142";
     private const string HungarianForintNarrowSymbol = "Ft";
     private const string SwedishKronaNarrowSymbol = "kr";
+    private const string SwissFrancNarrowSymbol = "Fr.";
     private const string SpanishPesetaNarrowSymbol = "\x20A7";
     private const string CroatianKunaNarrowSymbol = "kn";
     private const string LithuanianLitasNarrowSymbol = "Lt";
@@ -199,6 +200,7 @@ public class Iso4217ExtensionsTests
     [InlineData(Iso4217CurrencyCurrent.PLN, PolishZlotyNarrowSymbol)]
     [InlineData(Iso4217CurrencyCurrent.HUF, HungarianForintNarrowSymbol)]
     [InlineData(Iso4217CurrencyCurrent.SEK, SwedishKronaNarrowSymbol)]
+    [InlineData(Iso4217CurrencyCurrent.CHF, SwissFrancNarrowSymbol)]
     public void GetCurrencySymbol_OnIso4217CurrentCurrencyCodeRequestingNarrowForm_ReturnsNarrowSymbol(Iso4217CurrencyCurrent testCode, string? expectedResult)
     {
         // act
@@ -211,7 +213,7 @@ public class Iso4217ExtensionsTests
     [Theory]
     [InlineData(Iso4217CurrencyCurrent.USD, DollarSign)]
     [InlineData(Iso4217CurrencyCurrent.EUR, EuroSign)]
-    [InlineData(Iso4217CurrencyCurrent.CHF, null)]
+    [InlineData(Iso4217CurrencyCurrent.BHD, null)]
     public void GetCurrencySymbol_OnIso4217CurrentCurrencyCodeWithNoDistinctNarrowFormRequestingNarrowForm_ReturnsStandardSymbol(Iso4217CurrencyCurrent testCode, string? expectedResult)
     {
         // act

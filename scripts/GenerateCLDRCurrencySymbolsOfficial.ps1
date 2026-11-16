@@ -12,7 +12,7 @@
 # and is published under the Unicode licence, which permits redistribution with            #
 # attribution.                                                                             #
 ############################################################################################
-#Requires -Version 7.4
+#Requires -Version 7.6
 
 param (
     [Parameter(HelpMessage = 'URL from which the CLDR currency data can be downloaded.')]
@@ -391,7 +391,7 @@ Write-Debug "Generated type comment: $SourceCodeTypeComment"
 Write-Debug "Generated language: $SourceCodeLanguage"
 
 # The ISO 4217 enums must be loaded so the CLDR data can be joined onto them.
-$moneyAssemblyPath = Join-Path -Path $PSScriptRoot -ChildPath '..\src\DataStandardizer.Money\bin\Debug\net10.0\DataStandardizer.Money.dll' -Resolve -ErrorAction SilentlyContinue
+$moneyAssemblyPath = Join-Path -Path $PSScriptRoot -ChildPath '..' -AdditionalChildPath 'src', 'DataStandardizer.Money', 'bin', 'Debug', 'net10.0', 'DataStandardizer.Money.dll' -Resolve -ErrorAction SilentlyContinue
 if ([string]::IsNullOrEmpty($moneyAssemblyPath)) {
     Write-Error 'Unable to locate DataStandardizer.Money.dll. Build the project before running this generator.'
     exit;
