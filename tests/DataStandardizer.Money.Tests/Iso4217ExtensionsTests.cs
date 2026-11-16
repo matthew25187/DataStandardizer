@@ -303,5 +303,18 @@ public class Iso4217ExtensionsTests
         testResult.Should().BeNull("members that share a value can't be told apart");
     }
 
+    [Theory]
+    [InlineData(Iso4217CurrencyHistoric.HRK)]
+    [InlineData(Iso4217CurrencyHistoric.LTL)]
+    [InlineData(Iso4217CurrencyHistoric.LVL)]
+    public void GetCurrencySymbol_OnIso4217HistoricCurrencyCodeSharingValue_ReturnsNull(Iso4217CurrencyHistoric testCode)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol();
+
+        // assert
+        testResult.Should().BeNull("members that share a value can't be told apart");
+    }
+
     #endregion
 }

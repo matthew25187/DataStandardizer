@@ -16,7 +16,7 @@ namespace DataStandardizer.Money
         // paths; uncached reflection here was previously repeated for every currency of every operation.
         private static readonly Dictionary<Iso4217CurrencyCurrent, Iso4217CurrencyCodeAttribute> CurrentAttributes = BuildAttributeCache<Iso4217CurrencyCurrent>();
         private static readonly Dictionary<Iso4217CurrencyHistoric, Iso4217CurrencyCodeAttribute> HistoricAttributes = BuildAttributeCache<Iso4217CurrencyHistoric>();
-        private static readonly HashSet<Iso4217CurrencyHistoric> HistoricSharedValues = BuildSharedValueSet<Iso4217CurrencyHistoric>();
+        private static readonly HashSet<Iso4217CurrencyHistoric> HistoricSharedValues = BuildHistoricSharedValueSet();
         private static readonly Dictionary<Iso4217CurrencyCurrent, string> CurrentNames = BuildNameCache<Iso4217CurrencyCurrent>();
         private static readonly Dictionary<string, Iso4217CurrencyCurrent> CurrentCodesByName = BuildCodeByNameCache(CurrentNames);
 
@@ -25,9 +25,6 @@ namespace DataStandardizer.Money
             where TCurrencyCode : notnull
 #endif
         {
-            // ISO 4217 reuses numeric codes, so several historic members can share a value. Members that
-            // share a value can't be told apart, so no metadata is cached for that value.
-            var sharedValues = BuildSharedValueSet<TCurrencyCode>();
             var cache = new Dictionary<TCurrencyCode, Iso4217CurrencyCodeAttribute>();
             foreach (var currencyCodeField in typeof(TCurrencyCode).GetTypeInfo().DeclaredFields)
             {
@@ -43,7 +40,7 @@ namespace DataStandardizer.Money
                 }
 
                 var currencyCodeValue = currencyCodeField.GetValue(null);
-                if (currencyCodeValue is TCurrencyCode currencyCode && !sharedValues.Contains(currencyCode))
+                if (currencyCodeValue is TCurrencyCode currencyCode)
                 {
                     cache[currencyCode] = currencyCodeAttribute;
                 }
@@ -52,16 +49,16 @@ namespace DataStandardizer.Money
             return cache;
         }
 
-        private static HashSet<TCurrencyCode> BuildSharedValueSet<TCurrencyCode>()
-#if NETCOREAPP3_0_OR_GREATER
-            where TCurrencyCode : notnull
-#endif
+        // ISO 4217 reuses numeric codes across successive denominations, so several historic members can
+        // share a value, and the codes that have no numeric code all share -1. Members that share a value
+        // can't be told apart, so the historic accessors return no metadata for these values.
+        private static HashSet<Iso4217CurrencyHistoric> BuildHistoricSharedValueSet()
         {
-            var definedValues = new HashSet<TCurrencyCode>();
-            var sharedValues = new HashSet<TCurrencyCode>();
-            foreach (var currencyCodeField in typeof(TCurrencyCode).GetTypeInfo().DeclaredFields)
+            var definedValues = new HashSet<Iso4217CurrencyHistoric>();
+            var sharedValues = new HashSet<Iso4217CurrencyHistoric>();
+            foreach (var currencyCodeField in typeof(Iso4217CurrencyHistoric).GetTypeInfo().DeclaredFields)
             {
-                if (currencyCodeField.IsStatic && currencyCodeField.GetValue(null) is TCurrencyCode currencyCode && !definedValues.Add(currencyCode))
+                if (currencyCodeField.IsStatic && currencyCodeField.GetValue(null) is Iso4217CurrencyHistoric currencyCode && !definedValues.Add(currencyCode))
                 {
                     sharedValues.Add(currencyCode);
                 }
@@ -156,7 +153,7 @@ namespace DataStandardizer.Money
         public static string GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
 #endif
         {
-            return HistoricAttributes.TryGetValue(currencyCode, out var currencyCodeAttribute) ? currencyCodeAttribute.CurrencyName : null;
+            return !HistoricSharedValues.Contains(currencyCode) && HistoricAttributes.TryGetValue(currencyCode, out var currencyCodeAttribute) ? currencyCodeAttribute.CurrencyName : null;
         }
 
         /// <summary>
@@ -254,7 +251,8 @@ namespace DataStandardizer.Money
         public static string GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)
 #endif
         {
-            // Symbols are keyed by value, so a shared value would return whichever member CLDR covers.
+            // Symbols are keyed by value. The generator emits none for a shared value, and this keeps the
+            // result null for one even if a later regeneration did.
             return HistoricSharedValues.Contains(currencyCode) ? null : CurrencySymbols.GetSymbol(currencyCode, symbolKind);
         }
 
