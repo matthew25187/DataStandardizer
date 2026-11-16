@@ -747,4 +747,137 @@ public class MoneyParsingTests
     }
 
     #endregion
+
+    #region Test: TryParse_WhiteSpace
+
+    // NumberStyles reads U+0009 to U+000D and U+0020 as white space, and no other character.
+    private const decimal Five = 5m;
+
+    private const string EmSpace = "\x2003";
+    private const string NoBreakSpace = "\x00A0";
+
+    [Theory]
+    [MemberData(nameof(DisallowedWhiteSpaceTestCases))]
+    public void TryParse_WhiteSpaceTheStylesDoNotAllow_ReturnsFalse(string testValue, MoneyStyles testStyles)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, testStyles, MoneyInfo.InvariantMoney, out _);
+
+        // assert
+        testResult.Should().BeFalse("decimal.TryParse with the matching NumberStyles rejects {0}", testValue);
+    }
+
+    public static TheoryData<string, MoneyStyles> DisallowedWhiteSpaceTestCases => new()
+    {
+        // Inside parentheses.
+        { "( 5 )", MoneyStyles.AllowParentheses },
+        { "( 5)", MoneyStyles.Currency },
+        { "(NZD5 )", MoneyStyles.Currency },
+        // Between a sign and the number.
+        { "-" + EmSpace + EmSpace + "5", MoneyStyles.AllowLeadingSign },
+        { "- 5", MoneyStyles.Currency },
+        { "5 -", MoneyStyles.Currency },
+        // Between a sign and a currency token on the far side of it from the amount.
+        { "- NZD5", MoneyStyles.Currency },
+        { "NZD5 -", MoneyStyles.Currency },
+        // Characters that are white space to Unicode but not to NumberStyles.
+        { EmSpace + "5", MoneyStyles.AllowLeadingWhite },
+        { "5" + EmSpace, MoneyStyles.AllowTrailingWhite },
+        { NoBreakSpace + "5", MoneyStyles.Currency },
+        { "NZD" + EmSpace + "5", MoneyStyles.Currency },
+    };
+
+    [Theory]
+    [MemberData(nameof(AllowedWhiteSpaceTestCases))]
+    public void TryParse_WhiteSpaceTheStylesAllow_ReturnsTrueAndReadsAmount(string testValue, MoneyStyles testStyles, decimal expectedAmount)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, testStyles, MoneyInfo.InvariantMoney, out var result);
+
+        // assert
+        testResult.Should().BeTrue("the styles allow the white space in {0}", testValue);
+        ((decimal)result).Should().Be(expectedAmount);
+    }
+
+    public static TheoryData<string, MoneyStyles, decimal> AllowedWhiteSpaceTestCases => new()
+    {
+        // Each NumberStyles white-space character at the outer ends.
+        { "\t5", MoneyStyles.AllowLeadingWhite, Five },
+        { "\n5", MoneyStyles.AllowLeadingWhite, Five },
+        { "\v5", MoneyStyles.AllowLeadingWhite, Five },
+        { "\f5", MoneyStyles.AllowLeadingWhite, Five },
+        { "\r5", MoneyStyles.AllowLeadingWhite, Five },
+        { " 5", MoneyStyles.AllowLeadingWhite, Five },
+        { "5 ", MoneyStyles.AllowTrailingWhite, Five },
+        { " (5) ", MoneyStyles.Currency, NegativeFive },
+        // Between a currency token and the amount, whatever lies between them.
+        { "NZD\t5", MoneyStyles.Currency, Five },
+        { "5  NZD", MoneyStyles.Currency, Five },
+        { "NZD - 5", MoneyStyles.Currency, NegativeFive },
+    };
+
+    // Every NumberFormatInfo.CurrencyPositivePattern and CurrencyNegativePattern layout, as the C and I formats
+    // render EUR 5 and EUR -5 under the invariant separators and hyphen-minus sign. The H format renders EUR
+    // with the same symbol as C.
+    [Theory]
+    [MemberData(nameof(CurrencyPatternRenderingTestCases))]
+    public void TryParse_CurrencyPatternRendering_ReturnsTrueAndReadsAmount(string testValue, decimal expectedAmount)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, MoneyInfo.InvariantMoney, out var result);
+
+        // assert
+        testResult.Should().BeTrue("{0} is a rendering of a currency pattern", testValue);
+        result.Should().Be(Money.Create(expectedAmount, Iso4217CurrencyCurrent.EUR));
+    }
+
+    public static TheoryData<string, decimal> CurrencyPatternRenderingTestCases => new()
+    {
+        // Positive patterns 0 to 3.
+        { "\x20AC5.00", Five },
+        { "5.00\x20AC", Five },
+        { "\x20AC 5.00", Five },
+        { "5.00 \x20AC", Five },
+        { "EUR5.00", Five },
+        { "5.00EUR", Five },
+        { "EUR 5.00", Five },
+        { "5.00 EUR", Five },
+        // Negative patterns 0 to 16.
+        { "(\x20AC5.00)", NegativeFive },
+        { "-\x20AC5.00", NegativeFive },
+        { "\x20AC-5.00", NegativeFive },
+        { "\x20AC5.00-", NegativeFive },
+        { "(5.00\x20AC)", NegativeFive },
+        { "-5.00\x20AC", NegativeFive },
+        { "5.00-\x20AC", NegativeFive },
+        { "5.00\x20AC-", NegativeFive },
+        { "-5.00 \x20AC", NegativeFive },
+        { "-\x20AC 5.00", NegativeFive },
+        { "5.00 \x20AC-", NegativeFive },
+        { "\x20AC 5.00-", NegativeFive },
+        { "\x20AC -5.00", NegativeFive },
+        { "5.00- \x20AC", NegativeFive },
+        { "(\x20AC 5.00)", NegativeFive },
+        { "(5.00 \x20AC)", NegativeFive },
+        { "\x20AC- 5.00", NegativeFive },
+        { "(EUR5.00)", NegativeFive },
+        { "-EUR5.00", NegativeFive },
+        { "EUR-5.00", NegativeFive },
+        { "EUR5.00-", NegativeFive },
+        { "(5.00EUR)", NegativeFive },
+        { "-5.00EUR", NegativeFive },
+        { "5.00-EUR", NegativeFive },
+        { "5.00EUR-", NegativeFive },
+        { "-5.00 EUR", NegativeFive },
+        { "-EUR 5.00", NegativeFive },
+        { "5.00 EUR-", NegativeFive },
+        { "EUR 5.00-", NegativeFive },
+        { "EUR -5.00", NegativeFive },
+        { "5.00- EUR", NegativeFive },
+        { "(EUR 5.00)", NegativeFive },
+        { "(5.00 EUR)", NegativeFive },
+        { "EUR- 5.00", NegativeFive },
+    };
+
+    #endregion
 }

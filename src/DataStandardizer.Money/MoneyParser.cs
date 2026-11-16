@@ -142,14 +142,17 @@ namespace DataStandardizer.Money
 
             var remaining = value;
 
-            remaining = TrimWhite(remaining, styles, out var hadLeadingWhite, out var hadTrailingWhite);
+            // White space is permitted at the outer ends only where the styles allow it, and inside the value
+            // only between a currency token and the amount, where the currency patterns put a space.
+            var hadLeadingWhite = TrimLeadingWhite(ref remaining);
+            var hadTrailingWhite = TrimTrailingWhite(ref remaining);
             if ((hadLeadingWhite && (styles & MoneyStyles.AllowLeadingWhite) == 0)
                 || (hadTrailingWhite && (styles & MoneyStyles.AllowTrailingWhite) == 0))
             {
                 return ParseOutcome.Failed;
             }
 
-            // Parentheses denote a negative value, and enclose the whole of it.
+            // Parentheses denote a negative value, and enclose the whole of it with nothing between.
             var isNegative = false;
             if (remaining.Length > 1 && remaining[0] == '(' && remaining[remaining.Length - 1] == ')')
             {
@@ -159,7 +162,7 @@ namespace DataStandardizer.Money
                 }
 
                 isNegative = true;
-                remaining = remaining.Substring(1, remaining.Length - 2).Trim();
+                remaining = remaining.Substring(1, remaining.Length - 2);
             }
 
             // A sign may appear outside the currency token as well as beside the amount, so it is looked for
@@ -169,9 +172,7 @@ namespace DataStandardizer.Money
                 return ParseOutcome.Failed;
             }
 
-            remaining = remaining.Trim();
-
-            if (!TryExtractCurrency(ref remaining, styles, currencyFormat, standardSymbolsFirst, out var currencyCode, out var hasCurrency, out var currencyReadAsStandardSymbol))
+            if (!TryExtractCurrency(ref remaining, styles, currencyFormat, standardSymbolsFirst, out var currencyCode, out var hasCurrency, out var isTokenLeading, out var currencyReadAsStandardSymbol))
             {
                 return ParseOutcome.Failed;
             }
@@ -182,14 +183,16 @@ namespace DataStandardizer.Money
                 return hasCurrency ? ParseOutcome.Failed : ParseOutcome.NoCurrencyToken;
             }
 
-            remaining = remaining.Trim();
+            // A sign between the currency token and the amount may have white space on either side of it, as
+            // in the patterns "$ -n" and "$- n".
+            TrimTokenWhite(ref remaining, hasCurrency, isTokenLeading);
 
             if (!TryExtractSign(ref remaining, styles, negativeSign, ref isNegative))
             {
                 return ParseOutcome.Failed;
             }
 
-            remaining = remaining.Trim();
+            TrimTokenWhite(ref remaining, hasCurrency, isTokenLeading);
 
             if (!TryParseAmount(remaining, styles, numberFormat, out var amount))
             {
@@ -206,33 +209,93 @@ namespace DataStandardizer.Money
             return ParseOutcome.Parsed;
         }
 
-        private static string TrimWhite(string value, MoneyStyles styles, out bool hadLeadingWhite, out bool hadTrailingWhite)
+        /// <summary>
+        /// Determine whether a character is white space as <see cref="NumberStyles"/> defines it: U+0009 to
+        /// U+000D and U+0020, and no other character that Unicode classes as white space.
+        /// </summary>
+        private static bool IsWhite(char character)
         {
-            var trimmed = value.Trim();
-            hadLeadingWhite = trimmed.Length != value.Length && !value.StartsWith(trimmed, StringComparison.Ordinal);
-            hadTrailingWhite = trimmed.Length != value.Length && !value.EndsWith(trimmed, StringComparison.Ordinal);
+            return character == ' ' || (character >= '\t' && character <= '\r');
+        }
 
-            // A value which is white space at both ends satisfies neither test above on its own.
-            if (trimmed.Length != value.Length)
+        /// <summary>
+        /// Remove the white space from the start of a value.
+        /// </summary>
+        /// <returns><c>true</c> if <paramref name="value"/> started with white space; otherwise <c>false</c>.</returns>
+        private static bool TrimLeadingWhite(ref string value)
+        {
+            var start = 0;
+            while (start < value.Length && IsWhite(value[start]))
             {
-                hadLeadingWhite = value.Length > 0 && char.IsWhiteSpace(value[0]);
-                hadTrailingWhite = value.Length > 0 && char.IsWhiteSpace(value[value.Length - 1]);
+                start++;
             }
 
-            return trimmed;
+            if (start == 0)
+            {
+                return false;
+            }
+
+            value = value.Substring(start);
+            return true;
+        }
+
+        /// <summary>
+        /// Remove the white space from the end of a value.
+        /// </summary>
+        /// <returns><c>true</c> if <paramref name="value"/> ended with white space; otherwise <c>false</c>.</returns>
+        private static bool TrimTrailingWhite(ref string value)
+        {
+            var end = value.Length;
+            while (end > 0 && IsWhite(value[end - 1]))
+            {
+                end--;
+            }
+
+            if (end == value.Length)
+            {
+                return false;
+            }
+
+            value = value.Substring(0, end);
+            return true;
+        }
+
+        /// <summary>
+        /// Remove the white space between a currency token and the amount from the end of a value that the
+        /// token was removed from.
+        /// </summary>
+        /// <param name="value">Value the currency token, if any, was removed from.</param>
+        /// <param name="hasCurrency"><c>true</c> if a currency token was removed; otherwise <c>false</c>, and nothing is removed.</param>
+        /// <param name="isTokenLeading"><c>true</c> if the currency token was at the start of the value; <c>false</c> if it was at the end.</param>
+        private static void TrimTokenWhite(ref string value, bool hasCurrency, bool isTokenLeading)
+        {
+            if (!hasCurrency)
+            {
+                return;
+            }
+
+            if (isTokenLeading)
+            {
+                TrimLeadingWhite(ref value);
+            }
+            else
+            {
+                TrimTrailingWhite(ref value);
+            }
         }
 
         /// <summary>
         /// Remove the currency token from a value and identify the currency it denotes.
         /// </summary>
-        private static bool TryExtractCurrency(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, out Iso4217CurrencyCurrent currencyCode, out bool hasCurrency, out bool readAsStandardSymbol)
+        private static bool TryExtractCurrency(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, out Iso4217CurrencyCurrent currencyCode, out bool hasCurrency, out bool isTokenLeading, out bool readAsStandardSymbol)
         {
             currencyCode = default(Iso4217CurrencyCurrent);
             hasCurrency = false;
+            isTokenLeading = false;
             readAsStandardSymbol = false;
 
             // An ISO 4217 currency code identifies a currency without ambiguity.
-            if (TryExtractCurrencyCode(ref value, out var extractedCode))
+            if (TryExtractCurrencyCode(ref value, out var extractedCode, out isTokenLeading))
             {
                 if ((styles & MoneyStyles.AllowCurrencyCode) == 0)
                 {
@@ -248,7 +311,7 @@ namespace DataStandardizer.Money
             // which forms part of it, such as NZ$ over $.
             foreach (var symbol in CurrencySymbols.SymbolsByDescendingLength)
             {
-                if (!TryRemoveAffix(ref value, symbol, out var withoutSymbol))
+                if (!TryRemoveAffix(ref value, symbol, out var withoutSymbol, out isTokenLeading))
                 {
                     continue;
                 }
@@ -324,9 +387,10 @@ namespace DataStandardizer.Money
             return true;
         }
 
-        private static bool TryExtractCurrencyCode(ref string value, out Iso4217CurrencyCurrent currencyCode)
+        private static bool TryExtractCurrencyCode(ref string value, out Iso4217CurrencyCurrent currencyCode, out bool isLeading)
         {
             currencyCode = default(Iso4217CurrencyCurrent);
+            isLeading = false;
 
             if (value.Length < CurrencyCodeLength)
             {
@@ -338,6 +402,7 @@ namespace DataStandardizer.Money
             if (IsCurrencyCode(leading, out currencyCode))
             {
                 value = value.Substring(CurrencyCodeLength);
+                isLeading = true;
                 return true;
             }
 
@@ -357,9 +422,10 @@ namespace DataStandardizer.Money
                    && Money.IsCurrencyCodeValidForMoneyValue(currencyCode);
         }
 
-        private static bool TryRemoveAffix(ref string value, string affix, out string withoutAffix)
+        private static bool TryRemoveAffix(ref string value, string affix, out string withoutAffix, out bool isLeading)
         {
             withoutAffix = value;
+            isLeading = false;
 
             if (affix.Length == 0 || value.Length < affix.Length)
             {
@@ -369,6 +435,7 @@ namespace DataStandardizer.Money
             if (value.StartsWith(affix, StringComparison.Ordinal))
             {
                 withoutAffix = value.Substring(affix.Length);
+                isLeading = true;
                 return true;
             }
 
