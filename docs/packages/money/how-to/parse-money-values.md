@@ -107,8 +107,10 @@ The amount is read with the separators and negative sign it was formatted with.
 A value with a currency token uses those of the culture's currency formatting,
 as `C`, `H`, `I` and `N` do. A value without one uses those of the culture's
 number formatting, as `G` does, and as the money formats do for a value with no
-currency. In some cultures the two differ, so formatting with `G` and parsing
-the result also returns the same amount.
+currency. The two differ in some cultures, and reading each with its own keeps
+formatting with `G` and parsing the result from changing the amount. `G` with a
+precision, such as `G2`, can round the amount or write it in exponent notation,
+which parsing doesn't accept, so use `G` alone for a round trip.
 
 ```csharp
 var rn = new CultureInfo("rn");   // numbers use "," for decimals, currencies "."

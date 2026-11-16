@@ -83,8 +83,9 @@ parse could detect.
 
 A value with no currency emits no currency token at all. Without a token, `C`,
 `H`, `I` and `N` give it the separators and negative sign of the general format
-`G`, which are those of the culture's number formatting, so that it reads back as
-the same amount. They differ from the currency separators in some cultures.
+`G`, which are those of the culture's number formatting, and parsing reads an
+amount without a currency token with those. They differ from the currency
+separators in some cultures.
 
 ```csharp
 var rn = new CultureInfo("rn");   // numbers use "," for decimals, currencies "."

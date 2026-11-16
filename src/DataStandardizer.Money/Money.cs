@@ -1886,7 +1886,8 @@ namespace DataStandardizer.Money
             result.NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator;
             result.NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator;
             result.NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied;
-            result.NegativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
+            // An empty sign is passed on as it stands; the parser decides what is read in its place.
+            result.NegativeSign = currencyFormat.NegativeSign ?? string.Empty;
 
             return result;
         }

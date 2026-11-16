@@ -42,7 +42,6 @@ public class MoneyParsingTests
     private const string UnitedStatesCurrencyCodeRepresentation = "USD1,234.56";
     private const string FrenchCurrencyCodeRepresentation = "1\x202F234,56 EUR"; // the group separator is a narrow no-break space
 
-    private const string AustrianCulture = "de-AT";
     private const decimal OneAndAHalf = 1.5m;
     private const decimal NegativeOneAndAHalf = -1.5m;
 
@@ -52,6 +51,9 @@ public class MoneyParsingTests
 
     // NegativeOneAndAHalf with the negative sign U+2212 MINUS SIGN.
     private const string MinusSignOneAndAHalfValue = "\x22121.5";
+
+    // A currency code preceded by the negative sign U+2212 MINUS SIGN, which en-US currency formatting doesn't use.
+    private const string MinusSignCurrencyCodeValue = "\x2212USD5";
 
     private static MoneyInfo MoneyInfoFor(string cultureName) => MoneyInfo.GetMoneyInfo(new CultureInfo(cultureName));
 
@@ -305,7 +307,7 @@ public class MoneyParsingTests
     // same provider and thread culture, except where it has a currency token.
     [Theory]
     [MemberData(nameof(AmountSeparatorsTestCases), DisableDiscoveryEnumeration = true)]
-    public void TryParse_SeparatorsOfNumberAndCurrencyFormattingDiffer_ReadsTheAmountWithTheSeparatorsItIsFormattedWith(CultureInfo threadCulture, IFormatProvider? testProvider, string testValue, decimal expectedAmount)
+    public void TryParse_SeparatorsOfNumberAndCurrencyFormattingDiffer_ReadsTheAmountWithTheSeparatorsItIsFormattedWith(CultureInfo threadCulture, IFormatProvider? testProvider, string testValue, decimal expectedAmount, Iso4217CurrencyCurrent expectedCurrency)
     {
         // arrange
         using var cultureScope = new CurrentCultureScope(threadCulture);
@@ -316,25 +318,28 @@ public class MoneyParsingTests
         // assert
         testResult.Should().BeTrue("{0} is how the amount is formatted under the provider", testValue);
         ((decimal)result).Should().Be(expectedAmount);
+        result.IsoCurrencyCode.Should().Be(expectedCurrency);
     }
 
-    // The currency formatting of en-US, from Unicode CLDR, has the decimal separator "." and the group separator ",".
-    public static TheoryData<CultureInfo, IFormatProvider?, string, decimal> AmountSeparatorsTestCases => new()
+    // The currency formatting of de-DE and en-US comes from Unicode CLDR, by culture name: de-DE has the decimal
+    // separator "," and the group separator ".", and en-US the reverse. Every number formatting is built here.
+    public static TheoryData<CultureInfo, IFormatProvider?, string, decimal, Iso4217CurrencyCurrent> AmountSeparatorsTestCases => new()
     {
         // A NumberFormatInfo, whose currency formatting comes from the thread culture.
-        { new CultureInfo(GermanCulture), NumberFormatInfo.InvariantInfo, "1.5", OneAndAHalf },
-        { new CultureInfo(UnitedStatesCulture), new CultureInfo(GermanCulture).NumberFormat, "1234,56", RoundTripAmount },
-        { new CultureInfo(UnitedStatesCulture), MinusSignNumberFormat(), MinusSignOneAndAHalfValue, NegativeOneAndAHalf },
+        { new CultureInfo(GermanCulture), NumberFormatInfo.InvariantInfo, "1.5", OneAndAHalf, Iso4217CurrencyCurrent.XXX },
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture().NumberFormat, "1234,56", RoundTripAmount, Iso4217CurrencyCurrent.XXX },
+        // A negative sign that differs from the currency's, with and without a currency token.
+        { new CultureInfo(UnitedStatesCulture), MinusSignNumberFormat(), MinusSignOneAndAHalfValue, NegativeOneAndAHalf, Iso4217CurrencyCurrent.XXX },
+        { new CultureInfo(UnitedStatesCulture), MinusSignNumberFormat(), UnitedStatesCurrencyCodeRepresentation, RoundTripAmount, Iso4217CurrencyCurrent.USD },
         // A culture, MoneyInfo or CurrencyFormatInfo whose number formatting differs from its currency formatting.
-        { new CultureInfo(UnitedStatesCulture), new CultureInfo(AustrianCulture), CommaDecimalOneAndAHalfValue, OneAndAHalf },
-        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalOneAndAHalfValue, OneAndAHalf },
-        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalGroupedValue, RoundTripAmount },
-        { new CultureInfo(UnitedStatesCulture), new MoneyInfo(CommaDecimalCulture()), CommaDecimalOneAndAHalfValue, OneAndAHalf },
-        { new CultureInfo(UnitedStatesCulture), new CurrencyFormatInfo { CurrencyDecimalSeparator = ",", CurrencyGroupSeparator = "." }, CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalGroupedValue, RoundTripAmount, Iso4217CurrencyCurrent.XXX },
+        { new CultureInfo(UnitedStatesCulture), new MoneyInfo(CommaDecimalCulture()), CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
+        { new CultureInfo(UnitedStatesCulture), new CurrencyFormatInfo { CurrencyDecimalSeparator = ",", CurrencyGroupSeparator = "." }, CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
         // No provider, so the thread culture.
-        { CommaDecimalCulture(), null, CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        { CommaDecimalCulture(), null, CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
         // A currency token, so the currency formatting.
-        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), UnitedStatesCurrencyCodeRepresentation, RoundTripAmount },
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), UnitedStatesCurrencyCodeRepresentation, RoundTripAmount, Iso4217CurrencyCurrent.USD },
     };
 
     [Fact]
@@ -345,6 +350,19 @@ public class MoneyParsingTests
 
         // assert
         testResult.Should().BeFalse("an amount without a currency token is read with the separators of the number formatting, in which \",\" is the decimal separator");
+    }
+
+    [Fact]
+    public void TryParse_CurrencyTokenFoundOnlyAfterTheNegativeSignOfTheNumberFormatting_ReturnsFalse()
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(UnitedStatesCulture));
+
+        // act
+        var testResult = Money.TryParse(MinusSignCurrencyCodeValue, MoneyStyles.Currency, MinusSignNumberFormat(), out _);
+
+        // assert
+        testResult.Should().BeFalse("a value with a currency token takes the negative sign of the currency, which is a hyphen-minus in en-US");
     }
 
     #endregion
