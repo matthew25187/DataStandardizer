@@ -641,20 +641,25 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 7265§3.6.8: a JSON number that resolves to an integer, so a fraction or an exponent is allowed only where it does.  The
             // digits are checked as they are written, not through a double, so that a number such as 1.0000000000000001 is not rounded to one.
             result = 0;
-            if (!IcalValueFormatting.IsJsonNumber(value)) return false;
 
-            // ref. RFC 8259§6: number = [ minus ] int [ frac ] [ exp ]
+            // ref. RFC 8259§6: number = [ minus ] int [ frac ] [ exp ]; int = zero / ( digit1-9 *DIGIT ); frac = "." 1*DIGIT;
+            // exp = ( "e" / "E" ) [ "-" / "+" ] 1*DIGIT
             var index = 0;
-            var isNegative = value[0] == '-';
+            var isNegative = value.Length > 0 && value[0] == '-';
             if (isNegative)
             {
                 index = 1;
             }
 
             var integerStart = index;
-            while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+            if (index == value.Length || !IcalValueFormatting.IsDigit(value[index])) return false;
+
+            if (value[index++] != '0')
             {
-                index++;
+                while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+                {
+                    index++;
+                }
             }
 
             var integerLength = index - integerStart;
@@ -669,34 +674,42 @@ namespace DataStandardizer.File.iCal
                 }
 
                 fractionLength = index - fractionStart;
+                if (fractionLength == 0) return false;
             }
 
             // The exponent is capped well beyond any power that could matter, so that it cannot overflow.
             const long exponentLimit = 1L << 40;
             long exponent = 0;
-            if (index < value.Length)
+            if (index < value.Length && (value[index] == 'e' || value[index] == 'E'))
             {
                 index++;
                 var isExponentNegative = false;
-                if (value[index] == '+' || value[index] == '-')
+                if (index < value.Length && (value[index] == '+' || value[index] == '-'))
                 {
                     isExponentNegative = value[index] == '-';
                     index++;
                 }
 
-                for (; index < value.Length; index++)
+                var exponentStart = index;
+                while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
                 {
                     if (exponent < exponentLimit)
                     {
                         exponent = exponent * 10 + (value[index] - '0');
                     }
+
+                    index++;
                 }
+
+                if (index == exponentStart) return false;
 
                 if (isExponentNegative)
                 {
                     exponent = -exponent;
                 }
             }
+
+            if (index != value.Length) return false;
 
             // The digits of the integer part and the fraction, taken together, scaled by a power of ten.  The first and last digits that are
             // not zero bound the number: the last must stand at a whole power of ten, and the first at a power no greater than an int can hold.

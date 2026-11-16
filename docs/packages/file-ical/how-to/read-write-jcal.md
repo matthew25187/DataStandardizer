@@ -107,8 +107,9 @@ differently but with the same meaning:
 | REQUEST-STATUS | An array of two or three strings: the code, the description and, if present, the data. |
 
 When reading, each value must have the JSON form in this table. A string where a
-number, `true`, `false`, an array or an object belongs, such as `"5"` for an INTEGER,
-throws `IcalFileException`, and `AllowInvalidValues` doesn't change that. A string or
+number, `true`, `false`, an array or an object belongs, such as `"5"` for an INTEGER
+or `"count": "5"` in a RECUR, throws `IcalFileException`, and `AllowInvalidValues`
+doesn't change that. A string or
 number of the right form that doesn't follow its type, such as `"2026-02-30"` for a
 DATE or `1.5` for an INTEGER, reaches the conformance check, which `AllowInvalidValues`
 relaxes.

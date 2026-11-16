@@ -43,8 +43,12 @@ mapping.
 - A RECUR object keeps the order of its members as the order of the rule parts.
 - Each value must have the JSON form its type gives it (RFC 7265 §3.6): a number for
   INTEGER and FLOAT, `true` or `false` for BOOLEAN, an array of two strings for
-  PERIOD, an array of two numbers for GEO, an array of strings for REQUEST-STATUS, an
-  object for RECUR, and a string for every other type. Any other form throws
+  PERIOD, an array of two numbers for GEO, an array of two or three strings for
+  REQUEST-STATUS, an object for RECUR, and a string for every other type. In a RECUR
+  object, FREQ, WKST and UNTIL are single strings, COUNT and INTERVAL single numbers,
+  BYDAY a string or an array of strings, and the other BYxxx rule parts a number or
+  an array of numbers, but a BYMONTH leap month, such as `"5L"`, is a string (RFC 7529
+  §9). Any other form throws
   `IcalFileException`. A PERIOD as one string with its parts joined by a solidus, as
   RFC 7265 Appendix B gives it, isn't accepted, since §3.6.9 requires the array.
 - A string or number of the right form whose content doesn't follow its type is kept

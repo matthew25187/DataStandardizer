@@ -16,6 +16,11 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         private const string JournalPropertyPath = "$[2][0][1][2]";
 
+        /// <summary>
+        /// The JSONPath of the first value of the property at <see cref="JournalPropertyPath"/>.
+        /// </summary>
+        private const string JournalPropertyFirstValuePath = "$[2][0][1][2][3]";
+
         // The byte position of "[x]" in NotValidJsonDocument, and of the VERSION property in UnsupportedVersionDocument.
         private const string NotValidJsonDocument = "[\"vcalendar\",\n  [x],[]]";
         private const long NotValidJsonBytePosition = 17;
@@ -90,6 +95,19 @@ namespace DataStandardizer.File.iCal.Tests
                 ("PeriodAsString", JournalDocument("[\"rdate\",{},\"period\",\"2020-01-02T18:00:00Z/PT1H\"]"), JournalPropertyPath + "[3]",
                     "\"2020-01-02T18"),
                 ("RuleAsString", JournalDocument("[\"rrule\",{},\"recur\",\"FREQ=DAILY;COUNT=2\"]"), JournalPropertyPath + "[3]", "\"FREQ"),
+                // ref. RFC 7265 §3.6.10: the JSON form of each rule part.
+                ("RuleCountAsString", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"count\":\"2\"}]"),
+                    JournalPropertyPath + "[3]['count']", "\"2\"}"),
+                ("RuleCountAsArray", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"count\":[5]}]"),
+                    JournalPropertyPath + "[3]['count']", "[5]"),
+                ("RuleFreqAsArray", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":[\"DAILY\"]}]"), JournalPropertyPath + "[3]['freq']",
+                    "[\"DAILY\"]"),
+                ("RuleUntilAsNumber", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":20260101}]"),
+                    JournalPropertyPath + "[3]['until']", "20260101}"),
+                ("RuleByMonthAsString", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"YEARLY\",\"bymonth\":\"10\"}]"),
+                    JournalPropertyPath + "[3]['bymonth']", "\"10\""),
+                ("RuleByDayAsNumber", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"WEEKLY\",\"byday\":[1]}]"),
+                    JournalPropertyPath + "[3]['byday'][0]", "1]}"),
                 ("RequestStatusTooShort", JournalDocument("[\"request-status\",{},\"text\",[\"2.0\"]]"), JournalPropertyPath + "[3]", "[\"2.0\"]"),
             };
             var data = new TheoryData<string, string, string, long>();
@@ -208,6 +226,7 @@ namespace DataStandardizer.File.iCal.Tests
             "X;VALUE=RECUR:FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=1,15,-1;UNTIL=20131001")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"DAILY\", \"until\": \"2013-10-01T07:00:00Z\", \"bysetpos\": [1]}]",
             "X;VALUE=RECUR:FREQ=DAILY;UNTIL=20131001T070000Z;BYSETPOS=1")]
+        [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"YEARLY\", \"bymonth\": [\"5L\", 6]}]", "X;VALUE=RECUR:FREQ=YEARLY;BYMONTH=5L,6")]
         [InlineData("[\"x\", {}, \"text\", \"a,b;c\\\\d\\ne\"]", "X;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
         [InlineData("[\"x\", {}, \"text\", \"one\", \"two\"]", "X;VALUE=TEXT:one,two")]
         [InlineData("[\"x\", {}, \"time\", \"12:30:00Z\"]", "X;VALUE=TIME:123000Z")]
@@ -635,16 +654,16 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.JsonPath].Should()
-                .Be(JournalPropertyPath + "[3]");
+                .Be(JournalPropertyFirstValuePath);
         }
 
         [Theory]
-        [InlineData("1.0000000000000001")]
-        [InlineData("2147483647.00000000001")]
-        public void ReadCalendar_IntegerNotWholeByDefault_Throws(string number)
+        [InlineData("[\"sequence\",{},\"integer\",1.0000000000000001]")]
+        [InlineData("[\"sequence\",{},\"integer\",2147483647.00000000001]")]
+        public void ReadCalendar_IntegerNotWholeByDefault_Throws(string property)
         {
             // arrange: ref. RFC 7265 §3.6.8, a number that a double would round to an integer is still not one.
-            var json = JournalDocument("[\"sequence\",{},\"integer\"," + number + "]");
+            var json = JournalDocument(property);
 
             // act
             Action testAction = () => ReadJcal(json);
