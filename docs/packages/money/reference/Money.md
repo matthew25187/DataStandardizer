@@ -37,12 +37,14 @@ public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money
 ## Remarks
 
 The constructors are private; build a value with one of the `Create` overloads. A
-value created without a currency uses `XXX` ("no currency"). Arithmetic carries
-the currency and any rounding into the result. Values in different currencies are
+value created without a currency uses `XXX` ("no currency"). Arithmetic that gives
+an amount carries the currency and any rounding of its `Money` operand into the
+result; `Money / Money` gives a `decimal` ratio instead. Arithmetic works on the
+amounts before rounding, as equality and ordering do. Values in different currencies are
 never equal and have no order: `Equals`, `==` and `!=` treat them as not equal,
 `CompareTo` throws `ArgumentException`, and the relational operators throw
-`InvalidOperationException`. Adding, subtracting or dividing values in different
-currencies throws `InvalidOperationException` too. A value with no currency
+`InvalidOperationException`. Adding, subtracting, dividing or taking the remainder
+of values in different currencies throws `InvalidOperationException` too. A value with no currency
 counts as the currency `XXX`.
 
 ## Properties
@@ -148,11 +150,12 @@ in minor units that the integer casts give.
 | Explicit | `explicit operator long(Money)`, `int`, `short`, `sbyte` | The amount in ISO 4217 minor units, e.g. 12.34 USD → `1234`. See [Conversion to integers](#conversion-to-integers). |
 | Explicit | `explicit operator ulong(Money)`, `uint`, `ushort`, `byte` | Obsolete with `error: true`: a cast to an unsigned integer doesn't compile (CS0619). |
 | Explicit | `explicit operator double(Money)`, `float` | The rounded amount, as `(double)(decimal)money` gives it. |
-| Arithmetic | `operator +`, `-`, `*`, `/` `(Money, decimal)`, `(Money, long)`, `(Money, ulong)` | Carry the currency and rounding of the `Money` operand into the result. The `long` and `ulong` overloads let an integer operand, as in `money * 2`, compile. |
+| Arithmetic | `operator +`, `-`, `*`, `/`, `%` `(Money, decimal)`, `(Money, long)`, `(Money, ulong)` | Carry the currency and rounding of the `Money` operand into the result. The `long` and `ulong` overloads let an integer operand, as in `money * 2`, compile. |
 | Arithmetic | `operator +`, `-`, `*` `(decimal, Money)`, `(long, Money)`, `(ulong, Money)` | Carry the currency and rounding of the `Money` operand into the result, e.g. `2 * money`. |
-| Arithmetic | `operator +`, `-` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. The result carries the currency and rounding of the left operand. |
-| Arithmetic | `operator /(Money, Money)` | Returns the ratio of the rounded amounts as a `decimal`. Throws `InvalidOperationException` if currencies differ. |
-| Arithmetic | `operator *(Money, Money)`; `operator /` `(decimal, Money)`, `(long, Money)`, `(ulong, Money)` | Obsolete with `error: true`: the result isn't an amount of money, so the expression doesn't compile (CS0619). Convert an operand to `decimal` instead. |
+| Arithmetic | `operator +`, `-`, `%` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. The amounts are combined before rounding, and the result carries the currency and rounding of the left operand. |
+| Arithmetic | `operator /(Money, Money)` | Returns the ratio of the amounts before rounding as a `decimal`. Throws `InvalidOperationException` if currencies differ. Assigning the ratio to a `Money` gives a value with no currency (`XXX`). |
+| Unary | `operator +`, `-`, `++`, `--` `(Money)` | Carry the currency and rounding into the result. |
+| Arithmetic | `operator *(Money, Money)`; `operator /`, `%` `(decimal, Money)`, `(long, Money)`, `(ulong, Money)` | Obsolete with `error: true`: the result isn't an amount of money, so the expression doesn't compile (CS0619). Convert an operand to `decimal` instead. |
 | Equality | `operator ==`, `!=` `(Money, Money)` | Return what `Equals` returns: values in different currencies are not equal. |
 | Comparison | `operator <`, `>`, `<=`, `>=` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. |
 

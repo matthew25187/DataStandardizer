@@ -10,7 +10,8 @@ namespace DataStandardizer.Money.Tests
         private const string ResultCurrencyReason = "the result of {0} keeps the currency {1} of the monetary operand";
         private const string ResultRoundingPrecisionReason = "the result of {0} keeps the rounding precision {1} of the monetary operand";
         private const string ResultRoundingMethodReason = "the result of {0} keeps the rounding method {1} of the monetary operand";
-        private const string RatioReason = "the ratio of the amounts is {0}";
+        private const string RatioReason = "the ratio of the amounts before rounding is {0}";
+        private const string SelfDifferenceReason = "a monetary value minus itself is zero";
 
         private const decimal LeftAmount = 5m;
         private const decimal RightAmount = 2m;
@@ -19,6 +20,20 @@ namespace DataStandardizer.Money.Tests
 
         // 1.005 rounded to two digits away from zero is 1.01.
         private const decimal UnroundedAmount = 1.005m;
+
+        // The number each row combines with a monetary value of LeftAmount (5), in each operand type.
+        private const decimal DecimalOperand = 2m;
+        private const long Int64Operand = 2L;
+        private const ulong UInt64Operand = 2UL;
+        private const int Int32Operand = 2;
+
+        // The results of combining 5 and 2.
+        private const decimal Sum = 7m;
+        private const decimal NumberMinusMoney = -3m;
+        private const decimal MoneyMinusNumber = 3m;
+        private const decimal Product = 10m;
+        private const decimal Quotient = 2.5m;
+        private const decimal Remainder = 1m;
 
         [Theory]
         [MemberData(nameof(OperandCurrenciesDifferentTestCases))]
@@ -38,12 +53,15 @@ namespace DataStandardizer.Money.Tests
             { "+", (left, right) => left + right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount, Iso4217CurrencyCurrent.EUR) },
             { "-", (left, right) => left - right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount, Iso4217CurrencyCurrent.EUR) },
             { "/", (left, right) => left / right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount, Iso4217CurrencyCurrent.EUR) },
+            { "%", (left, right) => left % right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount, Iso4217CurrencyCurrent.EUR) },
             { "+", (left, right) => left + right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount) },
             { "-", (left, right) => left - right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount) },
             { "/", (left, right) => left / right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount) },
+            { "%", (left, right) => left % right, Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD), Money.Create(RightAmount) },
             { "+", (left, right) => left + right, default(Money), Money.Create(RightAmount, Iso4217CurrencyCurrent.USD) },
             { "-", (left, right) => left - right, default(Money), Money.Create(RightAmount, Iso4217CurrencyCurrent.USD) },
             { "/", (left, right) => left / right, default(Money), Money.Create(RightAmount, Iso4217CurrencyCurrent.USD) },
+            { "%", (left, right) => left % right, default(Money), Money.Create(RightAmount, Iso4217CurrencyCurrent.USD) },
         };
 
         [Theory]
@@ -64,19 +82,34 @@ namespace DataStandardizer.Money.Tests
             testResult.RoundingMethod.Should().Be(TestRoundingMethod, ResultRoundingMethodReason, testOperation, TestRoundingMethod);
         }
 
-        // The right operand contributes its rounded amount, 1.01.
+        // The amounts are combined before rounding, then the result is rounded to two digits away from zero:
+        // 5 + 1.005 = 6.005 → 6.01, 5 - 1.005 = 3.995 → 4.00, and 5 % 1.005 = 0.98 (4 × 1.005 = 4.02).
         public static TheoryData<string, Func<Money, Money, Money>, decimal> OperandCurrenciesSameTestCases => new()
         {
             { "+", (left, right) => left + right, 6.01m },
-            { "-", (left, right) => left - right, 3.99m },
+            { "-", (left, right) => left - right, 4.00m },
+            { "%", (left, right) => left % right, 0.98m },
         };
 
         [Fact]
-        public void DivisionOperator_OperandCurrenciesSame_ReturnsRatioOfRoundedAmounts()
+        public void SubtractionOperator_ValueWithRoundingMinusItself_ReturnsZero()
         {
             // arrange
-            // 1.01 / 2 = 0.505.
-            const decimal expectedResult = 0.505m;
+            var testValue = Money.Create(UnroundedAmount, Iso4217CurrencyCurrent.USD, TestRoundingPrecision, TestRoundingMethod);
+
+            // act
+            var testResult = testValue - testValue;
+
+            // assert
+            ((decimal)testResult).Should().Be(decimal.Zero, SelfDifferenceReason);
+        }
+
+        [Fact]
+        public void DivisionOperator_OperandCurrenciesSame_ReturnsRatioOfAmountsBeforeRounding()
+        {
+            // arrange
+            // 1.005 / 2 = 0.5025.
+            const decimal expectedResult = 0.5025m;
             var testLeft = Money.Create(UnroundedAmount, Iso4217CurrencyCurrent.USD, TestRoundingPrecision, TestRoundingMethod);
             var testRight = Money.Create(RightAmount, Iso4217CurrencyCurrent.USD);
 
@@ -106,28 +139,57 @@ namespace DataStandardizer.Money.Tests
 
         public static TheoryData<string, Func<Money, Money>, decimal> NumberOperandTestCases => new()
         {
-            { "decimal + Money", money => 2m + money, 7m },
-            { "long + Money", money => 2L + money, 7m },
-            { "ulong + Money", money => 2UL + money, 7m },
-            { "decimal - Money", money => 2m - money, -3m },
-            { "long - Money", money => 2L - money, -3m },
-            { "ulong - Money", money => 2UL - money, -3m },
-            { "decimal * Money", money => 2m * money, 10m },
-            { "long * Money", money => 2L * money, 10m },
-            { "ulong * Money", money => 2UL * money, 10m },
-            { "int * Money", money => 2 * money, 10m },
-            { "Money + int", money => money + 2, 7m },
-            { "Money + long", money => money + 2L, 7m },
-            { "Money + ulong", money => money + 2UL, 7m },
-            { "Money - int", money => money - 2, 3m },
-            { "Money - long", money => money - 2L, 3m },
-            { "Money - ulong", money => money - 2UL, 3m },
-            { "Money * int", money => money * 2, 10m },
-            { "Money * long", money => money * 2L, 10m },
-            { "Money * ulong", money => money * 2UL, 10m },
-            { "Money / int", money => money / 2, 2.5m },
-            { "Money / long", money => money / 2L, 2.5m },
-            { "Money / ulong", money => money / 2UL, 2.5m },
+            { "decimal + Money", money => DecimalOperand + money, Sum },
+            { "long + Money", money => Int64Operand + money, Sum },
+            { "ulong + Money", money => UInt64Operand + money, Sum },
+            { "decimal - Money", money => DecimalOperand - money, NumberMinusMoney },
+            { "long - Money", money => Int64Operand - money, NumberMinusMoney },
+            { "ulong - Money", money => UInt64Operand - money, NumberMinusMoney },
+            { "decimal * Money", money => DecimalOperand * money, Product },
+            { "long * Money", money => Int64Operand * money, Product },
+            { "ulong * Money", money => UInt64Operand * money, Product },
+            { "int * Money", money => Int32Operand * money, Product },
+            { "Money + int", money => money + Int32Operand, Sum },
+            { "Money + long", money => money + Int64Operand, Sum },
+            { "Money + ulong", money => money + UInt64Operand, Sum },
+            { "Money - int", money => money - Int32Operand, MoneyMinusNumber },
+            { "Money - long", money => money - Int64Operand, MoneyMinusNumber },
+            { "Money - ulong", money => money - UInt64Operand, MoneyMinusNumber },
+            { "Money * int", money => money * Int32Operand, Product },
+            { "Money * long", money => money * Int64Operand, Product },
+            { "Money * ulong", money => money * UInt64Operand, Product },
+            { "Money / int", money => money / Int32Operand, Quotient },
+            { "Money / long", money => money / Int64Operand, Quotient },
+            { "Money / ulong", money => money / UInt64Operand, Quotient },
+            { "Money % decimal", money => money % DecimalOperand, Remainder },
+            { "Money % int", money => money % Int32Operand, Remainder },
+            { "Money % long", money => money % Int64Operand, Remainder },
+            { "Money % ulong", money => money % UInt64Operand, Remainder },
+        };
+
+        [Theory]
+        [MemberData(nameof(UnaryOperatorTestCases))]
+        public void UnaryOperator_MoneyOperand_ReturnsResultInMoneyOperandCurrencyAndRounding(string testOperation, Func<Money, Money> testOperator, decimal expectedAmount)
+        {
+            // arrange
+            var testValue = Money.Create(LeftAmount, Iso4217CurrencyCurrent.USD, TestRoundingPrecision, TestRoundingMethod);
+
+            // act
+            var testResult = testOperator(testValue);
+
+            // assert
+            ((decimal)testResult).Should().Be(expectedAmount, ResultAmountReason, testOperation, expectedAmount);
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.USD, ResultCurrencyReason, testOperation, Iso4217CurrencyCurrent.USD);
+            testResult.RoundingPrecision.Should().Be(TestRoundingPrecision, ResultRoundingPrecisionReason, testOperation, TestRoundingPrecision);
+            testResult.RoundingMethod.Should().Be(TestRoundingMethod, ResultRoundingMethodReason, testOperation, TestRoundingMethod);
+        }
+
+        public static TheoryData<string, Func<Money, Money>, decimal> UnaryOperatorTestCases => new()
+        {
+            { "+Money", money => +money, LeftAmount },
+            { "-Money", money => -money, -5m },
+            { "++Money", money => ++money, 6m },
+            { "--Money", money => --money, 4m },
         };
 
         [Theory]
@@ -148,9 +210,12 @@ namespace DataStandardizer.Money.Tests
         public static TheoryData<string, Action<object>> ObsoleteOperatorTestCases => new()
         {
             { "Money * Money", value => _ = (dynamic)value * (dynamic)value },
-            { "decimal / Money", value => _ = 2m / (dynamic)value },
-            { "long / Money", value => _ = 2L / (dynamic)value },
-            { "ulong / Money", value => _ = 2UL / (dynamic)value },
+            { "decimal / Money", value => _ = DecimalOperand / (dynamic)value },
+            { "long / Money", value => _ = Int64Operand / (dynamic)value },
+            { "ulong / Money", value => _ = UInt64Operand / (dynamic)value },
+            { "decimal % Money", value => _ = DecimalOperand % (dynamic)value },
+            { "long % Money", value => _ = Int64Operand % (dynamic)value },
+            { "ulong % Money", value => _ = UInt64Operand % (dynamic)value },
         };
     }
 }
