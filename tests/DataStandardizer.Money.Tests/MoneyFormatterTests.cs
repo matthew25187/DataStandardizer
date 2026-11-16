@@ -424,6 +424,44 @@ public class MoneyFormatterTests
 
     #endregion
 
+    #region Test: Format_NegativeValueRoundingToZero
+
+    [Theory]
+    [MemberData(nameof(NegativeValueRoundingToZeroTestCases), DisableDiscoveryEnumeration = true)]
+    public void Format_NegativeValueRoundingToZeroAtDisplayPrecision_AppliesPositivePattern(Money testSubject, string testFormat, IFormatProvider testProvider, string expectedResult)
+    {
+        // arrange
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "a value shown as zero is not negative, as for decimal");
+    }
+
+    // An amount which is negative but rounds to zero at a precision of two decimal places, and one which rounds
+    // to zero at a precision of none.
+    private const decimal NegativeAmountRoundingToZeroCents = -0.001m;
+    private const decimal NegativeAmountRoundingToZeroUnits = -0.4m;
+
+    // An amount which is negative and rounds to -0.01 at a precision of two decimal places, whatever the midpoint rounding.
+    private const decimal NegativeAmountRoundingToOneCent = -0.006m;
+
+    private const int ParenthesesNegativePattern = 0; // "($n)", as in NumberFormatInfo.CurrencyNegativePattern
+
+    public static TheoryData<Money, string, IFormatProvider, string> NegativeValueRoundingToZeroTestCases => new()
+    {
+        { Money.Create(NegativeAmountRoundingToZeroCents, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "$0.00" },
+        { Money.Create(NegativeAmountRoundingToZeroCents, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, new CurrencyFormatInfo { CurrencyNegativePattern = ParenthesesNegativePattern }, "$0.00" },
+        { Money.Create(NegativeAmountRoundingToZeroUnits, Iso4217CurrencyCurrent.USD), NoDecimalsStandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "$0" },
+        { Money.Create(NegativeAmountRoundingToZeroCents), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "0.00" },
+        { Money.Create(NegativeAmountRoundingToZeroUnits), NoDecimalsStandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "0" },
+        { Money.Create(NegativeAmountRoundingToOneCent, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "-$0.01" },
+        { Money.Create(NegativeAmountRoundingToOneCent), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "-0.01" }
+    };
+
+    #endregion
+
     #region Test: Format_ValueWithoutCurrency
 
     [Theory]
