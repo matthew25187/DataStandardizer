@@ -30,10 +30,23 @@ monetary values.
 
 ## Currency-safe arithmetic
 
-`Money` defines arithmetic operators (`+`, `-`, `*`, `/`) against `decimal`, so
+`Money` defines arithmetic operators (`+`, `-`, `*`, `/`, `%`) against `decimal`, so
 you can compute with amounts naturally while the currency and rounding settings
 carry through to the result. It also defines implicit conversions to and from
 `decimal`, so a `Money` behaves like a number in expressions.
+
+Two `Money` values add, subtract and take a remainder only when they share a
+currency, and dividing one by the other gives their ratio as a `decimal`. Mixing
+currencies throws an `InvalidOperationException`, so `5 USD + 3 EUR` is an error
+rather than `8 USD`. The expressions with no meaning as an amount of money,
+`money * money`, `number / money` and `number % money`, don't compile. Negation
+(`-money`), `++` and `--` keep the currency.
+
+A `decimal` converted to `Money` has no currency (`XXX`), so it doesn't combine
+with a value in a currency. Start a running total in the currency it sums,
+`Money.Create(0m, currency)`, rather than `Money total = 0m;`. The ratio
+`a / b` is a `decimal` too, so `Money x = a / b;` gives a value with no
+currency; divide by a number, as in `total / 3`, to keep it.
 
 Ordering enforces a key invariant: two `Money` values whose currencies differ
 have no order. The relational operators (`<`, `>`, `<=`, `>=`) throw an

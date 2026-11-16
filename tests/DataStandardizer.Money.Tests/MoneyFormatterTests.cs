@@ -15,6 +15,8 @@ public class MoneyFormatterTests
     private const decimal NegativeTestAmount = -1234.5m;
     private const decimal SevenDigitAmount = 1234567.5m;
     private const decimal OneUnitAmount = 1m;
+    private const decimal FiveAmount = 5m;
+    private const decimal NegativeFiveAmount = -5m;
 
     // An amount which rounds to 1.01 at a precision of two decimal places, whatever the midpoint rounding.
     private const decimal UnroundedAmount = 1.006m;
@@ -34,8 +36,12 @@ public class MoneyFormatterTests
     private const string NzdCurrencyNameResult = "New Zealand Dollar1,234.50";
     private const string NzdNoDecimalsResult = "NZ$1,235";
     private const string GeneralResult = "1234.5";
+    private const string UsdFiveResult = "$5.00";
 
     private const string ChfResult = "CHF1,234.50";
+
+    // CHF has the narrow symbol "Fr." in the Unicode CLDR 49.0.0 currency data for the en locale.
+    private const string ChfNarrowResult = "Fr.1,234.50";
     private const string GermanNzdResult = "1.234,50 NZ$";
     private const string SymbolSpaceAmountNzdResult = "NZ$ 1.234,50";
     private const string IndianGroupedNzdResult = "NZ$12,34,567.50";
@@ -44,7 +50,30 @@ public class MoneyFormatterTests
 
     private const string MinusSign = "\x2212";
 
+    // TestAmount with the decimal separator "," and the group separator ".".
+    private const string CommaDecimalGroupedAmountResult = "1.234,50";
+
+    // NegativeTestAmount with the negative sign U+2212 MINUS SIGN.
+    private const string MinusSignGroupedAmountResult = "\x22121,234.50";
+
     private static MoneyInfo MoneyInfoFor(string cultureName) => MoneyInfo.GetMoneyInfo(new CultureInfo(cultureName));
+
+    /// <summary>
+    /// An en-US culture whose number formatting has the decimal separator "," and the group separator ".",
+    /// the reverse of the currency formatting Unicode CLDR gives en-US.
+    /// </summary>
+    private static CultureInfo CommaDecimalCulture()
+    {
+        var culture = new CultureInfo(UnitedStatesCulture);
+        culture.NumberFormat.NumberDecimalSeparator = ",";
+        culture.NumberFormat.NumberGroupSeparator = ".";
+        return culture;
+    }
+
+    /// <summary>
+    /// Invariant number formatting whose negative sign is U+2212 MINUS SIGN.
+    /// </summary>
+    private static NumberFormatInfo MinusSignNumberFormat() => new() { NegativeSign = MinusSign };
 
     #region Test: Format_StandardSpecifier
 
@@ -93,7 +122,7 @@ public class MoneyFormatterTests
     [Theory]
     [InlineData(Iso4217CurrencyCurrent.NZD, NarrowDollarResult)]
     [InlineData(Iso4217CurrencyCurrent.CAD, NarrowDollarResult)]
-    [InlineData(Iso4217CurrencyCurrent.CHF, ChfResult)]
+    [InlineData(Iso4217CurrencyCurrent.CHF, ChfNarrowResult)]
     public void Format_NarrowSymbolSpecifier_UsesNarrowSymbol(Iso4217CurrencyCurrent testCurrency, string expectedResult)
     {
         // arrange
@@ -104,6 +133,54 @@ public class MoneyFormatterTests
 
         // assert
         testResult.Should().Be(expectedResult, "the narrow symbol is the shortest recognisable form");
+    }
+
+    // CLDR root symbols: '$', '£', '¥' and '₩' are the standard symbols of USD, GBP, JPY and KRW, and the narrow
+    // symbols of other currencies too. MoneyParsingTests reads these renderings back.
+
+    private const string BritishCulture = "en-GB";
+    private const string JapaneseCulture = "ja-JP";
+    private const string KoreanCulture = "ko-KR";
+    private const string DanishCulture = "da-DK";
+
+    private const decimal WholeAmount = 500m; // a whole amount, so currencies without minor units render it unrounded
+    private const string UsdSymbolResult = "$500.00";
+
+    [Theory]
+    [MemberData(nameof(StandardSymbolSharedAsNarrowSymbolTestCases))]
+    public void Format_StandardSymbolSpecifierForSymbolSharedAsNarrowSymbol_UsesStandardSymbol(string testCulture, Iso4217CurrencyCurrent testCurrency, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(WholeAmount, testCurrency);
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, MoneyInfoFor(testCulture));
+
+        // assert
+        testResult.Should().Be(expectedResult, "the currency's standard symbol is rendered under the culture {0}", testCulture);
+    }
+
+    public static TheoryData<string, Iso4217CurrencyCurrent, string> StandardSymbolSharedAsNarrowSymbolTestCases => new()
+    {
+        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, UsdSymbolResult },
+        { BritishCulture, Iso4217CurrencyCurrent.GBP, "\x00A3500.00" },
+        { JapaneseCulture, Iso4217CurrencyCurrent.JPY, "\x00A5500" },
+        { KoreanCulture, Iso4217CurrencyCurrent.KRW, "\x20A9500" },
+    };
+
+    [Theory]
+    [InlineData(UnitedStatesCulture, Iso4217CurrencyCurrent.USD, UsdSymbolResult)]
+    [InlineData(DanishCulture, Iso4217CurrencyCurrent.DKK, "500,00 kr")]
+    public void Format_NarrowSymbolSpecifierInTheCurrencysCulture_UsesNarrowSymbol(string testCulture, Iso4217CurrencyCurrent testCurrency, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(WholeAmount, testCurrency);
+
+        // act
+        var testResult = testSubject.ToString(NarrowSymbolFormat, MoneyInfoFor(testCulture));
+
+        // assert
+        testResult.Should().Be(expectedResult, "the currency's narrow symbol is rendered under the culture {0}", testCulture);
     }
 
     [Fact]
@@ -154,6 +231,74 @@ public class MoneyFormatterTests
 
         // assert
         testResult.Should().Be(expectedResult, "the default precision is the number of minor units of {0}", testCurrency);
+    }
+
+    #endregion
+
+    #region Test: Format_DisplayRounding
+
+    // 1.0049 rounds to 1.005 at three decimal places, which is a midpoint at two.
+    private const decimal MidpointAfterRoundingToThreeDigitsAmount = 1.0049m;
+    private const int RoundingToThreeDigits = 3;
+
+    // 1.125 is a midpoint at two decimal places, and is unchanged by rounding at four.
+    private const decimal TwoDigitMidpointAmount = 1.125m;
+    private const decimal NegativeTwoDigitMidpointAmount = -1.125m;
+    private const int RoundingToFourDigits = 4;
+
+    private const string TwoDecimalsStandardSymbolFormat = "C2";
+
+    // 1.125 rounded to two decimal places away from zero, as decimal rounds it.
+    private const string TwoDigitMidpointAwayFromZeroResult = "$1.13";
+
+    [Theory]
+    [MemberData(nameof(DisplayRoundingTestCases))]
+    public void Format_ValueRoundedToGreaterPrecisionThanDisplayed_RoundsMidpointAwayFromZeroAsDecimalDoes(Money testSubject, string testFormat, string expectedResult)
+    {
+        // arrange
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "the rounded amount is rounded again to the display precision as decimal rounds it, whatever the value's rounding method");
+    }
+
+    public static TheoryData<Money, string, string> DisplayRoundingTestCases => new()
+    {
+        { Money.Create(MidpointAfterRoundingToThreeDigitsAmount, Iso4217CurrencyCurrent.USD, RoundingToThreeDigits, MidpointRounding.ToEven), StandardSymbolFormat, "$1.01" },
+        { Money.Create(TwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToFourDigits, MidpointRounding.ToEven), StandardSymbolFormat, TwoDigitMidpointAwayFromZeroResult },
+        { Money.Create(TwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToFourDigits, MidpointRounding.ToEven), TwoDecimalsStandardSymbolFormat, TwoDigitMidpointAwayFromZeroResult },
+        { Money.Create(NegativeTwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToFourDigits, MidpointRounding.ToEven), StandardSymbolFormat, "-$1.13" },
+    };
+
+    [Fact]
+    public void Format_ValueWithNoCurrency_RoundsMidpointAwayFromZeroAsDecimalDoes()
+    {
+        // arrange
+        var testSubject = Money.Create(TwoDigitMidpointAmount);
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be("1.13", "an amount with no currency is rounded to the display precision as decimal rounds it");
+    }
+
+    [Fact]
+    public void Format_ValueRoundedToDisplayPrecision_UsesValuesRoundingMethod()
+    {
+        // arrange
+        var testSubject = Money.Create(TwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToCents, MidpointRounding.ToEven);
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be("$1.12", "the value is already rounded to the display precision, by its own rounding method");
     }
 
     #endregion
@@ -284,6 +429,141 @@ public class MoneyFormatterTests
         testResult.Should().StartWith(MinusSign, "the negative sign of the culture is a minus sign rather than a hyphen");
     }
 
+    [Theory]
+    [MemberData(nameof(NegativePatternTestCases))]
+    public void Format_NegativeValueWithEachNegativePattern_PlacesTheTokenAsNumberFormatInfoDoes(int testPattern, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(NegativeFiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new CurrencyFormatInfo { CurrencyNegativePattern = testPattern };
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "pattern {0} has the layout NumberFormatInfo.CurrencyNegativePattern gives it", testPattern);
+    }
+
+    [Theory]
+    [MemberData(nameof(PositivePatternTestCases))]
+    public void Format_PositiveValueWithEachPositivePattern_PlacesTheTokenAsNumberFormatInfoDoes(int testPattern, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new CurrencyFormatInfo { CurrencyPositivePattern = testPattern };
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "pattern {0} has the layout NumberFormatInfo.CurrencyPositivePattern gives it", testPattern);
+    }
+
+    // Every index NumberFormatInfo.CurrencyNegativePattern accepts, 0 to 16, with the layout it documents, for
+    // USD 5 under the invariant separators and hyphen-minus sign.
+    public static TheoryData<int, string> NegativePatternTestCases => new()
+    {
+        { 0, "($5.00)" },
+        { 1, "-$5.00" },
+        { 2, "$-5.00" },
+        { 3, "$5.00-" },
+        { 4, "(5.00$)" },
+        { 5, "-5.00$" },
+        { 6, "5.00-$" },
+        { 7, "5.00$-" },
+        { 8, "-5.00 $" },
+        { 9, "-$ 5.00" },
+        { 10, "5.00 $-" },
+        { 11, "$ 5.00-" },
+        { 12, "$ -5.00" },
+        { 13, "5.00- $" },
+        { 14, "($ 5.00)" },
+        { 15, "(5.00 $)" },
+        { 16, "$- 5.00" }
+    };
+
+    // Every index NumberFormatInfo.CurrencyPositivePattern accepts, 0 to 3, with the layout it documents.
+    public static TheoryData<int, string> PositivePatternTestCases => new()
+    {
+        { 0, UsdFiveResult },
+        { 1, "5.00$" },
+        { 2, "$ 5.00" },
+        { 3, "5.00 $" }
+    };
+
+    #endregion
+
+    #region Test: Format_NegativeValueRoundingToZero
+
+    [Theory]
+    [MemberData(nameof(NegativeValueRoundingToZeroTestCases), DisableDiscoveryEnumeration = true)]
+    public void Format_NegativeValueRoundingToZeroAtDisplayPrecision_AppliesPositivePattern(Money testSubject, string testFormat, IFormatProvider testProvider, string expectedResult)
+    {
+        // arrange
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "a value shown as zero is not negative, as for decimal");
+    }
+
+    [Theory]
+    [MemberData(nameof(NegativeValueNonZeroAtDisplayPrecisionTestCases), DisableDiscoveryEnumeration = true)]
+    public void Format_NegativeValueNonZeroAtDisplayPrecision_AppliesNegativePattern(Money testSubject, string testFormat, IFormatProvider testProvider, string expectedResult)
+    {
+        // arrange
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "a value shown as a nonzero amount keeps its sign");
+    }
+
+    // An amount which is negative but rounds to zero at a precision of two decimal places, and one which rounds
+    // to zero at a precision of none.
+    private const decimal NegativeAmountRoundingToZeroCents = -0.001m;
+    private const decimal NegativeAmountRoundingToZeroUnits = -0.4m;
+
+    // An amount which is negative and rounds to -0.01 at a precision of two decimal places, whatever the midpoint rounding.
+    private const decimal NegativeAmountRoundingToOneCent = -0.006m;
+
+    // Negative midpoints at a precision of two decimal places and of none, which round away from zero as decimal rounds them.
+    private const decimal NegativeMidpointCentAmount = -0.005m;
+    private const decimal NegativeMidpointUnitAmount = -0.5m;
+
+    private const int ParenthesesNegativePattern = 0; // "($n)", as in NumberFormatInfo.CurrencyNegativePattern
+
+    // A precision greater than the 28 digits a decimal holds after the decimal point.
+    private const string BeyondDecimalScaleStandardSymbolFormat = "C29";
+
+    private const string UsdZeroCentsResult = "$0.00";
+    private const string UsdNegativeOneCentResult = "-$0.01";
+    private const string NegativeOneCentResult = "-0.01";
+
+    // USD -5 at a precision of 29 decimal places.
+    private const string UsdNegativeFiveAtBeyondDecimalScaleResult = "-$5.00000000000000000000000000000";
+
+    public static TheoryData<Money, string, IFormatProvider, string> NegativeValueRoundingToZeroTestCases => new()
+    {
+        { Money.Create(NegativeAmountRoundingToZeroCents, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), UsdZeroCentsResult },
+        { Money.Create(NegativeAmountRoundingToZeroCents, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, new CurrencyFormatInfo { CurrencyNegativePattern = ParenthesesNegativePattern }, UsdZeroCentsResult },
+        { Money.Create(NegativeAmountRoundingToZeroUnits, Iso4217CurrencyCurrent.USD), NoDecimalsStandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "$0" },
+        { Money.Create(NegativeAmountRoundingToZeroCents), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "0.00" },
+        { Money.Create(NegativeAmountRoundingToZeroUnits), NoDecimalsStandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "0" }
+    };
+
+    public static TheoryData<Money, string, IFormatProvider, string> NegativeValueNonZeroAtDisplayPrecisionTestCases => new()
+    {
+        { Money.Create(NegativeAmountRoundingToOneCent, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), UsdNegativeOneCentResult },
+        { Money.Create(NegativeAmountRoundingToOneCent), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), NegativeOneCentResult },
+        { Money.Create(NegativeMidpointCentAmount, Iso4217CurrencyCurrent.USD), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), UsdNegativeOneCentResult },
+        { Money.Create(NegativeMidpointCentAmount), StandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), NegativeOneCentResult },
+        { Money.Create(NegativeMidpointUnitAmount, Iso4217CurrencyCurrent.USD), NoDecimalsStandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), "-$1" },
+        { Money.Create(NegativeFiveAmount, Iso4217CurrencyCurrent.USD), BeyondDecimalScaleStandardSymbolFormat, MoneyInfoFor(UnitedStatesCulture), UsdNegativeFiveAtBeyondDecimalScaleResult }
+    };
+
     #endregion
 
     #region Test: Format_ValueWithoutCurrency
@@ -304,6 +584,34 @@ public class MoneyFormatterTests
         // assert
         testResult.Should().Be(GroupedAmountResult, "a value with no currency has no currency token to denote");
     }
+
+    [Theory]
+    [MemberData(nameof(ValueWithoutCurrencyNumberFormattingTestCases), DisableDiscoveryEnumeration = true)]
+    public void Format_ValueWithoutCurrencyWhereNumberAndCurrencySeparatorsDiffer_UsesTheSeparatorsOfTheGeneralFormat(decimal testAmount, string testFormat, IFormatProvider testProvider, string expectedResult)
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(UnitedStatesCulture));
+        var testSubject = Money.Create(testAmount);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "without a currency token the amount is presented as the general format presents it, so that it reads back the same");
+    }
+
+    // The currency formatting of en-US, from Unicode CLDR, has the decimal separator "." and the group separator ",".
+    // Each provider's number formatting has the decimal separator "," and the group separator ".", or the sign U+2212.
+    public static TheoryData<decimal, string, IFormatProvider, string> ValueWithoutCurrencyNumberFormattingTestCases => new()
+    {
+        { TestAmount, StandardSymbolFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, NarrowSymbolFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, CurrencyCodeFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, CurrencyNameFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, StandardSymbolFormat, new MoneyInfo(CommaDecimalCulture()), CommaDecimalGroupedAmountResult },
+        { TestAmount, StandardSymbolFormat, CommaDecimalCulture().NumberFormat, CommaDecimalGroupedAmountResult },
+        { NegativeTestAmount, StandardSymbolFormat, MinusSignNumberFormat(), MinusSignGroupedAmountResult },
+    };
 
     #endregion
 
@@ -485,6 +793,82 @@ public class MoneyFormatterTests
 
         // assert
         testResult.Should().Be(GeneralResult, "the general form uses the negative sign of the currency formatting information, as the money forms do");
+    }
+
+    #endregion
+
+    #region Test: Format_GeneralFormat
+
+    public static TheoryData<decimal, string, string> GeneralFormatTestCases() => new()
+    {
+        // The precision of G is a number of significant digits, and may give scientific notation.
+        { 1234.56m, "G2", "1.2E+03" },
+        // Without a precision, the minor units of the currency (2 for USD) are not applied.
+        { FiveAmount, GeneralFormat, "5" },
+    };
+
+    [Theory]
+    [MemberData(nameof(GeneralFormatTestCases))]
+    public void Format_GeneralFormat_FormatsAsDecimal(decimal testAmount, string testFormat, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(testAmount, Iso4217CurrencyCurrent.USD);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, NumberFormatInfo.InvariantInfo);
+
+        // assert
+        testResult.Should().Be(expectedResult, "G and its precision mean what they mean for decimal, so the precision is significant digits and the minor units are not applied");
+    }
+
+    #endregion
+
+    #region Test: Format_ProviderWithCustomFormatterFallingBackToFormattable
+
+    [Theory]
+    [InlineData(StandardSymbolFormat, UsdFiveResult)]
+    [InlineData(CurrencyCodeFormat, "USD5.00")]
+    [InlineData(GeneralFormat, "5")]
+    public void Format_ProviderWithCustomFormatterFallingBackToFormattable_UsesTheMoneyFormatter(string testFormat, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "a caller's custom formatter is not called back, as decimal never calls it");
+    }
+
+    [Fact]
+    public void Format_GeneralFormatWithProviderWithCustomFormatter_UsesTheSeparatorsOfItsCurrencyFormatInfo()
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(GermanCulture));
+        var testSubject = Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = testSubject.ToString(GeneralFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(GeneralResult, "the provider's currency formatting information, not the current culture, gives the separators");
+    }
+
+    [Fact]
+    public void Format_CompositeFormatWithProviderWithCustomFormatter_CallsTheCustomFormatterOnce()
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = string.Format(testProvider, "{0:C}", testSubject);
+
+        // assert
+        testResult.Should().Be(UsdFiveResult, "string.Format calls the custom formatter, which formats the value without being called back");
     }
 
     #endregion

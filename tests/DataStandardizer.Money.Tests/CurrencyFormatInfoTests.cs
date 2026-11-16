@@ -14,6 +14,57 @@ public class CurrencyFormatInfoTests
     private const string SetterParameterName = "value";
     private static readonly int[] ExpectedGroupSizes = { FirstGroupSize, LaterGroupSize };
 
+    // The ranges NumberFormatInfo accepts: CurrencyNegativePattern 0 to 16, CurrencyPositivePattern 0 to 3,
+    // and CurrencyDecimalDigits 0 to 99.
+    private const int BelowMinimum = -1;
+    private const int FirstPattern = 0;
+    private const int LastNegativePattern = 16;
+    private const int NegativePatternAfterLast = 17;
+    private const int LastPositivePattern = 3;
+    private const int PositivePatternAfterLast = 4;
+    private const int MinimumDecimalDigits = 0;
+    private const int MaximumDecimalDigits = 99;
+    private const int DecimalDigitsAfterMaximum = 100;
+
+    // The invariant information, which a culture CLDR resolves to root, or to nothing, keeps.
+    private const string InvariantDecimalSeparator = ".";
+    private const string InvariantGroupSeparator = ",";
+    private const int InvariantPositivePattern = 0;
+    private const int InvariantNegativePattern = 0;
+    private const int InvariantDecimalDigits = 2;
+
+    // Separators in Unicode CLDR 49.0.0 symbols-numberSystem-latn.
+    private const string CldrFullStop = ".";
+    private const string CldrComma = ",";
+    private const string CldrNoBreakSpace = "\x00A0";
+    private const string CldrApostrophe = "'";
+    private const string CldrHyphenMinus = "-";
+    private const string CldrMinusSign = "\x2212";
+    private const string CldrLeftToRightMarkHyphenMinus = "\x200E-";
+
+    // Every CLDR 49.0.0 currency pattern has two fraction digits ("#,##0.00").
+    private const int CldrPatternFractionDigits = 2;
+
+    // NumberFormatInfo.CurrencyPositivePattern and CurrencyNegativePattern indices, by layout.
+    private const int SymbolNumberPattern = 0;              // $n
+    private const int SymbolSpaceNumberPattern = 2;         // $ n
+    private const int NumberSpaceSymbolPattern = 3;         // n $
+    private const int SignSymbolNumberPattern = 1;          // -$n
+    private const int SymbolSignNumberPattern = 2;          // $-n
+    private const int SignNumberSpaceSymbolPattern = 8;     // -n $
+    private const int SignSymbolSpaceNumberPattern = 9;     // -$ n
+
+    // ISO 4217 minor units.
+    private const int EuroMinorUnits = 2;
+    private const int PoundMinorUnits = 2;
+    private const int CanadianDollarMinorUnits = 2;
+    private const int SwissFrancMinorUnits = 2;
+    private const int IranianRialMinorUnits = 2;
+    private const int DollarMinorUnits = 2;
+    private const int YenMinorUnits = 0;
+    private const int PesoMinorUnits = 2;
+    private const int NorwegianKroneMinorUnits = 2;
+
     #region Test: InvariantInfo
 
     [Fact]
@@ -162,6 +213,273 @@ public class CurrencyFormatInfoTests
 
     #endregion
 
+    #region Test: CurrencyNegativePattern and CurrencyPositivePattern
+
+    [Theory]
+    [InlineData(BelowMinimum)]
+    [InlineData(NegativePatternAfterLast)]
+    public void CurrencyNegativePattern_WhenSetOutOfRange_ThrowsArgumentOutOfRangeException(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyNegativePattern = testPattern;
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("NumberFormatInfo.CurrencyNegativePattern accepts 0 to 16").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(FirstPattern)]
+    [InlineData(LastNegativePattern)]
+    public void CurrencyNegativePattern_WhenSetInRange_StoresThePattern(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyNegativePattern = testPattern;
+        var testResult = testInfo.CurrencyNegativePattern;
+
+        // assert
+        testResult.Should().Be(testPattern);
+    }
+
+    [Theory]
+    [InlineData(BelowMinimum)]
+    [InlineData(PositivePatternAfterLast)]
+    public void CurrencyPositivePattern_WhenSetOutOfRange_ThrowsArgumentOutOfRangeException(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyPositivePattern = testPattern;
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("NumberFormatInfo.CurrencyPositivePattern accepts 0 to 3").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(FirstPattern)]
+    [InlineData(LastPositivePattern)]
+    public void CurrencyPositivePattern_WhenSetInRange_StoresThePattern(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyPositivePattern = testPattern;
+        var testResult = testInfo.CurrencyPositivePattern;
+
+        // assert
+        testResult.Should().Be(testPattern);
+    }
+
+    #endregion
+
+    #region Test: CurrencyDecimalDigits
+
+    [Theory]
+    [InlineData(BelowMinimum)]
+    [InlineData(DecimalDigitsAfterMaximum)]
+    public void CurrencyDecimalDigits_WhenSetOutOfRange_ThrowsArgumentOutOfRangeException(int testDigits)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyDecimalDigits = testDigits;
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("NumberFormatInfo.CurrencyDecimalDigits accepts 0 to 99").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(MinimumDecimalDigits)]
+    [InlineData(MaximumDecimalDigits)]
+    public void CurrencyDecimalDigits_WhenSetInRange_StoresTheDigits(int testDigits)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyDecimalDigits = testDigits;
+        var testResult = testInfo.CurrencyDecimalDigits;
+
+        // assert
+        testResult.Should().Be(testDigits);
+    }
+
+    #endregion
+
+    #region Test: Read-only instance with an invalid value
+
+    [Theory]
+    [MemberData(nameof(ValueCheckedFirstTestCases))]
+    public void Setter_WhenValueCheckedFirstIsInvalidOnAReadOnlyInstance_ThrowsArgumentException(Action<CurrencyFormatInfo> testSetter)
+    {
+        // act
+        Action testAction = () => testSetter(CurrencyFormatInfo.InvariantInfo);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>("the value is checked before the instance is, as NumberFormatInfo does");
+    }
+
+    [Theory]
+    [MemberData(nameof(ReadOnlyCheckedFirstTestCases))]
+    public void Setter_WhenReadOnlyCheckedFirstIsInvalidOnAReadOnlyInstance_ThrowsInvalidOperationException(Action<CurrencyFormatInfo> testSetter)
+    {
+        // act
+        Action testAction = () => testSetter(CurrencyFormatInfo.InvariantInfo);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("the instance is checked before the value is, as NumberFormatInfo does");
+    }
+
+    // The setters that check the value first, as their NumberFormatInfo counterparts do, each given an invalid value.
+    public static TheoryData<Action<CurrencyFormatInfo>> ValueCheckedFirstTestCases => new()
+    {
+        info => info.CurrencyNegativePattern = NegativePatternAfterLast,
+        info => info.CurrencyPositivePattern = PositivePatternAfterLast,
+        info => info.CurrencyDecimalDigits = DecimalDigitsAfterMaximum,
+        info => info.NegativeSign = null!,
+        info => info.CurrencyCode = null!,
+        info => info.CurrencyCode = "840"
+    };
+
+    // The setters that check whether the instance is read-only first, as their NumberFormatInfo counterparts do.
+    public static TheoryData<Action<CurrencyFormatInfo>> ReadOnlyCheckedFirstTestCases => new()
+    {
+        info => info.CurrencyDecimalSeparator = null!,
+        info => info.CurrencyDecimalSeparator = string.Empty,
+        info => info.CurrencyGroupSeparator = null!
+    };
+
+    #endregion
+
+    #region Test: Separators and NegativeSign
+
+    [Theory]
+    [MemberData(nameof(StringSetterTestCases))]
+    public void StringSetter_WhenSetToNull_ThrowsArgumentNullException(Action<CurrencyFormatInfo, string> testSetter)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testSetter(testInfo, null!);
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>("the NumberFormatInfo counterpart rejects null").WithParameterName(SetterParameterName);
+    }
+
+    // The string properties whose NumberFormatInfo counterparts reject null.
+    public static TheoryData<Action<CurrencyFormatInfo, string>> StringSetterTestCases => new()
+    {
+        (info, value) => info.CurrencyDecimalSeparator = value,
+        (info, value) => info.CurrencyGroupSeparator = value,
+        (info, value) => info.NegativeSign = value
+    };
+
+    [Fact]
+    public void CurrencyDecimalSeparator_WhenSetToEmpty_ThrowsArgumentException()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyDecimalSeparator = string.Empty;
+
+        // assert
+        testAction.Should().ThrowExactly<ArgumentException>("NumberFormatInfo.CurrencyDecimalSeparator rejects an empty string").WithParameterName(SetterParameterName);
+    }
+
+    [Fact]
+    public void CurrencyGroupSeparator_WhenSetToEmpty_StoresTheSeparator()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyGroupSeparator = string.Empty;
+        var testResult = testInfo.CurrencyGroupSeparator;
+
+        // assert
+        testResult.Should().BeEmpty("NumberFormatInfo.CurrencyGroupSeparator accepts an empty string");
+    }
+
+    [Fact]
+    public void NegativeSign_WhenSetToEmpty_StoresTheSign()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.NegativeSign = string.Empty;
+        var testResult = testInfo.NegativeSign;
+
+        // assert
+        testResult.Should().BeEmpty("NumberFormatInfo.NegativeSign accepts an empty string");
+    }
+
+    #endregion
+
+    #region Test: CurrencyCode
+
+    [Fact]
+    public void CurrencyCode_WhenSetToNull_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyCode = null!;
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>().WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("US")]
+    [InlineData("USDX")]
+    [InlineData("usd")]
+    [InlineData(" USD ")]
+    [InlineData("840")]
+    [InlineData("USD,EUR")]
+    [InlineData("AAA")]
+    public void CurrencyCode_WhenSetToAnythingButADefinedCode_ThrowsArgumentException(string testCode)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyCode = testCode;
+
+        // assert
+        testAction.Should().ThrowExactly<ArgumentException>("only three letters A-Z naming a current ISO 4217 code are accepted").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(nameof(Iso4217CurrencyCurrent.USD))]
+    [InlineData(nameof(Iso4217CurrencyCurrent.XXX))]
+    public void CurrencyCode_WhenSetToADefinedCode_StoresTheCode(string testCode)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyCode = testCode;
+        var testResult = testInfo.CurrencyCode;
+
+        // assert
+        testResult.Should().Be(testCode);
+    }
+
+    #endregion
+
     #region Test: CreateForCulture
 
     [Theory]
@@ -169,7 +487,7 @@ public class CurrencyFormatInfoTests
     [InlineData(GermanCulture, nameof(Iso4217CurrencyCurrent.EUR), ",", ".")]
     [InlineData("pt-BR", nameof(Iso4217CurrencyCurrent.BRL), ",", ".")]
     [InlineData("ja-JP", nameof(Iso4217CurrencyCurrent.JPY), ".", ",")]
-    public void CreateForCulture_ForCultureWithResources_ReturnsInformationForThatCulture(string testCulture, string expectedCurrencyCode, string expectedDecimalSeparator, string expectedGroupSeparator)
+    public void CreateForCulture_ForSpecificCulture_ReturnsInformationForThatCulture(string testCulture, string expectedCurrencyCode, string expectedDecimalSeparator, string expectedGroupSeparator)
     {
         // act
         var testResult = CurrencyFormatInfo.CreateForCulture(new CultureInfo(testCulture));
@@ -207,21 +525,11 @@ public class CurrencyFormatInfoTests
         var testResult = CurrencyFormatInfo.CreateForCulture(null);
 
         // assert
-        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "the neutral resources denote no currency");
+        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "a null culture is given the invariant information, which denotes no currency");
     }
 
     [Fact]
-    public void CreateForCulture_ForCultureWithoutResources_FallsBackToNeutralResources()
-    {
-        // act
-        var testResult = CurrencyFormatInfo.CreateForCulture(new CultureInfo("cy-GB"));
-
-        // assert
-        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "no resources are defined for this culture");
-    }
-
-    [Fact]
-    public void CreateForCulture_ForCultureWithResources_ReturnsAWritableInstance()
+    public void CreateForCulture_ForSpecificCulture_ReturnsAWritableInstance()
     {
         // act
         var testResult = CurrencyFormatInfo.CreateForCulture(new CultureInfo(NewZealandCulture));
@@ -229,6 +537,91 @@ public class CurrencyFormatInfoTests
         // assert
         testResult.IsReadOnly.Should().BeFalse("sealing the instance is the responsibility of whatever takes ownership of it");
     }
+
+    #endregion
+
+    #region Test: CreateForCultureName
+
+    [Theory]
+    [MemberData(nameof(CldrCultureNameTestCases))]
+    public void CreateForCultureName_ForCultureName_ReturnsTheCldrInformationItResolvesTo(string testCultureName, string expectedCurrencyCode, string expectedDecimalSeparator, string expectedGroupSeparator, int expectedPositivePattern, int expectedNegativePattern, int expectedDecimalDigits)
+    {
+        // act
+        var testResult = CurrencyFormatInfo.CreateForCultureName(testCultureName);
+
+        // assert
+        testResult.CurrencyCode.Should().Be(expectedCurrencyCode);
+        testResult.CurrencyDecimalSeparator.Should().Be(expectedDecimalSeparator);
+        testResult.CurrencyGroupSeparator.Should().Be(expectedGroupSeparator);
+        testResult.CurrencyPositivePattern.Should().Be(expectedPositivePattern);
+        testResult.CurrencyNegativePattern.Should().Be(expectedNegativePattern);
+        testResult.CurrencyDecimalDigits.Should().Be(expectedDecimalDigits);
+    }
+
+    // Values from Unicode CLDR 49.0.0: the symbols-numberSystem-latn and currencyFormats-numberSystem-latn
+    // "standard" pattern of the locale the name resolves to, and the region's currency from
+    // supplemental/currencyData.json. Decimal digits are the ISO 4217 minor units of that currency.
+    public static TheoryData<string, string, string, string, int, int, int> CldrCultureNameTestCases => new()
+    {
+        // de-AT: currencyGroup "." overrides the group separator U+00A0; "¤ #,##0.00".
+        { "de-AT", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrFullStop, SymbolSpaceNumberPattern, SignSymbolSpaceNumberPattern, EuroMinorUnits },
+        // cy, a locale the package had no resources for; "¤#,##0.00".
+        { "cy-GB", nameof(Iso4217CurrencyCurrent.GBP), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, PoundMinorUnits },
+        // fr-CA: group U+00A0; "#,##0.00 ¤".
+        { "fr-CA", nameof(Iso4217CurrencyCurrent.CAD), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, CanadianDollarMinorUnits },
+        // de-CH: group U+0027 (apostrophe); an explicit negative subpattern, "¤ #,##0.00;¤-#,##0.00".
+        { "de-CH", nameof(Iso4217CurrencyCurrent.CHF), CldrFullStop, CldrApostrophe, SymbolSpaceNumberPattern, SymbolSignNumberPattern, SwissFrancMinorUnits },
+        // pt-FR is not a modern locale; its CLDR parent is pt-PT, "#,##0.00 ¤", not pt, "¤ #,##0.00".
+        { "pt-FR", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, EuroMinorUnits },
+        // az-IR is likely az-Arab-IR, and az-Arab inherits from root, not from az: the invariant layout.
+        { "az-IR", nameof(Iso4217CurrencyCurrent.IRR), InvariantDecimalSeparator, InvariantGroupSeparator, InvariantPositivePattern, InvariantNegativePattern, IranianRialMinorUnits },
+        // Cyrl is not the likely script of en, so en-Cyrl inherits from root: the invariant layout.
+        { "en-Cyrl-US", nameof(Iso4217CurrencyCurrent.USD), InvariantDecimalSeparator, InvariantGroupSeparator, InvariantPositivePattern, InvariantNegativePattern, DollarMinorUnits },
+        // A neutral culture names no region, so no currency; the digits are those of the pattern.
+        { "de", nameof(Iso4217CurrencyCurrent.XXX), CldrComma, CldrFullStop, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, CldrPatternFractionDigits },
+        // ja: "¤#,##0.00", with the JPY minor units in place of the pattern's two digits.
+        { "ja-JP", nameof(Iso4217CurrencyCurrent.JPY), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, YenMinorUnits },
+        // A Windows sort order does not change the presentation of de-DE, which is that of de.
+        { "de-DE_phoneb", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrFullStop, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, EuroMinorUnits },
+        // Region 419 (Latin America) has no currency of its own; es-419 is "¤#,##0.00".
+        { "es-419", nameof(Iso4217CurrencyCurrent.XXX), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, CldrPatternFractionDigits },
+        // tl is a legacy code that CLDR's language aliases replace with fil, whose pattern is "¤#,##0.00".
+        { "tl-PH", nameof(Iso4217CurrencyCurrent.PHP), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, PesoMinorUnits },
+        // nb is not a modern locale; its CLDR parent is no, "#,##0.00 ¤" with group U+00A0.
+        { "nb-NO", nameof(Iso4217CurrencyCurrent.NOK), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, NorwegianKroneMinorUnits },
+        // Bulgaria's current tender is EUR from 2026-01-01; bg is "#,##0.00 ¤" with group U+00A0.
+        { "bg-BG", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, EuroMinorUnits },
+        // 1901 is a variant, not a script (a script is four letters), so de-1901 inherits from de.
+        { "de-1901", nameof(Iso4217CurrencyCurrent.XXX), CldrComma, CldrFullStop, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, CldrPatternFractionDigits },
+        // The invariant culture's empty name resolves to nothing.
+        { "", nameof(Iso4217CurrencyCurrent.XXX), InvariantDecimalSeparator, InvariantGroupSeparator, InvariantPositivePattern, InvariantNegativePattern, InvariantDecimalDigits }
+    };
+
+    [Theory]
+    [MemberData(nameof(CldrSignAndGroupingTestCases))]
+    public void CreateForCultureName_ForCultureName_ReturnsTheCldrSignAndGroupSizes(string testCultureName, string expectedNegativeSign, int[] expectedGroupSizes)
+    {
+        // act
+        var testResult = CurrencyFormatInfo.CreateForCultureName(testCultureName);
+
+        // assert
+        testResult.NegativeSign.Should().Be(expectedNegativeSign);
+        testResult.CurrencyGroupSizes.Should().Equal(expectedGroupSizes);
+    }
+
+    // Values from Unicode CLDR 49.0.0: the minusSign of symbols-numberSystem-latn, and the grouping of the
+    // currencyFormats-numberSystem-latn "standard" pattern.
+    public static TheoryData<string, string, int[]> CldrSignAndGroupingTestCases => new()
+    {
+        // en: "-", "¤#,##0.00".
+        { "en-US", CldrHyphenMinus, new[] { FirstGroupSize } },
+        // sv: U+2212 MINUS SIGN, "#,##0.00 ¤".
+        { "sv-SE", CldrMinusSign, new[] { FirstGroupSize } },
+        // ar-SA: U+200E LEFT-TO-RIGHT MARK then "-".
+        { "ar-SA", CldrLeftToRightMarkHyphenMinus, new[] { FirstGroupSize } },
+        // hi: "¤#,##,##0.00", the Indian grouping.
+        { "hi-IN", CldrHyphenMinus, new[] { FirstGroupSize, LaterGroupSize } }
+    };
 
     #endregion
 

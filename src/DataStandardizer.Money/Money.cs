@@ -16,6 +16,9 @@ namespace DataStandardizer.Money
         private static class ErrorMessage
         {
             internal const string DifferentCurrenciesComparisonTemplate = "Unable to compare {0} values having different currencies.";
+            internal const string DifferentCurrenciesArithmeticTemplate = "Unable to do arithmetic with {0} values having different currencies.";
+            internal const string MoneyMultiplication = "The product of two amounts of money is not an amount of money. To scale one value by the amount of another, convert one of them to decimal, e.g. (decimal)left * right.";
+            internal const string DivisionByMoney = "A number divided by an amount of money is not an amount of money. To divide by the amount, convert it to decimal, e.g. value / (decimal)money.";
             internal const string ExpectedCurrencyCodeTemplate = "Expected a member of {0}.";
             internal const string ExpectedNationalCurrencyCode = "Expected a national currency code.";
             internal const string RoundingPrecisionOutOfRange = "The rounding precision must be from 0 to 28, the greatest number of decimal places a decimal can hold.";
@@ -144,6 +147,14 @@ namespace DataStandardizer.Money
 #endif
             : this(amount, currency, roundingPrecision)
         {
+            RoundingMethod = roundingMethod;
+        }
+
+        private Money(decimal amount, Iso4217CurrencyCurrent? currency, int? roundingPrecision, MidpointRounding? roundingMethod)
+        {
+            _amount = amount;
+            _currency = currency;
+            RoundingPrecision = roundingPrecision;
             RoundingMethod = roundingMethod;
         }
 
@@ -479,88 +490,500 @@ namespace DataStandardizer.Money
             return MinorUnitsScaling.Success;
         }
 
+        /// <summary>
+        /// Adds a number to the amount of a monetary value.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to add to the amount.</param>
+        /// <returns>
+        /// A monetary value whose amount is the sum, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
         public static Money operator +(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Add(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
-
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
-
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
-
-            return new Money(result);
+            return moneyValue.WithAmount(decimal.Add(moneyValue._amount, decimalValue));
         }
 
+        /// <inheritdoc cref="op_Addition(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to add to the amount.</param>
+        public static Money operator +(Money moneyValue, long integerValue)
+        {
+            return moneyValue + (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Addition(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to add to the amount.</param>
+        public static Money operator +(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue + (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Adds the amount of a monetary value to a number.
+        /// </summary>
+        /// <param name="decimalValue">The number to add the amount to.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the sum, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        public static Money operator +(decimal decimalValue, Money moneyValue)
+        {
+            return moneyValue.WithAmount(decimal.Add(decimalValue, moneyValue._amount));
+        }
+
+        /// <inheritdoc cref="op_Addition(decimal, Money)"/>
+        /// <param name="integerValue">The number to add the amount to.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator +(long integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue + moneyValue;
+        }
+
+        /// <inheritdoc cref="op_Addition(decimal, Money)"/>
+        /// <param name="integerValue">The number to add the amount to.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator +(ulong integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue + moneyValue;
+        }
+
+        /// <summary>
+        /// Adds two monetary values in the same currency.
+        /// </summary>
+        /// <param name="left">The first monetary value.</param>
+        /// <param name="right">The second monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the sum of the amounts of <paramref name="left"/> and
+        /// <paramref name="right"/>, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="left"/>.
+        /// </returns>
+        /// <remarks>
+        /// The amounts are added before rounding, as <see cref="Equals(Money)"/> and the relational operators
+        /// compare them, so the result doesn't depend on the order of the operands and <c>x - x</c> is zero.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        public static Money operator +(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return left + right._amount;
+        }
+
+        /// <summary>
+        /// Subtracts a number from the amount of a monetary value.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to subtract from the amount.</param>
+        /// <returns>
+        /// A monetary value whose amount is the difference, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
         public static Money operator -(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Subtract(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
-
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
-
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
-
-            return new Money(result);
+            return moneyValue.WithAmount(decimal.Subtract(moneyValue._amount, decimalValue));
         }
 
+        /// <inheritdoc cref="op_Subtraction(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to subtract from the amount.</param>
+        public static Money operator -(Money moneyValue, long integerValue)
+        {
+            return moneyValue - (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Subtraction(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to subtract from the amount.</param>
+        public static Money operator -(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue - (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Subtracts the amount of a monetary value from a number.
+        /// </summary>
+        /// <param name="decimalValue">The number to subtract the amount from.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the difference, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        public static Money operator -(decimal decimalValue, Money moneyValue)
+        {
+            return moneyValue.WithAmount(decimal.Subtract(decimalValue, moneyValue._amount));
+        }
+
+        /// <inheritdoc cref="op_Subtraction(decimal, Money)"/>
+        /// <param name="integerValue">The number to subtract the amount from.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator -(long integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue - moneyValue;
+        }
+
+        /// <inheritdoc cref="op_Subtraction(decimal, Money)"/>
+        /// <param name="integerValue">The number to subtract the amount from.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator -(ulong integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue - moneyValue;
+        }
+
+        /// <summary>
+        /// Subtracts one monetary value from another in the same currency.
+        /// </summary>
+        /// <param name="left">The monetary value to subtract from.</param>
+        /// <param name="right">The monetary value to subtract.</param>
+        /// <returns>
+        /// A monetary value whose amount is the amount of <paramref name="left"/> minus the amount of
+        /// <paramref name="right"/>, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="left"/>.
+        /// </returns>
+        /// <remarks>
+        /// The amounts are subtracted before rounding, as <see cref="Equals(Money)"/> and the relational operators
+        /// compare them, so <c>x - x</c> is zero.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        public static Money operator -(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return left - right._amount;
+        }
+
+        /// <summary>
+        /// Multiplies the amount of a monetary value by a number.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to multiply the amount by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the product, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
         public static Money operator *(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Multiply(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
-
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
-
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
-
-            return new Money(result);
+            return moneyValue.WithAmount(decimal.Multiply(moneyValue._amount, decimalValue));
         }
 
+        /// <inheritdoc cref="op_Multiply(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to multiply the amount by.</param>
+        public static Money operator *(Money moneyValue, long integerValue)
+        {
+            return moneyValue * (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Multiply(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to multiply the amount by.</param>
+        public static Money operator *(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue * (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Multiplies a number by the amount of a monetary value.
+        /// </summary>
+        /// <param name="decimalValue">The number to multiply.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the product, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        public static Money operator *(decimal decimalValue, Money moneyValue)
+        {
+            return moneyValue.WithAmount(decimal.Multiply(decimalValue, moneyValue._amount));
+        }
+
+        /// <inheritdoc cref="op_Multiply(decimal, Money)"/>
+        /// <param name="integerValue">The number to multiply.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator *(long integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue * moneyValue;
+        }
+
+        /// <inheritdoc cref="op_Multiply(decimal, Money)"/>
+        /// <param name="integerValue">The number to multiply.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator *(ulong integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue * moneyValue;
+        }
+
+        /// <summary>
+        /// Two monetary values don't multiply. Use <c>(decimal)left * right</c> to scale one by the amount of the other.
+        /// </summary>
+        /// <param name="left">The first monetary value.</param>
+        /// <param name="right">The second monetary value.</param>
+        /// <returns>This operator never returns.</returns>
+        /// <remarks>
+        /// The product of two amounts of money is not an amount of money. This operator exists so that
+        /// <c>left * right</c> fails to compile, rather than converting <paramref name="right"/> to <see cref="decimal"/>
+        /// and keeping the currency of <paramref name="left"/>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.MoneyMultiplication, true)]
+        public static Money operator *(Money left, Money right)
+        {
+            throw new InvalidOperationException(ErrorMessage.MoneyMultiplication);
+        }
+
+        /// <summary>
+        /// Divides the amount of a monetary value by a number.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to divide the amount by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the quotient, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        /// <exception cref="DivideByZeroException"><paramref name="decimalValue"/> is zero.</exception>
         public static Money operator /(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Divide(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
+            return moneyValue.WithAmount(decimal.Divide(moneyValue._amount, decimalValue));
+        }
 
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
+        /// <inheritdoc cref="op_Division(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator /(Money moneyValue, long integerValue)
+        {
+            return moneyValue / (decimal)integerValue;
+        }
 
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
+        /// <inheritdoc cref="op_Division(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator /(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue / (decimal)integerValue;
+        }
 
-            return new Money(result);
+        /// <summary>
+        /// Divides one monetary value by another in the same currency, giving their ratio.
+        /// </summary>
+        /// <param name="left">The monetary value to divide.</param>
+        /// <param name="right">The monetary value to divide by.</param>
+        /// <returns>
+        /// The amount of <paramref name="left"/> divided by the amount of <paramref name="right"/>, both before
+        /// rounding. A ratio has no currency, so it is a <see cref="decimal"/>.
+        /// </returns>
+        /// <remarks>
+        /// Because the result is a <see cref="decimal"/>, assigning it to a <see cref="Money"/> converts it to a
+        /// value with no currency (<c>XXX</c>). To divide an amount into parts, divide by a number instead, as in
+        /// <c>total / 3</c>, which keeps the currency.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        /// <exception cref="DivideByZeroException">The amount of <paramref name="right"/> is zero.</exception>
+        public static decimal operator /(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return decimal.Divide(left._amount, right._amount);
+        }
+
+        /// <summary>
+        /// A number can't be divided by a monetary value. Use <c>decimalValue / (decimal)moneyValue</c> to divide by its amount.
+        /// </summary>
+        /// <param name="decimalValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>This operator never returns.</returns>
+        /// <remarks>
+        /// A number divided by an amount of money is not an amount of money. This operator exists so that
+        /// <c>decimalValue / moneyValue</c> fails to compile, rather than giving a value with no currency.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator /(decimal decimalValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Division(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator /(long integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Division(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator /(ulong integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <summary>
+        /// Gives the remainder of dividing the amount of a monetary value by a number.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to divide the amount by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the remainder, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        /// <exception cref="DivideByZeroException"><paramref name="decimalValue"/> is zero.</exception>
+        public static Money operator %(Money moneyValue, decimal decimalValue)
+        {
+            return moneyValue.WithAmount(decimal.Remainder(moneyValue._amount, decimalValue));
+        }
+
+        /// <inheritdoc cref="op_Modulus(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator %(Money moneyValue, long integerValue)
+        {
+            return moneyValue % (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Modulus(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator %(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue % (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Gives the remainder of dividing one monetary value by another in the same currency.
+        /// </summary>
+        /// <param name="left">The monetary value to divide.</param>
+        /// <param name="right">The monetary value to divide by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the remainder of dividing the amount of <paramref name="left"/> by the
+        /// amount of <paramref name="right"/>, both before rounding, with the currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/> of <paramref name="left"/>.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        /// <exception cref="DivideByZeroException">The amount of <paramref name="right"/> is zero.</exception>
+        public static Money operator %(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return left % right._amount;
+        }
+
+        /// <summary>
+        /// A number can't be divided by a monetary value. Use <c>decimalValue % (decimal)moneyValue</c> to divide by its amount.
+        /// </summary>
+        /// <param name="decimalValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>This operator never returns.</returns>
+        /// <remarks>
+        /// The remainder of a number divided by an amount of money is not an amount of money. This operator exists so
+        /// that <c>decimalValue % moneyValue</c> fails to compile, rather than giving a value with no currency.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator %(decimal decimalValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Modulus(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator %(long integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Modulus(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator %(ulong integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <summary>
+        /// Returns a monetary value unchanged.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns><paramref name="value"/>, with its currency, <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.</returns>
+        public static Money operator +(Money value)
+        {
+            return value;
+        }
+
+        /// <summary>
+        /// Negates the amount of a monetary value.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the negated amount of <paramref name="value"/>, with its currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.
+        /// </returns>
+        public static Money operator -(Money value)
+        {
+            return value.WithAmount(decimal.Negate(value._amount));
+        }
+
+        /// <summary>
+        /// Adds one to the amount of a monetary value.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is one more than the amount of <paramref name="value"/>, with its currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.
+        /// </returns>
+        public static Money operator ++(Money value)
+        {
+            return value + decimal.One;
+        }
+
+        /// <summary>
+        /// Subtracts one from the amount of a monetary value.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is one less than the amount of <paramref name="value"/>, with its currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.
+        /// </returns>
+        public static Money operator --(Money value)
+        {
+            return value - decimal.One;
+        }
+
+        /// <summary>
+        /// Creates a monetary value with another amount and the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of this value.
+        /// </summary>
+        /// <param name="amount">The amount of the new value.</param>
+        /// <returns>A monetary value whose amount is <paramref name="amount"/>.</returns>
+        private Money WithAmount(decimal amount)
+        {
+            return new Money(amount, _currency, RoundingPrecision, RoundingMethod);
         }
 
         /// <summary>
@@ -612,7 +1035,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator <(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount < right._amount;
         }
@@ -630,7 +1053,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator >(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount > right._amount;
         }
@@ -648,7 +1071,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator <=(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount <= right._amount;
         }
@@ -666,7 +1089,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator >=(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount >= right._amount;
         }
@@ -803,16 +1226,17 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
-        /// Throw the exception the relational operators throw when two monetary values have different currencies.
+        /// Throw the exception the relational and arithmetic operators throw when two monetary values have different currencies.
         /// </summary>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
+        /// <param name="messageTemplate">The message of the exception, with <c>{0}</c> for the name of the type.</param>
         /// <exception cref="InvalidOperationException">The operands have different currencies.</exception>
-        private static void ThrowIfCurrenciesDiffer(Money left, Money right)
+        private static void ThrowIfCurrenciesDiffer(Money left, Money right, string messageTemplate)
         {
             if (!HaveSameCurrency(left, right))
             {
-                throw new InvalidOperationException(DifferentCurrenciesComparisonMessage);
+                throw new InvalidOperationException(string.Format(messageTemplate, nameof(Money)));
             }
         }
 
@@ -1058,13 +1482,29 @@ namespace DataStandardizer.Money
         /// <para>
         /// The supported format specifiers are <c>C</c> for the currency symbol, <c>H</c> for the narrow
         /// currency symbol, <c>I</c> for the ISO 4217 currency code, <c>N</c> for the currency name and
-        /// <c>G</c> for the amount alone. Each may be followed by a precision; where none is given the minor
-        /// units of the currency are used. A format string consisting of an ISO 4217 currency code emits the
-        /// code, and asserts that it is the currency of this value.
+        /// <c>G</c> for the amount alone. Each of <c>C</c>, <c>H</c>, <c>I</c> and <c>N</c> may be followed by a
+        /// precision, which is a number of decimal places; where none is given the minor units of the currency
+        /// are used. A format string consisting of an ISO 4217 currency code emits the code, and asserts that it
+        /// is the currency of this value.
+        /// </para>
+        /// <para>
+        /// The amount formatted is the rounded amount, as <c>(decimal)value</c> gives it. Where that has more
+        /// decimal places than <c>C</c>, <c>H</c>, <c>I</c> or <c>N</c> display, it is rounded again to the
+        /// display precision as <see cref="decimal"/> rounds it, with midpoints away from zero;
+        /// <see cref="RoundingMethod"/> doesn't apply to that second rounding, and rounding twice can display
+        /// an amount other than the original amount rounded once to the display precision. For example, a US Dollar value created with a
+        /// <see cref="RoundingPrecision"/> of 4 and <see cref="MidpointRounding.ToEven"/> from an amount of
+        /// <c>1.125</c> is formatted by <c>C</c> as <c>$1.13</c> in the en-US culture, not <c>$1.12</c>.
+        /// </para>
+        /// <para>
+        /// <c>G</c> is the general format of <see cref="decimal"/>, and it and its precision mean what they mean
+        /// for <see cref="decimal"/>: the precision is a number of significant digits, the result may be in
+        /// scientific notation, and where no precision is given the minor units of the currency are not applied.
+        /// For example, <c>G2</c> formats an amount of <c>1234.56</c> as <c>1.2E+03</c> in the invariant culture.
         /// </para>
         /// <para>
         /// Only the presentation of the value is taken from <paramref name="formatProvider"/>. The currency
-        /// denoted, and the default precision, come from the value itself.
+        /// denoted, and the default precision of the money formats, come from the value itself.
         /// </para>
         /// <para>
         /// <paramref name="formatProvider"/> may be a <see cref="MoneyInfo"/>, a <see cref="CurrencyFormatInfo"/>,
@@ -1072,7 +1512,13 @@ namespace DataStandardizer.Money
         /// format strings are applied to the rounded amount with the number formatting of that provider: of
         /// the culture for a <see cref="CultureInfo"/> or <see cref="MoneyInfo"/>, and of the separators of a
         /// <see cref="CurrencyFormatInfo"/>. Where it is <c>null</c> or supplies neither, the culture of the
-        /// current thread is used.
+        /// current thread is used. An <see cref="ICustomFormatter"/> supplied by <paramref name="formatProvider"/>
+        /// is not called, as for <see cref="decimal"/>; <see cref="string.Format(IFormatProvider, string, object[])"/>
+        /// calls it before this method.
+        /// </para>
+        /// <para>
+        /// A value with no currency has no currency token to emit, so the money formats give it the separators
+        /// and negative sign of the general format, which parsing reads back without a currency token.
         /// </para>
         /// </remarks>
         /// <exception cref="FormatException">
@@ -1085,19 +1531,20 @@ namespace DataStandardizer.Money
         public string ToString(string format, IFormatProvider formatProvider)
 #endif
         {
-            var useProvider = ResolveMoneyProvider(formatProvider);
-            var formatter = useProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-
-            // The resolved provider always supplies a formatter. Were it not to, the rounded value is formatted,
-            // so that any rounding the value carries is still honoured.
-            return formatter?.Format(format, this, useProvider) ?? ((decimal)this).ToString(format, useProvider);
+            // The money formatter is called directly rather than through the provider, so that a custom
+            // formatter the provider supplies is never called back with this value.
+            return MoneyFormatter.Instance.Format(format, this, ResolveMoneyProvider(formatProvider));
         }
 
         /// <summary>
         /// Resolve the provider of monetary formatting information for a caller-supplied format provider.
         /// </summary>
         /// <param name="formatProvider">Format provider supplied by the caller, which may be <c>null</c>.</param>
-        /// <returns>A provider which supplies both a formatter and currency formatting information.</returns>
+        /// <returns>
+        /// A provider which supplies currency formatting information. Any custom formatter it supplies is not
+        /// used: formatting calls the money formatter directly, so that a caller's formatter is never called
+        /// back with the value it is formatting.
+        /// </returns>
         /// <remarks>
         /// A caller may reasonably pass a <see cref="CultureInfo"/>, a <see cref="NumberFormatInfo"/> or a
         /// <see cref="CurrencyFormatInfo"/> rather than a <see cref="MoneyInfo"/>. Each is resolved to a
@@ -1118,19 +1565,17 @@ namespace DataStandardizer.Money
             var currencyFormat = formatProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo;
             if (currencyFormat != null)
             {
-                // A provider which supplies both currency formatting information and a formatter is used as it
-                // stands. One which supplies only the former, such as a CurrencyFormatInfo, is given the money
-                // formatter, so that a money format string is never handed to the number formatter.
-                if (formatProvider.GetFormat(typeof(ICustomFormatter)) is ICustomFormatter)
-                {
-                    return formatProvider;
-                }
-
+                // Only the formatting information of the provider is kept. A custom formatter it supplies is
+                // never used, as decimal never uses one: the usual custom formatter formats a value it does not
+                // handle by calling its IFormattable.ToString, which for a Money would call the formatter again.
+                // A caller's custom formatter still applies through string.Format, which calls it first.
                 // Number formatting the provider does not supply is taken from its currency formatting
                 // information rather than from the culture of the current thread.
                 var currencyNumberFormat = formatProvider.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo
                                            ?? GetFormattingNumberFormat(currencyFormat);
-                return new MoneyInfo(currencyFormat, currencyNumberFormat) { IsReadOnly = true };
+                // The wrapper is not sealed: it never leaves this call, and sealing it would seal the caller's
+                // own currency formatting information, which formatting and parsing must never change.
+                return new MoneyInfo(currencyFormat, currencyNumberFormat);
             }
 
             if (formatProvider is CultureInfo culture)
@@ -1166,7 +1611,7 @@ namespace DataStandardizer.Money
                 NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator,
                 NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator,
                 NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied,
-                NegativeSign = currencyFormat.NegativeSign ?? string.Empty
+                NegativeSign = currencyFormat.NegativeSign
             };
         }
 
@@ -1192,10 +1637,18 @@ namespace DataStandardizer.Money
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
         /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
         /// <remarks>
+        /// <para>
         /// A currency is identified from an ISO 4217 currency code, or from a currency symbol which denotes
         /// exactly one currency. A symbol shared by several currencies is resolved from the currency of
         /// <paramref name="provider"/>, and only when <paramref name="styles"/> includes
         /// <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/>.
+        /// </para>
+        /// <para>
+        /// The amount is read with the separators and negative sign it is formatted with under
+        /// <paramref name="provider"/>. Where <paramref name="s"/> has a currency token, they are those of the
+        /// provider's currency formatting information, which the money formats use. Where it has none, they are
+        /// those of the provider's number formatting information, which the general format uses.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> is <c>null</c>.</exception>
         /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in a correct format, or its currency cannot be determined.</exception>
@@ -1227,10 +1680,43 @@ namespace DataStandardizer.Money
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
         /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
         /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// The amount is read with the separators and negative sign it is formatted with under
+        /// <paramref name="provider"/>. Where <paramref name="s"/> has a currency token, they are those of the
+        /// provider's currency formatting information, which the money formats use. Where it has none, they are
+        /// those of the provider's number formatting information, which the general format uses.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, out Money result)
 #else
         public static bool TryParse(string s, MoneyStyles styles, IFormatProvider provider, out Money result)
+#endif
+        {
+            return TryParse(s, styles, provider, false, out result, out _);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a monetary value to its <see cref="Money"/> equivalent,
+        /// permitting only the specified elements, and optionally reading a symbol as a standard symbol first.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="styles">The elements permitted in <paramref name="s"/>.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <param name="standardSymbolsFirst">
+        /// <c>true</c> to resolve a shared symbol that is the standard symbol of exactly one currency to that
+        /// currency, as for a value in the <c>C</c> format; otherwise <c>false</c>.
+        /// </param>
+        /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
+        /// <param name="readAsStandardSymbol">
+        /// When this method returns, <c>true</c> if the currency of <paramref name="result"/> was decided by
+        /// reading a shared symbol as a standard symbol, so that reading without
+        /// <paramref name="standardSymbolsFirst"/> could give another result; otherwise <c>false</c>.
+        /// </param>
+        /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, bool standardSymbolsFirst, out Money result, out bool readAsStandardSymbol)
+#else
+        private static bool TryParse(string s, MoneyStyles styles, IFormatProvider provider, bool standardSymbolsFirst, out Money result, out bool readAsStandardSymbol)
 #endif
         {
             var useStyles = styles;
@@ -1244,9 +1730,13 @@ namespace DataStandardizer.Money
 
             var moneyProvider = ResolveMoneyProvider(provider);
             var currencyFormat = moneyProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo ?? CurrencyFormatInfo.InvariantInfo;
-            var numberFormat = GetNumberFormat(provider, currencyFormat);
+            var currencyNumberFormat = GetNumberFormat(provider, currencyFormat);
 
-            return MoneyParser.TryParse(s, useStyles, currencyFormat, numberFormat, out result);
+            // The number formatting the general format uses for this provider, so that an amount without a
+            // currency token is read as it was written.
+            var amountNumberFormat = NumberFormatInfo.GetInstance(moneyProvider);
+
+            return MoneyParser.TryParse(s, useStyles, currencyFormat, currencyNumberFormat, amountNumberFormat, standardSymbolsFirst, out result, out readAsStandardSymbol);
         }
 
         /// <summary>
@@ -1256,6 +1746,13 @@ namespace DataStandardizer.Money
         /// <param name="format">The format that <paramref name="s"/> must be in.</param>
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
         /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
+        /// <remarks>
+        /// <paramref name="s"/> is read with <see cref="MoneyStyles.Currency"/>. Where <paramref name="format"/>
+        /// is <c>C</c>, a symbol that is the standard symbol of exactly one currency denotes that currency, so
+        /// <c>$</c> is read as the US Dollar, and the result of formatting a value with <c>C</c> is read back
+        /// as that value where its currency's standard symbol is the standard symbol of no other currency, and
+        /// its amount has no more decimal places than the rendering shows.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> or <paramref name="format"/> is <c>null</c>.</exception>
         /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in the format specified by <paramref name="format"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
@@ -1318,9 +1815,25 @@ namespace DataStandardizer.Money
         /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
         /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
         /// <remarks>
+        /// <para>
         /// A value is accepted only where formatting the parsed result with one of <paramref name="formats"/>
         /// reproduces it. A caller expecting the currency code form may therefore reject a value carrying a
         /// currency symbol, which is otherwise accepted.
+        /// </para>
+        /// <para>
+        /// The <c>C</c> format renders the standard symbol of a currency, so against a <c>C</c> format a symbol
+        /// that is the standard symbol of exactly one currency denotes that currency, even where it is also the
+        /// narrow symbol of others: <c>$</c> is read as the US Dollar and <c>£</c> as the Pound Sterling, with
+        /// no <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/> and no culture needed. Against any other
+        /// format, and when parsing without a format, such a symbol remains ambiguous.
+        /// </para>
+        /// <para>
+        /// Where <paramref name="s"/> is the rendering of different values under different formats among
+        /// <paramref name="formats"/>, it is ambiguous, and parsing fails whatever the order of the formats.
+        /// For example, under en-AU with <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/>,
+        /// <c>$5.00</c> is both the <c>C</c> rendering of 5 US Dollars and the <c>H</c> rendering of
+        /// 5 Australian Dollars.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParseExact(string? s, string[]? formats, IFormatProvider? provider, MoneyStyles styles, out Money result)
@@ -1335,10 +1848,45 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            if (!TryParse(s, styles, provider, out var candidate))
+            var hasStandardSymbolFormat = false;
+            var hasOtherFormat = false;
+            foreach (var format in formats)
+            {
+                if (format is null)
+                {
+                    continue;
+                }
+
+                if (MoneyFormatter.IsStandardSymbolFormat(format))
+                {
+                    hasStandardSymbolFormat = true;
+                }
+                else
+                {
+                    hasOtherFormat = true;
+                }
+            }
+
+            if (!hasStandardSymbolFormat && !hasOtherFormat)
             {
                 return false;
             }
+
+            // The C formats carry a standard symbol, so a shared symbol is read as one for them. One reading
+            // serves every format unless it read a shared symbol that way, in which case the other formats
+            // need the value read as it is without a format.
+            var isParsedWithStandardSymbol = TryParse(s, styles, provider, hasStandardSymbolFormat, out var parsedWithStandardSymbol, out var readAsStandardSymbol);
+            var isParsed = isParsedWithStandardSymbol;
+            var parsed = parsedWithStandardSymbol;
+            if (readAsStandardSymbol && hasOtherFormat)
+            {
+                isParsed = TryParse(s, styles, provider, false, out parsed, out _);
+            }
+
+            // Where the two readings differ, a value matched under formats of both kinds is ambiguous, so every
+            // format is tried rather than the first match accepted.
+            var readingsDiffer = isParsed && isParsedWithStandardSymbol && !parsed.Equals(parsedWithStandardSymbol);
+            var isMatched = false;
 
             // The parsed value must render back to the value supplied under one of the expected formats.
             // Comparing the rendering rather than inspecting the input keeps the accepted forms exactly in
@@ -1350,6 +1898,14 @@ namespace DataStandardizer.Money
                     continue;
                 }
 
+                var isStandardSymbolFormat = MoneyFormatter.IsStandardSymbolFormat(format);
+                if (!(isStandardSymbolFormat ? isParsedWithStandardSymbol : isParsed))
+                {
+                    continue;
+                }
+
+                var candidate = isStandardSymbolFormat ? parsedWithStandardSymbol : parsed;
+
                 string formatted;
                 try
                 {
@@ -1360,14 +1916,28 @@ namespace DataStandardizer.Money
                     continue;
                 }
 
-                if (string.Equals(formatted, s, StringComparison.Ordinal))
+                if (!string.Equals(formatted, s, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!readingsDiffer)
                 {
                     result = candidate;
                     return true;
                 }
+
+                if (isMatched && !result.Equals(candidate))
+                {
+                    result = default;
+                    return false;
+                }
+
+                result = candidate;
+                isMatched = true;
             }
 
-            return false;
+            return isMatched;
         }
 
 #if NET7_0_OR_GREATER
@@ -1419,11 +1989,12 @@ namespace DataStandardizer.Money
 #endif
 
         /// <summary>
-        /// Determine the number formatting information used to interpret the amount of a monetary value.
+        /// Determine the number formatting information used to interpret the amount of a monetary value with
+        /// a currency token.
         /// </summary>
         /// <remarks>
         /// The separators are taken from the currency formatting information so that parsing accepts what
-        /// formatting produces, rather than differing from it.
+        /// the money formats produce, rather than differing from it.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         private static NumberFormatInfo GetNumberFormat(IFormatProvider? provider, CurrencyFormatInfo currencyFormat)
@@ -1437,7 +2008,8 @@ namespace DataStandardizer.Money
             result.NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator;
             result.NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator;
             result.NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied;
-            result.NegativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
+            // An empty sign is passed on as it stands; the parser decides what is read in its place.
+            result.NegativeSign = currencyFormat.NegativeSign;
 
             return result;
         }

@@ -47,11 +47,29 @@ Locale Data Repository rather than from the currency code standard itself. Most
 currencies have no symbol distinct from their code, in which case
 `GetCurrencySymbol` returns `null` and the currency code should be used.
 
-Two forms are published. The standard form is unambiguous, as `NZ$` for the New
-Zealand Dollar; the narrow form is the shortest recognisable form and may be
-shared, as `$` is by some thirty currencies. Where a currency has no distinct
-narrow form, the standard form is returned. See
+Two forms are published. The standard form distinguishes currencies that share
+a glyph, such as `NZ$` for the New Zealand Dollar, though it may be another
+currency's narrow form, as `$` is. The narrow form is the shortest recognisable
+form and may be shared, as `$` is by some thirty currencies. Where a currency has
+no distinct narrow form, the standard form is returned. See
 [CurrencySymbolKind](CurrencySymbolKind.md).
+
+## Historic codes that share a numeric code
+
+ISO 4217 reuses numeric codes across successive denominations, so several
+`Iso4217CurrencyHistoric` members can share a value, such as `BGJ`, `BGK` and
+`BGL` (100). The codes that have no numeric code (`XFO`, `XFU` and `XRE`) all
+share -1. Members that share a value are the same value, so these methods can't
+tell them apart, and `GetCurrencyName` and `GetCurrencySymbol` return `null` for
+a shared value:
+
+```csharp
+Iso4217CurrencyHistoric.BGL.GetCurrencyName();  // null: BGJ, BGK and BGL are the same value
+Iso4217CurrencyHistoric.HRK.GetCurrencySymbol(CurrencySymbolKind.Narrow);  // null: HRD and HRK are the same value
+Iso4217CurrencyHistoric.BEF.GetCurrencyName();  // "Belgian Franc": 56 isn't shared
+```
+
+See [Iso4217CurrencyHistoric](Iso4217CurrencyHistoric.md#remarks).
 
 ## Applies to
 

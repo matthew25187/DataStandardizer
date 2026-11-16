@@ -16,7 +16,7 @@ namespace DataStandardizer.Money
     /// Currency symbol lookups used when formatting and parsing monetary values.
     /// </summary>
     /// <remarks>
-    /// Based on Unicode CLDR 47.0.0 currency data for the en locale.
+    /// Based on Unicode CLDR 49.0.0 currency data for the en locale.
     /// ISO 4217 does not define currency symbols, so this data is sourced from CLDR rather than
     /// from the currency code standard itself.
     /// <para>
@@ -73,6 +73,7 @@ namespace DataStandardizer.Money
             { DataStandardizer.Money.Iso4217CurrencyCurrent.BWP, "P" },
             { DataStandardizer.Money.Iso4217CurrencyCurrent.BZD, "$" },
             { DataStandardizer.Money.Iso4217CurrencyCurrent.CAD, "$" },
+            { DataStandardizer.Money.Iso4217CurrencyCurrent.CHF, "Fr." },
             { DataStandardizer.Money.Iso4217CurrencyCurrent.CLP, "$" },
             { DataStandardizer.Money.Iso4217CurrencyCurrent.CNY, "\u00a5" },
             { DataStandardizer.Money.Iso4217CurrencyCurrent.COP, "$" },
@@ -153,10 +154,7 @@ namespace DataStandardizer.Money
         {
             { DataStandardizer.Money.Iso4217CurrencyHistoric.CUC, "$" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.ESP, "\u20a7" },
-            { DataStandardizer.Money.Iso4217CurrencyHistoric.HRK, "kn" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.IDR, "Rp" },
-            { DataStandardizer.Money.Iso4217CurrencyHistoric.LTL, "Lt" },
-            { DataStandardizer.Money.Iso4217CurrencyHistoric.LVL, "Ls" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.RON, "lei" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.TRY, "\u20ba" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.VEF, "Bs" },

@@ -15,6 +15,7 @@ public class MoneyInfoTests
     // ISO 639-1 language codes.
     private const string EnglishLanguageCode = "en";
     private const string AfarLanguageCode = "aa";
+    private const string GermanLanguageCode = "de";
 
     #region Test: GetFormat
 
@@ -108,6 +109,18 @@ public class MoneyInfoTests
     }
 
     [Fact]
+    public void Constructor_WithLanguageAndCountry_ReturnsTheCldrInformationWhetherOrNotTheHostKnowsTheCulture()
+    {
+        // act
+        var testResult = new MoneyInfo((Iso639Part1Language)GermanLanguageCode, Iso3166Part1Alpha2Country.NZ);
+
+        // assert
+        // CLDR 49.0.0: de-NZ inherits the presentation of de, and NZ's currency is NZD.
+        testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
+        testResult.CurrencyFormat.CurrencyDecimalSeparator.Should().Be(GermanDecimalSeparator);
+    }
+
+    [Fact]
     public void Constructor_WithCulture_ReturnsInformationForThatCulture()
     {
         // act
@@ -143,6 +156,19 @@ public class MoneyInfoTests
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the instance is read only");
+    }
+
+    [Fact]
+    public void CurrencyFormat_WhenSetToNull_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testSubject = new MoneyInfo();
+
+        // act
+        Action testAction = () => testSubject.CurrencyFormat = null!;
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>("formatting must never fall back to information the caller did not supply").WithParameterName("value");
     }
 
     [Fact]

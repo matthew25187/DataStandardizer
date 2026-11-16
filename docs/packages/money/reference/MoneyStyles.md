@@ -61,6 +61,11 @@ in to it, because the currency of an ambient culture is rarely a safe assumption
 to make about the origin of a monetary value. Where the culture supplied does not
 resolve the symbol, parsing fails rather than choosing a currency.
 
+A symbol that is the standard symbol of one currency and the narrow symbol of
+others, as `$` is, is shared too. The exception is `ParseExact` or
+`TryParseExact` against the `C` format, which renders standard symbols, so there
+`$` denotes the US Dollar without `AllowAmbiguousCurrencySymbol`.
+
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.

@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using DataStandardizer.Money.Properties;
 
 namespace DataStandardizer.Money
 {
@@ -24,8 +22,6 @@ namespace DataStandardizer.Money
     /// </remarks>
     public sealed class CurrencyFormatInfo : IFormatProvider
     {
-        private static readonly char[] CurrencyGroupSizeSeparators = { ',' };
-
         private const Iso4217CurrencyCurrent InvariantCurrencyCode = Iso4217CurrencyCurrent.XXX;
         private const int InvariantCurrencyDecimalDigits = 2;
         private const string InvariantCurrencyDecimalSeparator = ".";
@@ -35,6 +31,12 @@ namespace DataStandardizer.Money
         private const int InvariantCurrencyNegativePattern = 0;
         private const int InvariantCurrencyPositivePattern = 0;
         private const string InvariantNegativeSign = "-";
+
+        // The largest values NumberFormatInfo accepts for the properties of the same names.
+        private const int MaximumCurrencyDecimalDigits = 99;
+        private const int MaximumCurrencyNegativePattern = 16;
+        private const int MaximumCurrencyPositivePattern = 3;
+        private const string RangeMessage = "The value must be from 0 to {0}.";
 
         /// <summary>
         /// The generic currency sign (U+00A4), used where a monetary value has no currency of its own.
@@ -120,7 +122,19 @@ namespace DataStandardizer.Money
         /// US Dollar, "EUR" for Euro). It is not the currency of any value being formatted: a
         /// <see cref="Money"/> value carries its own currency. This property exists so that a currency
         /// symbol shared by several currencies can be resolved when parsing.
+        /// <para>
+        /// The value is exactly the three upper-case letters of a code <see cref="Iso4217CurrencyCurrent"/>
+        /// defines. A numeric code, a code in another case or surrounded by white space, and a list of codes are
+        /// all rejected.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the property is set to a value which is not the alphabetic code of a currency
+        /// <see cref="Iso4217CurrencyCurrent"/> defines.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -129,6 +143,16 @@ namespace DataStandardizer.Money
             get => _currencyCode;
             set
             {
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (!Iso4217Extensions.TryGetCurrentCurrency(value, out _))
+                {
+                    throw new ArgumentException("The value must be the alphabetic code of a currency Iso4217CurrencyCurrent defines.", nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -145,7 +169,11 @@ namespace DataStandardizer.Money
         /// This is the culture's default precision, and has the lowest priority when formatting: an explicit
         /// precision specifier is preferred, then the minor units of the currency being formatted, and only
         /// then this value. It therefore applies in practice only to currencies which define no minor units.
+        /// As with <see cref="NumberFormatInfo.CurrencyDecimalDigits"/>, the value is from 0 to 99.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the property is set to a value less than 0 or greater than 99.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set this property on a read-only <see cref="CurrencyFormatInfo"/> instance.
         /// </exception>
@@ -154,6 +182,11 @@ namespace DataStandardizer.Money
             get => _currencyDecimalDigits;
             set
             {
+                if (value < 0 || value > MaximumCurrencyDecimalDigits)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyDecimalDigits));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -169,7 +202,14 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// This property defines the character used as the decimal separator in currency values.
         /// For example, in the currency value "123.45", the period (".") is the decimal separator.
+        /// As with <see cref="NumberFormatInfo.CurrencyDecimalSeparator"/>, it can't be empty.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the property is set to an empty string.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property on a read-only <see cref="CurrencyFormatInfo"/> instance.
         /// </exception>
@@ -183,6 +223,16 @@ namespace DataStandardizer.Money
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
                 }
 
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (value.Length == 0)
+                {
+                    throw new ArgumentException("The decimal separator cannot be the empty string.", nameof(value));
+                }
+
                 _currencyDecimalSeparator = value;
             }
         }
@@ -194,6 +244,9 @@ namespace DataStandardizer.Money
         /// This property is used to define the character or string that separates digit groups in formatted currency values.
         /// For example, in the currency value "1,000.00", the comma (",") is the group separator.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -205,6 +258,11 @@ namespace DataStandardizer.Money
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
+                }
+
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
                 }
 
                 _currencyGroupSeparator = value;
@@ -240,7 +298,7 @@ namespace DataStandardizer.Money
             get => (int[])_currencyGroupSizes.Clone();
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -273,12 +331,16 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// The <see cref="CurrencyNegativePattern"/> property determines how negative currency values are formatted.
         /// The value is an integer that corresponds to a specific pattern, using the same indices as
-        /// <see cref="NumberFormatInfo.CurrencyNegativePattern"/>. For example:
+        /// <see cref="NumberFormatInfo.CurrencyNegativePattern"/>, from 0 to 16. For example:
         /// - 0: ($n)
         /// - 1: -$n
         /// - 2: $-n
         /// - 3: $n-
+        /// - 16: $- n
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the property is set to a value less than 0 or greater than 16.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -287,6 +349,11 @@ namespace DataStandardizer.Money
             get => _currencyNegativePattern;
             set
             {
+                if (value < 0 || value > MaximumCurrencyNegativePattern)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyNegativePattern));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -302,8 +369,11 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// The <see cref="CurrencyPositivePattern"/> property determines the placement of the currency token
         /// and the formatting of positive currency values, using the same indices as
-        /// <see cref="NumberFormatInfo.CurrencyPositivePattern"/>.
+        /// <see cref="NumberFormatInfo.CurrencyPositivePattern"/>, from 0 to 3.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the property is set to a value less than 0 or greater than 3.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property on a read-only <see cref="CurrencyFormatInfo"/> instance.
         /// </exception>
@@ -312,6 +382,11 @@ namespace DataStandardizer.Money
             get => _currencyPositivePattern;
             set
             {
+                if (value < 0 || value > MaximumCurrencyPositivePattern)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyPositivePattern));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -328,6 +403,9 @@ namespace DataStandardizer.Money
         /// This is not always the ASCII hyphen-minus: several cultures use U+2212 MINUS SIGN, and some
         /// prefix it with a directional mark.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -336,6 +414,11 @@ namespace DataStandardizer.Money
             get => _negativeSign;
             set
             {
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -408,90 +491,51 @@ namespace DataStandardizer.Money
         #region Internal Methods
 
         /// <summary>
-        /// Create a <see cref="CurrencyFormatInfo"/> from the resources of a culture.
+        /// Create a <see cref="CurrencyFormatInfo"/> from the Unicode CLDR data for a culture.
         /// </summary>
-        /// <param name="culture">Culture whose resources are to be loaded, or <c>null</c> for the neutral resources.</param>
+        /// <param name="culture">Culture whose information is required, or <c>null</c> for the culture-independent information.</param>
         /// <returns>A writable <see cref="CurrencyFormatInfo"/> for <paramref name="culture"/>.</returns>
         /// <remarks>
+        /// <para>
+        /// The information depends only on the name of <paramref name="culture"/>, never on the culture data of
+        /// the host, so it is the same on every operating system and target. The presentation is that of the
+        /// CLDR locale the name resolves to, and the currency is that of the region the name contains. See
+        /// <c>CurrencyFormatData.Apply</c>.
+        /// </para>
+        /// <para>
         /// The result is writable; sealing it is the responsibility of whatever takes ownership of it, so that
         /// a shared instance is never made writable again by a caller.
+        /// </para>
         /// </remarks>
-        /// <exception cref="MissingCultureResourceException">
-        /// Thrown when a required resource is absent from both the culture's resources and the neutral resources.
-        /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         internal static CurrencyFormatInfo CreateForCulture(CultureInfo? culture)
 #else
         internal static CurrencyFormatInfo CreateForCulture(CultureInfo culture)
 #endif
         {
-            var cultureName = culture != null ? culture.Name : string.Empty;
+            // A new instance holds the invariant information, which is what a null culture is given.
+            return culture != null ? CreateForCultureName(culture.Name) : new CurrencyFormatInfo();
+        }
 
-            // Resource values are looked up with an explicit culture rather than by assigning the resource
-            // manager's culture, which is shared static state and cannot be mutated safely from several
-            // threads at once.
-            var currencyCodeText = GetResource(nameof(Resources.CurrencyCode), culture);
-            if (!Enum.TryParse(currencyCodeText, false, out Iso4217CurrencyCurrent currencyCode) || !Enum.IsDefined(typeof(Iso4217CurrencyCurrent), currencyCode))
-            {
-                throw new MissingCultureResourceException(cultureName, nameof(Resources.CurrencyCode));
-            }
-
-            // The culture's default precision falls back to the minor units of its own currency.
-            if (!int.TryParse(GetResource(nameof(Resources.CurrencyDecimalDigits), culture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var currencyDecimalDigits))
-            {
-                var minorUnits = currencyCode.GetMinorUnits();
-                if (!minorUnits.HasValue)
-                {
-                    throw new MissingCultureResourceException(cultureName, nameof(Resources.CurrencyDecimalDigits));
-                }
-
-                currencyDecimalDigits = minorUnits.Value;
-            }
-
-            if (!int.TryParse(GetResource(nameof(Resources.CurrencyNegativePattern), culture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var currencyNegativePattern))
-            {
-                throw new MissingCultureResourceException(cultureName, nameof(Resources.CurrencyNegativePattern));
-            }
-
-            if (!int.TryParse(GetResource(nameof(Resources.CurrencyPositivePattern), culture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var currencyPositivePattern))
-            {
-                throw new MissingCultureResourceException(cultureName, nameof(Resources.CurrencyPositivePattern));
-            }
-
-            return new CurrencyFormatInfo
-            {
-                CurrencyCode = currencyCodeText,
-                CurrencyDecimalDigits = currencyDecimalDigits,
-                CurrencyDecimalSeparator = GetResource(nameof(Resources.CurrencyDecimalSeparator), culture),
-                CurrencyGroupSeparator = GetResource(nameof(Resources.CurrencyGroupSeparator), culture),
-                CurrencyGroupSizes = ParseGroupSizes(GetResource(nameof(Resources.CurrencyGroupSizes), culture)),
-                CurrencyNegativePattern = currencyNegativePattern,
-                CurrencyPositivePattern = currencyPositivePattern,
-                NegativeSign = GetResource(nameof(Resources.NegativeSign), culture)
-            };
+        /// <summary>
+        /// Create a <see cref="CurrencyFormatInfo"/> from the Unicode CLDR data for a culture name.
+        /// </summary>
+        /// <param name="cultureName">Name of the culture, as <see cref="CultureInfo.Name"/> gives it.</param>
+        /// <returns>A writable <see cref="CurrencyFormatInfo"/> for <paramref name="cultureName"/>.</returns>
+        /// <remarks>
+        /// A name that CLDR resolves to root, or to no locale at all, such as the invariant culture's empty
+        /// name, keeps the invariant presentation.
+        /// </remarks>
+        internal static CurrencyFormatInfo CreateForCultureName(string cultureName)
+        {
+            var result = new CurrencyFormatInfo();
+            CurrencyFormatData.Apply(cultureName, result);
+            return result;
         }
 
         #endregion
 
         #region Private Methods
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static string GetResource(string resourceName, CultureInfo? culture)
-#else
-        private static string GetResource(string resourceName, CultureInfo culture)
-#endif
-        {
-            // A null culture means the neutral resources, but the resource manager interprets it as the
-            // current culture, so the invariant culture is named explicitly to reach the neutral values.
-            var value = Resources.ResourceManager.GetString(resourceName, culture ?? CultureInfo.InvariantCulture);
-            if (string.IsNullOrEmpty(value))
-            {
-                // A culture-specific file which defines a key as empty would otherwise shadow the neutral value.
-                value = Resources.ResourceManager.GetString(resourceName, CultureInfo.InvariantCulture);
-            }
-
-            return value ?? string.Empty;
-        }
 
         private static void CheckGroupSizes(int[] groupSizes, string parameterName)
         {
@@ -508,21 +552,6 @@ namespace DataStandardizer.Money
                         parameterName);
                 }
             }
-        }
-
-        private static int[] ParseGroupSizes(string groupSizesText)
-        {
-            var groupSizeTexts = groupSizesText.Split(CurrencyGroupSizeSeparators, StringSplitOptions.RemoveEmptyEntries);
-            var groupSizes = new List<int>(groupSizeTexts.Length);
-            foreach (var groupSizeText in groupSizeTexts)
-            {
-                if (int.TryParse(groupSizeText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var groupSize))
-                {
-                    groupSizes.Add(groupSize);
-                }
-            }
-
-            return groupSizes.ToArray();
         }
 
         #endregion

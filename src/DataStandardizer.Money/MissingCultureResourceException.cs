@@ -3,13 +3,16 @@
 namespace DataStandardizer.Money
 {
     /// <summary>
-    /// Represents an exception that is thrown when a required culture-specific resource
-    /// is missing or cannot be found.
+    /// Represents an exception that was thrown when a required culture-specific resource was
+    /// missing; the package no longer throws it.
     /// </summary>
     /// <remarks>
-    /// This exception is typically used in scenarios where culture-specific resources,
-    /// such as currency formatting information, are expected but not available.
+    /// The package no longer throws this exception: culture-specific currency formatting
+    /// information is generated from Unicode CLDR data and is complete for every culture. The type
+    /// remains so that code which refers to it still compiles, and will be removed in a future major
+    /// version.
     /// </remarks>
+    [Obsolete("The package no longer throws MissingCultureResourceException, which will be removed in a future major version. Remove code that catches it.")]
     public sealed class MissingCultureResourceException : Exception
     {
         public MissingCultureResourceException(string cultureName, string resourceName)

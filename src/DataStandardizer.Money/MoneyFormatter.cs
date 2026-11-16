@@ -55,6 +55,17 @@ namespace DataStandardizer.Money
             InvalidPrecision
         }
 
+        /// <summary>
+        /// The formatter, which holds no state, so that one instance serves every caller.
+        /// </summary>
+        internal static readonly MoneyFormatter Instance = new MoneyFormatter();
+
+        // The standard numeric format of a grouped number, to which a precision may be appended.
+        private const string GroupedNumberFormat = "N";
+
+        // The greatest number of digits a decimal holds after the decimal point.
+        private const int MaximumDecimalScale = 28;
+
         // Placement templates matching the indices documented for NumberFormatInfo.CurrencyPositivePattern
         // and NumberFormatInfo.CurrencyNegativePattern, so that values taken from a culture may be used
         // directly. {0} is the currency token, {1} the number and {2} the negative sign.
@@ -83,7 +94,8 @@ namespace DataStandardizer.Money
             "{0} {2}{1}",   // 12: $ -n
             "{1}{2} {0}",   // 13: n- $
             "({0} {1})",    // 14: ($ n)
-            "({1} {0})"     // 15: (n $)
+            "({1} {0})",    // 15: (n $)
+            "{0}{2} {1}"    // 16: $- n
         };
 
         #region Public Methods
@@ -110,12 +122,10 @@ namespace DataStandardizer.Money
                 return HandleOtherFormats(format, arg, formatProvider);
             }
 
+            // The culture of the current thread on every target, as for the number formatting, so that the same
+            // inputs give the same output whichever target is in use.
             var currencyFormat = formatProvider?.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo
-#if NETSTANDARD2_0_OR_GREATER||NET
-                                 ?? CurrencyFormatInfo.CurrentInfo;
-#else
-                                 ?? CurrencyFormatInfo.InvariantInfo;
-#endif
+                                 ?? MoneyInfo.GetCurrentMoney().CurrencyFormat;
 
             switch (ParseFormat(format, moneyValue.IsoCurrencyCode, out var specifier, out var precision))
             {
@@ -142,15 +152,26 @@ namespace DataStandardizer.Money
             // A value with no currency has no currency token to emit. The format string is deliberately not
             // passed on to the number: a currency specifier handed to decimal would emit the culture's own
             // currency symbol, which would misrepresent a value that has no currency of its own.
+            //
+            // Without a currency token the result cannot be told apart from the general format, so it takes
+            // the separators and sign the general format uses rather than those of the currency. Parsing reads
+            // an amount without a currency token with those same separators and sign.
             if (moneyValue.IsoCurrencyCode == Money.NoCurrency)
             {
-                var currencylessAmount = (decimal)moneyValue;
-                var currencylessIsNegative = currencylessAmount < decimal.Zero;
+                var amountNumberFormat = NumberFormatInfo.GetInstance(formatProvider ?? CultureInfo.CurrentCulture);
                 var currencylessDigits = precision ?? currencyFormat.CurrencyDecimalDigits;
-                var currencylessNumberPart = FormatNumber(currencylessIsNegative ? decimal.Negate(currencylessAmount) : currencylessAmount, currencylessDigits, currencyFormat);
+                // A value with no currency carries no rounding, so its amount is rounded once, here, to the
+                // display precision as decimal rounds it, midpoints away from zero.
+                var currencylessAmount = RoundForDisplay((decimal)moneyValue, currencylessDigits);
+                var currencylessIsNegative = currencylessAmount < decimal.Zero;
+
+                // The amount is formatted without its sign, so the negative pattern of the number formatting
+                // never applies and only its separators and group sizes are used.
+                var currencylessNumberPart = (currencylessIsNegative ? decimal.Negate(currencylessAmount) : currencylessAmount)
+                    .ToString(GroupedNumberFormat + currencylessDigits.ToString(CultureInfo.InvariantCulture), amountNumberFormat);
 
                 return currencylessIsNegative
-                    ? string.Concat(currencyFormat.NegativeSign, currencylessNumberPart)
+                    ? string.Concat(amountNumberFormat.NegativeSign, currencylessNumberPart)
                     : currencylessNumberPart;
             }
 
@@ -161,19 +182,18 @@ namespace DataStandardizer.Money
             // minor units is a property of the currency rather than a presentation preference.
             var currencyDecimalDigits = precision ?? moneyValue.CurrencyMinorUnits ?? currencyFormat.CurrencyDecimalDigits;
 
-            // The rounded value is formatted, so that any rounding the value carries is honoured.
-            var amount = (decimal)moneyValue;
+            // The rounded value is formatted, and rounded again to the display precision as decimal rounds it,
+            // midpoints away from zero; the value's own rounding method doesn't apply to that second step.
+            var amount = RoundForDisplay((decimal)moneyValue, currencyDecimalDigits);
             var isNegative = amount < decimal.Zero;
 
-            var numberPart = FormatNumber(amount < decimal.Zero ? decimal.Negate(amount) : amount, currencyDecimalDigits, currencyFormat);
-            var patterns = isNegative ? NegativePatterns : PositivePatterns;
-            var patternIndex = isNegative ? currencyFormat.CurrencyNegativePattern : currencyFormat.CurrencyPositivePattern;
-            if (patternIndex < 0 || patternIndex >= patterns.Length)
-            {
-                patternIndex = 0;
-            }
+            var numberPart = FormatNumber(isNegative ? decimal.Negate(amount) : amount, currencyDecimalDigits, currencyFormat);
+            // CurrencyFormatInfo accepts only the indices these tables hold.
+            var pattern = isNegative
+                ? NegativePatterns[currencyFormat.CurrencyNegativePattern]
+                : PositivePatterns[currencyFormat.CurrencyPositivePattern];
 
-            return string.Format(CultureInfo.InvariantCulture, patterns[patternIndex], currencyToken, numberPart, currencyFormat.NegativeSign);
+            return string.Format(CultureInfo.InvariantCulture, pattern, currencyToken, numberPart, currencyFormat.NegativeSign);
         }
 
         #endregion
@@ -243,6 +263,19 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
+        /// Determine whether a format string is the standard symbol format, <c>C</c> with an optional precision.
+        /// </summary>
+        /// <param name="format">Format string to examine.</param>
+        /// <returns><c>true</c> if <paramref name="format"/> renders a value with the standard symbol of its currency; otherwise <c>false</c>.</returns>
+        internal static bool IsStandardSymbolFormat(string format)
+        {
+            // The currency only decides whether a currency code format such as CAD matches the value, and such
+            // a format is never the standard symbol format, so any currency serves.
+            return ParseFormat(format, default(Iso4217CurrencyCurrent), out var specifier, out _) == FormatParseResult.Recognised
+                   && specifier == Specifier.CurrencySymbol;
+        }
+
+        /// <summary>
         /// Interpret a format string consisting of an ISO 4217 currency code and an optional precision.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
@@ -274,8 +307,7 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            return Enum.TryParse(format.Substring(0, currencyCodeLength), false, out currencyCode)
-                   && Enum.IsDefined(typeof(Iso4217CurrencyCurrent), currencyCode);
+            return Iso4217Extensions.TryGetCurrentCurrency(format.Substring(0, currencyCodeLength), out currencyCode);
         }
 
         /// <summary>
@@ -329,6 +361,25 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
+        /// Round an amount to the precision it is displayed at.
+        /// </summary>
+        /// <remarks>
+        /// Both the digits and the sign of a formatted amount are taken from the amount this returns, so that
+        /// they always agree: a negative amount which rounds to zero is displayed as zero with the positive
+        /// pattern, as <see cref="decimal"/> displays it. Midpoints are rounded away from zero, as the
+        /// <see cref="decimal"/> number format rounds them.
+        /// </remarks>
+        private static decimal RoundForDisplay(decimal amount, int decimalDigits)
+        {
+            // A decimal has at most 28 digits after the decimal point, so a greater precision cannot round it.
+            var rounded = Math.Round(amount, Math.Min(decimalDigits, MaximumDecimalScale), MidpointRounding.AwayFromZero);
+
+            // A negative amount which rounds to zero keeps its sign bit, which the number format would otherwise
+            // be relied upon to drop.
+            return rounded == decimal.Zero ? decimal.Zero : rounded;
+        }
+
+        /// <summary>
         /// Format the numeric part of a monetary value.
         /// </summary>
         /// <remarks>
@@ -346,7 +397,7 @@ namespace DataStandardizer.Money
                 NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied
             };
 
-            return amount.ToString("N", numberFormat);
+            return amount.ToString(GroupedNumberFormat, numberFormat);
         }
 
         /// <summary>
@@ -360,7 +411,7 @@ namespace DataStandardizer.Money
 #endif
         {
             // A monetary value is converted before being formatted. Formatting it as IFormattable would call
-            // back into Money.ToString, which resolves this formatter again and would not terminate.
+            // back into Money.ToString, which calls this formatter again and would not terminate.
             if (arg is Money moneyArg)
             {
                 return ((decimal)moneyArg).ToString(format, formatProvider ?? CultureInfo.CurrentCulture);

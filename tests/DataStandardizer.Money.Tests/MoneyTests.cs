@@ -1322,5 +1322,42 @@ namespace DataStandardizer.Money.Tests
         };
 
         #endregion
+
+        #region Test: CallerCurrencyFormatInfo
+
+        private const string UsdCurrencyCodeValue = "USD5.00";
+        private const string CurrencyCodeFormat = "I";
+
+        [Theory]
+        [MemberData(nameof(CallerCurrencyFormatInfoTestCases), DisableDiscoveryEnumeration = true)]
+        public void FormatOrParse_ProviderIsWritableCurrencyFormatInfo_LeavesProviderWritable(Action<CurrencyFormatInfo> testInvocation)
+        {
+            // arrange
+            var testProvider = new CurrencyFormatInfo();
+
+            // act
+            testInvocation(testProvider);
+
+            // assert
+            testProvider.IsReadOnly.Should().BeFalse("formatting or parsing must never change the provider it is given");
+        }
+
+        public static TheoryData<Action<CurrencyFormatInfo>> CallerCurrencyFormatInfoTestCases => new()
+        {
+            provider => Money.Create(5m, Iso4217CurrencyCurrent.USD).ToString("C", provider),
+            provider => Money.Create(5m, Iso4217CurrencyCurrent.USD).ToString("H", provider),
+            provider => Money.Create(5m, Iso4217CurrencyCurrent.USD).ToString(CurrencyCodeFormat, provider),
+            provider => Money.Create(5m, Iso4217CurrencyCurrent.USD).ToString("N", provider),
+            provider => Money.Create(5m, Iso4217CurrencyCurrent.USD).ToString("G", provider),
+            provider => Money.Parse(UsdCurrencyCodeValue, provider),
+            provider => Money.Parse(UsdCurrencyCodeValue, MoneyStyles.Currency, provider),
+            provider => Money.TryParse(UsdCurrencyCodeValue, MoneyStyles.Currency, provider, out _),
+            provider => Money.TryParse(UsdCurrencyCodeValue, provider, out _),
+            provider => Money.ParseExact(UsdCurrencyCodeValue, CurrencyCodeFormat, provider),
+            provider => Money.ParseExact(UsdCurrencyCodeValue, new[] { CurrencyCodeFormat }, provider, MoneyStyles.Currency),
+            provider => Money.TryParseExact(UsdCurrencyCodeValue, new[] { CurrencyCodeFormat }, provider, MoneyStyles.Currency, out _),
+        };
+
+        #endregion
     }
 }

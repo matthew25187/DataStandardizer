@@ -9,6 +9,16 @@ namespace DataStandardizer.Money
     /// These styles serve the same purpose for <see cref="Money"/> as <see cref="System.Globalization.NumberStyles"/>
     /// does for the intrinsic numeric types: they let a caller accept only the elements they expect, so that
     /// input which happens to be well formed but is not of the expected shape is rejected rather than parsed.
+    /// <para>
+    /// White space is the characters <see cref="System.Globalization.NumberStyles"/> treats as white space,
+    /// U+0009 to U+000D and U+0020, and it is read where <see cref="System.Globalization.NumberStyles"/> reads
+    /// it. Before the amount, <see cref="AllowLeadingWhite"/> permits it among the sign, opening parenthesis and
+    /// currency token, except after a sign or opening parenthesis that no currency token precedes, unless the
+    /// <see cref="System.Globalization.NumberFormatInfo.NumberNegativePattern"/> of the culture is <c>- n</c>.
+    /// After the amount, <see cref="AllowTrailingWhite"/> permits it among the sign, closing parenthesis and
+    /// currency token. So <c>NZD 1234.50</c>, <c>-$ 5.00</c>, <c>$- 5.00</c> and <c>5.00 $-</c> are read under
+    /// <see cref="Currency"/>, and <c>- 5.00</c>, <c>( 5.00)</c> and <c>- $5.00</c> are not.
+    /// </para>
     /// </remarks>
     [Flags]
     public enum MoneyStyles : uint
@@ -76,6 +86,10 @@ namespace DataStandardizer.Money
         /// requires the context of a culture, and a caller must opt in to it, because the currency of an
         /// ambient culture is rarely a safe assumption to make about the origin of a monetary value. Where
         /// the culture does not resolve the symbol, parsing fails rather than choosing a currency.
+        /// A symbol that is the standard symbol of one currency and the narrow symbol of others, as <c>$</c>
+        /// is, is shared too, except against the <c>C</c> format in
+        /// <see cref="Money.TryParseExact(string, string[], IFormatProvider, MoneyStyles, out Money)"/>, where
+        /// it denotes the currency whose standard symbol it is without this flag.
         /// </remarks>
         AllowAmbiguousCurrencySymbol = 1 << 9,
 

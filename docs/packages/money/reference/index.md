@@ -33,4 +33,4 @@ The public types of **DataStandardizer.Money**. All types are in the
 | [Iso4217CurrencyCodeAttribute](Iso4217CurrencyCodeAttribute.md) | Describes a currency code member with its metadata. |
 | [CurrencyFormatInfo](CurrencyFormatInfo.md) | How monetary values are formatted and parsed for a culture. |
 | [MoneyInfo](MoneyInfo.md) | The format provider supplying monetary formatting information. |
-| [MissingCultureResourceException](MissingCultureResourceException.md) | Raised when a required culture resource is absent. |
+| [MissingCultureResourceException](MissingCultureResourceException.md) | Obsolete. No longer thrown; kept so that code which refers to it still compiles. |
