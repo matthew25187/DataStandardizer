@@ -854,6 +854,27 @@ namespace DataStandardizer.File.iCal.Tests
             diagnostic.LineNumber.Should().BePositive();
         }
 
+        // ref. RFC 5545 §3.3.11, §3.8.1.2, §3.8.1.10 and §3.8.8.3: TEXT escapes "," and ";", except the commas that separate the items of
+        // CATEGORIES and RESOURCES and the semicolons that separate the parts of REQUEST-STATUS.
+        [Theory]
+        [InlineData("SUMMARY:Lunch\\, then review\\; bring notes")]
+        [InlineData("CATEGORIES:APPOINTMENT,EDUCATION")]
+        [InlineData("RESOURCES:EASEL,PROJECTOR")]
+        [InlineData("REQUEST-STATUS:2.0;Success")]
+        [InlineData("REQUEST-STATUS:3.1;Invalid property value;DTSTART:96-Apr-01")]
+        [InlineData("REQUEST-STATUS:2.8; Success\\, repeating event ignored. Scheduled as a single event.;RRULE:FREQ=WEEKLY\\;INTERVAL=2")]
+        public void ReadCalendars_TextSeparatorTheGrammarAllows_IsRead(string property)
+        {
+            // arrange
+            var text = EventCalendar(property);
+
+            // act
+            var testResult = ReadCalendars(text);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
         [Theory]
         [MemberData(nameof(ConformanceCases.Accommodated), MemberType = typeof(ConformanceCases))]
         public void ReadCalendar_NonConformantWithOtherOptions_Throws(string caseName)

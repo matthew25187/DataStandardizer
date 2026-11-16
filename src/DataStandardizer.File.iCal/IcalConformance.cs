@@ -37,6 +37,11 @@ namespace DataStandardizer.File.iCal
         };
 
         /// <summary>
+        /// The properties whose value is a comma-separated list of TEXT values (RFC 5545 §3.8.1.2 and §3.8.1.10).
+        /// </summary>
+        private static readonly string[] TextListProperties = { IcalPropertyNames.Categories, IcalPropertyNames.Resources };
+
+        /// <summary>
         /// The properties RFC 7986 §5 gives no default value type, so that they need a <c>VALUE</c> parameter.
         /// </summary>
         internal static readonly string[] ValueParameterRequiredProperties =
@@ -811,7 +816,7 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.Recur:
                     return IcalRecurrenceRule.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Text:
-                    return ContentLineEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
+                    return IsValidText(property.Name, span);
                 case IcalValueType.Time:
                     return IcalTime.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Uri:
@@ -821,6 +826,40 @@ namespace DataStandardizer.File.iCal
                 default:
                     return true;
             }
+        }
+
+        /// <summary>
+        /// Checks a TEXT value: every backslash starts a valid escape, and every comma and semicolon is escaped, except where the property's
+        /// grammar uses one to separate the parts of its value.
+        /// </summary>
+        private static bool IsValidText(string name, ReadOnlySpan<char> value)
+        {
+            if (!ContentLineEscaping.TryUnescapeText(value, new char[value.Length], out _, out _)) return false;
+
+            // ref. RFC 5545§3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT escapes them.  An unescaped comma separates the items of a
+            // CATEGORIES or RESOURCES list (RFC 5545§3.8.1.2 and §3.8.1.10), an unescaped semicolon the minver and maxver of VERSION
+            // (RFC 5545§3.7.4), and up to two the statcode, statdesc and extdata of REQUEST-STATUS (RFC 5545§3.8.8.3).
+            var allowsComma = TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
+            var allowedSemicolons = IsName(name, IcalPropertyNames.RequestStatus) ? 2 : IsName(name, IcalPropertyNames.Version) ? 1 : 0;
+            var semicolons = 0;
+            for (var index = 0; index < value.Length; index++)
+            {
+                switch (value[index])
+                {
+                    case '\\':
+                        // The escape is valid, so the next character is part of it.
+                        index++;
+                        break;
+                    case ',':
+                        if (!allowsComma) return false;
+                        break;
+                    case ';':
+                        if (++semicolons > allowedSemicolons) return false;
+                        break;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

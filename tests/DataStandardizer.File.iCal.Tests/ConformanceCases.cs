@@ -25,10 +25,16 @@ namespace DataStandardizer.File.iCal.Tests
         public const string QuotedTimeZoneIdCase = "QuotedTimeZoneId";
         public const string QuotedLanguageOnExtensionPropertyCase = "QuotedLanguageOnExtensionProperty";
         public const string QuotedSecondFeatureCase = "QuotedSecondFeature";
+        public const string UnescapedCommaInTextCase = "UnescapedCommaInText";
+        public const string UnescapedSemicolonInTextCase = "UnescapedSemicolonInText";
+        public const string UnescapedSemicolonInCategoriesCase = "UnescapedSemicolonInCategories";
+        public const string UnescapedCommaInRequestStatusCase = "UnescapedCommaInRequestStatus";
+        public const string UnescapedSemicolonInRequestStatusDataCase = "UnescapedSemicolonInRequestStatusData";
 
         private const string Attachment = "ATTACH";
         private const string DtStart = "DTSTART";
         private const string Duration = "DURATION";
+        private const string RequestStatus = "REQUEST-STATUS";
         private const string RecurrenceRule = "RRULE";
         private const string AlarmPath = "VCALENDAR/VEVENT[1]/VALARM[1]";
         private const string TodoPath = "VCALENDAR/VTODO[1]";
@@ -139,6 +145,18 @@ namespace DataStandardizer.File.iCal.Tests
             [BinaryWithoutEncodingCase] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
             ["PriorityOutOfRange"] = new Case(EventCalendar("PRIORITY:10"), IcalDiagnosticKind.InvalidValue, "PRIORITY", EventPath),
             ["InvalidTextEscape"] = new Case(EventCalendar("SUMMARY:Back\\slash"), IcalDiagnosticKind.InvalidValue, "SUMMARY", EventPath),
+
+            // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT escapes them except where the property's grammar separates with them.
+            [UnescapedCommaInTextCase] = new Case(EventCalendar("SUMMARY:Lunch, then review"), IcalDiagnosticKind.InvalidValue, "SUMMARY",
+                EventPath),
+            [UnescapedSemicolonInTextCase] = new Case(EventCalendar("SUMMARY:Lunch; review"), IcalDiagnosticKind.InvalidValue, "SUMMARY",
+                EventPath),
+            [UnescapedSemicolonInCategoriesCase] = new Case(EventCalendar("CATEGORIES:APPOINTMENT;EDUCATION"), IcalDiagnosticKind.InvalidValue,
+                "CATEGORIES", EventPath),
+            [UnescapedCommaInRequestStatusCase] = new Case(EventCalendar("REQUEST-STATUS:2.0;Success, mostly"), IcalDiagnosticKind.InvalidValue,
+                RequestStatus, EventPath),
+            [UnescapedSemicolonInRequestStatusDataCase] = new Case(EventCalendar("REQUEST-STATUS:3.1;Invalid property value;DTSTART;VALUE=DATE"),
+                IcalDiagnosticKind.InvalidValue, RequestStatus, EventPath),
             ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", EventPath),
             ["RelativeUrl"] = new Case(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", EventPath),
             ["UtcObservanceStart"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000Z", ZeroOffsetFrom,
@@ -237,7 +255,7 @@ namespace DataStandardizer.File.iCal.Tests
         /// The cases that xCal can hold.  Five cannot be written in it: the writer always writes VERSION, the value element of REFRESH-INTERVAL
         /// gives it the VALUE parameter it lacked, a binary value gives its property the ENCODING parameter it lacked, and the value element of
         /// a property takes the place of its VALUE parameters, however many there are or however many values they have.  Nor can a quoted
-        /// parameter value, since xCal has no quoting.
+        /// parameter value, since xCal has no quoting, or an unescaped comma or semicolon in a TEXT value, since xCal text has no escaping.
         /// </summary>
         public static TheoryData<string> XcalCases()
         {
@@ -245,7 +263,8 @@ namespace DataStandardizer.File.iCal.Tests
             foreach (var name in All.Keys)
             {
                 if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
-                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name))
+                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name) &&
+                    !IsUnescapedTextSeparatorCase(name))
                 {
                     data.Add(name);
                 }
@@ -265,7 +284,7 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
                     name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && name != TwoFormatTypesCase &&
-                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name))
+                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name) && !IsUnescapedTextSeparatorCase(name))
                 {
                     data.Add(name);
                 }
@@ -278,6 +297,12 @@ namespace DataStandardizer.File.iCal.Tests
         {
             return name == QuotedFormatTypeCase || name == QuotedTimeZoneIdCase || name == QuotedLanguageOnExtensionPropertyCase ||
                    name == QuotedSecondFeatureCase;
+        }
+
+        private static bool IsUnescapedTextSeparatorCase(string name)
+        {
+            return name == UnescapedCommaInTextCase || name == UnescapedSemicolonInTextCase || name == UnescapedSemicolonInCategoriesCase ||
+                   name == UnescapedCommaInRequestStatusCase || name == UnescapedSemicolonInRequestStatusDataCase;
         }
     }
 }
