@@ -81,6 +81,15 @@ namespace DataStandardizer.File.iCal.Tests
                 ("RulePartNotValid", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":true}]"), JournalPropertyPath + "[3]['freq']", "true"),
                 ("RuleEmpty", JournalDocument("[\"rrule\",{},\"recur\",{}]"), JournalPropertyPath + "[3]", "{}]"),
                 ("GeoNotTwoNumbers", JournalDocument("[\"geo\",{},\"float\",[1.5]]"), JournalPropertyPath + "[3]", "[1.5]"),
+                // ref. RFC 7265 §3.4.1.1 and §3.6.7: GEO is two JSON numbers, not strings.
+                ("GeoItemsStrings", JournalDocument("[\"geo\",{},\"float\",[\"37.5\",\"-122.1\"]]"), JournalPropertyPath + "[3]", "[\"37.5\""),
+                // ref. RFC 7265 §3.6: these types are never JSON strings.
+                ("IntegerAsString", JournalDocument("[\"priority\",{},\"integer\",\"5\"]"), JournalPropertyPath + "[3]", "\"5\""),
+                ("FloatAsString", JournalDocument("[\"x-ratio\",{},\"float\",\"1.5\"]"), JournalPropertyPath + "[3]", "\"1.5\""),
+                ("BooleanAsString", JournalDocument("[\"x-flag\",{},\"boolean\",\"true\"]"), JournalPropertyPath + "[3]", "\"true\""),
+                ("PeriodAsString", JournalDocument("[\"rdate\",{},\"period\",\"2020-01-02T18:00:00Z/PT1H\"]"), JournalPropertyPath + "[3]",
+                    "\"2020-01-02T18"),
+                ("RuleAsString", JournalDocument("[\"rrule\",{},\"recur\",\"FREQ=DAILY;COUNT=2\"]"), JournalPropertyPath + "[3]", "\"FREQ"),
                 ("RequestStatusTooShort", JournalDocument("[\"request-status\",{},\"text\",[\"2.0\"]]"), JournalPropertyPath + "[3]", "[\"2.0\"]"),
             };
             var data = new TheoryData<string, string, string, long>();
@@ -193,7 +202,6 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("[\"x\", {}, \"integer\", 1e2]", "X;VALUE=INTEGER:100")]
         [InlineData("[\"x\", {}, \"period\", [\"2011-05-17T12:00:00Z\", \"2011-05-17T13:00:00Z\"]]", "X;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
         [InlineData("[\"x\", {}, \"period\", [\"1997-03-08T16:00:00Z\", \"P1D\"]]", "X;VALUE=PERIOD:19970308T160000Z/P1D")]
-        [InlineData("[\"x\", {}, \"period\", \"1997-03-08T16:00:00Z/P1D\"]", "X;VALUE=PERIOD:19970308T160000Z/P1D")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"YEARLY\", \"count\": 5, \"byday\": [\"-1SU\", \"2MO\"], \"bymonth\": 10}]",
             "X;VALUE=RECUR:FREQ=YEARLY;COUNT=5;BYDAY=-1SU,2MO;BYMONTH=10")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"MONTHLY\", \"interval\": 2, \"bymonthday\": [1, 15, -1], \"until\": \"2013-10-01\"}]",
@@ -617,10 +625,26 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadCalendar_ValueAsStringOfOtherTypeByDefault_Throws()
+        public void ReadCalendar_IntegerAsStringInvalidValuesAllowed_Throws()
         {
-            // arrange: a string is taken for any type, so a value that does not follow its type reaches the conformance check.
-            var json = JournalDocument("[\"percent-complete\",{},\"integer\",\"lots\"]");
+            // arrange: ref. RFC 7265 §3.6.8, an INTEGER is a JSON number, so a string is not a value that AllowInvalidValues can keep.
+            var json = JournalDocument("[\"percent-complete\",{},\"integer\",\"5\"]");
+
+            // act
+            Action testAction = () => ReadJcal(json, AllowInvalidValues);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.JsonPath].Should()
+                .Be(JournalPropertyPath + "[3]");
+        }
+
+        [Theory]
+        [InlineData("1.0000000000000001")]
+        [InlineData("2147483647.00000000001")]
+        public void ReadCalendar_IntegerNotWholeByDefault_Throws(string number)
+        {
+            // arrange: ref. RFC 7265 §3.6.8, a number that a double would round to an integer is still not one.
+            var json = JournalDocument("[\"sequence\",{},\"integer\"," + number + "]");
 
             // act
             Action testAction = () => ReadJcal(json);
@@ -628,19 +652,6 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
                 .Be(IcalDiagnosticKind.InvalidValue);
-        }
-
-        [Fact]
-        public void ReadCalendar_ValueAsStringOfOtherTypeAllowed_KeepsTheString()
-        {
-            // arrange
-            var json = JournalDocument("[\"percent-complete\",{},\"integer\",\"lots\"]");
-
-            // act
-            var testResult = ReadJcal(json, AllowInvalidValues);
-
-            // assert
-            JournalProperty(testResult.Single()).Value.Should().Be("lots");
         }
 
         [Fact]

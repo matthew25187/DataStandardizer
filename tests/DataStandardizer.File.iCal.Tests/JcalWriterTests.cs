@@ -81,11 +81,11 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void WriteCalendars_RfcExample2_MatchesJcalFormWithPeriodArray()
+        public void WriteCalendars_RfcExample2_MatchesJcalForm()
         {
             // arrange: RFC 7265 §3.6.9 gives a PERIOD as an array, which Appendix B.2 does not follow.
             var calendars = ReadCalendars(Example2Ical);
-            var expected = JsonNode.Parse(Example2JcalWithPeriodArray);
+            var expected = JsonNode.Parse(Example2Jcal);
 
             // act
             var testResult = WriteJcal(calendars);

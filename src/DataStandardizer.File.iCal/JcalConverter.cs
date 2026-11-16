@@ -248,10 +248,10 @@ namespace DataStandardizer.File.iCal
                     return ReadPeriod(value, propertyName);
                 case JcalNodeKind.Object when valueType == IcalValueType.Recur:
                     return ReadRecur(value, propertyName);
-                case JcalNodeKind.String:
-                    // A string is taken for any type, so that a value that does not follow its type is kept, and the conformance check
-                    // reports it.  A RECUR value as a string is kept in the text form.
-                    return valueType == IcalValueType.Recur ? value.Text : ToText(valueType, value.Text, value, propertyName);
+                case JcalNodeKind.String when !IsNonStringType(valueType):
+                    // A string that does not follow its type is kept, and the conformance check reports it.  ref. RFC 7265§3.6: INTEGER,
+                    // FLOAT, BOOLEAN, PERIOD and RECUR values are not strings.
+                    return ToText(valueType, value.Text, value, propertyName);
                 case JcalNodeKind.Number when valueType == IcalValueType.Integer || valueType == IcalValueType.Float:
                     return ToText(valueType, value.Text, value, propertyName);
                 case JcalNodeKind.True when valueType == IcalValueType.Boolean:
@@ -262,6 +262,16 @@ namespace DataStandardizer.File.iCal
                         string.Format(CultureInfo.InvariantCulture, "A value of the {0} property with the type {1} cannot be {2}.", propertyName,
                             GetTypeIdentifier(valueType), DescribeKind(value.Kind)));
             }
+        }
+
+        /// <summary>
+        /// Determines whether a value of a type is never a JSON string: a JSON number for INTEGER and FLOAT (RFC 7265 §3.6.7, §3.6.8), a JSON
+        /// literal for BOOLEAN (§3.6.2), an array for PERIOD (§3.6.9) and an object for RECUR (§3.6.10).
+        /// </summary>
+        private static bool IsNonStringType(IcalValueType valueType)
+        {
+            return valueType == IcalValueType.Integer || valueType == IcalValueType.Float || valueType == IcalValueType.Boolean ||
+                   valueType == IcalValueType.Period || valueType == IcalValueType.Recur;
         }
 
         private static string ReadPeriod(JcalNode period, string propertyName)
@@ -365,7 +375,8 @@ namespace DataStandardizer.File.iCal
         private static string ReadGeo(JcalNode geo, string propertyName)
         {
             // ref. RFC 7265§3.4.1.1: an array of two FLOAT values, the latitude and the longitude.
-            if (geo.Items.Count != 2 || geo.Items.Any(item => item.Kind != JcalNodeKind.Number && item.Kind != JcalNodeKind.String))
+            // ref. RFC 7265§3.6.7: a FLOAT is a JSON number.
+            if (geo.Items.Count != 2 || geo.Items.Any(item => item.Kind != JcalNodeKind.Number))
                 throw BuildException(geo, propertyName, "The value of the GEO property must be an array of two numbers: the latitude and the longitude.");
 
             return ToText(IcalValueType.Float, geo.Items[0].Text, geo.Items[0], propertyName) + ";" +
@@ -402,9 +413,6 @@ namespace DataStandardizer.File.iCal
                             string.Format(CultureInfo.InvariantCulture, "The text of the {0} property holds a character that iCalendar cannot hold.",
                                 propertyName));
                     }
-                case IcalValueType.Boolean:
-                    bool flag;
-                    return IcalValue.TryParseBoolean(value, IcalValueFormat.Json, out flag) ? FormatBoolean(flag, IcalValueFormat.Text) : json;
                 case IcalValueType.Integer:
                     int integer;
                     if (IcalValue.TryParseInteger(value, IcalValueFormat.Text, out integer)) return json;
@@ -427,10 +435,6 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.UtcOffset:
                     IcalUtcOffset offset;
                     return IcalUtcOffset.TryParse(value, IcalValueFormat.Json, out offset) ? offset.ToString(IcalValueFormat.Text) : json;
-                case IcalValueType.Period:
-                    // A period as one string, with its parts joined by a solidus, as some writers give it.
-                    var solidusIndex = json.IndexOf('/');
-                    return solidusIndex < 0 ? json : ToPeriodText(json.Substring(0, solidusIndex), json.Substring(solidusIndex + 1));
                 default:
                     // DURATION, BINARY, URI and CAL-ADDRESS are the same in both forms, and an unknown value is kept as it is (RFC 7265§5.2).
                     return json;

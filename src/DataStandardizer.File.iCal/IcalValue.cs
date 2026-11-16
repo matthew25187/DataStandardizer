@@ -638,18 +638,116 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static bool TryParseJsonInteger(ReadOnlySpan<char> value, out int result)
         {
-            // ref. RFC 7265§3.6.8: a JSON number that resolves to an integer, so a fraction or an exponent is allowed only where it does.
+            // ref. RFC 7265§3.6.8: a JSON number that resolves to an integer, so a fraction or an exponent is allowed only where it does.  The
+            // digits are checked as they are written, not through a double, so that a number such as 1.0000000000000001 is not rounded to one.
             result = 0;
-            double number;
-            if (!IcalValueFormatting.IsJsonNumber(value) ||
-                !TryParseDouble(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, out number) ||
-                Math.Floor(number) != number || number < int.MinValue || number > int.MaxValue)
+            if (!IcalValueFormatting.IsJsonNumber(value)) return false;
+
+            // ref. RFC 8259§6: number = [ minus ] int [ frac ] [ exp ]
+            var index = 0;
+            var isNegative = value[0] == '-';
+            if (isNegative)
             {
-                return false;
+                index = 1;
             }
+
+            var integerStart = index;
+            while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+            {
+                index++;
+            }
+
+            var integerLength = index - integerStart;
+            var fractionStart = index;
+            var fractionLength = 0;
+            if (index < value.Length && value[index] == '.')
+            {
+                fractionStart = ++index;
+                while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                fractionLength = index - fractionStart;
+            }
+
+            // The exponent is capped well beyond any power that could matter, so that it cannot overflow.
+            const long exponentLimit = 1L << 40;
+            long exponent = 0;
+            if (index < value.Length)
+            {
+                index++;
+                var isExponentNegative = false;
+                if (value[index] == '+' || value[index] == '-')
+                {
+                    isExponentNegative = value[index] == '-';
+                    index++;
+                }
+
+                for (; index < value.Length; index++)
+                {
+                    if (exponent < exponentLimit)
+                    {
+                        exponent = exponent * 10 + (value[index] - '0');
+                    }
+                }
+
+                if (isExponentNegative)
+                {
+                    exponent = -exponent;
+                }
+            }
+
+            // The digits of the integer part and the fraction, taken together, scaled by a power of ten.  The first and last digits that are
+            // not zero bound the number: the last must stand at a whole power of ten, and the first at a power no greater than an int can hold.
+            var digitCount = integerLength + fractionLength;
+            var first = 0;
+            while (first < digitCount && GetJsonDigit(value, integerStart, integerLength, fractionStart, first) == 0)
+            {
+                first++;
+            }
+
+            if (first == digitCount) return true;
+
+            var last = digitCount - 1;
+            while (GetJsonDigit(value, integerStart, integerLength, fractionStart, last) == 0)
+            {
+                last--;
+            }
+
+            var scale = exponent - fractionLength;
+            var lastPower = digitCount - 1 - last + scale;
+            var firstPower = digitCount - 1 - first + scale;
+            if (lastPower < 0 || firstPower > 9) return false;
+
+            long number = 0;
+            for (var digit = first; digit <= last; digit++)
+            {
+                number = number * 10 + GetJsonDigit(value, integerStart, integerLength, fractionStart, digit);
+            }
+
+            for (var power = 0L; power < lastPower; power++)
+            {
+                number *= 10;
+            }
+
+            if (isNegative)
+            {
+                number = -number;
+            }
+
+            if (number < int.MinValue || number > int.MaxValue) return false;
 
             result = (int)number;
             return true;
+        }
+
+        /// <summary>
+        /// Gets a digit of a JSON number, counting through the digits of its integer part and then those of its fraction.
+        /// </summary>
+        private static int GetJsonDigit(ReadOnlySpan<char> value, int integerStart, int integerLength, int fractionStart, int digit)
+        {
+            return (digit < integerLength ? value[integerStart + digit] : value[fractionStart + digit - integerLength]) - '0';
         }
 
         /// <summary>
