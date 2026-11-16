@@ -1554,7 +1554,9 @@ namespace DataStandardizer.Money
                 // information rather than from the culture of the current thread.
                 var currencyNumberFormat = formatProvider.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo
                                            ?? GetFormattingNumberFormat(currencyFormat);
-                return new MoneyInfo(currencyFormat, currencyNumberFormat) { IsReadOnly = true };
+                // The wrapper is not sealed: it never leaves this call, and sealing it would seal the caller's
+                // own currency formatting information, which formatting and parsing must never change.
+                return new MoneyInfo(currencyFormat, currencyNumberFormat);
             }
 
             if (formatProvider is CultureInfo culture)
