@@ -60,18 +60,16 @@ ISO 4217 reuses numeric codes across successive denominations, so several
 `Iso4217CurrencyHistoric` members can share a value, such as `BGJ`, `BGK` and
 `BGL` (100). The codes that have no numeric code (`XFO`, `XFU` and `XRE`) all
 share -1. Members that share a value are the same value, so these methods can't
-tell them apart. For a shared value, `GetCurrencyName` and `GetCurrencySymbol`
-return the data of the member withdrawn most recently:
+tell them apart, and `GetCurrencyName` and `GetCurrencySymbol` return `null` for
+a shared value:
 
 ```csharp
-Iso4217CurrencyHistoric.BGJ.GetCurrencyName();  // "Lev", the name of BGL
-Iso4217CurrencyHistoric.HRD.GetCurrencySymbol(CurrencySymbolKind.Narrow);  // "kn", the symbol of HRK
+Iso4217CurrencyHistoric.BGL.GetCurrencyName();  // null: BGJ, BGK and BGL are the same value
+Iso4217CurrencyHistoric.HRK.GetCurrencySymbol(CurrencySymbolKind.Narrow);  // null: HRD and HRK are the same value
+Iso4217CurrencyHistoric.BEF.GetCurrencyName();  // "Belgian Franc": 56 isn't shared
 ```
 
-Withdrawal dates are compared by their last year, then their last month. A date
-that gives only a year, such as `1989 to 1990`, counts as December of its last
-year. If two members were withdrawn at the same time, the one whose alphabetic
-code sorts last is used. See [Iso4217CurrencyHistoric](Iso4217CurrencyHistoric.md#remarks).
+See [Iso4217CurrencyHistoric](Iso4217CurrencyHistoric.md#remarks).
 
 ## Applies to
 

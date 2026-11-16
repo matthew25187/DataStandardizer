@@ -25,7 +25,7 @@ var currencyName = Iso4217CurrencyCurrent.ILS.GetCurrencyName();
 Names can also be retrieved for historic currencies:
 
 ```csharp
-var oldCurrencyName = Iso4217CurrencyHistoric.ZWD.GetCurrencyName();
+var oldCurrencyName = Iso4217CurrencyHistoric.ZWL.GetCurrencyName();  // "Zimbabwe Dollar"
 ```
 
 ## Minor units

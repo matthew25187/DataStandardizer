@@ -34,8 +34,7 @@ are the same value at run time and can't be told apart:
   is `true`.
 - `ToString()` may return the name of any of them.
 - The [Iso4217Extensions](Iso4217Extensions.md#historic-codes-that-share-a-numeric-code)
-  methods return the data of the member withdrawn most recently, so
-  `BGJ.GetCurrencyName()` returns `"Lev"`, the name of `BGL`.
+  methods return `null` for them, so `BGL.GetCurrencyName()` returns `null`.
 
 The values are the numeric codes from the official ISO 4217 data, so they are
 kept as they are rather than made unique.

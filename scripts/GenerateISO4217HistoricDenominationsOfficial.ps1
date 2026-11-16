@@ -131,9 +131,8 @@ function Out-SourceCode {
         $enumType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
     }
 
-    # List Three reuses numeric codes across successive denominations, so members can share a value.
-    # Iso4217Extensions resolves a shared value to the member withdrawn most recently; keep this text in
-    # step with that rule.
+    # ISO 4217 reuses numeric codes across successive denominations, so members can share a value.
+    # Iso4217Extensions returns no data for a shared value; keep this text in step with it.
     [System.CodeDom.CodeCommentStatement[]]$enumTypeRemarksComments = @()
     $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new('<remarks>', $true)
     if ($null -ne $ListPublishedDate) {
@@ -146,8 +145,8 @@ function Out-SourceCode {
     $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tnumeric codes across successive denominations, so several members can share a value, and the", $true)
     $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tcodes that have no numeric code all share -1. Members that share a value are the same value", $true)
     $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tand can't be told apart: they compare equal, <see cref=""System.Enum.ToString()""/> may return", $true)
-    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tthe name of any of them, and the <see cref=""Iso4217Extensions""/> methods return the data of", $true)
-    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tthe one withdrawn most recently.", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tthe name of any of them, and the <see cref=""Iso4217Extensions""/> methods return <c>null</c>", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tfor them.", $true)
     $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</para>", $true)
     $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new('</remarks>', $true)
     $enumType.Comments.AddRange($enumTypeRemarksComments)
@@ -172,12 +171,8 @@ function Out-SourceCode {
         $enumField = [System.CodeDom.CodeMemberField]::new([short], $currencyAlphabeticCode)
         $enumField.InitExpression = [System.CodeDom.CodePrimitiveExpression]::new($currencyNumericCode ?? -1)
 
-        # The withdrawal date lets Iso4217Extensions choose deterministically among members that share a value.
-        $codeAttributeArguments = @([System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($currencyName)))
-        if (-not [string]::IsNullOrEmpty($currencyWithdrawalDate)) {
-            $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new([string]$currencyWithdrawalDate))
-        }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Money.Iso4217CurrencyCodeAttribute', [System.CodeDom.CodeAttributeArgument[]]$codeAttributeArguments)
+        $codeAttributeArgument = [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($currencyName))
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Money.Iso4217CurrencyCodeAttribute', @($codeAttributeArgument))
         [void]$enumField.CustomAttributes.Add($codeAttribute)
     
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)

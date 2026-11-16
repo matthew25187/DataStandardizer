@@ -16,6 +16,7 @@ namespace DataStandardizer.Money
         // paths; uncached reflection here was previously repeated for every currency of every operation.
         private static readonly Dictionary<Iso4217CurrencyCurrent, Iso4217CurrencyCodeAttribute> CurrentAttributes = BuildAttributeCache<Iso4217CurrencyCurrent>();
         private static readonly Dictionary<Iso4217CurrencyHistoric, Iso4217CurrencyCodeAttribute> HistoricAttributes = BuildAttributeCache<Iso4217CurrencyHistoric>();
+        private static readonly HashSet<Iso4217CurrencyHistoric> HistoricSharedValues = BuildSharedValueSet<Iso4217CurrencyHistoric>();
         private static readonly Dictionary<Iso4217CurrencyCurrent, string> CurrentNames = BuildNameCache<Iso4217CurrencyCurrent>();
         private static readonly Dictionary<string, Iso4217CurrencyCurrent> CurrentCodesByName = BuildCodeByNameCache(CurrentNames);
 
@@ -24,11 +25,10 @@ namespace DataStandardizer.Money
             where TCurrencyCode : notnull
 #endif
         {
-            // ISO 4217 List Three reuses numeric codes, so several historic members can share a value. The
-            // member kept for a shared value is chosen by its data, never by the order reflection returns
-            // fields in: see PrecedesInWithdrawal.
+            // ISO 4217 reuses numeric codes, so several historic members can share a value. Members that
+            // share a value can't be told apart, so no metadata is cached for that value.
+            var sharedValues = BuildSharedValueSet<TCurrencyCode>();
             var cache = new Dictionary<TCurrencyCode, Iso4217CurrencyCodeAttribute>();
-            var cachedFieldNames = new Dictionary<TCurrencyCode, string>();
             foreach (var currencyCodeField in typeof(TCurrencyCode).GetTypeInfo().DeclaredFields)
             {
                 if (!currencyCodeField.IsStatic)
@@ -43,102 +43,31 @@ namespace DataStandardizer.Money
                 }
 
                 var currencyCodeValue = currencyCodeField.GetValue(null);
-                if (!(currencyCodeValue is TCurrencyCode currencyCode))
+                if (currencyCodeValue is TCurrencyCode currencyCode && !sharedValues.Contains(currencyCode))
                 {
-                    continue;
+                    cache[currencyCode] = currencyCodeAttribute;
                 }
-
-                if (cache.TryGetValue(currencyCode, out var cachedAttribute)
-                    && !PrecedesInWithdrawal(cachedAttribute.WithdrawalDate, cachedFieldNames[currencyCode], currencyCodeAttribute.WithdrawalDate, currencyCodeField.Name))
-                {
-                    continue;
-                }
-
-                cache[currencyCode] = currencyCodeAttribute;
-                cachedFieldNames[currencyCode] = currencyCodeField.Name;
             }
 
             return cache;
         }
 
-        // Determine whether the first member is withdrawn before the second, so that a value shared by
-        // several members resolves to the one withdrawn most recently. Withdrawal dates are ordered by their
-        // last year, then their last month, a date that gives no month counting as December. Members withdrawn
-        // at the same time are ordered by their alphabetic codes, ordinally.
+        private static HashSet<TCurrencyCode> BuildSharedValueSet<TCurrencyCode>()
 #if NETCOREAPP3_0_OR_GREATER
-        private static bool PrecedesInWithdrawal(string? firstWithdrawalDate, string firstCode, string? secondWithdrawalDate, string secondCode)
-#else
-        private static bool PrecedesInWithdrawal(string firstWithdrawalDate, string firstCode, string secondWithdrawalDate, string secondCode)
+            where TCurrencyCode : notnull
 #endif
         {
-            var firstOrder = GetWithdrawalOrder(firstWithdrawalDate);
-            var secondOrder = GetWithdrawalOrder(secondWithdrawalDate);
-            return firstOrder != secondOrder ? firstOrder < secondOrder : string.CompareOrdinal(firstCode, secondCode) < 0;
-        }
-
-        // List Three gives a withdrawal date as a month (2003-11), a year range (1989 to 1990, or 1989-1990)
-        // or a month range (1989-12 to 1990-01). Only the end of the period counts. Returns year * 100 + month,
-        // or 0 for a date that is missing or not in one of those forms.
-#if NETCOREAPP3_0_OR_GREATER
-        private static int GetWithdrawalOrder(string? withdrawalDate)
-#else
-        private static int GetWithdrawalOrder(string withdrawalDate)
-#endif
-        {
-            if (withdrawalDate is null)
+            var definedValues = new HashSet<TCurrencyCode>();
+            var sharedValues = new HashSet<TCurrencyCode>();
+            foreach (var currencyCodeField in typeof(TCurrencyCode).GetTypeInfo().DeclaredFields)
             {
-                return 0;
-            }
-
-            const string RangeSeparator = " to ";
-            var end = withdrawalDate;
-            var rangeSeparatorIndex = end.LastIndexOf(RangeSeparator, StringComparison.Ordinal);
-            if (rangeSeparatorIndex >= 0)
-            {
-                end = end.Substring(rangeSeparatorIndex + RangeSeparator.Length);
-            }
-            else if (end.Length == 9 && end[4] == '-')
-            {
-                // yyyy-yyyy
-                end = end.Substring(5);
-            }
-
-            if (!TryParseDigits(end, 0, 4, out var year))
-            {
-                return 0;
-            }
-
-            const int December = 12;
-            if (end.Length == 4)
-            {
-                return (year * 100) + December;
-            }
-
-            return end.Length == 7 && end[4] == '-' && TryParseDigits(end, 5, 2, out var month) && month >= 1 && month <= December
-                ? (year * 100) + month
-                : 0;
-        }
-
-        private static bool TryParseDigits(string text, int startIndex, int length, out int value)
-        {
-            value = 0;
-            if (text.Length < startIndex + length)
-            {
-                return false;
-            }
-
-            for (var index = startIndex; index < startIndex + length; index++)
-            {
-                var digit = text[index] - '0';
-                if (digit < 0 || digit > 9)
+                if (currencyCodeField.IsStatic && currencyCodeField.GetValue(null) is TCurrencyCode currencyCode && !definedValues.Add(currencyCode))
                 {
-                    return false;
+                    sharedValues.Add(currencyCode);
                 }
-
-                value = (value * 10) + digit;
             }
 
-            return true;
+            return sharedValues;
         }
 
         private static Dictionary<TCurrencyCode, string> BuildNameCache<TCurrencyCode>()
@@ -214,16 +143,11 @@ namespace DataStandardizer.Money
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns>Name of the currency, if found; otherwise <c>null</c>.</returns>
         /// <remarks>
-        /// <para>
         /// Members of <see cref="Iso4217CurrencyHistoric"/> that share a numeric code, such as
         /// <see cref="Iso4217CurrencyHistoric.BGJ"/>, <see cref="Iso4217CurrencyHistoric.BGK"/> and
-        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so
-        /// are the codes that have no numeric code, which share -1. For a shared value, this returns the
-        /// name of the member withdrawn most recently, such as <see cref="Iso4217CurrencyHistoric.BGL"/>.
-        /// Withdrawal dates are compared by their last year, then their last month, a date that gives
-        /// no month counting as December; members withdrawn at the same time are compared by their
-        /// alphabetic codes, and the one that sorts last ordinally is used.
-        /// </para>
+        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so are
+        /// the codes that have no numeric code, which share -1. This method returns <c>null</c> for a shared
+        /// value.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
@@ -289,14 +213,9 @@ namespace DataStandardizer.Money
         /// </para>
         /// <para>
         /// Members of <see cref="Iso4217CurrencyHistoric"/> that share a numeric code, such as
-        /// <see cref="Iso4217CurrencyHistoric.BGJ"/>, <see cref="Iso4217CurrencyHistoric.BGK"/> and
-        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so
-        /// are the codes that have no numeric code, which share -1. For a shared value, this returns the
-        /// symbol of the member withdrawn most recently, so <see cref="Iso4217CurrencyHistoric.HRD"/> returns
-        /// the symbol of <see cref="Iso4217CurrencyHistoric.HRK"/>.
-        /// Withdrawal dates are compared by their last year, then their last month, a date that gives
-        /// no month counting as December; members withdrawn at the same time are compared by their
-        /// alphabetic codes, and the one that sorts last ordinally is used.
+        /// <see cref="Iso4217CurrencyHistoric.HRD"/> and <see cref="Iso4217CurrencyHistoric.HRK"/>, are the
+        /// same value and can't be told apart, and so are the codes that have no numeric code, which share
+        /// -1. This method returns <c>null</c> for a shared value.
         /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
@@ -306,7 +225,7 @@ namespace DataStandardizer.Money
         public static string GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode)
 #endif
         {
-            return CurrencySymbols.GetSymbol(currencyCode, CurrencySymbolKind.Standard);
+            return GetCurrencySymbol(currencyCode, CurrencySymbolKind.Standard);
         }
 
         /// <summary>
@@ -323,14 +242,9 @@ namespace DataStandardizer.Money
         /// </para>
         /// <para>
         /// Members of <see cref="Iso4217CurrencyHistoric"/> that share a numeric code, such as
-        /// <see cref="Iso4217CurrencyHistoric.BGJ"/>, <see cref="Iso4217CurrencyHistoric.BGK"/> and
-        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so
-        /// are the codes that have no numeric code, which share -1. For a shared value, this returns the
-        /// symbol of the member withdrawn most recently, so <see cref="Iso4217CurrencyHistoric.HRD"/> returns
-        /// the symbol of <see cref="Iso4217CurrencyHistoric.HRK"/>.
-        /// Withdrawal dates are compared by their last year, then their last month, a date that gives
-        /// no month counting as December; members withdrawn at the same time are compared by their
-        /// alphabetic codes, and the one that sorts last ordinally is used.
+        /// <see cref="Iso4217CurrencyHistoric.HRD"/> and <see cref="Iso4217CurrencyHistoric.HRK"/>, are the
+        /// same value and can't be told apart, and so are the codes that have no numeric code, which share
+        /// -1. This method returns <c>null</c> for a shared value.
         /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
@@ -340,7 +254,8 @@ namespace DataStandardizer.Money
         public static string GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)
 #endif
         {
-            return CurrencySymbols.GetSymbol(currencyCode, symbolKind);
+            // Symbols are keyed by value, so a shared value would return whichever member CLDR covers.
+            return HistoricSharedValues.Contains(currencyCode) ? null : CurrencySymbols.GetSymbol(currencyCode, symbolKind);
         }
 
         /// <summary>

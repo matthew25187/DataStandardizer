@@ -25,7 +25,7 @@ var currencyCode = Iso4217CurrencyCurrent.INR;  // Indian Rupee
 Similarly, historic currency codes can be accessed from the relevant enum:
 
 ```csharp
-var oldCurrencyCode = Iso4217CurrencyHistoric.ZWD;  // Zimbabwe Dollar
+var oldCurrencyCode = Iso4217CurrencyHistoric.ZWL;  // Zimbabwe Dollar
 ```
 
 Both enums live in the `DataStandardizer.Money` namespace. To read the name,
