@@ -15,7 +15,17 @@ namespace DataStandardizer.Money
     /// ISO 4217, "Codes for the representation of currencies and funds" Table A.3 – List of codes for historic denominations of currencies & funds
     /// </summary>
     /// <remarks>
-    /// Based on official ISO 4217 currency codes as at 2026-01-01.
+    /// 	<para>
+    /// 		Based on official ISO 4217 currency codes as at 2026-01-01.
+    /// 	</para>
+    /// 	<para>
+    /// 		Each member's value is its ISO 4217 numeric code, or -1 for a code that has none. ISO 4217 reuses
+    /// 		numeric codes across successive denominations, so several members can share a value, and the
+    /// 		codes that have no numeric code all share -1. Members that share a value are the same value
+    /// 		and can't be told apart: they compare equal, <see cref="System.Enum.ToString()"/> may return
+    /// 		the name of any of them, and the <see cref="Iso4217Extensions"/> methods return the data of
+    /// 		the one withdrawn most recently.
+    /// 	</para>
     /// </remarks>
     public enum Iso4217CurrencyHistoric : short
     {
@@ -37,7 +47,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2003-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Andorran Peseta")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Andorran Peseta", "2003-07")]
         ADP = 20,
         
         /// <summary>
@@ -56,7 +66,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2003-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Afghani")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Afghani", "2003-01")]
         AFA = 4,
         
         /// <summary>
@@ -75,7 +85,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Lek")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Lek", "1989-12")]
         ALK = 8,
         
         /// <summary>
@@ -100,7 +110,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2025-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Netherlands Antillean Guilder")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Netherlands Antillean Guilder", "2025-03")]
         ANG = 532,
         
         /// <summary>
@@ -119,7 +129,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1991-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kwanza")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kwanza", "1991-03")]
         AOK = 24,
         
         /// <summary>
@@ -138,7 +148,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2000-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Kwanza")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Kwanza", "2000-02")]
         AON = 24,
         
         /// <summary>
@@ -157,7 +167,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2000-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kwanza Reajustado")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kwanza Reajustado", "2000-02")]
         AOR = 982,
         
         /// <summary>
@@ -176,7 +186,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1992-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Austral")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Austral", "1992-01")]
         ARA = 32,
         
         /// <summary>
@@ -195,7 +205,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1985-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso Argentino")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso Argentino", "1985-07")]
         ARP = 32,
         
         /// <summary>
@@ -214,7 +224,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso", "1989 to 1990")]
         ARY = 32,
         
         /// <summary>
@@ -233,7 +243,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Schilling")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Schilling", "2002-03")]
         ATS = 40,
         
         /// <summary>
@@ -252,7 +262,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2005-10
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Azerbaijan Manat")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Azerbaijan Manat", "2005-10")]
         AYM = 945,
         
         /// <summary>
@@ -271,7 +281,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2005-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Azerbaijanian Manat")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Azerbaijanian Manat", "2005-12")]
         AZM = 31,
         
         /// <summary>
@@ -290,7 +300,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1998-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Dinar", "1998-07")]
         BAD = 70,
         
         /// <summary>
@@ -309,7 +319,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Convertible Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Convertible Franc", "1990-03")]
         BEC = 993,
         
         /// <summary>
@@ -328,7 +338,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Belgian Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Belgian Franc", "2002-03")]
         BEF = 56,
         
         /// <summary>
@@ -347,7 +357,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Financial Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Financial Franc", "1990-03")]
         BEL = 992,
         
         /// <summary>
@@ -366,7 +376,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev A/52")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev A/52", "1989 to 1990")]
         BGJ = 100,
         
         /// <summary>
@@ -385,7 +395,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev A/62")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev A/62", "1989 to 1990")]
         BGK = 100,
         
         /// <summary>
@@ -404,7 +414,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2003-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev", "2003-11")]
         BGL = 100,
         
         /// <summary>
@@ -423,7 +433,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2026-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bulgarian Lev")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bulgarian Lev", "2026-01")]
         BGN = 975,
         
         /// <summary>
@@ -442,7 +452,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1987-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso boliviano")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso boliviano", "1987-02")]
         BOP = 68,
         
         /// <summary>
@@ -461,7 +471,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1986-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzeiro")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzeiro", "1986-03")]
         BRB = 76,
         
         /// <summary>
@@ -480,7 +490,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzado")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzado", "1989-02")]
         BRC = 76,
         
         /// <summary>
@@ -499,7 +509,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1993-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzeiro")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzeiro", "1993-03")]
         BRE = 76,
         
         /// <summary>
@@ -518,7 +528,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Cruzado")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Cruzado", "1990-03")]
         BRN = 76,
         
         /// <summary>
@@ -537,7 +547,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1994-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzeiro Real")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cruzeiro Real", "1994-07")]
         BRR = 987,
         
         /// <summary>
@@ -556,7 +566,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kyat")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kyat", "1990-02")]
         BUK = 104,
         
         /// <summary>
@@ -575,7 +585,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2001-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Belarusian Ruble")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Belarusian Ruble", "2001-01")]
         BYB = 112,
         
         /// <summary>
@@ -594,7 +604,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2017-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Belarusian Ruble")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Belarusian Ruble", "2017-01")]
         BYR = 974,
         
         /// <summary>
@@ -613,7 +623,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2004-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("WIR Franc (for electronic)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("WIR Franc (for electronic)", "2004-11")]
         CHC = 948,
         
         /// <summary>
@@ -632,7 +642,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2006-10
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Serbian Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Serbian Dinar", "2006-10")]
         CSD = 891,
         
         /// <summary>
@@ -651,7 +661,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Krona A/53")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Krona A/53", "1989 to 1990")]
         CSJ = 203,
         
         /// <summary>
@@ -670,7 +680,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1993-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Koruna")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Koruna", "1993-03")]
         CSK = 200,
         
         /// <summary>
@@ -689,7 +699,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2021-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso Convertible")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Peso Convertible", "2021-06")]
         CUC = 931,
         
         /// <summary>
@@ -708,7 +718,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2008-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cyprus Pound")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cyprus Pound", "2008-01")]
         CYP = 196,
         
         /// <summary>
@@ -727,7 +737,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-07 to 1990-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mark der DDR")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mark der DDR", "1990-07 to 1990-09")]
         DDM = 278,
         
         /// <summary>
@@ -746,7 +756,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Deutsche Mark")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Deutsche Mark", "2002-03")]
         DEM = 276,
         
         /// <summary>
@@ -765,7 +775,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2000-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sucre")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sucre", "2000-09")]
         ECS = 218,
         
         /// <summary>
@@ -784,7 +794,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2000-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Unidad de Valor Constante (UVC)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Unidad de Valor Constante (UVC)", "2000-09")]
         ECV = 983,
         
         /// <summary>
@@ -803,7 +813,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2011-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kroon")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kroon", "2011-01")]
         EEK = 233,
         
         /// <summary>
@@ -822,7 +832,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1978 to 1981
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Spanish Peseta")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Spanish Peseta", "1978 to 1981")]
         ESA = 996,
         
         /// <summary>
@@ -841,7 +851,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1994-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("\"A\" Account (convertible Peseta Account)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("\"A\" Account (convertible Peseta Account)", "1994-12")]
         ESB = 995,
         
         /// <summary>
@@ -863,7 +873,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Spanish Peseta")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Spanish Peseta", "2002-03")]
         ESP = 724,
         
         /// <summary>
@@ -882,7 +892,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2006-10
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Euro")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Euro", "2006-10")]
         EUR = 978,
         
         /// <summary>
@@ -904,7 +914,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Markka")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Markka", "2002-03")]
         FIM = 246,
         
         /// <summary>
@@ -956,7 +966,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("French Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("French Franc", "2002-03")]
         FRF = 250,
         
         /// <summary>
@@ -975,7 +985,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1995-10
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Georgian Coupon")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Georgian Coupon", "1995-10")]
         GEK = 268,
         
         /// <summary>
@@ -994,7 +1004,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2008-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cedi")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cedi", "2008-01")]
         GHC = 288,
         
         /// <summary>
@@ -1013,7 +1023,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2007-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Ghana Cedi")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Ghana Cedi", "2007-06")]
         GHP = 939,
         
         /// <summary>
@@ -1032,7 +1042,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Syli")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Syli", "1989-12")]
         GNE = 324,
         
         /// <summary>
@@ -1051,7 +1061,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1986-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Syli")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Syli", "1986-02")]
         GNS = 324,
         
         /// <summary>
@@ -1070,7 +1080,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1986-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Ekwele")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Ekwele", "1986-06")]
         GQE = 226,
         
         /// <summary>
@@ -1089,7 +1099,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Drachma")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Drachma", "2002-03")]
         GRD = 300,
         
         /// <summary>
@@ -1108,7 +1118,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1978 to 1981
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Guinea Escudo")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Guinea Escudo", "1978 to 1981")]
         GWE = 624,
         
         /// <summary>
@@ -1127,7 +1137,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1997-05
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Guinea-Bissau Peso")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Guinea-Bissau Peso", "1997-05")]
         GWP = 624,
         
         /// <summary>
@@ -1146,7 +1156,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1995-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Croatian Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Croatian Dinar", "1995-01")]
         HRD = 191,
         
         /// <summary>
@@ -1168,7 +1178,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2015-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Croatian Kuna")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Croatian Kuna", "2015-06")]
         HRK = 191,
         
         /// <summary>
@@ -1187,7 +1197,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rupiah")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rupiah", "2002-07")]
         IDR = 360,
         
         /// <summary>
@@ -1206,7 +1216,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Irish Pound")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Irish Pound", "2002-03")]
         IEP = 372,
         
         /// <summary>
@@ -1225,7 +1235,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1978 to 1981
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Pound")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Pound", "1978 to 1981")]
         ILP = 376,
         
         /// <summary>
@@ -1244,7 +1254,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Shekel")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Shekel", "1989 to 1990")]
         ILR = 376,
         
         /// <summary>
@@ -1263,7 +1273,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Krona")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Krona", "1989 to 1990")]
         ISJ = 352,
         
         /// <summary>
@@ -1288,7 +1298,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Italian Lira")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Italian Lira", "2002-03")]
         ITL = 380,
         
         /// <summary>
@@ -1307,7 +1317,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1979-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Pathet Lao Kip")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Pathet Lao Kip", "1979-12")]
         LAJ = 418,
         
         /// <summary>
@@ -1326,7 +1336,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1985-05
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Loti")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Loti", "1985-05")]
         LSM = 426,
         
         /// <summary>
@@ -1345,7 +1355,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2014-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lithuanian Litas")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lithuanian Litas", "2014-12")]
         LTL = 440,
         
         /// <summary>
@@ -1364,7 +1374,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1993-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Talonas")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Talonas", "1993-07")]
         LTT = 440,
         
         /// <summary>
@@ -1383,7 +1393,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Luxembourg Convertible Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Luxembourg Convertible Franc", "1990-03")]
         LUC = 989,
         
         /// <summary>
@@ -1402,7 +1412,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Luxembourg Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Luxembourg Franc", "2002-03")]
         LUF = 442,
         
         /// <summary>
@@ -1421,7 +1431,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Luxembourg Financial Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Luxembourg Financial Franc", "1990-03")]
         LUL = 988,
         
         /// <summary>
@@ -1440,7 +1450,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2014-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Latvian Lats")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Latvian Lats", "2014-01")]
         LVL = 428,
         
         /// <summary>
@@ -1459,7 +1469,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1994-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Latvian Ruble")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Latvian Ruble", "1994-12")]
         LVR = 428,
         
         /// <summary>
@@ -1478,7 +1488,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2004-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Malagasy Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Malagasy Franc", "2004-12")]
         MGF = 450,
         
         /// <summary>
@@ -1497,7 +1507,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1984-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mali Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mali Franc", "1984-11")]
         MLF = 466,
         
         /// <summary>
@@ -1516,7 +1526,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2017-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Ouguiya")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Ouguiya", "2017-12")]
         MRO = 478,
         
         /// <summary>
@@ -1535,7 +1545,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2008-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Maltese Lira")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Maltese Lira", "2008-01")]
         MTL = 470,
         
         /// <summary>
@@ -1554,7 +1564,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1983-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Maltese Pound")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Maltese Pound", "1983-06")]
         MTP = 470,
         
         /// <summary>
@@ -1573,7 +1583,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Maldive Rupee")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Maldive Rupee", "1989-12")]
         MVQ = 462,
         
         /// <summary>
@@ -1592,7 +1602,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2016-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kwacha")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Kwacha", "2016-02")]
         MWK = 454,
         
         /// <summary>
@@ -1611,7 +1621,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1993-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mexican Peso")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mexican Peso", "1993-01")]
         MXP = 484,
         
         /// <summary>
@@ -1630,7 +1640,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1978 to 1981
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mozambique Escudo")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mozambique Escudo", "1978 to 1981")]
         MZE = 508,
         
         /// <summary>
@@ -1649,7 +1659,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2006-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mozambique Metical")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Mozambique Metical", "2006-06")]
         MZM = 508,
         
         /// <summary>
@@ -1668,7 +1678,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-10
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cordoba")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Cordoba", "1990-10")]
         NIC = 558,
         
         /// <summary>
@@ -1687,7 +1697,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Netherlands Guilder")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Netherlands Guilder", "2002-03")]
         NLG = 528,
         
         /// <summary>
@@ -1706,7 +1716,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sol")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sol", "1989 to 1990")]
         PEH = 604,
         
         /// <summary>
@@ -1725,7 +1735,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1991-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Inti")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Inti", "1991-07")]
         PEI = 604,
         
         /// <summary>
@@ -1744,7 +1754,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2015-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Nuevo Sol ")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Nuevo Sol ", "2015-12")]
         PEN = 604,
         
         /// <summary>
@@ -1763,7 +1773,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1986-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sol")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sol", "1986-02")]
         PES = 604,
         
         /// <summary>
@@ -1782,7 +1792,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1997-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zloty")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zloty", "1997-01")]
         PLZ = 616,
         
         /// <summary>
@@ -1801,7 +1811,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Portuguese Escudo")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Portuguese Escudo", "2002-03")]
         PTE = 620,
         
         /// <summary>
@@ -1820,7 +1830,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1978 to 1981
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rhodesian Dollar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rhodesian Dollar", "1978 to 1981")]
         RHD = 716,
         
         /// <summary>
@@ -1839,7 +1849,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Leu A/52")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Leu A/52", "1989 to 1990")]
         ROK = 642,
         
         /// <summary>
@@ -1858,7 +1868,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2005-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Leu")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Leu", "2005-06")]
         ROL = 642,
         
         /// <summary>
@@ -1877,7 +1887,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2015-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Romanian Leu ")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Romanian Leu ", "2015-06")]
         RON = 946,
         
         /// <summary>
@@ -1926,7 +1936,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1994-08
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Russian Ruble")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Russian Ruble", "1994-08")]
         RUR = 810,
         
         /// <summary>
@@ -1945,7 +1955,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2007-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sudanese Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sudanese Dinar", "2007-07")]
         SDD = 736,
         
         /// <summary>
@@ -1964,7 +1974,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2012-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sudanese Pound")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sudanese Pound", "2012-09")]
         SDG = 938,
         
         /// <summary>
@@ -1983,7 +1993,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1998-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sudanese Pound")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Sudanese Pound", "1998-06")]
         SDP = 736,
         
         /// <summary>
@@ -2002,7 +2012,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2007-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Tolar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Tolar", "2007-01")]
         SIT = 705,
         
         /// <summary>
@@ -2021,7 +2031,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2009-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Slovak Koruna")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Slovak Koruna", "2009-01")]
         SKK = 703,
         
         /// <summary>
@@ -2040,7 +2050,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2023-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Leone")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Leone", "2023-12")]
         SLL = 694,
         
         /// <summary>
@@ -2059,7 +2069,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2003-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Surinam Guilder")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Surinam Guilder", "2003-12")]
         SRG = 740,
         
         /// <summary>
@@ -2078,7 +2088,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2017-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Dobra")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Dobra", "2017-12")]
         STD = 678,
         
         /// <summary>
@@ -2097,7 +2107,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rouble")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rouble", "1990-12")]
         SUR = 810,
         
         /// <summary>
@@ -2116,7 +2126,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2018-08
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lilangeni")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lilangeni", "2018-08")]
         SZL = 748,
         
         /// <summary>
@@ -2135,7 +2145,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2001-04
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Tajik Ruble")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Tajik Ruble", "2001-04")]
         TJR = 762,
         
         /// <summary>
@@ -2154,7 +2164,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2009-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Turkmenistan Manat")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Turkmenistan Manat", "2009-01")]
         TMM = 795,
         
         /// <summary>
@@ -2173,7 +2183,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2002-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Timor Escudo")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Timor Escudo", "2002-11")]
         TPE = 626,
         
         /// <summary>
@@ -2192,7 +2202,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2005-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Turkish Lira")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Turkish Lira", "2005-12")]
         TRL = 792,
         
         /// <summary>
@@ -2211,7 +2221,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2009-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Turkish Lira")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Turkish Lira", "2009-01")]
         TRY = 949,
         
         /// <summary>
@@ -2230,7 +2240,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1996-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Karbovanet")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Karbovanet", "1996-09")]
         UAK = 804,
         
         /// <summary>
@@ -2249,7 +2259,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1987-05
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Uganda Shilling")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Uganda Shilling", "1987-05")]
         UGS = 800,
         
         /// <summary>
@@ -2268,7 +2278,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989 to 1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Shilling")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Shilling", "1989 to 1990")]
         UGW = 800,
         
         /// <summary>
@@ -2287,7 +2297,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2014-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("US Dollar (Same day)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("US Dollar (Same day)", "2014-03")]
         USS = 998,
         
         /// <summary>
@@ -2306,7 +2316,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Uruguay Peso")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Uruguay Peso", "1989-12")]
         UYN = 858,
         
         /// <summary>
@@ -2325,7 +2335,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1993-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Uruguayan Peso")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Uruguayan Peso", "1993-03")]
         UYP = 858,
         
         /// <summary>
@@ -2344,7 +2354,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2008-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bolivar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bolivar", "2008-01")]
         VEB = 862,
         
         /// <summary>
@@ -2369,7 +2379,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2011-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bolivar Fuerte")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bolivar Fuerte", "2011-12")]
         VEF = 937,
         
         /// <summary>
@@ -2388,7 +2398,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-1990
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Dong")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Old Dong", "1989-1990")]
         VNC = 704,
         
         /// <summary>
@@ -2407,7 +2417,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1999-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("European Currency Unit (E.C.U)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("European Currency Unit (E.C.U)", "1999-01")]
         XEU = 954,
         
         /// <summary>
@@ -2426,7 +2436,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1991-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Yemeni Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Yemeni Dinar", "1991-09")]
         YDD = 720,
         
         /// <summary>
@@ -2445,7 +2455,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1990-01
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Yugoslavian Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Yugoslavian Dinar", "1990-01")]
         YUD = 890,
         
         /// <summary>
@@ -2464,7 +2474,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2003-07
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Dinar", "2003-07")]
         YUM = 891,
         
         /// <summary>
@@ -2483,7 +2493,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1995-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Yugoslavian Dinar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Yugoslavian Dinar", "1995-11")]
         YUN = 890,
         
         /// <summary>
@@ -2505,7 +2515,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1995-03
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Financial Rand")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Financial Rand", "1995-03")]
         ZAL = 991,
         
         /// <summary>
@@ -2524,7 +2534,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2012-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zambian Kwacha")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zambian Kwacha", "2012-12")]
         ZMK = 894,
         
         /// <summary>
@@ -2543,7 +2553,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1999-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Zaire")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("New Zaire", "1999-06")]
         ZRN = 180,
         
         /// <summary>
@@ -2562,7 +2572,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1994-02
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zaire")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zaire", "1994-02")]
         ZRZ = 180,
         
         /// <summary>
@@ -2581,7 +2591,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1989-12
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rhodesian Dollar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Rhodesian Dollar", "1989-12")]
         ZWC = 716,
         
         /// <summary>
@@ -2603,7 +2613,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2006-08
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar (old)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar (old)", "2006-08")]
         ZWD = 716,
         
         /// <summary>
@@ -2622,7 +2632,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2024-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar", "2024-09")]
         ZWL = 932,
         
         /// <summary>
@@ -2641,7 +2651,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2006-09
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar (new)")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar (new)", "2006-09")]
         ZWN = 942,
         
         /// <summary>
@@ -2660,7 +2670,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2009-06
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Zimbabwe Dollar", "2009-06")]
         ZWR = 935,
         #endregion
         
@@ -2673,7 +2683,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2006-10
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Gold-Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Gold-Franc", "2006-10")]
         XFO = -1,
         
         /// <summary>
@@ -2684,7 +2694,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 2013-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("UIC-Franc")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("UIC-Franc", "2013-11")]
         XFU = -1,
         
         /// <summary>
@@ -2695,7 +2705,7 @@ namespace DataStandardizer.Money
         /// 		Withdrawn: 1999-11
         /// 	</para>
         /// </remarks>
-        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("RINET Funds Code")]
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("RINET Funds Code", "1999-11")]
         XRE = -1,
         #endregion
     }

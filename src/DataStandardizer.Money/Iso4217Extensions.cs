@@ -24,7 +24,11 @@ namespace DataStandardizer.Money
             where TCurrencyCode : notnull
 #endif
         {
+            // ISO 4217 List Three reuses numeric codes, so several historic members can share a value. The
+            // member kept for a shared value is chosen by its data, never by the order reflection returns
+            // fields in: see PrecedesInWithdrawal.
             var cache = new Dictionary<TCurrencyCode, Iso4217CurrencyCodeAttribute>();
+            var cachedFieldNames = new Dictionary<TCurrencyCode, string>();
             foreach (var currencyCodeField in typeof(TCurrencyCode).GetTypeInfo().DeclaredFields)
             {
                 if (!currencyCodeField.IsStatic)
@@ -39,13 +43,102 @@ namespace DataStandardizer.Money
                 }
 
                 var currencyCodeValue = currencyCodeField.GetValue(null);
-                if (currencyCodeValue is TCurrencyCode currencyCode)
+                if (!(currencyCodeValue is TCurrencyCode currencyCode))
                 {
-                    cache[currencyCode] = currencyCodeAttribute;
+                    continue;
                 }
+
+                if (cache.TryGetValue(currencyCode, out var cachedAttribute)
+                    && !PrecedesInWithdrawal(cachedAttribute.WithdrawalDate, cachedFieldNames[currencyCode], currencyCodeAttribute.WithdrawalDate, currencyCodeField.Name))
+                {
+                    continue;
+                }
+
+                cache[currencyCode] = currencyCodeAttribute;
+                cachedFieldNames[currencyCode] = currencyCodeField.Name;
             }
 
             return cache;
+        }
+
+        // Determine whether the first member is withdrawn before the second, so that a value shared by
+        // several members resolves to the one withdrawn most recently. Withdrawal dates are ordered by their
+        // last year, then their last month, a date that gives no month counting as December. Members withdrawn
+        // at the same time are ordered by their alphabetic codes, ordinally.
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool PrecedesInWithdrawal(string? firstWithdrawalDate, string firstCode, string? secondWithdrawalDate, string secondCode)
+#else
+        private static bool PrecedesInWithdrawal(string firstWithdrawalDate, string firstCode, string secondWithdrawalDate, string secondCode)
+#endif
+        {
+            var firstOrder = GetWithdrawalOrder(firstWithdrawalDate);
+            var secondOrder = GetWithdrawalOrder(secondWithdrawalDate);
+            return firstOrder != secondOrder ? firstOrder < secondOrder : string.CompareOrdinal(firstCode, secondCode) < 0;
+        }
+
+        // List Three gives a withdrawal date as a month (2003-11), a year range (1989 to 1990, or 1989-1990)
+        // or a month range (1989-12 to 1990-01). Only the end of the period counts. Returns year * 100 + month,
+        // or 0 for a date that is missing or not in one of those forms.
+#if NETCOREAPP3_0_OR_GREATER
+        private static int GetWithdrawalOrder(string? withdrawalDate)
+#else
+        private static int GetWithdrawalOrder(string withdrawalDate)
+#endif
+        {
+            if (withdrawalDate is null)
+            {
+                return 0;
+            }
+
+            const string RangeSeparator = " to ";
+            var end = withdrawalDate;
+            var rangeSeparatorIndex = end.LastIndexOf(RangeSeparator, StringComparison.Ordinal);
+            if (rangeSeparatorIndex >= 0)
+            {
+                end = end.Substring(rangeSeparatorIndex + RangeSeparator.Length);
+            }
+            else if (end.Length == 9 && end[4] == '-')
+            {
+                // yyyy-yyyy
+                end = end.Substring(5);
+            }
+
+            if (!TryParseDigits(end, 0, 4, out var year))
+            {
+                return 0;
+            }
+
+            const int December = 12;
+            if (end.Length == 4)
+            {
+                return (year * 100) + December;
+            }
+
+            return end.Length == 7 && end[4] == '-' && TryParseDigits(end, 5, 2, out var month) && month >= 1 && month <= December
+                ? (year * 100) + month
+                : 0;
+        }
+
+        private static bool TryParseDigits(string text, int startIndex, int length, out int value)
+        {
+            value = 0;
+            if (text.Length < startIndex + length)
+            {
+                return false;
+            }
+
+            for (var index = startIndex; index < startIndex + length; index++)
+            {
+                var digit = text[index] - '0';
+                if (digit < 0 || digit > 9)
+                {
+                    return false;
+                }
+
+                value = (value * 10) + digit;
+            }
+
+            return true;
         }
 
         private static Dictionary<TCurrencyCode, string> BuildNameCache<TCurrencyCode>()
@@ -120,6 +213,18 @@ namespace DataStandardizer.Money
         /// </summary>
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns>Name of the currency, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// <para>
+        /// Members of <see cref="Iso4217CurrencyHistoric"/> that share a numeric code, such as
+        /// <see cref="Iso4217CurrencyHistoric.BGJ"/>, <see cref="Iso4217CurrencyHistoric.BGK"/> and
+        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so
+        /// are the codes that have no numeric code, which share -1. For a shared value, this returns the
+        /// name of the member withdrawn most recently, such as <see cref="Iso4217CurrencyHistoric.BGL"/>.
+        /// Withdrawal dates are compared by their last year, then their last month, a date that gives
+        /// no month counting as December; members withdrawn at the same time are compared by their
+        /// alphabetic codes, and the one that sorts last ordinally is used.
+        /// </para>
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
 #else
@@ -177,9 +282,22 @@ namespace DataStandardizer.Money
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns>Standard symbol of the currency, if one is defined; otherwise <c>null</c>.</returns>
         /// <remarks>
+        /// <para>
         /// ISO 4217 does not define currency symbols, so this data is sourced from the Unicode Common
         /// Locale Data Repository (CLDR). Most currencies have no symbol distinct from their currency
         /// code, in which case this method returns <c>null</c> and the currency code should be used.
+        /// </para>
+        /// <para>
+        /// Members of <see cref="Iso4217CurrencyHistoric"/> that share a numeric code, such as
+        /// <see cref="Iso4217CurrencyHistoric.BGJ"/>, <see cref="Iso4217CurrencyHistoric.BGK"/> and
+        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so
+        /// are the codes that have no numeric code, which share -1. For a shared value, this returns the
+        /// symbol of the member withdrawn most recently, so <see cref="Iso4217CurrencyHistoric.HRD"/> returns
+        /// the symbol of <see cref="Iso4217CurrencyHistoric.HRK"/>.
+        /// Withdrawal dates are compared by their last year, then their last month, a date that gives
+        /// no month counting as December; members withdrawn at the same time are compared by their
+        /// alphabetic codes, and the one that sorts last ordinally is used.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode)
@@ -198,9 +316,22 @@ namespace DataStandardizer.Money
         /// <param name="symbolKind">Form of the symbol required.</param>
         /// <returns>Symbol of the currency in the requested form, if one is defined; otherwise <c>null</c>.</returns>
         /// <remarks>
+        /// <para>
         /// Where a currency has no distinct <see cref="CurrencySymbolKind.Narrow"/> form, its
         /// <see cref="CurrencySymbolKind.Standard"/> form is returned. Narrow symbols may be shared by
         /// several currencies, so they should only be used where the currency is clear from the context.
+        /// </para>
+        /// <para>
+        /// Members of <see cref="Iso4217CurrencyHistoric"/> that share a numeric code, such as
+        /// <see cref="Iso4217CurrencyHistoric.BGJ"/>, <see cref="Iso4217CurrencyHistoric.BGK"/> and
+        /// <see cref="Iso4217CurrencyHistoric.BGL"/>, are the same value and can't be told apart, and so
+        /// are the codes that have no numeric code, which share -1. For a shared value, this returns the
+        /// symbol of the member withdrawn most recently, so <see cref="Iso4217CurrencyHistoric.HRD"/> returns
+        /// the symbol of <see cref="Iso4217CurrencyHistoric.HRK"/>.
+        /// Withdrawal dates are compared by their last year, then their last month, a date that gives
+        /// no month counting as December; members withdrawn at the same time are compared by their
+        /// alphabetic codes, and the one that sorts last ordinally is used.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)

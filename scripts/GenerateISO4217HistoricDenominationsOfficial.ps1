@@ -1,6 +1,6 @@
 ############################################################################################
 # Title: ISO 4217 Historic Denominations (Currencies & Funds) Source Code Generator        #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.                          #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.                     #
 #                                                                                          #
 # Purpose: Generate source code for implementing the ISO 4217 standard.                    #
 # Source: Historic Denominations (Currencies & Funds) (XML), SIX Group.                    #
@@ -131,12 +131,26 @@ function Out-SourceCode {
         $enumType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
     }
 
+    # List Three reuses numeric codes across successive denominations, so members can share a value.
+    # Iso4217Extensions resolves a shared value to the member withdrawn most recently; keep this text in
+    # step with that rule.
+    [System.CodeDom.CodeCommentStatement[]]$enumTypeRemarksComments = @()
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new('<remarks>', $true)
     if ($null -ne $ListPublishedDate) {
-        $enumTypeOpenRemarksComment = [System.CodeDom.CodeCommentStatement]::new('<remarks>', $true)
-        $enumTypeRemarksContentComment = [System.CodeDom.CodeCommentStatement]::new("Based on official ISO 4217 currency codes as at $($ListPublishedDate.ToString('yyyy-MM-dd')).", $true)
-        $enumTypeCloseRemarksComment = [System.CodeDom.CodeCommentStatement]::new('</remarks>', $true)
-        $enumType.Comments.AddRange(@($enumTypeOpenRemarksComment, $enumTypeRemarksContentComment, $enumTypeCloseRemarksComment))
+        $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t<para>", $true)
+        $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tBased on official ISO 4217 currency codes as at $($ListPublishedDate.ToString('yyyy-MM-dd')).", $true)
+        $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</para>", $true)
     }
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t<para>", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tEach member's value is its ISO 4217 numeric code, or -1 for a code that has none. ISO 4217 reuses", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tnumeric codes across successive denominations, so several members can share a value, and the", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tcodes that have no numeric code all share -1. Members that share a value are the same value", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tand can't be told apart: they compare equal, <see cref=""System.Enum.ToString()""/> may return", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tthe name of any of them, and the <see cref=""Iso4217Extensions""/> methods return the data of", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tthe one withdrawn most recently.", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</para>", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new('</remarks>', $true)
+    $enumType.Comments.AddRange($enumTypeRemarksComments)
 
     [void]$namespace.Types.Add($enumType)
 
@@ -158,8 +172,12 @@ function Out-SourceCode {
         $enumField = [System.CodeDom.CodeMemberField]::new([short], $currencyAlphabeticCode)
         $enumField.InitExpression = [System.CodeDom.CodePrimitiveExpression]::new($currencyNumericCode ?? -1)
 
-        $codeAttributeArgument = [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($currencyName))
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Money.Iso4217CurrencyCodeAttribute', @($codeAttributeArgument))
+        # The withdrawal date lets Iso4217Extensions choose deterministically among members that share a value.
+        $codeAttributeArguments = @([System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($currencyName)))
+        if (-not [string]::IsNullOrEmpty($currencyWithdrawalDate)) {
+            $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new([string]$currencyWithdrawalDate))
+        }
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Money.Iso4217CurrencyCodeAttribute', [System.CodeDom.CodeAttributeArgument[]]$codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
     
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)

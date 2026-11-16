@@ -25,6 +25,21 @@ Per-member metadata — currency name and minor-unit digit count — is carried 
 `Iso4217CurrencyCodeAttribute` and read through
 [Iso4217Extensions](Iso4217Extensions.md).
 
+ISO 4217 reuses numeric codes across successive denominations, so several
+members share a value, such as `BGJ`, `BGK` and `BGL` (100). The codes with no
+numeric code (`XFO`, `XFU` and `XRE`) all share -1. Members that share a value
+are the same value at run time and can't be told apart:
+
+- They compare equal: `Iso4217CurrencyHistoric.BGJ == Iso4217CurrencyHistoric.BGL`
+  is `true`.
+- `ToString()` may return the name of any of them.
+- The [Iso4217Extensions](Iso4217Extensions.md#historic-codes-that-share-a-numeric-code)
+  methods return the data of the member withdrawn most recently, so
+  `BGJ.GetCurrencyName()` returns `"Lev"`, the name of `BGL`.
+
+The values are the numeric codes from the official ISO 4217 data, so they are
+kept as they are rather than made unique.
+
 ## Fields
 
 | Field | Numeric code | Currency name | Minor units |

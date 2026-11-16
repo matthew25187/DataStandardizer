@@ -54,6 +54,25 @@ form and may be shared, as `$` is by some thirty currencies. Where a currency ha
 no distinct narrow form, the standard form is returned. See
 [CurrencySymbolKind](CurrencySymbolKind.md).
 
+## Historic codes that share a numeric code
+
+ISO 4217 reuses numeric codes across successive denominations, so several
+`Iso4217CurrencyHistoric` members can share a value, such as `BGJ`, `BGK` and
+`BGL` (100). The codes that have no numeric code (`XFO`, `XFU` and `XRE`) all
+share -1. Members that share a value are the same value, so these methods can't
+tell them apart. For a shared value, `GetCurrencyName` and `GetCurrencySymbol`
+return the data of the member withdrawn most recently:
+
+```csharp
+Iso4217CurrencyHistoric.BGJ.GetCurrencyName();  // "Lev", the name of BGL
+Iso4217CurrencyHistoric.HRD.GetCurrencySymbol(CurrencySymbolKind.Narrow);  // "kn", the symbol of HRK
+```
+
+Withdrawal dates are compared by their last year, then their last month. A date
+that gives only a year, such as `1989 to 1990`, counts as December of its last
+year. If two members were withdrawn at the same time, the one whose alphabetic
+code sorts last is used. See [Iso4217CurrencyHistoric](Iso4217CurrencyHistoric.md#remarks).
+
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.
