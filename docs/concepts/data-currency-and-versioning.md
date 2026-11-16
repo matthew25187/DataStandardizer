@@ -23,6 +23,7 @@ representative examples:
 script                                          standard / source
 ─────────────────────────────────────────────  ─────────────────────────────────
 GenerateISO4217CurrentCurrencyAndFunds…  .ps1   ISO 4217 currencies (SIX Group)
+GenerateCLDRCurrencyFormats…             .ps1   Culture currency formats (Unicode CLDR)
 GenerateISO639Part3Language…             .ps1   ISO 639 Part 3 (SIL Global)
 GenerateISO15924Script…                  .ps1   ISO 15924 scripts (Unicode, Inc.)
 GenerateISO3166Part2Subdivision…         .ps1   ISO 3166-2 subdivisions

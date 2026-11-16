@@ -5,10 +5,11 @@ software itself is licensed under the terms set out in [LICENSE.md](LICENSE.md).
 
 ## Unicode Common Locale Data Repository (CLDR)
 
-**DataStandardizer.Money** incorporates currency symbol data derived from the
-Unicode Common Locale Data Repository, published by Unicode, Inc. ISO 4217
-defines currency codes, numeric codes and minor units, but no currency symbols,
-so those are sourced from CLDR.
+**DataStandardizer.Money** incorporates currency symbol data, and culture-specific
+currency formatting data (number symbols, currency patterns and the currency of
+each region), derived from the Unicode Common Locale Data Repository, published by
+Unicode, Inc. ISO 4217 defines currency codes, numeric codes and minor units, but
+no currency symbols and no presentation, so those are sourced from CLDR.
 
 > Copyright © 1991-Present Unicode, Inc.
 >

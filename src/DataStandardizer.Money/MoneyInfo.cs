@@ -352,7 +352,7 @@ namespace DataStandardizer.Money
             catch (CultureNotFoundException)
             {
                 // Not every well-formed combination of a language and a country is a culture the host knows
-                // about. Falling back to the neutral resources is preferable to failing to construct at all.
+                // about. Falling back to the invariant information is preferable to failing to construct at all.
                 return null;
             }
         }

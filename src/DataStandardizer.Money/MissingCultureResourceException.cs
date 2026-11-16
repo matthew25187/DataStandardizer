@@ -7,8 +7,9 @@ namespace DataStandardizer.Money
     /// is missing or cannot be found.
     /// </summary>
     /// <remarks>
-    /// This exception is typically used in scenarios where culture-specific resources,
-    /// such as currency formatting information, are expected but not available.
+    /// The package no longer throws this exception: culture-specific currency formatting
+    /// information is generated from Unicode CLDR data and is complete for every culture. The type
+    /// remains so that code which refers to it still compiles.
     /// </remarks>
     public sealed class MissingCultureResourceException : Exception
     {

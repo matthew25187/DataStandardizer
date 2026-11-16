@@ -20,10 +20,10 @@ public sealed class MissingCultureResourceException : Exception
 
 ## Remarks
 
-Resource lookup falls back towards the neutral resources, so a culture which
-defines none of its own is served by them rather than failing. This exception
-therefore indicates that a required value is absent from the neutral resources as
-well, which should not occur in a correctly built package.
+The package no longer throws this exception. Culture information now comes from
+CLDR data built into the package, which is complete for every culture, so no value
+can be missing (see [CurrencyFormatInfo](CurrencyFormatInfo.md)). The type remains
+so that code which refers to it still compiles.
 
 ## Constructors
 

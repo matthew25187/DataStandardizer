@@ -29,8 +29,26 @@ governs presentation only.
 is what allows a currency symbol shared by several currencies, such as `$`, to be
 resolved to a specific currency using the context of a culture.
 
-Values are loaded from the package's culture-specific resources, falling back to
-the neutral resources where a culture defines none.
+The values for a culture come from the Unicode Common Locale Data Repository
+(CLDR) data built into the package, and depend only on the culture's name, never
+on the culture data of the operating system, so they are the same on every host
+and target.
+
+- **Presentation** (separators, group sizes, the two patterns and the negative
+  sign) comes from the CLDR locale the name resolves to under CLDR inheritance.
+  So de-AT has its own Austrian layout, and a culture such as pt-FR takes that of
+  its CLDR parent, pt-PT. CLDR's Latin digits and currency separators are used.
+  A culture that CLDR resolves to its root locale, or that it doesn't know, keeps
+  the invariant presentation.
+- **`CurrencyCode`** is the current currency CLDR gives the culture's region, as
+  `EUR` for de-AT. A neutral culture such as `de` names no region, so it has no
+  currency (`XXX`).
+- **`CurrencyDecimalDigits`** is the number of ISO 4217 minor units of that
+  currency, or 2 where there is none.
+
+The data covers the locales CLDR rates at modern coverage. CLDR's minimum grouping
+digits and currency spacing aren't represented, because the `NumberFormatInfo`
+pattern indices can't express them.
 
 ## Properties
 
