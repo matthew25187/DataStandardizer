@@ -35,6 +35,12 @@ you can compute with amounts naturally while the currency and rounding settings
 carry through to the result. It also defines implicit conversions to and from
 `decimal`, so a `Money` behaves like a number in expressions.
 
+Two `Money` values add and subtract only when they share a currency, and
+dividing one by the other gives their ratio as a `decimal`. Mixing currencies
+throws an `InvalidOperationException`, so `5 USD + 3 EUR` is an error rather
+than `8 USD`. Expressions with no meaning as an amount of money,
+`money * money` and `number / money`, don't compile.
+
 Ordering enforces a key invariant: two `Money` values whose currencies differ
 have no order. The relational operators (`<`, `>`, `<=`, `>=`) throw an
 `InvalidOperationException` for them, and `CompareTo` throws an

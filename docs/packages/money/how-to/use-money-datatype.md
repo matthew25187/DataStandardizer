@@ -127,12 +127,23 @@ if (monetaryValue > 10m)
 }
 ```
 
-When performing arithmetic operations on two monetary values that have different
-currency codes, an exception is thrown as this type of operation is not
-supported. The result of an operation on two monetary values of different
-currencies would be undefined, as these values are effectively of different
-types and therefore incomparable. See [The Money type](../concepts/money-type.md)
-for more on this design.
+Two monetary values in the same currency can be added and subtracted, and
+dividing one by the other gives their ratio as a `decimal`:
+
+```csharp
+var price = Money.Create(30m, Iso4217CurrencyCurrent.USD);
+var discount = Money.Create(6m, Iso4217CurrencyCurrent.USD);
+var total = price - discount;   // 24 USD
+var share = discount / price;   // 0.2m
+```
+
+When adding, subtracting or dividing two monetary values that have different
+currency codes, an `InvalidOperationException` is thrown, as this type of
+operation is not supported. The result of an operation on two monetary values of
+different currencies would be undefined, as these values are effectively of
+different types and therefore incomparable. Multiplying two monetary values, or
+dividing a number by one, doesn't compile, since the result isn't an amount of
+money. See [The Money type](../concepts/money-type.md) for more on this design.
 
 ## Amounts in minor units
 
