@@ -16,6 +16,9 @@ namespace DataStandardizer.Money
         private static class ErrorMessage
         {
             internal const string DifferentCurrenciesComparisonTemplate = "Unable to compare {0} values having different currencies.";
+            internal const string DifferentCurrenciesArithmeticTemplate = "Unable to do arithmetic with {0} values having different currencies.";
+            internal const string MoneyMultiplication = "The product of two amounts of money is not an amount of money. To scale one value by the amount of another, convert one of them to decimal, e.g. (decimal)left * right.";
+            internal const string DivisionByMoney = "A number divided by an amount of money is not an amount of money. To divide by the amount, convert it to decimal, e.g. value / (decimal)money.";
             internal const string ExpectedCurrencyCodeTemplate = "Expected a member of {0}.";
             internal const string ExpectedNationalCurrencyCode = "Expected a national currency code.";
             internal const string RoundingPrecisionOutOfRange = "The rounding precision must be from 0 to 28, the greatest number of decimal places a decimal can hold.";
@@ -144,6 +147,14 @@ namespace DataStandardizer.Money
 #endif
             : this(amount, currency, roundingPrecision)
         {
+            RoundingMethod = roundingMethod;
+        }
+
+        private Money(decimal amount, Iso4217CurrencyCurrent? currency, int? roundingPrecision, MidpointRounding? roundingMethod)
+        {
+            _amount = amount;
+            _currency = currency;
+            RoundingPrecision = roundingPrecision;
             RoundingMethod = roundingMethod;
         }
 
@@ -479,88 +490,500 @@ namespace DataStandardizer.Money
             return MinorUnitsScaling.Success;
         }
 
+        /// <summary>
+        /// Adds a number to the amount of a monetary value.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to add to the amount.</param>
+        /// <returns>
+        /// A monetary value whose amount is the sum, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
         public static Money operator +(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Add(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
-
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
-
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
-
-            return new Money(result);
+            return moneyValue.WithAmount(decimal.Add(moneyValue._amount, decimalValue));
         }
 
+        /// <inheritdoc cref="op_Addition(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to add to the amount.</param>
+        public static Money operator +(Money moneyValue, long integerValue)
+        {
+            return moneyValue + (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Addition(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to add to the amount.</param>
+        public static Money operator +(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue + (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Adds the amount of a monetary value to a number.
+        /// </summary>
+        /// <param name="decimalValue">The number to add the amount to.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the sum, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        public static Money operator +(decimal decimalValue, Money moneyValue)
+        {
+            return moneyValue.WithAmount(decimal.Add(decimalValue, moneyValue._amount));
+        }
+
+        /// <inheritdoc cref="op_Addition(decimal, Money)"/>
+        /// <param name="integerValue">The number to add the amount to.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator +(long integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue + moneyValue;
+        }
+
+        /// <inheritdoc cref="op_Addition(decimal, Money)"/>
+        /// <param name="integerValue">The number to add the amount to.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator +(ulong integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue + moneyValue;
+        }
+
+        /// <summary>
+        /// Adds two monetary values in the same currency.
+        /// </summary>
+        /// <param name="left">The first monetary value.</param>
+        /// <param name="right">The second monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the sum of the amounts of <paramref name="left"/> and
+        /// <paramref name="right"/>, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="left"/>.
+        /// </returns>
+        /// <remarks>
+        /// The amounts are added before rounding, as <see cref="Equals(Money)"/> and the relational operators
+        /// compare them, so the result doesn't depend on the order of the operands and <c>x - x</c> is zero.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        public static Money operator +(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return left + right._amount;
+        }
+
+        /// <summary>
+        /// Subtracts a number from the amount of a monetary value.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to subtract from the amount.</param>
+        /// <returns>
+        /// A monetary value whose amount is the difference, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
         public static Money operator -(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Subtract(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
-
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
-
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
-
-            return new Money(result);
+            return moneyValue.WithAmount(decimal.Subtract(moneyValue._amount, decimalValue));
         }
 
+        /// <inheritdoc cref="op_Subtraction(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to subtract from the amount.</param>
+        public static Money operator -(Money moneyValue, long integerValue)
+        {
+            return moneyValue - (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Subtraction(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to subtract from the amount.</param>
+        public static Money operator -(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue - (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Subtracts the amount of a monetary value from a number.
+        /// </summary>
+        /// <param name="decimalValue">The number to subtract the amount from.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the difference, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        public static Money operator -(decimal decimalValue, Money moneyValue)
+        {
+            return moneyValue.WithAmount(decimal.Subtract(decimalValue, moneyValue._amount));
+        }
+
+        /// <inheritdoc cref="op_Subtraction(decimal, Money)"/>
+        /// <param name="integerValue">The number to subtract the amount from.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator -(long integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue - moneyValue;
+        }
+
+        /// <inheritdoc cref="op_Subtraction(decimal, Money)"/>
+        /// <param name="integerValue">The number to subtract the amount from.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator -(ulong integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue - moneyValue;
+        }
+
+        /// <summary>
+        /// Subtracts one monetary value from another in the same currency.
+        /// </summary>
+        /// <param name="left">The monetary value to subtract from.</param>
+        /// <param name="right">The monetary value to subtract.</param>
+        /// <returns>
+        /// A monetary value whose amount is the amount of <paramref name="left"/> minus the amount of
+        /// <paramref name="right"/>, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="left"/>.
+        /// </returns>
+        /// <remarks>
+        /// The amounts are subtracted before rounding, as <see cref="Equals(Money)"/> and the relational operators
+        /// compare them, so <c>x - x</c> is zero.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        public static Money operator -(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return left - right._amount;
+        }
+
+        /// <summary>
+        /// Multiplies the amount of a monetary value by a number.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to multiply the amount by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the product, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
         public static Money operator *(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Multiply(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
-
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
-
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
-
-            return new Money(result);
+            return moneyValue.WithAmount(decimal.Multiply(moneyValue._amount, decimalValue));
         }
 
+        /// <inheritdoc cref="op_Multiply(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to multiply the amount by.</param>
+        public static Money operator *(Money moneyValue, long integerValue)
+        {
+            return moneyValue * (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Multiply(Money, decimal)"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to multiply the amount by.</param>
+        public static Money operator *(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue * (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Multiplies a number by the amount of a monetary value.
+        /// </summary>
+        /// <param name="decimalValue">The number to multiply.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the product, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        public static Money operator *(decimal decimalValue, Money moneyValue)
+        {
+            return moneyValue.WithAmount(decimal.Multiply(decimalValue, moneyValue._amount));
+        }
+
+        /// <inheritdoc cref="op_Multiply(decimal, Money)"/>
+        /// <param name="integerValue">The number to multiply.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator *(long integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue * moneyValue;
+        }
+
+        /// <inheritdoc cref="op_Multiply(decimal, Money)"/>
+        /// <param name="integerValue">The number to multiply.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        public static Money operator *(ulong integerValue, Money moneyValue)
+        {
+            return (decimal)integerValue * moneyValue;
+        }
+
+        /// <summary>
+        /// Two monetary values don't multiply. Use <c>(decimal)left * right</c> to scale one by the amount of the other.
+        /// </summary>
+        /// <param name="left">The first monetary value.</param>
+        /// <param name="right">The second monetary value.</param>
+        /// <returns>This operator never returns.</returns>
+        /// <remarks>
+        /// The product of two amounts of money is not an amount of money. This operator exists so that
+        /// <c>left * right</c> fails to compile, rather than converting <paramref name="right"/> to <see cref="decimal"/>
+        /// and keeping the currency of <paramref name="left"/>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.MoneyMultiplication, true)]
+        public static Money operator *(Money left, Money right)
+        {
+            throw new InvalidOperationException(ErrorMessage.MoneyMultiplication);
+        }
+
+        /// <summary>
+        /// Divides the amount of a monetary value by a number.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to divide the amount by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the quotient, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        /// <exception cref="DivideByZeroException"><paramref name="decimalValue"/> is zero.</exception>
         public static Money operator /(Money moneyValue, decimal decimalValue)
         {
-            var result = decimal.Divide(moneyValue._amount, decimalValue);
-            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
-            }
+            return moneyValue.WithAmount(decimal.Divide(moneyValue._amount, decimalValue));
+        }
 
-            if (moneyValue.RoundingPrecision.HasValue)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
-            }
+        /// <inheritdoc cref="op_Division(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator /(Money moneyValue, long integerValue)
+        {
+            return moneyValue / (decimal)integerValue;
+        }
 
-            if (moneyValue.IsoCurrencyCode != DefaultCurrency)
-            {
-                return new Money(result, moneyValue.IsoCurrencyCode);
-            }
+        /// <inheritdoc cref="op_Division(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator /(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue / (decimal)integerValue;
+        }
 
-            return new Money(result);
+        /// <summary>
+        /// Divides one monetary value by another in the same currency, giving their ratio.
+        /// </summary>
+        /// <param name="left">The monetary value to divide.</param>
+        /// <param name="right">The monetary value to divide by.</param>
+        /// <returns>
+        /// The amount of <paramref name="left"/> divided by the amount of <paramref name="right"/>, both before
+        /// rounding. A ratio has no currency, so it is a <see cref="decimal"/>.
+        /// </returns>
+        /// <remarks>
+        /// Because the result is a <see cref="decimal"/>, assigning it to a <see cref="Money"/> converts it to a
+        /// value with no currency (<c>XXX</c>). To divide an amount into parts, divide by a number instead, as in
+        /// <c>total / 3</c>, which keeps the currency.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        /// <exception cref="DivideByZeroException">The amount of <paramref name="right"/> is zero.</exception>
+        public static decimal operator /(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return decimal.Divide(left._amount, right._amount);
+        }
+
+        /// <summary>
+        /// A number can't be divided by a monetary value. Use <c>decimalValue / (decimal)moneyValue</c> to divide by its amount.
+        /// </summary>
+        /// <param name="decimalValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>This operator never returns.</returns>
+        /// <remarks>
+        /// A number divided by an amount of money is not an amount of money. This operator exists so that
+        /// <c>decimalValue / moneyValue</c> fails to compile, rather than giving a value with no currency.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator /(decimal decimalValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Division(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator /(long integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Division(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator /(ulong integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <summary>
+        /// Gives the remainder of dividing the amount of a monetary value by a number.
+        /// </summary>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="decimalValue">The number to divide the amount by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the remainder, with the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of <paramref name="moneyValue"/>.
+        /// </returns>
+        /// <exception cref="DivideByZeroException"><paramref name="decimalValue"/> is zero.</exception>
+        public static Money operator %(Money moneyValue, decimal decimalValue)
+        {
+            return moneyValue.WithAmount(decimal.Remainder(moneyValue._amount, decimalValue));
+        }
+
+        /// <inheritdoc cref="op_Modulus(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator %(Money moneyValue, long integerValue)
+        {
+            return moneyValue % (decimal)integerValue;
+        }
+
+        /// <inheritdoc cref="op_Modulus(Money, decimal)" path="/summary|/returns"/>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <param name="integerValue">The number to divide the amount by.</param>
+        /// <exception cref="DivideByZeroException"><paramref name="integerValue"/> is zero.</exception>
+        public static Money operator %(Money moneyValue, ulong integerValue)
+        {
+            return moneyValue % (decimal)integerValue;
+        }
+
+        /// <summary>
+        /// Gives the remainder of dividing one monetary value by another in the same currency.
+        /// </summary>
+        /// <param name="left">The monetary value to divide.</param>
+        /// <param name="right">The monetary value to divide by.</param>
+        /// <returns>
+        /// A monetary value whose amount is the remainder of dividing the amount of <paramref name="left"/> by the
+        /// amount of <paramref name="right"/>, both before rounding, with the currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/> of <paramref name="left"/>.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
+        /// <exception cref="DivideByZeroException">The amount of <paramref name="right"/> is zero.</exception>
+        public static Money operator %(Money left, Money right)
+        {
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesArithmeticTemplate);
+
+            return left % right._amount;
+        }
+
+        /// <summary>
+        /// A number can't be divided by a monetary value. Use <c>decimalValue % (decimal)moneyValue</c> to divide by its amount.
+        /// </summary>
+        /// <param name="decimalValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        /// <returns>This operator never returns.</returns>
+        /// <remarks>
+        /// The remainder of a number divided by an amount of money is not an amount of money. This operator exists so
+        /// that <c>decimalValue % moneyValue</c> fails to compile, rather than giving a value with no currency.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator %(decimal decimalValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Modulus(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator %(long integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <inheritdoc cref="op_Modulus(decimal, Money)"/>
+        /// <param name="integerValue">The number.</param>
+        /// <param name="moneyValue">The monetary value.</param>
+        [Obsolete(ErrorMessage.DivisionByMoney, true)]
+        public static Money operator %(ulong integerValue, Money moneyValue)
+        {
+            throw new InvalidOperationException(ErrorMessage.DivisionByMoney);
+        }
+
+        /// <summary>
+        /// Returns a monetary value unchanged.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns><paramref name="value"/>, with its currency, <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.</returns>
+        public static Money operator +(Money value)
+        {
+            return value;
+        }
+
+        /// <summary>
+        /// Negates the amount of a monetary value.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is the negated amount of <paramref name="value"/>, with its currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.
+        /// </returns>
+        public static Money operator -(Money value)
+        {
+            return value.WithAmount(decimal.Negate(value._amount));
+        }
+
+        /// <summary>
+        /// Adds one to the amount of a monetary value.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is one more than the amount of <paramref name="value"/>, with its currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.
+        /// </returns>
+        public static Money operator ++(Money value)
+        {
+            return value + decimal.One;
+        }
+
+        /// <summary>
+        /// Subtracts one from the amount of a monetary value.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>
+        /// A monetary value whose amount is one less than the amount of <paramref name="value"/>, with its currency,
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/>.
+        /// </returns>
+        public static Money operator --(Money value)
+        {
+            return value - decimal.One;
+        }
+
+        /// <summary>
+        /// Creates a monetary value with another amount and the currency, <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> of this value.
+        /// </summary>
+        /// <param name="amount">The amount of the new value.</param>
+        /// <returns>A monetary value whose amount is <paramref name="amount"/>.</returns>
+        private Money WithAmount(decimal amount)
+        {
+            return new Money(amount, _currency, RoundingPrecision, RoundingMethod);
         }
 
         /// <summary>
@@ -612,7 +1035,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator <(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount < right._amount;
         }
@@ -630,7 +1053,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator >(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount > right._amount;
         }
@@ -648,7 +1071,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator <=(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount <= right._amount;
         }
@@ -666,7 +1089,7 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator >=(Money left, Money right)
         {
-            ThrowIfCurrenciesDiffer(left, right);
+            ThrowIfCurrenciesDiffer(left, right, ErrorMessage.DifferentCurrenciesComparisonTemplate);
 
             return left._amount >= right._amount;
         }
@@ -803,16 +1226,17 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
-        /// Throw the exception the relational operators throw when two monetary values have different currencies.
+        /// Throw the exception the relational and arithmetic operators throw when two monetary values have different currencies.
         /// </summary>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
+        /// <param name="messageTemplate">The message of the exception, with <c>{0}</c> for the name of the type.</param>
         /// <exception cref="InvalidOperationException">The operands have different currencies.</exception>
-        private static void ThrowIfCurrenciesDiffer(Money left, Money right)
+        private static void ThrowIfCurrenciesDiffer(Money left, Money right, string messageTemplate)
         {
             if (!HaveSameCurrency(left, right))
             {
-                throw new InvalidOperationException(DifferentCurrenciesComparisonMessage);
+                throw new InvalidOperationException(string.Format(messageTemplate, nameof(Money)));
             }
         }
 
