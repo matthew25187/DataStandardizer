@@ -119,8 +119,14 @@ The check covers the value types of RFC 5545 §3.3, and the rules that tie a val
 its property:
 
 - A `VALUE` parameter that the property doesn't allow, or one it requires.
-- A DATE-TIME that must be in UTC.
+- A DATE-TIME that must be in UTC, including the `DTSTART` and `DTEND` of a VFREEBUSY.
 - Date-times that must have the same value type as the component's `DTSTART`.
+- A `DTEND` or `DUE` that isn't in local time with no time zone when `DTSTART` is, or
+  the other way round, or that isn't later in time than `DTSTART` (RFC 5545 §3.8.2.2
+  and §3.8.2.3).
+- A value outside a closed set: `STATUS` in a VEVENT, VTODO or VJOURNAL (RFC 5545
+  §3.8.1.11, with the values for that kind of component), `TRANSP` in a VEVENT
+  (§3.8.2.7) and `CALSCALE` in a VCALENDAR (§3.7.1).
 - A `FMTTYPE` parameter that appears twice, has two values, or isn't a type and
   subtype, such as `FMTTYPE="text/html; charset=utf-8"` (RFC 5545 §3.2.8). Its quotes
   are a second problem, which needs `AllowQuotedParameterValues`.

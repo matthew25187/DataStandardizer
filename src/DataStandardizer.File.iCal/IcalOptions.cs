@@ -76,8 +76,14 @@ namespace DataStandardizer.File.iCal
         /// <para>
         /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects a calendar holding such a value, and <see cref="IcalWriter"/> refuses
         /// to write one, with an <see cref="IcalFileException"/>.  The checks cover the value types of RFC 5545 §3.3 and the rules that tie a value
-        /// to its property: a <c>VALUE</c> parameter the property does not allow, or one it requires; a DATE-TIME that must be in UTC; and
-        /// date-times that must have the same value type as the property's <c>DTSTART</c>.  They also cover the <c>FMTTYPE</c> parameter, which
+        /// to its property: a <c>VALUE</c> parameter the property does not allow, or one it requires; a DATE-TIME that must be in UTC, such as
+        /// the <c>DTSTART</c> and <c>DTEND</c> of a VFREEBUSY (RFC 5545 §3.8.2.4 and §3.8.2.2); date-times that must have the same value type
+        /// as the component's <c>DTSTART</c>; a <c>DTEND</c> or <c>DUE</c> that is in local time with no time zone when <c>DTSTART</c> is not,
+        /// or the other way round, or that is not later in time than <c>DTSTART</c> (RFC 5545 §3.8.2.2 and §3.8.2.3); and a <c>STATUS</c>,
+        /// <c>TRANSP</c> or <c>CALSCALE</c> value, in a component that defines it, outside the closed set of RFC 5545 §3.8.1.11, §3.8.2.7 or
+        /// §3.7.1.  A <c>DTEND</c> or <c>DUE</c> with a time zone is compared
+        /// without expanding the rules of its VTIMEZONE, so one earlier than <c>DTSTART</c> by less than the spread of the time zone's UTC
+        /// offsets is not reported.  They also cover the <c>FMTTYPE</c> parameter, which
         /// RFC 5545 §3.2.8 makes one type and subtype with no media type parameters, and which may appear only once; a parameter defined with one
         /// value in RFC 5545 §3.2 or RFC 7986 §6 that has more, such as <c>CN=Doe, John</c>, whose comma must be in a quoted string; and a parameter
         /// repeated on a property, where RFC 5545 §3.8 and RFC 7986 §5 say it "MUST NOT occur more than once".
