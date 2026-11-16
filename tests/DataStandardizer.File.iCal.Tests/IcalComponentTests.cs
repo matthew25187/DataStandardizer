@@ -974,6 +974,83 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void Validate_EventInItself_ReportsTheNesting()
+        {
+            // arrange
+            var testEvent = new IcalEvent { Uid = "1", DtStamp = Stamp };
+            testEvent.Components.Add(testEvent);
+
+            // act
+            var testResult = testEvent.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
+                "VEVENT/VEVENT[1]: A VEVENT component cannot be nested in a VEVENT component.",
+                "VEVENT/VEVENT[1]: A VEVENT component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentInItselfTwice_ReportsEachNesting()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            component.Components.Add(component);
+            component.Components.Add(component);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
+                "X-A/X-A[1]: A X-A component is nested in itself.",
+                "X-A/X-A[2]: A X-A component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentInItsChild_ReportsTheNesting()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            var child = new IcalComponent("X-B");
+            component.Components.Add(child);
+            child.Components.Add(component);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
+                "X-A/X-B[1]/X-A[1]: A X-A component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentsNestedToTheLimit_ReturnsNothing()
+        {
+            // arrange
+            var component = NestedComponents(MaxComponentDepth);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Validate_ComponentsNestedPastTheLimit_ReportsTheNesting()
+        {
+            // arrange
+            var component = NestedComponents(PastMaxComponentDepth);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.Message)).Should().Equal(
+                (IcalDiagnosticKind.InvalidComponentNesting, "Components are nested more than 64 levels deep; RFC 5545§3.6 allows three."));
+        }
+
+        [Fact]
         public void Validate_StandaloneEvent_SkipsCalendarChecks()
         {
             // arrange

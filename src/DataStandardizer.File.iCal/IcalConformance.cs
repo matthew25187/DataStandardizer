@@ -416,14 +416,46 @@ namespace DataStandardizer.File.iCal
             }
 
             var indexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            context.Ancestors.Add(component);
             foreach (var child in component.Components)
             {
                 int index;
                 indexes.TryGetValue(child.Name, out index);
                 indexes[child.Name] = ++index;
 
-                ValidateComponent(child, GetChildPath(path, child.Name, index), context);
+                var childPath = GetChildPath(path, child.Name, index);
+                if (ContainsReference(context.Ancestors, child))
+                {
+                    // A model built in code can hold a component inside itself; checking it would never end.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture, "A {0} component is nested in itself.", child.Name.ToUpperInvariant()),
+                        childPath, null, child.LineNumber);
+                }
+                else if (context.Ancestors.Count >= IcalCalendarBuilder.MaxComponentDepth)
+                {
+                    // The same limit as the readers, so that a tree built in code cannot end the process with a stack overflow.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545§3.6 allows three.",
+                            IcalCalendarBuilder.MaxComponentDepth),
+                        childPath, null, child.LineNumber);
+                }
+                else
+                {
+                    ValidateComponent(child, childPath, context);
+                }
             }
+
+            context.Ancestors.RemoveAt(context.Ancestors.Count - 1);
+        }
+
+        private static bool ContainsReference(List<IcalComponent> components, IcalComponent component)
+        {
+            foreach (var item in components)
+            {
+                if (ReferenceEquals(item, component)) return true;
+            }
+
+            return false;
         }
 
         private static void ValidateCardinality(IcalComponent component, string path, ComponentRule rule, Context context)
@@ -1398,7 +1430,13 @@ namespace DataStandardizer.File.iCal
             {
                 _diagnostics = diagnostics;
                 TimeZoneIds = new HashSet<string>(StringComparer.Ordinal);
+                Ancestors = new List<IcalComponent>();
             }
+
+            /// <summary>
+            /// Gets the component being checked and the components it is nested in, outermost first.
+            /// </summary>
+            internal List<IcalComponent> Ancestors { get; }
 
             /// <summary>
             /// Gets or sets a flag indicating if the calendar has a <c>METHOD</c> property.

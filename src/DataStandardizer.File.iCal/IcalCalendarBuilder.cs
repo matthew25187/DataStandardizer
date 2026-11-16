@@ -23,7 +23,8 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The most levels of components a calendar may nest, counting the VCALENDAR as the first.  ref. RFC 5545§3.6: the grammar allows three
         /// (VCALENDAR, VEVENT or VTODO, and VALARM), so this refuses nothing the RFC allows.  Every pass over the tree, including each
-        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.
+        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.  <see cref="IcalConformance"/> applies
+        /// the same limit to a model built in code, so that the writers, which check a calendar first, refuse it too.
         /// </summary>
         internal const int MaxComponentDepth = 64;
 
