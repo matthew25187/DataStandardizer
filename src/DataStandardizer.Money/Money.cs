@@ -1488,6 +1488,14 @@ namespace DataStandardizer.Money
         /// is the currency of this value.
         /// </para>
         /// <para>
+        /// The amount formatted is the rounded amount, as <c>(decimal)value</c> gives it. Where that has more
+        /// decimal places than are displayed, it is rounded again to the display precision as
+        /// <see cref="decimal"/> rounds it, with midpoints away from zero; <see cref="RoundingMethod"/> doesn't
+        /// apply to that second rounding. For example, a US Dollar value created with a
+        /// <see cref="RoundingPrecision"/> of 4 and <see cref="MidpointRounding.ToEven"/> from an amount of
+        /// <c>1.125</c> is formatted by <c>C</c> as <c>$1.13</c> in the en-US culture, not <c>$1.12</c>.
+        /// </para>
+        /// <para>
         /// <c>G</c> is the general format of <see cref="decimal"/>, and it and its precision mean what they mean
         /// for <see cref="decimal"/>: the precision is a number of significant digits, the result may be in
         /// scientific notation, and where no precision is given the minor units of the currency are not applied.

@@ -55,6 +55,29 @@ asserts that it is the currency of the value. Formatting a New Zealand Dollar
 value with `"USD"` raises a `FormatException` rather than producing output which
 names the wrong currency.
 
+## Rounding of the displayed amount
+
+The amount shown is the rounded amount, as `(decimal)money` gives it, with the
+value's `RoundingPrecision` and `RoundingMethod` applied. Where that amount has
+more decimal places than the format displays, it's rounded again to the display
+precision as `decimal` rounds it, with midpoints away from zero. The value's
+`RoundingMethod` doesn't apply to that second rounding:
+
+```csharp
+var enUs = new CultureInfo("en-US");
+var money = Money.Create(1.125m, Iso4217CurrencyCurrent.USD, 4, MidpointRounding.ToEven);
+
+(decimal)money;                 // 1.125
+money.ToString("C", enUs);      // $1.13, not $1.12
+```
+
+To display an amount rounded by the value's own method, give the value a
+`RoundingPrecision` no greater than the precision displayed:
+
+```csharp
+Money.Create(1.125m, Iso4217CurrencyCurrent.USD, 2, MidpointRounding.ToEven).ToString("C", enUs);   // $1.12
+```
+
 ## Standard and narrow symbols
 
 ISO 4217 defines no currency symbols, so they are taken from the Unicode Common
