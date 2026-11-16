@@ -142,7 +142,7 @@ namespace DataStandardizer.Money
             get => _currencyCode;
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -222,7 +222,7 @@ namespace DataStandardizer.Money
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
                 }
 
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -259,7 +259,7 @@ namespace DataStandardizer.Money
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
                 }
 
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -297,7 +297,7 @@ namespace DataStandardizer.Money
             get => (int[])_currencyGroupSizes.Clone();
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -413,7 +413,7 @@ namespace DataStandardizer.Money
             get => _negativeSign;
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }

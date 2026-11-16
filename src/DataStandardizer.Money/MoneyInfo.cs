@@ -291,7 +291,7 @@ namespace DataStandardizer.Money
             get => _currencyFormat;
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
