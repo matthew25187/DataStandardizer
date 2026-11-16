@@ -249,6 +249,16 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Creates a copy of the line with another value, keeping the name, the parameters and the line number it was read from.
+        /// </summary>
+        /// <param name="value">The value, in the form of a content line.</param>
+        internal IcalContentLine WithValue(string value)
+        {
+            // The fold offsets locate positions in the old value, so they are not kept.
+            return new IcalContentLine(Name, _parameters, RawParameters, value, LineNumber, PhysicalLineNumber, null, 0);
+        }
+
+        /// <summary>
         /// Creates a content line from the reader's current line.
         /// </summary>
         internal static IcalContentLine FromScanner(ContentLineScanner scanner)

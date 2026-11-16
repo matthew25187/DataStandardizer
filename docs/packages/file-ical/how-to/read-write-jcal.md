@@ -102,7 +102,7 @@ differently but with the same meaning:
 | INTEGER and FLOAT | A number. |
 | CATEGORIES, RESOURCES, EXDATE, RDATE and FREEBUSY | One value for each item in the list. |
 | PERIOD | An array of two strings: the start, and the end or the duration. |
-| RECUR | An object with one key for each rule part, such as `{"freq": "WEEKLY", "byday": ["MO", "FR"], "count": 5}`. COUNT and INTERVAL are numbers, and a BYxxx part with more than one value is an array. The rule parts keep their order. |
+| RECUR | An object with one key for each rule part, such as `{"freq": "WEEKLY", "byday": ["MO", "FR"], "count": 5}`. COUNT and INTERVAL are numbers, and a BYxxx part with more than one value is an array. The rule parts keep their order, and `IcalWriter` writes FREQ first, as RFC 5545 §3.3.10 requires. |
 | GEO | An array of two numbers: the latitude and the longitude. |
 | REQUEST-STATUS | An array of two or three strings: the code, the description and, if present, the data. |
 

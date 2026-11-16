@@ -154,6 +154,31 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(text);
         }
 
+        // ref. RFC 5545 §3.3.10: rule parts are accepted in any order, but FREQ MUST be the first rule part.  ref. RFC 5545 §3.2.20: a VALUE
+        // parameter names the value type of an x-prop.
+        public static TheoryData<string, string> FrequencyNotFirstCases => new TheoryData<string, string>
+        {
+            { "RRULE:COUNT=5;FREQ=DAILY", "RRULE:FREQ=DAILY;COUNT=5" },
+            { "RRULE:INTERVAL=2;FREQ=WEEKLY;BYDAY=TU,TH", "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,TH" },
+            { "RRULE:count=5;freq=daily", "RRULE:freq=daily;count=5" },
+            { "X-RULE;VALUE=RECUR:COUNT=5;FREQ=DAILY", "X-RULE;VALUE=RECUR:FREQ=DAILY;COUNT=5" },
+        };
+
+        [Theory]
+        [MemberData(nameof(FrequencyNotFirstCases))]
+        public void WriteCalendars_RecurValueWithFrequencyNotFirst_WritesFrequencyFirst(string line, string expectedLine)
+        {
+            // arrange
+            var calendars = ReadCalendars(EventCalendar(line));
+            var expected = EventCalendar(expectedLine);
+
+            // act
+            var testResult = WriteCalendars(calendars);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
         [Fact]
         public void WriteCalendar_BuiltInCode_WritesExpectedLines()
         {

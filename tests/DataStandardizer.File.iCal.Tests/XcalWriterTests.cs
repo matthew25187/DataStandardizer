@@ -162,7 +162,7 @@ namespace DataStandardizer.File.iCal.Tests
                 "<period><start>2026-01-04T09:00:00Z</start><duration>PT1H</duration></period>" +
                 "<period><start>2026-01-05T09:00:00Z</start><end>2026-01-05T10:00:00Z</end></period>");
             Inner(properties, "rrule").Should().Be(
-                "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><wkst>MO</wkst><byday>TU</byday><byday>FR</byday></recur>");
+                "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><byday>TU</byday><byday>FR</byday><wkst>MO</wkst></recur>");
             Inner(properties, GeoElement).Should().Be(GeoXcal);
             Inner(properties, RequestStatusElement).Should().Be(
                 "<code>3.1</code><description>Invalid property value</description><data>DTSTART:96-Apr-01</data>");
@@ -195,6 +195,43 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), propertyName).Should().Be(expected);
+        }
+
+        // ref. RFC 6321 Appendix A (3.3.10): value-recur gives the child elements of recur in a fixed order, and the values of freq and wkst,
+        // and the weekday of byday, are upper case.
+        public static TheoryData<string, string> RecurPartOrderCases => new TheoryData<string, string>
+        {
+            { "RRULE:COUNT=5;FREQ=DAILY", "<recur><freq>DAILY</freq><count>5</count></recur>" },
+            { "RRULE:freq=daily;interval=2;count=5", "<recur><freq>DAILY</freq><count>5</count><interval>2</interval></recur>" },
+            {
+                "RRULE:FREQ=WEEKLY;UNTIL=20261231T235959Z;WKST=SU;BYDAY=TU,TH",
+                "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><byday>TU</byday><byday>TH</byday><wkst>SU</wkst></recur>"
+            },
+            {
+                "RRULE:freq=monthly;wkst=su;byday=-1fr,2mo;bymonthday=13",
+                "<recur><freq>MONTHLY</freq><byday>-1FR</byday><byday>2MO</byday><bymonthday>13</bymonthday><wkst>SU</wkst></recur>"
+            },
+            {
+                "RRULE:WKST=MO;BYSETPOS=-1;BYMONTH=6;BYWEEKNO=20;BYYEARDAY=150;BYMONTHDAY=7;BYDAY=TU;BYHOUR=8;BYMINUTE=30;BYSECOND=15;" +
+                "INTERVAL=3;COUNT=4;FREQ=YEARLY",
+                "<recur><freq>YEARLY</freq><count>4</count><interval>3</interval><bysecond>15</bysecond><byminute>30</byminute>" +
+                "<byhour>8</byhour><byday>TU</byday><bymonthday>7</bymonthday><byyearday>150</byyearday><byweekno>20</byweekno>" +
+                "<bymonth>6</bymonth><bysetpos>-1</bysetpos><wkst>MO</wkst></recur>"
+            },
+        };
+
+        [Theory]
+        [MemberData(nameof(RecurPartOrderCases))]
+        public void WriteCalendar_RecurValue_WritesRulePartsInSchemaOrderAndCase(string line, string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), "rrule").Should().Be(expected);
         }
 
         [Fact]

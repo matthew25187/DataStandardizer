@@ -50,6 +50,24 @@ namespace DataStandardizer.File.iCal.Tests
 
         internal static (string Text, IcalOptions Options) GetCalendar(string name) => Calendars[name];
 
+        // ref. RFC 6321 Appendix A (3.3.10): a calendar that passes through xCal has its rule parts in the order of value-recur, as
+        // FixtureExpectations.XcalRoundTripModels gives them.  The jCal examples have no rule parts out of that order.
+        public static TheoryData<string, string[]> ThroughXcalCases()
+        {
+            var data = new TheoryData<string, string[]>();
+            foreach (var name in CalendarFixtures.All.Keys)
+            {
+                data.Add(name, FixtureExpectations.XcalRoundTripModels[name]);
+            }
+
+            foreach (var name in new[] { nameof(Example1Ical), nameof(Example2Ical), nameof(Extensions) })
+            {
+                data.Add(name, FixtureExpectations.JcalRoundTripModels[name]);
+            }
+
+            return data;
+        }
+
         // ref. RFC 7265 Appendix B: each example in iCalendar form and in jCal form, with the PERIOD that RFC 7265 §3.6.9 gives as an array.
         public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>
         {
@@ -105,13 +123,12 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(CalendarNames))]
-        public void ReadXcal_JcalCalendarsWrittenAsXcal_LeavesModelUnchanged(string calendarName)
+        [MemberData(nameof(ThroughXcalCases))]
+        public void ReadXcal_JcalCalendarsWrittenAsXcal_LeavesModelUnchanged(string calendarName, string[] expected)
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
-            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
 
             // act
             var testResult = Model(XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadJcal(WriteJcal(calendars, options), options), options), options), options);
@@ -136,13 +153,12 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(CalendarNames))]
-        public void ReadJcal_XcalCalendarsWrittenAsJcal_LeavesModelUnchanged(string calendarName)
+        [MemberData(nameof(ThroughXcalCases))]
+        public void ReadJcal_XcalCalendarsWrittenAsJcal_LeavesModelUnchanged(string calendarName, string[] expected)
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
-            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
 
             // act
             var testResult = Model(ReadJcal(WriteJcal(XcalTestData.ReadXcal(XcalTestData.WriteXcal(calendars, options), options), options), options), options);

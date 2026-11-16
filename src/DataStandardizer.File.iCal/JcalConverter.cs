@@ -456,18 +456,14 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 7265§3.5.1: the type identifier gives the value type, so the VALUE parameter is not written.  ref. RFC 7265§5.1: a
             // property whose value type is not known has the unknown type.
             var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
-            IcalValueType valueType;
+            var valueType = IcalValueTypeRegistry.GetValueTypeOfAnyProperty(name, valueParameter);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? extensionTypeName = null;
 #else
             string extensionTypeName = null;
 #endif
-            if (valueParameter is null)
-            {
-                valueType = IcalValueTypeRegistry.GetDefaultValueType(name.AsSpan());
-            }
-            else if (!IcalValueTypeRegistry.TryParseValueTypeName(valueParameter.AsSpan(), out valueType) &&
-                     IcalComponent.IsValidName(valueParameter) && !IcalValueFormatting.EqualsKeyword(valueParameter.AsSpan(), "UNKNOWN"))
+            if (valueParameter != null && valueType == IcalValueType.Unknown && IcalComponent.IsValidName(valueParameter) &&
+                !IcalValueFormatting.EqualsKeyword(valueParameter.AsSpan(), "UNKNOWN"))
             {
                 extensionTypeName = valueParameter;
             }
