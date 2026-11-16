@@ -76,6 +76,10 @@ namespace DataStandardizer.Money
         /// requires the context of a culture, and a caller must opt in to it, because the currency of an
         /// ambient culture is rarely a safe assumption to make about the origin of a monetary value. Where
         /// the culture does not resolve the symbol, parsing fails rather than choosing a currency.
+        /// A symbol that is the standard symbol of one currency and the narrow symbol of others, as <c>$</c>
+        /// is, is shared too, except against the <c>C</c> format in
+        /// <see cref="Money.TryParseExact(string, string[], IFormatProvider, MoneyStyles, out Money)"/>, where
+        /// it denotes the currency whose standard symbol it is without this flag.
         /// </remarks>
         AllowAmbiguousCurrencySymbol = 1 << 9,
 

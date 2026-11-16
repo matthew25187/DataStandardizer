@@ -1677,6 +1677,33 @@ namespace DataStandardizer.Money
         public static bool TryParse(string s, MoneyStyles styles, IFormatProvider provider, out Money result)
 #endif
         {
+            return TryParse(s, styles, provider, false, out result, out _);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a monetary value to its <see cref="Money"/> equivalent,
+        /// permitting only the specified elements, and optionally reading a symbol as a standard symbol first.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="styles">The elements permitted in <paramref name="s"/>.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <param name="standardSymbolsFirst">
+        /// <c>true</c> to resolve a shared symbol that is the standard symbol of exactly one currency to that
+        /// currency, as for a value in the <c>C</c> format; otherwise <c>false</c>.
+        /// </param>
+        /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
+        /// <param name="readAsStandardSymbol">
+        /// When this method returns, <c>true</c> if the currency of <paramref name="result"/> was decided by
+        /// reading a shared symbol as a standard symbol, so that reading without
+        /// <paramref name="standardSymbolsFirst"/> could give another result; otherwise <c>false</c>.
+        /// </param>
+        /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, bool standardSymbolsFirst, out Money result, out bool readAsStandardSymbol)
+#else
+        private static bool TryParse(string s, MoneyStyles styles, IFormatProvider provider, bool standardSymbolsFirst, out Money result, out bool readAsStandardSymbol)
+#endif
+        {
             var useStyles = styles;
             if (provider is null)
             {
@@ -1694,7 +1721,7 @@ namespace DataStandardizer.Money
             // currency token is read as it was written.
             var amountNumberFormat = NumberFormatInfo.GetInstance(moneyProvider);
 
-            return MoneyParser.TryParse(s, useStyles, currencyFormat, currencyNumberFormat, amountNumberFormat, out result);
+            return MoneyParser.TryParse(s, useStyles, currencyFormat, currencyNumberFormat, amountNumberFormat, standardSymbolsFirst, out result, out readAsStandardSymbol);
         }
 
         /// <summary>
@@ -1704,6 +1731,13 @@ namespace DataStandardizer.Money
         /// <param name="format">The format that <paramref name="s"/> must be in.</param>
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
         /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
+        /// <remarks>
+        /// <paramref name="s"/> is read with <see cref="MoneyStyles.Currency"/>. Where <paramref name="format"/>
+        /// is <c>C</c>, a symbol that is the standard symbol of exactly one currency denotes that currency, so
+        /// <c>$</c> is read as the US Dollar, and the result of formatting a value with <c>C</c> is read back
+        /// as that value where its currency's standard symbol is the standard symbol of no other currency, and
+        /// its amount has no more decimal places than the rendering shows.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> or <paramref name="format"/> is <c>null</c>.</exception>
         /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in the format specified by <paramref name="format"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
@@ -1766,9 +1800,25 @@ namespace DataStandardizer.Money
         /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
         /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
         /// <remarks>
+        /// <para>
         /// A value is accepted only where formatting the parsed result with one of <paramref name="formats"/>
         /// reproduces it. A caller expecting the currency code form may therefore reject a value carrying a
         /// currency symbol, which is otherwise accepted.
+        /// </para>
+        /// <para>
+        /// The <c>C</c> format renders the standard symbol of a currency, so against a <c>C</c> format a symbol
+        /// that is the standard symbol of exactly one currency denotes that currency, even where it is also the
+        /// narrow symbol of others: <c>$</c> is read as the US Dollar and <c>£</c> as the Pound Sterling, with
+        /// no <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/> and no culture needed. Against any other
+        /// format, and when parsing without a format, such a symbol remains ambiguous.
+        /// </para>
+        /// <para>
+        /// Where <paramref name="s"/> is the rendering of different values under different formats among
+        /// <paramref name="formats"/>, it is ambiguous, and parsing fails whatever the order of the formats.
+        /// For example, under en-AU with <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/>,
+        /// <c>$5.00</c> is both the <c>C</c> rendering of 5 US Dollars and the <c>H</c> rendering of
+        /// 5 Australian Dollars.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParseExact(string? s, string[]? formats, IFormatProvider? provider, MoneyStyles styles, out Money result)
@@ -1783,10 +1833,45 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            if (!TryParse(s, styles, provider, out var candidate))
+            var hasStandardSymbolFormat = false;
+            var hasOtherFormat = false;
+            foreach (var format in formats)
+            {
+                if (format is null)
+                {
+                    continue;
+                }
+
+                if (MoneyFormatter.IsStandardSymbolFormat(format))
+                {
+                    hasStandardSymbolFormat = true;
+                }
+                else
+                {
+                    hasOtherFormat = true;
+                }
+            }
+
+            if (!hasStandardSymbolFormat && !hasOtherFormat)
             {
                 return false;
             }
+
+            // The C formats carry a standard symbol, so a shared symbol is read as one for them. One reading
+            // serves every format unless it read a shared symbol that way, in which case the other formats
+            // need the value read as it is without a format.
+            var isParsedWithStandardSymbol = TryParse(s, styles, provider, hasStandardSymbolFormat, out var parsedWithStandardSymbol, out var readAsStandardSymbol);
+            var isParsed = isParsedWithStandardSymbol;
+            var parsed = parsedWithStandardSymbol;
+            if (readAsStandardSymbol && hasOtherFormat)
+            {
+                isParsed = TryParse(s, styles, provider, false, out parsed, out _);
+            }
+
+            // Where the two readings differ, a value matched under formats of both kinds is ambiguous, so every
+            // format is tried rather than the first match accepted.
+            var readingsDiffer = isParsed && isParsedWithStandardSymbol && !parsed.Equals(parsedWithStandardSymbol);
+            var isMatched = false;
 
             // The parsed value must render back to the value supplied under one of the expected formats.
             // Comparing the rendering rather than inspecting the input keeps the accepted forms exactly in
@@ -1798,6 +1883,14 @@ namespace DataStandardizer.Money
                     continue;
                 }
 
+                var isStandardSymbolFormat = MoneyFormatter.IsStandardSymbolFormat(format);
+                if (!(isStandardSymbolFormat ? isParsedWithStandardSymbol : isParsed))
+                {
+                    continue;
+                }
+
+                var candidate = isStandardSymbolFormat ? parsedWithStandardSymbol : parsed;
+
                 string formatted;
                 try
                 {
@@ -1808,14 +1901,28 @@ namespace DataStandardizer.Money
                     continue;
                 }
 
-                if (string.Equals(formatted, s, StringComparison.Ordinal))
+                if (!string.Equals(formatted, s, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!readingsDiffer)
                 {
                     result = candidate;
                     return true;
                 }
+
+                if (isMatched && !result.Equals(candidate))
+                {
+                    result = default;
+                    return false;
+                }
+
+                result = candidate;
+                isMatched = true;
             }
 
-            return false;
+            return isMatched;
         }
 
 #if NET7_0_OR_GREATER
