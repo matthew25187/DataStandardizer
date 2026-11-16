@@ -309,8 +309,8 @@ this error.
 
 - **`InvalidComponentNesting`:** a component inside one where RFC 5545 doesn't allow
   it, such as a VTODO inside a VEVENT.
-- **`UnsupportedVersion`:** a `VERSION` that doesn't include 2.0, such as the
-  `VERSION:1.0` of vCalendar 1.0. This is reported as soon as the `VERSION` line is
+- **`UnsupportedVersion`:** a `VERSION` other than `2.0` or `2.0;2.0`, such as the
+  `VERSION:1.0` of vCalendar 1.0, or `VERSION:2`. This is reported as soon as the `VERSION` line is
   read.
 - **Broken structure:** a `BEGIN` without a matching `END`, or a line that doesn't
   follow the content-line syntax.

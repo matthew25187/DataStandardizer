@@ -78,7 +78,7 @@ The constructor adds `VERSION:2.0`. A calendar built in code also needs a `PRODI
 | `Source` | `Uri? Source { get; set; }` | `SOURCE` (RFC 7986 §5.8), where the calendar can be refreshed from. The setter writes the `VALUE=URI` parameter the property needs. Throws `ArgumentException` on set for a relative URI, or `IcalFileException` on get if the value is not a valid absolute URI. `null` removes it. |
 | `Uid` | `string? Uid { get; set; }` | `UID` (RFC 5545 §3.8.4.7; RFC 7986 §5.3), a persistent, globally unique identifier. TEXT. `null` removes it. |
 | `Url` | `Uri? Url { get; set; }` | `URL` (RFC 5545 §3.8.4.6; RFC 7986 §5.5). Throws `ArgumentException` on set for a relative URI, or `IcalFileException` on get if the value is not a valid absolute URI. `null` removes it. |
-| `Version` | `string? Version { get; set; }` | `VERSION` (RFC 5545 §3.7.4), as written: `2.0`, or a range such as `1.0;2.0`. TEXT. `null` removes it, but the writer writes `VERSION:2.0` regardless. |
+| `Version` | `string? Version { get; set; }` | `VERSION` (RFC 5545 §3.7.4), as written: `2.0`, or the range `2.0;2.0`. TEXT. `null` removes it, but the writer writes `VERSION:2.0` regardless. |
 
 Every TEXT property removes TEXT escaping on get and adds it on set, and throws
 `IcalFileException` on get if the value has a backslash that does not start a

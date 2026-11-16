@@ -63,7 +63,6 @@ namespace DataStandardizer.File.iCal.Tests
             AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true, AllowUndefinedTimeZones = true
         };
 
-        // RfcFixtures.Rfc5545Event with a VERSION that includes 2.0.
         // The most levels of components the reader accepts, counting the VCALENDAR as the first.  RFC 5545 §3.6 allows three, so a limit this
         // high refuses nothing the RFC allows.
         private const int MaxComponentDepth = 64;
@@ -78,10 +77,12 @@ namespace DataStandardizer.File.iCal.Tests
         private static string NestedCalendar(int nestedComponents) =>
             Calendar(Enumerable.Repeat(BeginExtension, nestedComponents).Concat(Enumerable.Repeat(EndExtension, nestedComponents)).ToArray());
 
-        public static TheoryData<string, string> VersionsIncluding2()
+        // RfcFixtures.Rfc5545Event with each VERSION that RFC 5545 §3.7.4 allows: 2.0, the only registered version identifier, alone or as
+        // both ends of a range.
+        public static TheoryData<string, string> ValidVersions()
         {
             var data = new TheoryData<string, string>();
-            foreach (var version in new[] { "2.0", "1.0;2.0", "2.0;3.0" })
+            foreach (var version in new[] { "2.0", "2.0;2.0" })
             {
                 data.Add(version, RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:" + version));
             }
@@ -89,11 +90,16 @@ namespace DataStandardizer.File.iCal.Tests
             return data;
         }
 
-        // RfcFixtures.Rfc5545Event with a VERSION that excludes 2.0, and its VERSION line.
-        public static TheoryData<string, string> VersionsExcluding2()
+        // RfcFixtures.Rfc5545Event with a VERSION that RFC 5545 §3.7.4 does not allow, and its VERSION line: other versions, other spellings
+        // of 2.0, and ranges with an end that is not 2.0.
+        public static TheoryData<string, string> InvalidVersions()
         {
             var data = new TheoryData<string, string>();
-            foreach (var version in new[] { "1.0", "3.0", "1.0;1.5", "2.1;3.0", "2.0;2.0;2.0", "two" })
+            foreach (var version in new[]
+                     {
+                         "1.0", "3.0", "1.0;1.5", "2.1;3.0", "2.0;2.0;2.0", "two", "2", "2.", "02.000", "2.00", "0;99", "1.0;2.0", "2.0;3.0", ";2.0",
+                         "2.0;"
+                     })
             {
                 data.Add("VERSION:" + version, RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:" + version));
             }
@@ -683,8 +689,8 @@ namespace DataStandardizer.File.iCal.Tests
         #region VERSION
 
         [Theory]
-        [MemberData(nameof(VersionsIncluding2))]
-        public void ReadCalendar_VersionIncluding2_IsAccepted(string version, string text)
+        [MemberData(nameof(ValidVersions))]
+        public void ReadCalendar_ValidVersion_IsAccepted(string version, string text)
         {
             // act
             var testResult = ReadCalendar(text);
@@ -694,8 +700,8 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(VersionsIncluding2))]
-        public void Validate_CalendarWithVersionIncluding2_ReturnsNothing(string version, string text)
+        [MemberData(nameof(ValidVersions))]
+        public void Validate_CalendarWithValidVersion_ReturnsNothing(string version, string text)
         {
             // arrange
             _ = version;
@@ -709,8 +715,8 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(VersionsExcluding2))]
-        public void ReadCalendar_VersionExcluding2_ThrowsAtVersionLine(string versionLine, string text)
+        [MemberData(nameof(InvalidVersions))]
+        public void ReadCalendar_InvalidVersion_ThrowsAtVersionLine(string versionLine, string text)
         {
             // act
             Action testAction = () => ReadCalendars(text, new IcalOptions { AllowInvalidValues = true });

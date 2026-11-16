@@ -286,7 +286,7 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets or sets the iCalendar version (RFC 5545 §3.7.4, <c>VERSION</c>), as written: <c>2.0</c>, or a range such as <c>1.0;2.0</c>;
+        /// Gets or sets the iCalendar version (RFC 5545 §3.7.4, <c>VERSION</c>), as written: <c>2.0</c>, or the range <c>2.0;2.0</c>;
         /// or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>

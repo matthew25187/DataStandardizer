@@ -16,7 +16,10 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         internal const string SupportedVersion = "2.0";
 
-        private const decimal SupportedVersionNumber = 2.0m;
+        /// <summary>
+        /// The <c>minver;maxver</c> form of <see cref="SupportedVersion"/>: the only range whose ends are both registered identifiers.
+        /// </summary>
+        private const string SupportedVersionRange = SupportedVersion + ";" + SupportedVersion;
 
         /// <summary>
         /// The names of the components RFC 5545 defines.  A component with one of these names may be nested only where its parent's rule allows.
@@ -349,44 +352,22 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Indicates whether a <c>VERSION</c> value (RFC 5545 §3.7.4) is or includes iCalendar 2.0: <c>maxver</c> or <c>minver;maxver</c>.
+        /// Indicates whether a <c>VERSION</c> value (RFC 5545 §3.7.4) is one RFC 5545 allows: <c>2.0</c>, or the range <c>2.0;2.0</c>.
         /// </summary>
         internal static bool IsSupportedVersion(string value)
         {
-            var parts = value.Split(';');
-            decimal minimum, maximum;
-            switch (parts.Length)
-            {
-                case 1:
-                    return TryParseVersion(parts[0], out maximum) && maximum == SupportedVersionNumber;
-                case 2:
-                    return TryParseVersion(parts[0], out minimum) && TryParseVersion(parts[1], out maximum) && minimum <= SupportedVersionNumber &&
-                           SupportedVersionNumber <= maximum;
-                default:
-                    return false;
-            }
+            // ref. RFC 5545§3.7.4: vervalue = "2.0" / maxver / (minver ";" maxver), where minver and maxver are IANA-registered iCalendar
+            // version identifiers.  The only one is the 2.0 that RFC 5545 itself defines, so other spellings of the number, such as 2 or
+            // 02.000, and ranges reaching another version, such as 1.0;2.0, are not allowed.
+            return string.Equals(value, SupportedVersion, StringComparison.Ordinal) ||
+                   string.Equals(value, SupportedVersionRange, StringComparison.Ordinal);
         }
 
         internal static string BuildUnsupportedVersionMessage(string value)
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "The calendar has VERSION:{0}, which does not include iCalendar 2.0, the only version RFC 5545 defines.  vCalendar 1.0 " +
-                "(VERSION:1.0) is not supported.", value);
-        }
-
-        private static bool TryParseVersion(string text, out decimal version)
-        {
-            // ref. RFC 5545§3.7.4: the versions are text, but the only ones registered are numbers such as 2.0.
-            foreach (var character in text)
-            {
-                if (!(character >= '0' && character <= '9' || character == '.'))
-                {
-                    version = 0;
-                    return false;
-                }
-            }
-
-            return decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out version);
+                "The calendar has VERSION:{0}, but RFC 5545 allows only VERSION:2.0 (or the range 2.0;2.0), since 2.0 is the only iCalendar " +
+                "version it defines.  vCalendar 1.0 (VERSION:1.0) is not supported.", value);
         }
 
         private static void ValidateComponent(IcalComponent component, string path, Context context)
