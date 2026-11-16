@@ -66,11 +66,6 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private const string ByMonthPartName = "BYMONTH";
 
-        /// <summary>
-        /// The properties whose value is a list of TEXT values.
-        /// </summary>
-        private static readonly string[] TextListProperties = { IcalPropertyNames.Categories, IcalPropertyNames.Resources };
-
         #region jCal to iCalendar
 
         /// <summary>
@@ -1002,7 +997,7 @@ namespace DataStandardizer.File.iCal
         private static bool IsListProperty(string name)
         {
             return IcalConformance.ListProperties.Contains(name, StringComparer.OrdinalIgnoreCase) ||
-                   TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
+                   IcalConformance.TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
         }
 
         private static string FormatBoolean(bool value, IcalValueFormat format)

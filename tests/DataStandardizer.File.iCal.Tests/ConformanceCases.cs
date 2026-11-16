@@ -25,10 +25,31 @@ namespace DataStandardizer.File.iCal.Tests
         public const string QuotedTimeZoneIdCase = "QuotedTimeZoneId";
         public const string QuotedLanguageOnExtensionPropertyCase = "QuotedLanguageOnExtensionProperty";
         public const string QuotedSecondFeatureCase = "QuotedSecondFeature";
+        public const string UnescapedCommaInTextCase = "UnescapedCommaInText";
+        public const string UnescapedSemicolonInTextCase = "UnescapedSemicolonInText";
+        public const string UnescapedSemicolonInCategoriesCase = "UnescapedSemicolonInCategories";
+        public const string UnescapedCommaInRequestStatusCase = "UnescapedCommaInRequestStatus";
+        public const string UnescapedSemicolonInRequestStatusDataCase = "UnescapedSemicolonInRequestStatusData";
+
+        // ref. RFC 5545 §3.3.11: a TEXT value with its comma and semicolon escaped.
+        private const string EscapedTextSeparators = "SUMMARY:Lunch\\, then review\\; bring notes";
+
+        // ref. RFC 5545 §3.8.1.2, example.
+        private const string Rfc5545Categories = "CATEGORIES:APPOINTMENT,EDUCATION";
+
+        // ref. RFC 5545 §3.8.1.10, example.
+        private const string Rfc5545Resources = "RESOURCES:EASEL,PROJECTOR,VCR";
+
+        // ref. RFC 5545 §3.8.8.3, examples: a statcode and statdesc, with extdata, and with escaped separators in the statdesc and extdata.
+        private const string Rfc5545RequestStatusSuccess = "REQUEST-STATUS:2.0;Success";
+        private const string Rfc5545RequestStatusWithData = "REQUEST-STATUS:3.1;Invalid property value;DTSTART:96-Apr-01";
+        private const string Rfc5545RequestStatusWithEscapes =
+            "REQUEST-STATUS:2.8; Success\\, repeating event ignored. Scheduled as a single event.;RRULE:FREQ=WEEKLY\\;INTERVAL=2";
 
         private const string Attachment = "ATTACH";
         private const string DtStart = "DTSTART";
         private const string Duration = "DURATION";
+        private const string RequestStatus = "REQUEST-STATUS";
         private const string RecurrenceRule = "RRULE";
         private const string AlarmPath = "VCALENDAR/VEVENT[1]/VALARM[1]";
         private const string TodoPath = "VCALENDAR/VTODO[1]";
@@ -139,6 +160,28 @@ namespace DataStandardizer.File.iCal.Tests
             [BinaryWithoutEncodingCase] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
             ["PriorityOutOfRange"] = new Case(EventCalendar("PRIORITY:10"), IcalDiagnosticKind.InvalidValue, "PRIORITY", EventPath),
             ["InvalidTextEscape"] = new Case(EventCalendar("SUMMARY:Back\\slash"), IcalDiagnosticKind.InvalidValue, "SUMMARY", EventPath),
+
+            // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT escapes them except where the property's grammar separates with them.
+            [UnescapedCommaInTextCase] = new Case(EventCalendar("SUMMARY:Lunch, then review"), IcalDiagnosticKind.InvalidValue, "SUMMARY",
+                EventPath),
+            [UnescapedSemicolonInTextCase] = new Case(EventCalendar("SUMMARY:Lunch; review"), IcalDiagnosticKind.InvalidValue, "SUMMARY",
+                EventPath),
+            [UnescapedSemicolonInCategoriesCase] = new Case(EventCalendar("CATEGORIES:APPOINTMENT;EDUCATION"), IcalDiagnosticKind.InvalidValue,
+                "CATEGORIES", EventPath),
+            [UnescapedCommaInRequestStatusCase] = new Case(EventCalendar("REQUEST-STATUS:2.0;Success, mostly"), IcalDiagnosticKind.InvalidValue,
+                RequestStatus, EventPath),
+            [UnescapedSemicolonInRequestStatusDataCase] = new Case(EventCalendar("REQUEST-STATUS:3.1;Invalid property value;DTSTART;VALUE=DATE"),
+                IcalDiagnosticKind.InvalidValue, RequestStatus, EventPath),
+
+            // ref. RFC 5545 §3.8.8.3: rstatus = statcode ";" statdesc [";" extdata], statcode = 1*DIGIT 1*2("." 1*DIGIT).
+            ["RequestStatusWithoutDescription"] = new Case(EventCalendar("REQUEST-STATUS:2.0"), IcalDiagnosticKind.InvalidValue, RequestStatus,
+                EventPath),
+            ["RequestStatusWithoutCode"] = new Case(EventCalendar("REQUEST-STATUS:Success;Done"), IcalDiagnosticKind.InvalidValue, RequestStatus,
+                EventPath),
+            ["RequestStatusCodeWithOneLevel"] = new Case(EventCalendar("REQUEST-STATUS:2;Success"), IcalDiagnosticKind.InvalidValue, RequestStatus,
+                EventPath),
+            ["RequestStatusCodeWithFourLevels"] = new Case(EventCalendar("REQUEST-STATUS:2.0.1.1;Success"), IcalDiagnosticKind.InvalidValue,
+                RequestStatus, EventPath),
             ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", EventPath),
             ["RelativeUrl"] = new Case(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", EventPath),
             ["UtcObservanceStart"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000Z", ZeroOffsetFrom,
@@ -237,7 +280,7 @@ namespace DataStandardizer.File.iCal.Tests
         /// The cases that xCal can hold.  Five cannot be written in it: the writer always writes VERSION, the value element of REFRESH-INTERVAL
         /// gives it the VALUE parameter it lacked, a binary value gives its property the ENCODING parameter it lacked, and the value element of
         /// a property takes the place of its VALUE parameters, however many there are or however many values they have.  Nor can a quoted
-        /// parameter value, since xCal has no quoting.
+        /// parameter value, since xCal has no quoting, or an unescaped comma or semicolon in a TEXT value, since xCal text has no escaping.
         /// </summary>
         public static TheoryData<string> XcalCases()
         {
@@ -245,7 +288,8 @@ namespace DataStandardizer.File.iCal.Tests
             foreach (var name in All.Keys)
             {
                 if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
-                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name))
+                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name) &&
+                    !IsUnescapedTextSeparatorCase(name))
                 {
                     data.Add(name);
                 }
@@ -265,7 +309,7 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
                     name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && name != TwoFormatTypesCase &&
-                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name))
+                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name) && !IsUnescapedTextSeparatorCase(name))
                 {
                     data.Add(name);
                 }
@@ -278,6 +322,36 @@ namespace DataStandardizer.File.iCal.Tests
         {
             return name == QuotedFormatTypeCase || name == QuotedTimeZoneIdCase || name == QuotedLanguageOnExtensionPropertyCase ||
                    name == QuotedSecondFeatureCase;
+        }
+
+        /// <summary>
+        /// The cases with an unescaped comma or semicolon in a TEXT value, which jCal and xCal cannot hold, since their text has no escaping.
+        /// </summary>
+        public static TheoryData<string> UnescapedTextSeparatorCases()
+        {
+            return new TheoryData<string>
+            {
+                UnescapedCommaInTextCase, UnescapedSemicolonInTextCase, UnescapedSemicolonInCategoriesCase, UnescapedCommaInRequestStatusCase,
+                UnescapedSemicolonInRequestStatusDataCase
+            };
+        }
+
+        /// <summary>
+        /// Properties whose TEXT value has a comma or semicolon that is either escaped or one that the property's grammar uses as a separator.
+        /// </summary>
+        public static TheoryData<string> TextSeparatorsTheGrammarAllows()
+        {
+            return new TheoryData<string>
+            {
+                EscapedTextSeparators, Rfc5545Categories, Rfc5545Resources, Rfc5545RequestStatusSuccess, Rfc5545RequestStatusWithData,
+                Rfc5545RequestStatusWithEscapes
+            };
+        }
+
+        private static bool IsUnescapedTextSeparatorCase(string name)
+        {
+            return name == UnescapedCommaInTextCase || name == UnescapedSemicolonInTextCase || name == UnescapedSemicolonInCategoriesCase ||
+                   name == UnescapedCommaInRequestStatusCase || name == UnescapedSemicolonInRequestStatusDataCase;
         }
     }
 }
