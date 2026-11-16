@@ -479,7 +479,7 @@ namespace DataStandardizer.File.iCal
 #endif
             if (valueType != IcalValueType.Unknown)
             {
-                values = TryConvertValues(property, valueType, valueParameter is null);
+                values = TryConvertValues(property, valueType, valueType == IcalValueTypeRegistry.GetDefaultValueType(name.AsSpan()));
             }
 
             // A value that cannot be converted is kept with the unknown type, with its VALUE parameter; and an extension value type is kept as

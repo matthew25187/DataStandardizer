@@ -163,6 +163,30 @@ namespace DataStandardizer.File.iCal.Tests
                 .Should().Be("<date-time>2026-01-01T08:00:00Z</date-time>");
         }
 
+        // ref. RFC 5545 §3.2.20: a VALUE parameter may name the default value type.  ref. RFC 6321 §3.4.1.2 and §3.4.1.3: GEO and
+        // REQUEST-STATUS have structured values whatever the parameters.
+        public static TheoryData<string, string, string> ExplicitDefaultValueTypeCases => new TheoryData<string, string, string>
+        {
+            { "GEO;VALUE=FLOAT:37.386013;-122.082932", "geo", "<latitude>37.386013</latitude><longitude>-122.082932</longitude>" },
+            { "REQUEST-STATUS;VALUE=TEXT:2.0;Success", "request-status", "<code>2.0</code><description>Success</description>" },
+            { "REQUEST-STATUS;VALUE=text:2.0;Success", "request-status", "<code>2.0</code><description>Success</description>" },
+        };
+
+        [Theory]
+        [MemberData(nameof(ExplicitDefaultValueTypeCases))]
+        public void WriteCalendar_StructuredPropertyWithExplicitDefaultValueType_WritesStructuredValue(string line, string propertyName,
+            string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), propertyName).Should().Be(expected);
+        }
+
         [Fact]
         public void WriteCalendar_InvalidValueAllowed_WritesUnknownWithValueParameter()
         {

@@ -257,6 +257,30 @@ namespace DataStandardizer.File.iCal.Tests
                 "[\"attendee\",{\"delegated-to\":[\"mailto:a@example.com\",\"mailto:b@example.com\"],\"rsvp\":\"TRUE\"},\"cal-address\",\"mailto:c@example.com\"]");
         }
 
+        // ref. RFC 5545 §3.2.20: a VALUE parameter may name the default value type.  ref. RFC 7265 §3.4.1.1 and §3.4.1.2: GEO and
+        // REQUEST-STATUS are arrays whatever the parameters.
+        public static TheoryData<string, string, string> ExplicitDefaultValueTypeCases => new TheoryData<string, string, string>
+        {
+            { "GEO;VALUE=FLOAT:37.386013;-122.082932", "geo", "[\"geo\",{},\"float\",[37.386013,-122.082932]]" },
+            { "REQUEST-STATUS;VALUE=TEXT:2.0;Success", "request-status", "[\"request-status\",{},\"text\",[\"2.0\",\"Success\"]]" },
+            { "REQUEST-STATUS;VALUE=text:2.0;Success", "request-status", "[\"request-status\",{},\"text\",[\"2.0\",\"Success\"]]" },
+        };
+
+        [Theory]
+        [MemberData(nameof(ExplicitDefaultValueTypeCases))]
+        public void WriteCalendar_StructuredPropertyWithExplicitDefaultValueType_WritesStructuredValue(string line, string propertyName,
+            string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = EventProperties(WriteJcal(new[] { calendar }));
+
+            // assert
+            testResult[propertyName].Should().Be(expected);
+        }
+
         [Fact]
         public void WriteCalendar_InvalidValueAllowed_WritesUnknownWithValueParameter()
         {

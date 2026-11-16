@@ -484,7 +484,7 @@ namespace DataStandardizer.File.iCal
 #endif
             if (valueType != IcalValueType.Unknown)
             {
-                values = TryWriteValues(property, valueType, valueParameter is null);
+                values = TryWriteValues(property, valueType, valueType == IcalValueTypeRegistry.GetDefaultValueType(name.AsSpan()));
             }
 
             // A value that cannot be converted is kept in an unknown element, with its VALUE parameter.
