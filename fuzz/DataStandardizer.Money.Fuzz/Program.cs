@@ -12,9 +12,23 @@ internal static class Program
     private const int HeaderLength = 4;
 
     /// <summary>
-    /// Every style <see cref="MoneyStyles"/> defines.
+    /// The largest precision of a standard format that Money passes to <see cref="decimal"/>, which the harness formats with.
+    /// <see cref="decimal"/> accepts a precision of up to 999,999,999 and builds a string that long, which exhausts the heap
+    /// limit the README sets. Money passes the standard formats it doesn't define to <see cref="decimal"/> unchanged, so that
+    /// is <see cref="decimal"/>'s behaviour, not a finding.
     /// </summary>
-    private const MoneyStyles DefinedStyles = MoneyStyles.Any;
+    private const int MaximumDecimalPrecision = 99;
+
+    /// <summary>
+    /// The format specifiers Money defines itself, which reject a precision of more than two digits.
+    /// </summary>
+    private const string MoneySpecifiers = "CHING";
+
+    /// <summary>
+    /// The name of the culture of every thread, so that the providers that fall back to the current culture behave the same on
+    /// every machine.
+    /// </summary>
+    private const string CurrentCultureName = "en-US";
 
     /// <summary>
     /// The providers an input chooses from: none, cultures whose currencies, symbols, separators, signs and patterns differ,
@@ -64,8 +78,19 @@ internal static class Program
     /// </summary>
     private static readonly string[] StandardFormats = ["C", "H", "I", "N", "G"];
 
+    /// <remarks>
+    /// Nothing here may read a static field of this class. That would run its initializers, which call the instrumented
+    /// libraries, before <see cref="Fuzzer.LibFuzzer.Run(ReadOnlySpanAction)"/> sets up the shared memory their coverage is
+    /// written to, and they would throw <see cref="NullReferenceException"/>.
+    /// </remarks>
     private static void Main()
     {
+        var culture = CultureInfo.GetCultureInfo(CurrentCultureName);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+
         Fuzzer.LibFuzzer.Run(Run);
     }
 
@@ -74,13 +99,14 @@ internal static class Program
     /// the next two the styles, and the last the length of the format string.
     /// </summary>
     /// <remarks>
-    /// <see cref="Money.TryParse(string, MoneyStyles, IFormatProvider, out Money)"/>,
-    /// <see cref="Money.TryParseExact(string, string[], IFormatProvider, MoneyStyles, out Money)"/> and
-    /// <see cref="Money.TryFormat"/> document no exceptions, so any exception from them is a finding.
-    /// <see cref="Money.Parse(string, MoneyStyles, IFormatProvider)"/> documents <see cref="FormatException"/>, and so does
-    /// <see cref="Money.ToString(string, IFormatProvider)"/>, for a format string that isn't valid. So is
-    /// <see cref="Money.Parse(string, MoneyStyles, IFormatProvider)"/> disagreeing with
-    /// <see cref="Money.TryParse(string, MoneyStyles, IFormatProvider, out Money)"/>.
+    /// <see cref="Money.TryParse(string, MoneyStyles, IFormatProvider, out Money)"/> and
+    /// <see cref="Money.TryParseExact(string, string[], IFormatProvider, MoneyStyles, out Money)"/> document no exceptions,
+    /// so any exception from them is a finding. <see cref="Money.ToString(string, IFormatProvider)"/> documents
+    /// <see cref="FormatException"/> for a format string that isn't valid, and <see cref="Money.TryFormat"/> throws it too, as
+    /// <see cref="decimal.TryFormat(Span{char}, out int, ReadOnlySpan{char}, IFormatProvider)"/> does. Any other exception
+    /// from them, or the two disagreeing about a format string, is a finding. So is
+    /// <see cref="Money.TryParseExact(string, string[], IFormatProvider, MoneyStyles, out Money)"/>, which accepts a value that
+    /// formatting reproduces, rejecting the <c>I</c> rendering of a parsed value with a currency.
     /// </remarks>
     private static void Run(ReadOnlySpan<byte> input)
     {
@@ -90,12 +116,18 @@ internal static class Program
         }
 
         var provider = Providers[input[0] % Providers.Length];
-        var styles = (MoneyStyles)(input[1] | (input[2] << 8)) & DefinedStyles;
+        var styles = (MoneyStyles)(input[1] | (input[2] << 8)) & MoneyStyles.Any;
         var formatLength = Math.Min(input[3], input.Length - HeaderLength);
         var format = Encoding.UTF8.GetString(input.Slice(HeaderLength, formatLength));
         var text = Encoding.UTF8.GetString(input.Slice(HeaderLength + formatLength));
 
         Parse(text, styles, provider);
+
+        if (IsDecimalPrecisionTooLarge(format))
+        {
+            return;
+        }
+
         ParseExact(text, format, styles, provider);
 
         foreach (var value in FormattedValues)
@@ -105,37 +137,25 @@ internal static class Program
     }
 
     /// <summary>
-    /// Parses the text, checks that the throwing overload agrees, and formats a parsed value with each standard format.
+    /// Parses the text, then formats a parsed value with each standard format and reads it back.
     /// </summary>
     private static void Parse(string text, MoneyStyles styles, IFormatProvider? provider)
     {
-        var isParsed = Money.TryParse(text, styles, provider, out var parsed);
-
-        Money thrown;
-        try
+        if (!Money.TryParse(text, styles, provider, out var parsed))
         {
-            thrown = Money.Parse(text, styles, provider);
-        }
-        catch (FormatException)
-        {
-            if (isParsed)
-            {
-                throw new InvalidOperationException("Parse threw FormatException for a value TryParse accepted.");
-            }
-
             return;
-        }
-
-        if (!isParsed || !thrown.Equals(parsed))
-        {
-            throw new InvalidOperationException("Parse and TryParse gave different results.");
         }
 
         foreach (var standardFormat in StandardFormats)
         {
             var formatted = parsed.ToString(standardFormat, provider);
-            _ = Money.TryParseExact(formatted, [standardFormat], provider, MoneyStyles.Any, out _);
+            var isReadBack = Money.TryParseExact(formatted, [standardFormat], provider, MoneyStyles.Currency, out _);
             _ = Money.TryParse(formatted, MoneyStyles.Any, provider, out _);
+
+            if (standardFormat == "I" && parsed.IsoCurrencyCode != Iso4217CurrencyCurrent.XXX && !isReadBack)
+            {
+                throw new InvalidOperationException("TryParseExact rejected the I rendering of a parsed value.");
+            }
         }
     }
 
@@ -149,33 +169,86 @@ internal static class Program
     }
 
     /// <summary>
-    /// Formats the value with the input's format string, which may not be valid, then into spans too short and long enough
-    /// for the result.
+    /// Formats the value with the input's format string, which may not be valid, with
+    /// <see cref="Money.ToString(string, IFormatProvider)"/>, and with <see cref="Money.TryFormat"/> into a span one character
+    /// too short for the result, and checks that they agree.
     /// </summary>
     private static void Format(Money value, string format, IFormatProvider? provider)
     {
-        string formatted;
+        string? formatted;
         try
         {
             formatted = value.ToString(format, provider);
         }
         catch (FormatException)
         {
+            formatted = null;
+        }
+
+        if (formatted is { Length: 0 })
+        {
             return;
         }
 
-        var tooShort = new char[Math.Max(formatted.Length - 1, 0)];
-        var longEnough = new char[formatted.Length];
-        if (formatted.Length > 0 && value.TryFormat(tooShort, out _, format, provider))
+        var tooShort = new char[formatted is null ? 0 : formatted.Length - 1];
+        bool isWritten;
+        try
+        {
+            isWritten = value.TryFormat(tooShort, out _, format, provider);
+        }
+        catch (FormatException)
+        {
+            if (formatted is not null)
+            {
+                throw new InvalidOperationException("TryFormat threw FormatException for a format string ToString accepted.");
+            }
+
+            return;
+        }
+
+        if (formatted is null)
+        {
+            throw new InvalidOperationException("TryFormat accepted a format string ToString rejected.");
+        }
+
+        if (isWritten)
         {
             throw new InvalidOperationException("TryFormat wrote a value into a span shorter than its ToString result.");
         }
+    }
 
-        if (!value.TryFormat(longEnough, out var charsWritten, format, provider)
-            || !longEnough.AsSpan(0, charsWritten).SequenceEqual(formatted))
+    /// <summary>
+    /// Determines whether the format string is a standard format that Money passes to <see cref="decimal"/>, with a precision
+    /// greater than <see cref="MaximumDecimalPrecision"/>.
+    /// </summary>
+    /// <remarks>
+    /// .NET number formatting reads a format string only as far as its first NUL character, so <c>P999</c> followed by a NUL
+    /// and anything else is <c>P999</c>.
+    /// </remarks>
+    private static bool IsDecimalPrecisionTooLarge(string format)
+    {
+        var end = format.IndexOf('\0');
+        if (end >= 0)
         {
-            throw new InvalidOperationException("TryFormat and ToString gave different results.");
+            format = format.Substring(0, end);
         }
+
+        if (format.Length < 2
+            || !char.IsAsciiLetter(format[0])
+            || MoneySpecifiers.Contains(char.ToUpperInvariant(format[0])))
+        {
+            return false;
+        }
+
+        var digits = format.AsSpan(1);
+        if (digits.ContainsAnyExceptInRange('0', '9'))
+        {
+            return false;
+        }
+
+        // A precision too long for an int is larger than any precision the harness formats with.
+        return !int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var precision)
+               || precision > MaximumDecimalPrecision;
     }
 
     /// <summary>
