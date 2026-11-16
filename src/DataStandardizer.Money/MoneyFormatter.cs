@@ -58,6 +58,9 @@ namespace DataStandardizer.Money
         // The standard numeric format of a grouped number, to which a precision may be appended.
         private const string GroupedNumberFormat = "N";
 
+        // The greatest number of digits a decimal holds after the decimal point.
+        private const int MaximumDecimalScale = 28;
+
         // Placement templates matching the indices documented for NumberFormatInfo.CurrencyPositivePattern
         // and NumberFormatInfo.CurrencyNegativePattern, so that values taken from a culture may be used
         // directly. {0} is the currency token, {1} the number and {2} the negative sign.
@@ -151,9 +154,9 @@ namespace DataStandardizer.Money
             if (moneyValue.IsoCurrencyCode == Money.NoCurrency)
             {
                 var amountNumberFormat = NumberFormatInfo.GetInstance(formatProvider ?? CultureInfo.CurrentCulture);
-                var currencylessAmount = (decimal)moneyValue;
-                var currencylessIsNegative = currencylessAmount < decimal.Zero;
                 var currencylessDigits = precision ?? currencyFormat.CurrencyDecimalDigits;
+                var currencylessAmount = RoundForDisplay((decimal)moneyValue, currencylessDigits);
+                var currencylessIsNegative = currencylessAmount < decimal.Zero;
 
                 // The amount is formatted without its sign, so the negative pattern of the number formatting
                 // never applies and only its separators and group sizes are used.
@@ -173,10 +176,10 @@ namespace DataStandardizer.Money
             var currencyDecimalDigits = precision ?? moneyValue.CurrencyMinorUnits ?? currencyFormat.CurrencyDecimalDigits;
 
             // The rounded value is formatted, so that any rounding the value carries is honoured.
-            var amount = (decimal)moneyValue;
+            var amount = RoundForDisplay((decimal)moneyValue, currencyDecimalDigits);
             var isNegative = amount < decimal.Zero;
 
-            var numberPart = FormatNumber(amount < decimal.Zero ? decimal.Negate(amount) : amount, currencyDecimalDigits, currencyFormat);
+            var numberPart = FormatNumber(isNegative ? decimal.Negate(amount) : amount, currencyDecimalDigits, currencyFormat);
             // CurrencyFormatInfo accepts only the indices these tables hold.
             var pattern = isNegative
                 ? NegativePatterns[currencyFormat.CurrencyNegativePattern]
@@ -347,6 +350,25 @@ namespace DataStandardizer.Money
                 default:
                     return code;
             }
+        }
+
+        /// <summary>
+        /// Round an amount to the precision it is displayed at.
+        /// </summary>
+        /// <remarks>
+        /// Both the digits and the sign of a formatted amount are taken from the amount this returns, so that
+        /// they always agree: a negative amount which rounds to zero is displayed as zero with the positive
+        /// pattern, as <see cref="decimal"/> displays it. Midpoints are rounded away from zero, as the
+        /// <see cref="decimal"/> number format rounds them.
+        /// </remarks>
+        private static decimal RoundForDisplay(decimal amount, int decimalDigits)
+        {
+            // A decimal has at most 28 digits after the decimal point, so a greater precision cannot round it.
+            var rounded = Math.Round(amount, Math.Min(decimalDigits, MaximumDecimalScale), MidpointRounding.AwayFromZero);
+
+            // A negative amount which rounds to zero keeps its sign bit, which the number format would otherwise
+            // be relied upon to drop.
+            return rounded == decimal.Zero ? decimal.Zero : rounded;
         }
 
         /// <summary>
