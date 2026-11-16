@@ -279,6 +279,20 @@ namespace DataStandardizer.File.iCal.Tests
         #region Conformance
 
         [Theory]
+        [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendars_TextSeparatorTheGrammarAllows_DoesNotThrow(string property)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(property));
+
+            // act
+            Action testAction = () => WriteCalendars(new[] { calendar });
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
         [MemberData(nameof(RejectedConformanceCases))]
         public void WriteCalendar_NonConformantWithDefaults_ThrowsAndWritesNothing(string caseName)
         {

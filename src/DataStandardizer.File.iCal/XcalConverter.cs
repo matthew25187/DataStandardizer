@@ -47,11 +47,6 @@ namespace DataStandardizer.File.iCal
         };
 
         /// <summary>
-        /// The properties whose value is a list of TEXT values.
-        /// </summary>
-        private static readonly string[] TextListProperties = { IcalPropertyNames.Categories, IcalPropertyNames.Resources };
-
-        /// <summary>
         /// The parameters whose value is a URI (RFC 6321 Appendix A §3.2).
         /// </summary>
         private static readonly string[] UriParameters = { IcalParameterNames.AlternateRepresentation, IcalParameterNames.Directory };
@@ -867,7 +862,7 @@ namespace DataStandardizer.File.iCal
         private static bool IsListProperty(string name)
         {
             return IcalConformance.ListProperties.Contains(name, StringComparer.OrdinalIgnoreCase) ||
-                   TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
+                   IcalConformance.TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
         }
 
         private static string FormatBoolean(bool value, IcalValueFormat format)

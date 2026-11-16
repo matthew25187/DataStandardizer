@@ -390,6 +390,37 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendar_TextSeparatorTheGrammarAllows_DoesNotThrow(string property)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(property));
+
+            // act
+            Action testAction = () => WriteJcal(new[] { calendar });
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.UnescapedTextSeparatorCases), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendar_UnescapedTextSeparatorWithDefaults_ThrowsForTheProperty(string caseName)
+        {
+            // arrange
+            var testCase = ConformanceCases.All[caseName];
+            var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
+
+            // act
+            Action testAction = () => WriteJcal(new[] { calendar });
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName);
+        }
+
         [Fact]
         public void WriteCalendar_NonConformant_Throws()
         {

@@ -39,7 +39,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The properties whose value is a comma-separated list of TEXT values (RFC 5545 §3.8.1.2 and §3.8.1.10).
         /// </summary>
-        private static readonly string[] TextListProperties = { IcalPropertyNames.Categories, IcalPropertyNames.Resources };
+        internal static readonly string[] TextListProperties ={ IcalPropertyNames.Categories, IcalPropertyNames.Resources };
 
         /// <summary>
         /// The properties RFC 7986 §5 gives no default value type, so that they need a <c>VALUE</c> parameter.
@@ -834,21 +834,22 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static bool IsValidText(string name, ReadOnlySpan<char> value)
         {
-            if (!ContentLineEscaping.TryUnescapeText(value, new char[value.Length], out _, out _)) return false;
-
             // ref. RFC 5545§3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT escapes them.  An unescaped comma separates the items of a
             // CATEGORIES or RESOURCES list (RFC 5545§3.8.1.2 and §3.8.1.10), an unescaped semicolon the minver and maxver of VERSION
-            // (RFC 5545§3.7.4), and up to two the statcode, statdesc and extdata of REQUEST-STATUS (RFC 5545§3.8.8.3).
+            // (RFC 5545§3.7.4), and one or two the statcode, statdesc and extdata of REQUEST-STATUS (RFC 5545§3.8.8.3).
+            var isRequestStatus = IsName(name, IcalPropertyNames.RequestStatus);
+            if (isRequestStatus && !StartsWithStatusCode(value)) return false;
+
             var allowsComma = TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
-            var allowedSemicolons = IsName(name, IcalPropertyNames.RequestStatus) ? 2 : IsName(name, IcalPropertyNames.Version) ? 1 : 0;
+            var allowedSemicolons = isRequestStatus ? 2 : IsName(name, IcalPropertyNames.Version) ? 1 : 0;
             var semicolons = 0;
             for (var index = 0; index < value.Length; index++)
             {
                 switch (value[index])
                 {
                     case '\\':
-                        // The escape is valid, so the next character is part of it.
-                        index++;
+                        // ref. RFC 5545§3.3.11: ESCAPED-CHAR = ("\\" / "\;" / "\," / "\N" / "\n").
+                        if (++index == value.Length || !IsEscapedCharacter(value[index])) return false;
                         break;
                     case ',':
                         if (!allowsComma) return false;
@@ -860,6 +861,43 @@ namespace DataStandardizer.File.iCal
             }
 
             return true;
+        }
+
+        private static bool IsEscapedCharacter(char character)
+        {
+            return character == '\\' || character == ';' || character == ',' || character == 'N' || character == 'n';
+        }
+
+        /// <summary>
+        /// Checks that a REQUEST-STATUS value starts with its statcode and the semicolon after it.
+        /// </summary>
+        private static bool StartsWithStatusCode(ReadOnlySpan<char> value)
+        {
+            // ref. RFC 5545§3.8.8.3: rstatus = statcode ";" statdesc [";" extdata], statcode = 1*DIGIT 1*2("." 1*DIGIT).
+            var index = SkipDigits(value, 0);
+            if (index == 0) return false;
+
+            var levels = 0;
+            while (index < value.Length && value[index] == '.' && levels < 2)
+            {
+                var end = SkipDigits(value, index + 1);
+                if (end == index + 1) return false;
+
+                index = end;
+                levels++;
+            }
+
+            return levels > 0 && index < value.Length && value[index] == ';';
+        }
+
+        private static int SkipDigits(ReadOnlySpan<char> value, int index)
+        {
+            while (index < value.Length && value[index] >= '0' && value[index] <= '9')
+            {
+                index++;
+            }
+
+            return index;
         }
 
         /// <summary>
