@@ -23,6 +23,11 @@ namespace DataStandardizer.Money
         private static readonly Dictionary<string, Iso4217CurrencyCurrent> UnambiguousCurrentSymbols;
         private static readonly Dictionary<string, Iso4217CurrencyCurrent[]> AmbiguousCurrentSymbols;
 
+        // Standard symbols which are the standard symbol of exactly one currency, whether or not they are
+        // also the narrow symbol of others. '$' is the standard symbol of USD alone, though the narrow symbol
+        // of some thirty currencies. Only a value known to carry a standard symbol is resolved from these.
+        private static readonly Dictionary<string, Iso4217CurrencyCurrent> SoleStandardCurrentSymbols;
+
         // Ordered longest first so that 'NZ$' is matched in preference to '$', and 'L£' in preference to '£'.
         private static readonly string[] CurrentSymbolsByDescendingLength;
 
@@ -43,6 +48,18 @@ namespace DataStandardizer.Money
                 else
                 {
                     AmbiguousCurrentSymbols[symbolCandidate.Key] = symbolCandidate.Value.ToArray();
+                }
+            }
+
+            var standardSymbolCandidates = new Dictionary<string, List<Iso4217CurrencyCurrent>>();
+            CollectSymbolCandidates(CurrentStandardSymbols, standardSymbolCandidates);
+
+            SoleStandardCurrentSymbols = new Dictionary<string, Iso4217CurrencyCurrent>();
+            foreach (var standardSymbolCandidate in standardSymbolCandidates)
+            {
+                if (standardSymbolCandidate.Value.Count == 1)
+                {
+                    SoleStandardCurrentSymbols[standardSymbolCandidate.Key] = standardSymbolCandidate.Value[0];
                 }
             }
 
@@ -141,6 +158,22 @@ namespace DataStandardizer.Money
         internal static bool TryGetUnambiguousCurrency(string symbol, out Iso4217CurrencyCurrent currencyCode)
         {
             return UnambiguousCurrentSymbols.TryGetValue(symbol, out currencyCode);
+        }
+
+        /// <summary>
+        /// Determine the currency whose standard symbol a symbol is, where it is the standard symbol of exactly
+        /// one currency.
+        /// </summary>
+        /// <param name="symbol">Symbol of the currency.</param>
+        /// <param name="currencyCode">Code of the currency whose standard symbol is <paramref name="symbol"/>, if exactly one currency has it as its standard symbol.</param>
+        /// <returns><c>true</c> if <paramref name="symbol"/> is the standard symbol of exactly one currency; otherwise <c>false</c>.</returns>
+        /// <remarks>
+        /// The symbol may also be the narrow symbol of other currencies, as <c>$</c> is, so the result holds
+        /// only for a value known to carry a standard symbol.
+        /// </remarks>
+        internal static bool TryGetSoleStandardCurrency(string symbol, out Iso4217CurrencyCurrent currencyCode)
+        {
+            return SoleStandardCurrentSymbols.TryGetValue(symbol, out currencyCode);
         }
 
         /// <summary>

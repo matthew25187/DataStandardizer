@@ -413,6 +413,127 @@ public class MoneyParsingTests
 
     #endregion
 
+    #region Test: ParseExact_StandardSymbol
+
+    // A standard symbol that is the standard symbol of one currency alone, but the narrow symbol of others as
+    // well (CLDR root currency symbols), is read as that currency in the C format and nowhere else.
+
+    private const string BritishCulture = "en-GB";
+    private const string JapaneseCulture = "ja-JP";
+    private const string KoreanCulture = "ko-KR";
+    private const string DanishCulture = "da-DK";
+    private const string AustralianCulture = "en-AU";
+
+    private const decimal WholeAmount = 500m; // a whole amount, so currencies without minor units render it unrounded
+    private const string UsdStandardSymbolValue = "$500.00";
+    private const string GbpStandardSymbolValue = "\x00A3500.00";
+    private const string JpyStandardSymbolValue = "\x00A5500";
+    private const string KrwStandardSymbolValue = "\x20A9500";
+    private const string DkkNarrowSymbolValue = "500,00 kr";
+
+    [Theory]
+    [MemberData(nameof(StandardSymbolRenderingTestCases))]
+    public void ToString_SharedStandardSymbol_RendersTheStandardSymbol(string testCulture, Iso4217CurrencyCurrent testCurrency, string testFormat, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(WholeAmount, testCurrency);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, MoneyInfoFor(testCulture));
+
+        // assert
+        testResult.Should().Be(expectedResult, "the format {0} was requested under the culture {1}", testFormat, testCulture);
+    }
+
+    public static TheoryData<string, Iso4217CurrencyCurrent, string, string> StandardSymbolRenderingTestCases => new()
+    {
+        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, StandardSymbolFormat, UsdStandardSymbolValue },
+        { BritishCulture, Iso4217CurrencyCurrent.GBP, StandardSymbolFormat, GbpStandardSymbolValue },
+        { JapaneseCulture, Iso4217CurrencyCurrent.JPY, StandardSymbolFormat, JpyStandardSymbolValue },
+        { KoreanCulture, Iso4217CurrencyCurrent.KRW, StandardSymbolFormat, KrwStandardSymbolValue },
+        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, NarrowSymbolFormat, UsdStandardSymbolValue },
+        { DanishCulture, Iso4217CurrencyCurrent.DKK, NarrowSymbolFormat, DkkNarrowSymbolValue },
+    };
+
+    [Theory]
+    [MemberData(nameof(StandardSymbolParseExactTestCases))]
+    public void ParseExact_StandardSymbolFormatRendering_ReturnsTheFormattedValue(string testCulture, string testValue, Iso4217CurrencyCurrent expectedCurrency)
+    {
+        // act
+        var testResult = Money.ParseExact(testValue, StandardSymbolFormat, MoneyInfoFor(testCulture));
+
+        // assert
+        testResult.IsoCurrencyCode.Should().Be(expectedCurrency, "the symbol is the standard symbol of that currency alone");
+        ((decimal)testResult).Should().Be(WholeAmount);
+    }
+
+    public static TheoryData<string, string, Iso4217CurrencyCurrent> StandardSymbolParseExactTestCases => new()
+    {
+        { UnitedStatesCulture, UsdStandardSymbolValue, Iso4217CurrencyCurrent.USD },
+        { BritishCulture, GbpStandardSymbolValue, Iso4217CurrencyCurrent.GBP },
+        { JapaneseCulture, JpyStandardSymbolValue, Iso4217CurrencyCurrent.JPY },
+        { KoreanCulture, KrwStandardSymbolValue, Iso4217CurrencyCurrent.KRW },
+    };
+
+    [Theory]
+    [MemberData(nameof(StandardSymbolTryParseExactTestCases))]
+    public void TryParseExact_StandardSymbolFormat_ReadsTheStandardSymbolCurrency(string testCulture, MoneyStyles testStyles, Iso4217CurrencyCurrent expectedCurrency)
+    {
+        // act
+        var testResult = Money.TryParseExact(UsdStandardSymbolValue, new[] { StandardSymbolFormat }, MoneyInfoFor(testCulture), testStyles, out var result);
+
+        // assert
+        testResult.Should().BeTrue();
+        result.IsoCurrencyCode.Should().Be(expectedCurrency, "the C format carries the standard symbol, whatever the culture's currency");
+    }
+
+    public static TheoryData<string, MoneyStyles, Iso4217CurrencyCurrent> StandardSymbolTryParseExactTestCases => new()
+    {
+        { UnitedStatesCulture, MoneyStyles.Currency, Iso4217CurrencyCurrent.USD },
+        { AustralianCulture, MoneyStyles.Currency, Iso4217CurrencyCurrent.USD },
+        { AustralianCulture, MoneyStyles.Any, Iso4217CurrencyCurrent.USD },
+    };
+
+    [Theory]
+    [MemberData(nameof(SharedSymbolWithoutOptInTestCases))]
+    public void TryParseExact_SharedSymbolInAnotherFormatWithoutOptIn_ReturnsFalse(string testCulture, string testValue, string testFormat)
+    {
+        // act
+        var testResult = Money.TryParseExact(testValue, new[] { testFormat }, MoneyInfoFor(testCulture), MoneyStyles.Currency, out _);
+
+        // assert
+        testResult.Should().BeFalse("outside the C format a shared symbol needs the opt-in");
+    }
+
+    public static TheoryData<string, string, string> SharedSymbolWithoutOptInTestCases => new()
+    {
+        // '$' is USD's standard symbol, but the H format renders a narrow symbol, which '$' is for some thirty currencies.
+        { UnitedStatesCulture, UsdStandardSymbolValue, NarrowSymbolFormat },
+        // 'kr' is the standard symbol of no currency, and the narrow symbol of several.
+        { DanishCulture, DkkNarrowSymbolValue, NarrowSymbolFormat },
+    };
+
+    [Theory]
+    [MemberData(nameof(StandardSymbolWithoutFormatTestCases))]
+    public void TryParse_StandardSymbolWithoutOptIn_ReturnsFalse(string testCulture, string testValue)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, MoneyInfoFor(testCulture), out _);
+
+        // assert
+        testResult.Should().BeFalse("without a format, a symbol that is also a narrow symbol of other currencies stays ambiguous");
+    }
+
+    public static TheoryData<string, string> StandardSymbolWithoutFormatTestCases => new()
+    {
+        { UnitedStatesCulture, UsdStandardSymbolValue },
+        { BritishCulture, GbpStandardSymbolValue },
+        { JapaneseCulture, JpyStandardSymbolValue },
+        { KoreanCulture, KrwStandardSymbolValue },
+    };
+
+    #endregion
+
     #region Test: RoundTrip
 
     // A round trip is shown in two halves: ToString produces each representation below, and TryParse

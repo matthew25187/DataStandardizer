@@ -74,7 +74,7 @@ counts as the currency `XXX`.
 | `Parse(string s)` | `Money` | Throws `FormatException` if `s` is not a valid value. |
 | `Parse(string s, IFormatProvider? provider)` | `Money` | Culture-specific parse. |
 | `Parse(string s, MoneyStyles styles, IFormatProvider? provider)` | `Money` | Permits only the specified elements. |
-| `ParseExact(string s, string format, IFormatProvider? provider)` | `Money` | Requires `s` to be in the given format. |
+| `ParseExact(string s, string format, IFormatProvider? provider)` | `Money` | Requires `s` to be in the given format. With `C`, reads the result of formatting with `C` back to the same value. |
 | `ParseExact(string s, string[] formats, IFormatProvider? provider, MoneyStyles styles)` | `Money` | Requires `s` to be in one of the given formats. |
 | `ToString()` | `string` | The amount alone, with the rounding the value carries. The same as `ToString(null, null)`. |
 | `ToString(IFormatProvider? provider)` | `string` | The same as `ToString(null, provider)`. |

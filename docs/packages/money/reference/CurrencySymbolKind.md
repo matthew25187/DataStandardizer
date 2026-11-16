@@ -27,7 +27,7 @@ two forms for many currencies.
 
 | Member | Value | Notes |
 | --- | --- | --- |
-| `Standard` | `0` | The standard symbol; unambiguous in context. |
+| `Standard` | `0` | The standard symbol; no other currency has it as its standard symbol, though it may be another currency's narrow symbol. |
 | `Narrow` | `1` | The shortest recognisable form, which may be shared by several currencies. |
 
 Where a glyph is shared by several currencies, the standard form distinguishes

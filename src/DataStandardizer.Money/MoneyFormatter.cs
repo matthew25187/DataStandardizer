@@ -253,6 +253,19 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
+        /// Determine whether a format string is the standard symbol format, <c>C</c> with an optional precision.
+        /// </summary>
+        /// <param name="format">Format string to examine.</param>
+        /// <returns><c>true</c> if <paramref name="format"/> renders a value with the standard symbol of its currency; otherwise <c>false</c>.</returns>
+        internal static bool IsStandardSymbolFormat(string format)
+        {
+            // A currency code format such as CAD cannot match, since its precision would not be numeric.
+            return !string.IsNullOrEmpty(format)
+                   && char.ToUpperInvariant(format[0]) == Specifier.CurrencySymbol
+                   && TryParsePrecision(format, 1, out _);
+        }
+
+        /// <summary>
         /// Interpret a format string consisting of an ISO 4217 currency code and an optional precision.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER

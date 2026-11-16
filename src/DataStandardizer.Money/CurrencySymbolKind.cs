@@ -10,11 +10,13 @@ namespace DataStandardizer.Money
     public enum CurrencySymbolKind
     {
         /// <summary>
-        /// The standard currency symbol; unambiguous in context.
+        /// The standard currency symbol; no other currency has it as its standard symbol.
         /// </summary>
         /// <remarks>
         /// Where a glyph is shared by several currencies, the standard form distinguishes between them,
-        /// for example <c>NZ$</c> for the New Zealand Dollar and <c>CA$</c> for the Canadian Dollar.
+        /// for example <c>NZ$</c> for the New Zealand Dollar and <c>CA$</c> for the Canadian Dollar. A
+        /// standard symbol may still be the narrow symbol of other currencies, as <c>$</c>, the standard
+        /// symbol of the US Dollar, is, so it is unambiguous only where it is known to be a standard symbol.
         /// </remarks>
         Standard = 0,
 

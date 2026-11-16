@@ -46,6 +46,11 @@ namespace DataStandardizer.Money
         /// <param name="currencyFormat">Currency formatting information of the culture to parse for.</param>
         /// <param name="currencyNumberFormat">Number formatting information with the separators and negative sign of <paramref name="currencyFormat"/>, used to interpret an amount with a currency token.</param>
         /// <param name="amountNumberFormat">Number formatting information used by the general format, used to interpret an amount without a currency token.</param>
+        /// <param name="standardSymbolsFirst">
+        /// <c>true</c> to resolve a symbol that is the standard symbol of exactly one currency to that currency
+        /// before considering it as the narrow symbol of others, as for a value known to be in the standard
+        /// symbol form; otherwise <c>false</c>.
+        /// </param>
         /// <param name="result">Monetary value parsed from <paramref name="value"/>.</param>
         /// <returns><c>true</c> if <paramref name="value"/> was parsed successfully; otherwise <c>false</c>.</returns>
         /// <remarks>
@@ -54,9 +59,9 @@ namespace DataStandardizer.Money
         /// general form, or is a value with no currency, and both use those of the number formatting.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParse(string? value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo currencyNumberFormat, NumberFormatInfo amountNumberFormat, out Money result)
+        internal static bool TryParse(string? value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo currencyNumberFormat, NumberFormatInfo amountNumberFormat, bool standardSymbolsFirst, out Money result)
 #else
-        internal static bool TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo currencyNumberFormat, NumberFormatInfo amountNumberFormat, out Money result)
+        internal static bool TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo currencyNumberFormat, NumberFormatInfo amountNumberFormat, bool standardSymbolsFirst, out Money result)
 #endif
         {
             result = default(Money);
@@ -73,10 +78,10 @@ namespace DataStandardizer.Money
             // token decides which separators the amount is read with.
             if (string.Equals(currencyNegativeSign, amountNegativeSign, StringComparison.Ordinal))
             {
-                return TryParse(value, styles, currencyFormat, currencyNegativeSign, currencyNumberFormat, amountNumberFormat, out result) == ParseOutcome.Parsed;
+                return TryParse(value, styles, currencyFormat, standardSymbolsFirst, currencyNegativeSign, currencyNumberFormat, amountNumberFormat, out result) == ParseOutcome.Parsed;
             }
 
-            switch (TryParse(value, styles, currencyFormat, currencyNegativeSign, currencyNumberFormat, null, out result))
+            switch (TryParse(value, styles, currencyFormat, standardSymbolsFirst, currencyNegativeSign, currencyNumberFormat, null, out result))
             {
                 case ParseOutcome.Parsed:
                     return true;
@@ -84,7 +89,7 @@ namespace DataStandardizer.Money
                 case ParseOutcome.NoCurrencyToken:
                     // Read again with the sign of the number formatting, which must not then find a currency
                     // token that the reading with the currency's sign did not.
-                    return TryParse(value, styles, currencyFormat, amountNegativeSign, null, amountNumberFormat, out result) == ParseOutcome.Parsed;
+                    return TryParse(value, styles, currencyFormat, standardSymbolsFirst, amountNegativeSign, null, amountNumberFormat, out result) == ParseOutcome.Parsed;
 
                 default:
                     return false;
@@ -108,6 +113,7 @@ namespace DataStandardizer.Money
         /// <param name="value">String to parse, which is neither <c>null</c> nor empty.</param>
         /// <param name="styles">Elements permitted in <paramref name="value"/>.</param>
         /// <param name="currencyFormat">Currency formatting information of the culture to parse for.</param>
+        /// <param name="standardSymbolsFirst"><c>true</c> to resolve a symbol from the standard symbols first; otherwise <c>false</c>.</param>
         /// <param name="negativeSign">Negative sign to read.</param>
         /// <param name="tokenNumberFormat">
         /// Number formatting information whose separators are used where <paramref name="value"/> has a
@@ -120,9 +126,9 @@ namespace DataStandardizer.Money
         /// <param name="result">Monetary value parsed from <paramref name="value"/>.</param>
         /// <returns>The outcome of the attempt.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, string negativeSign, NumberFormatInfo? tokenNumberFormat, NumberFormatInfo? tokenlessNumberFormat, out Money result)
+        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, string negativeSign, NumberFormatInfo? tokenNumberFormat, NumberFormatInfo? tokenlessNumberFormat, out Money result)
 #else
-        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, string negativeSign, NumberFormatInfo tokenNumberFormat, NumberFormatInfo tokenlessNumberFormat, out Money result)
+        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, string negativeSign, NumberFormatInfo tokenNumberFormat, NumberFormatInfo tokenlessNumberFormat, out Money result)
 #endif
         {
             result = default(Money);
@@ -158,7 +164,7 @@ namespace DataStandardizer.Money
 
             remaining = remaining.Trim();
 
-            if (!TryExtractCurrency(ref remaining, styles, currencyFormat, out var currencyCode, out var hasCurrency))
+            if (!TryExtractCurrency(ref remaining, styles, currencyFormat, standardSymbolsFirst, out var currencyCode, out var hasCurrency))
             {
                 return ParseOutcome.Failed;
             }
@@ -211,7 +217,7 @@ namespace DataStandardizer.Money
         /// <summary>
         /// Remove the currency token from a value and identify the currency it denotes.
         /// </summary>
-        private static bool TryExtractCurrency(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, out Iso4217CurrencyCurrent currencyCode, out bool hasCurrency)
+        private static bool TryExtractCurrency(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, out Iso4217CurrencyCurrent currencyCode, out bool hasCurrency)
         {
             currencyCode = default(Iso4217CurrencyCurrent);
             hasCurrency = false;
@@ -241,6 +247,18 @@ namespace DataStandardizer.Money
                 if ((styles & MoneyStyles.AllowCurrencySymbol) == 0)
                 {
                     return false;
+                }
+
+                // In a value known to carry a standard symbol, a symbol that is the standard symbol of one
+                // currency denotes that currency, even where it is also the narrow symbol of others.
+                if (standardSymbolsFirst
+                    && CurrencySymbols.TryGetSoleStandardCurrency(symbol, out var standardCurrency)
+                    && Money.IsCurrencyCodeValidForMoneyValue(standardCurrency))
+                {
+                    value = withoutSymbol;
+                    currencyCode = standardCurrency;
+                    hasCurrency = true;
+                    return true;
                 }
 
                 if (CurrencySymbols.TryGetUnambiguousCurrency(symbol, out var unambiguousCurrency))

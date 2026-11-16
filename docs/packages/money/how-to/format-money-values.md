@@ -50,11 +50,20 @@ names the wrong currency.
 ISO 4217 defines no currency symbols, so they are taken from the Unicode Common
 Locale Data Repository, which publishes two forms.
 
-The **standard** form, emitted by `C`, is unambiguous: `NZ$` for the New Zealand
-Dollar and `CA$` for the Canadian Dollar. The **narrow** form, emitted by `H`, is
-the shortest recognisable form and may be shared: `$` alone is the narrow symbol
-of some thirty currencies. Use `H` only where the currency is already clear from
-the context.
+The **standard** form, emitted by `C`, is unambiguous among standard symbols: no
+two currencies have the same one. It is `NZ$` for the New Zealand Dollar and
+`CA$` for the Canadian Dollar. The **narrow** form, emitted by `H`, is the
+shortest recognisable form and may be shared: `$` alone is the narrow symbol of
+some thirty currencies. Use `H` only where the currency is already clear from the
+context.
+
+A standard symbol can also be the narrow symbol of other currencies. `$` is the
+standard symbol of the US Dollar, `£` of the Pound Sterling, `¥` of the Japanese
+Yen and `₩` of the South Korean Won, and each is the narrow symbol of other
+currencies too. So `$` is unambiguous only where the value is known to be in the
+`C` form, as it is for `ParseExact` with `C`. Parsing without a format still
+treats it as shared. See
+[Parse money values](parse-money-values.md#requiring-an-exact-format).
 
 Most currencies have no symbol distinct from their code, so `C` emits the code
 for them. That is the correct convention rather than a gap in the data.
