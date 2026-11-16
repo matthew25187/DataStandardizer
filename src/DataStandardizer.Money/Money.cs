@@ -1482,13 +1482,20 @@ namespace DataStandardizer.Money
         /// <para>
         /// The supported format specifiers are <c>C</c> for the currency symbol, <c>H</c> for the narrow
         /// currency symbol, <c>I</c> for the ISO 4217 currency code, <c>N</c> for the currency name and
-        /// <c>G</c> for the amount alone. Each may be followed by a precision; where none is given the minor
-        /// units of the currency are used. A format string consisting of an ISO 4217 currency code emits the
-        /// code, and asserts that it is the currency of this value.
+        /// <c>G</c> for the amount alone. Each of <c>C</c>, <c>H</c>, <c>I</c> and <c>N</c> may be followed by a
+        /// precision, which is a number of decimal places; where none is given the minor units of the currency
+        /// are used. A format string consisting of an ISO 4217 currency code emits the code, and asserts that it
+        /// is the currency of this value.
+        /// </para>
+        /// <para>
+        /// <c>G</c> is the general format of <see cref="decimal"/>, and it and its precision mean what they mean
+        /// for <see cref="decimal"/>: the precision is a number of significant digits, the result may be in
+        /// scientific notation, and where no precision is given the minor units of the currency are not applied.
+        /// For example, <c>G2</c> formats an amount of <c>1234.56</c> as <c>1.2E+03</c> in the invariant culture.
         /// </para>
         /// <para>
         /// Only the presentation of the value is taken from <paramref name="formatProvider"/>. The currency
-        /// denoted, and the default precision, come from the value itself.
+        /// denoted, and the default precision of the money formats, come from the value itself.
         /// </para>
         /// <para>
         /// <paramref name="formatProvider"/> may be a <see cref="MoneyInfo"/>, a <see cref="CurrencyFormatInfo"/>,

@@ -729,6 +729,32 @@ public class MoneyFormatterTests
 
     #endregion
 
+    #region Test: Format_GeneralFormat
+
+    public static TheoryData<decimal, string, string> GeneralFormatTestCases() => new()
+    {
+        // The precision of G is a number of significant digits, and may give scientific notation.
+        { 1234.56m, "G2", "1.2E+03" },
+        // Without a precision, the minor units of the currency (2 for USD) are not applied.
+        { FiveAmount, GeneralFormat, "5" },
+    };
+
+    [Theory]
+    [MemberData(nameof(GeneralFormatTestCases))]
+    public void Format_GeneralFormat_FormatsAsDecimal(decimal testAmount, string testFormat, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(testAmount, Iso4217CurrencyCurrent.USD);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, NumberFormatInfo.InvariantInfo);
+
+        // assert
+        testResult.Should().Be(expectedResult, "G and its precision mean what they mean for decimal, so the precision is significant digits and the minor units are not applied");
+    }
+
+    #endregion
+
     #region Test: Format_ProviderWithCustomFormatterFallingBackToFormattable
 
     [Theory]
