@@ -2,7 +2,8 @@ namespace DataStandardizer.Money.Tests;
 
 /// <summary>
 /// A format provider whose custom formatter follows the usual pattern: it formats every value through
-/// <see cref="IFormattable.ToString(string, IFormatProvider)"/> with the provider it was given.
+/// <see cref="IFormattable.ToString(string, IFormatProvider)"/> with the provider it was given. Every
+/// value it is given must be <see cref="IFormattable"/>.
 /// </summary>
 /// <remarks>
 /// A call to <see cref="Format"/> made while another is in progress returns <see cref="ReentryResult"/>
@@ -44,7 +45,7 @@ internal sealed class FallbackCustomFormatProvider : IFormatProvider, ICustomFor
         _formatting = true;
         using var reset = new FormattingScope(this);
 
-        return arg is IFormattable formattable ? formattable.ToString(format, formatProvider) : arg?.ToString() ?? string.Empty;
+        return ((IFormattable)arg!).ToString(format, formatProvider);
     }
 
     private readonly struct FormattingScope : IDisposable

@@ -97,9 +97,6 @@ namespace DataStandardizer.Money
 
         private const Iso4217CurrencyCurrent DefaultCurrency = Iso4217CurrencyCurrent.XXX;
 
-        // The formatter holds no state, so one instance serves every call.
-        private static readonly MoneyFormatter Formatter = new MoneyFormatter();
-
         /// <summary>
         /// The currency code of a monetary value which carries no currency.
         /// </summary>
@@ -1520,14 +1517,18 @@ namespace DataStandardizer.Money
         {
             // The money formatter is called directly rather than through the provider, so that a custom
             // formatter the provider supplies is never called back with this value.
-            return Formatter.Format(format, this, ResolveMoneyProvider(formatProvider));
+            return MoneyFormatter.Instance.Format(format, this, ResolveMoneyProvider(formatProvider));
         }
 
         /// <summary>
         /// Resolve the provider of monetary formatting information for a caller-supplied format provider.
         /// </summary>
         /// <param name="formatProvider">Format provider supplied by the caller, which may be <c>null</c>.</param>
-        /// <returns>A provider which supplies both a formatter and currency formatting information.</returns>
+        /// <returns>
+        /// A provider which supplies currency formatting information. Any custom formatter it supplies is not
+        /// used: formatting calls the money formatter directly, so that a caller's formatter is never called
+        /// back with the value it is formatting.
+        /// </returns>
         /// <remarks>
         /// A caller may reasonably pass a <see cref="CultureInfo"/>, a <see cref="NumberFormatInfo"/> or a
         /// <see cref="CurrencyFormatInfo"/> rather than a <see cref="MoneyInfo"/>. Each is resolved to a

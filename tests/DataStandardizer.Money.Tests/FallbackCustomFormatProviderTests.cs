@@ -6,6 +6,7 @@ public class FallbackCustomFormatProviderTests
 {
     private const string FixedFormat = "0.0";
     private const decimal TestAmount = 1.5m;
+    private const string TestAmountResult = "1.5"; // TestAmount in FixedFormat
 
     [Fact]
     public void Format_FormattableArgument_ReturnsItsFormattedValue()
@@ -17,7 +18,7 @@ public class FallbackCustomFormatProviderTests
         var testResult = testSubject.Format(FixedFormat, TestAmount, CurrencyFormatInfo.InvariantInfo);
 
         // assert
-        testResult.Should().Be("1.5");
+        testResult.Should().Be(TestAmountResult);
     }
 
     [Fact]
@@ -47,7 +48,7 @@ public class FallbackCustomFormatProviderTests
         };
 
         // assert
-        testResults.Should().Equal("1.5", "1.5");
+        testResults.Should().Equal(TestAmountResult, TestAmountResult);
     }
 
     [Fact]

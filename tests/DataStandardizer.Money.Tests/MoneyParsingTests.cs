@@ -47,6 +47,7 @@ public class MoneyParsingTests
 
     // Amounts with the decimal separator "," and the group separator ".".
     private const string CommaDecimalOneAndAHalfValue = "1,5";
+    private const string PointDecimalOneAndAHalfValue = "1.5";
     private const string CommaDecimalGroupedValue = "1.234,56";
 
     // NegativeOneAndAHalf with the negative sign U+2212 MINUS SIGN.
@@ -326,7 +327,7 @@ public class MoneyParsingTests
     public static TheoryData<CultureInfo, IFormatProvider?, string, decimal, Iso4217CurrencyCurrent> AmountSeparatorsTestCases => new()
     {
         // A NumberFormatInfo, whose currency formatting comes from the thread culture.
-        { new CultureInfo(GermanCulture), NumberFormatInfo.InvariantInfo, "1.5", OneAndAHalf, Iso4217CurrencyCurrent.XXX },
+        { new CultureInfo(GermanCulture), NumberFormatInfo.InvariantInfo, PointDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
         { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture().NumberFormat, "1234,56", RoundTripAmount, Iso4217CurrencyCurrent.XXX },
         // A negative sign that differs from the currency's, with and without a currency token.
         { new CultureInfo(UnitedStatesCulture), MinusSignNumberFormat(), MinusSignOneAndAHalfValue, NegativeOneAndAHalf, Iso4217CurrencyCurrent.XXX },
@@ -336,6 +337,9 @@ public class MoneyParsingTests
         { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalGroupedValue, RoundTripAmount, Iso4217CurrencyCurrent.XXX },
         { new CultureInfo(UnitedStatesCulture), new MoneyInfo(CommaDecimalCulture()), CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
         { new CultureInfo(UnitedStatesCulture), new CurrencyFormatInfo { CurrencyDecimalSeparator = ",", CurrencyGroupSeparator = "." }, CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
+        // A provider which also supplies a custom formatter, whose number formatting comes from its CurrencyFormatInfo
+        // as for a CurrencyFormatInfo, not from the thread culture.
+        { new CultureInfo(GermanCulture), new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo), PointDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
         // No provider, so the thread culture.
         { CommaDecimalCulture(), null, CommaDecimalOneAndAHalfValue, OneAndAHalf, Iso4217CurrencyCurrent.XXX },
         // A currency token, so the currency formatting.

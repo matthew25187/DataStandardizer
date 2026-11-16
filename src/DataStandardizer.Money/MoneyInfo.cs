@@ -4,9 +4,6 @@ using System.Threading;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag;
-#if NETSTANDARD
-using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.Money
 {
@@ -14,10 +11,8 @@ namespace DataStandardizer.Money
     {
 #if NETCOREAPP3_0_OR_GREATER
         private CurrencyFormatInfo _currencyFormat = null!; // will always be set on all constructor paths
-        private MoneyFormatter? _formatter;
 #else
         CurrencyFormatInfo _currencyFormat;
-        [MaybeNull] MoneyFormatter _formatter;
 #endif
         private readonly NumberFormatInfo _numberFormat;
         private bool _isReadOnly;
@@ -145,7 +140,7 @@ namespace DataStandardizer.Money
         {
             if (formatType == typeof(ICustomFormatter))
             {
-                return _formatter ??= new MoneyFormatter();
+                return MoneyFormatter.Instance;
             }
 
             if (formatType == typeof(CurrencyFormatInfo))
@@ -177,7 +172,7 @@ namespace DataStandardizer.Money
         {
             if (formatType == typeof(ICustomFormatter))
             {
-                return _formatter ?? (_formatter = new MoneyFormatter());
+                return MoneyFormatter.Instance;
             }
 
             if (formatType == typeof(CurrencyFormatInfo))
