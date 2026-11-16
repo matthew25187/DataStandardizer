@@ -296,8 +296,7 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            return Enum.TryParse(format.Substring(0, currencyCodeLength), false, out currencyCode)
-                   && Enum.IsDefined(typeof(Iso4217CurrencyCurrent), currencyCode);
+            return Iso4217Extensions.TryGetCurrentCurrency(format.Substring(0, currencyCodeLength), out currencyCode);
         }
 
         /// <summary>

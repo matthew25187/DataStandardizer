@@ -36,6 +36,7 @@ namespace DataStandardizer.Money
         private const int MaximumCurrencyDecimalDigits = 99;
         private const int MaximumCurrencyNegativePattern = 16;
         private const int MaximumCurrencyPositivePattern = 3;
+        private const string RangeMessage = "The value must be from 0 to {0}.";
 
         /// <summary>
         /// The generic currency sign (U+00A4), used where a monetary value has no currency of its own.
@@ -149,7 +150,7 @@ namespace DataStandardizer.Money
 
                 if (!Iso4217Extensions.TryGetCurrentCurrency(value, out _))
                 {
-                    throw new ArgumentException("The value must be the alphabetic code of a current ISO 4217 currency.", nameof(value));
+                    throw new ArgumentException("The value must be the alphabetic code of a currency Iso4217CurrencyCurrent defines.", nameof(value));
                 }
 
                 if (IsReadOnly)
@@ -183,7 +184,7 @@ namespace DataStandardizer.Money
             {
                 if (value < 0 || value > MaximumCurrencyDecimalDigits)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The value must be from 0 to 99.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyDecimalDigits));
                 }
 
                 if (IsReadOnly)
@@ -350,7 +351,7 @@ namespace DataStandardizer.Money
             {
                 if (value < 0 || value > MaximumCurrencyNegativePattern)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The value must be from 0 to 16.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyNegativePattern));
                 }
 
                 if (IsReadOnly)
@@ -383,7 +384,7 @@ namespace DataStandardizer.Money
             {
                 if (value < 0 || value > MaximumCurrencyPositivePattern)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The value must be from 0 to 3.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyPositivePattern));
                 }
 
                 if (IsReadOnly)

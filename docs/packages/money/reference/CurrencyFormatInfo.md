@@ -70,12 +70,16 @@ reads it.
 | `NegativeSign` | `string` | The sign denoting a negative value; not always an ASCII hyphen. May be empty. |
 | `IsReadOnly` | `bool` | `true` when the instance may not be modified. |
 
-Each setter accepts what the `NumberFormatInfo` property of the same name accepts,
-and throws the same exception for anything else: `ArgumentNullException` for `null`
-(no property accepts it), `ArgumentOutOfRangeException` for a number out of range, and
-`ArgumentException` for an empty decimal separator, invalid group sizes or a
-`CurrencyCode` that isn't a defined code. Setting any property on a read-only
-instance raises an `InvalidOperationException`.
+Each setter other than `CurrencyCode` accepts what the `NumberFormatInfo` property
+of the same name accepts, and throws the same exception for anything else:
+`ArgumentNullException` for `null`, `ArgumentOutOfRangeException` for a number out of
+range, and `ArgumentException` for an empty decimal separator or invalid group sizes.
+`NumberFormatInfo` has no `CurrencyCode`. This setter throws `ArgumentNullException` for
+`null` and `ArgumentException` for anything that isn't a code `Iso4217CurrencyCurrent`
+defines. Setting any property on a read-only instance raises an
+`InvalidOperationException`. As in `NumberFormatInfo`, the setters for the numbers,
+`CurrencyCode`, `CurrencyGroupSizes` and `NegativeSign` check the value first, and the
+separator setters check whether the instance is read-only first.
 
 ## Static properties
 

@@ -1714,8 +1714,7 @@ namespace DataStandardizer.Money
             }
 
             var moneyProvider = ResolveMoneyProvider(provider);
-            var currencyFormat = moneyProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo
-                                 ?? MoneyInfo.GetCurrentMoney().CurrencyFormat;
+            var currencyFormat = moneyProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo ?? CurrencyFormatInfo.InvariantInfo;
             var currencyNumberFormat = GetNumberFormat(provider, currencyFormat);
 
             // The number formatting the general format uses for this provider, so that an amount without a
