@@ -727,4 +727,25 @@ public class MoneyFormatterTests
     }
 
     #endregion
+
+    #region Test: Format_ProviderWithCustomFormatterFallingBackToFormattable
+
+    [Theory]
+    [InlineData(StandardSymbolFormat, "$5.00")]
+    [InlineData(CurrencyCodeFormat, "USD5.00")]
+    [InlineData(GeneralFormat, "5")]
+    public void Format_ProviderWithCustomFormatterFallingBackToFormattable_UsesTheMoneyFormatter(string testFormat, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "a caller's custom formatter is not called back, as decimal never calls it");
+    }
+
+    #endregion
 }
