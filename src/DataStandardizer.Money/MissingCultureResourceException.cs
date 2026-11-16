@@ -3,8 +3,8 @@
 namespace DataStandardizer.Money
 {
     /// <summary>
-    /// Represents an exception that is thrown when a required culture-specific resource
-    /// is missing or cannot be found.
+    /// Represents an exception that was thrown when a required culture-specific resource was
+    /// missing; the package no longer throws it.
     /// </summary>
     /// <remarks>
     /// The package no longer throws this exception: culture-specific currency formatting

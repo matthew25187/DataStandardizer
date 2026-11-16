@@ -453,5 +453,47 @@ public class MoneyParsingTests
         { MoneyStyles.Currency, "(-5)" },
     };
 
+    // NumberFormatInfo reads a hyphen-minus as the sign where the sign is a single dash such as U+2212.
+    private const string MinusSign = "\x2212";
+    private const string FullwidthHyphenMinus = "\xFF0D";
+    private const string LeftToRightMarkHyphenMinus = "\x200E-";
+
+    [Theory]
+    [MemberData(nameof(HyphenMinusForDashSignTestCases))]
+    public void TryParse_HyphenMinusWhereSignIsADash_ReturnsTrueAndNegatesAmount(string testNegativeSign, MoneyStyles testStyles, string testValue)
+    {
+        // arrange
+        var testProvider = new CurrencyFormatInfo { NegativeSign = testNegativeSign };
+
+        // act
+        var testResult = Money.TryParse(testValue, testStyles, testProvider, out var result);
+
+        // assert
+        testResult.Should().BeTrue("decimal reads a hyphen-minus as the sign {0}", testNegativeSign);
+        ((decimal)result).Should().Be(NegativeFive);
+    }
+
+    public static TheoryData<string, MoneyStyles, string> HyphenMinusForDashSignTestCases => new()
+    {
+        { MinusSign, MoneyStyles.AllowLeadingSign, "-5" },
+        { MinusSign, MoneyStyles.AllowTrailingSign, "5-" },
+        { FullwidthHyphenMinus, MoneyStyles.AllowLeadingSign, "-5" },
+        // The sign itself is still read: U+2212 then 5 (an escape takes at most four hex digits).
+        { MinusSign, MoneyStyles.AllowLeadingSign, "\x22125" },
+    };
+
+    [Fact]
+    public void TryParse_HyphenMinusWhereSignHasABidiMark_ReturnsFalse()
+    {
+        // arrange
+        var testProvider = new CurrencyFormatInfo { NegativeSign = LeftToRightMarkHyphenMinus };
+
+        // act
+        var testResult = Money.TryParse("-5", MoneyStyles.AllowLeadingSign, testProvider, out _);
+
+        // assert
+        testResult.Should().BeFalse("decimal reads only the sign itself where it is not a single dash");
+    }
+
     #endregion
 }

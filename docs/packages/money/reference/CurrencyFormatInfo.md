@@ -34,6 +34,8 @@ The values for a culture come from the Unicode Common Locale Data Repository
 on the culture data of the operating system, so they are the same on every host
 and target.
 
+- **Language codes**: a deprecated or legacy language code is replaced first, as
+  CLDR's language aliases say, so `iw` is read as `he` and `tl` as `fil`.
 - **Presentation** (separators, group sizes, the two patterns and the negative
   sign) comes from the CLDR locale the name resolves to under CLDR inheritance.
   So de-AT has its own Austrian layout, and a culture such as pt-FR takes that of
@@ -47,8 +49,12 @@ and target.
   currency, or 2 where there is none.
 
 The data covers the locales CLDR rates at modern coverage. CLDR's minimum grouping
-digits and currency spacing aren't represented, because the `NumberFormatInfo`
-pattern indices can't express them.
+digits and currency spacing aren't represented, so the presentation is the one
+`decimal` gives the same `NumberFormatInfo` values.
+
+When parsing, a hyphen-minus is also read as the negative sign where the sign is
+a single dash such as U+2212 MINUS SIGN (Swedish, Finnish and others), as `decimal`
+reads it.
 
 ## Properties
 

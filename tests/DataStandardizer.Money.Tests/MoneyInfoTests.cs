@@ -15,6 +15,7 @@ public class MoneyInfoTests
     // ISO 639-1 language codes.
     private const string EnglishLanguageCode = "en";
     private const string AfarLanguageCode = "aa";
+    private const string GermanLanguageCode = "de";
 
     #region Test: GetFormat
 
@@ -105,6 +106,18 @@ public class MoneyInfoTests
 
         // assert
         testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
+    }
+
+    [Fact]
+    public void Constructor_WithLanguageAndCountry_ReturnsTheCldrInformationWhetherOrNotTheHostKnowsTheCulture()
+    {
+        // act
+        var testResult = new MoneyInfo((Iso639Part1Language)GermanLanguageCode, Iso3166Part1Alpha2Country.NZ);
+
+        // assert
+        // CLDR 47.0.0: de-NZ inherits the presentation of de, and NZ's currency is NZD.
+        testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
+        testResult.CurrencyFormat.CurrencyDecimalSeparator.Should().Be(GermanDecimalSeparator);
     }
 
     [Fact]

@@ -22,6 +22,10 @@ namespace DataStandardizer.Money
         /// <param name="currencyFormat">Information to update, which holds the invariant values on entry.</param>
         /// <remarks>
         /// <para>
+        /// A deprecated or legacy language code is first replaced as CLDR's language aliases say, as
+        /// <c>iw</c> by <c>he</c>.
+        /// </para>
+        /// <para>
         /// The presentation comes from the locale the name resolves to under CLDR inheritance: the locale
         /// itself, the locale its likely subtags name where its script differs from the language's own, its
         /// explicit CLDR parent, or the name with its last subtag removed, in that order and repeatedly. A
@@ -35,7 +39,7 @@ namespace DataStandardizer.Money
         /// </remarks>
         internal static void Apply(string cultureName, CurrencyFormatInfo currencyFormat)
         {
-            var localeName = RemoveSortSuffix(cultureName);
+            var localeName = ReplaceLanguageAlias(RemoveSortSuffix(cultureName));
 
             var format = Resolve(localeName);
             if (format != null)
@@ -111,16 +115,43 @@ namespace DataStandardizer.Money
             }
 
             var parent = name.Substring(0, separatorIndex);
-            var lastSubtag = name.Substring(separatorIndex + 1);
-            var isLanguageAndScript = parent.IndexOf(SubtagSeparator) < 0 && lastSubtag.Length == ScriptSubtagLength;
+            var isLanguageAndScript = parent.IndexOf(SubtagSeparator) < 0 && IsScriptSubtag(name, separatorIndex + 1, name.Length);
             if (isLanguageAndScript
                 && (!LikelyScripts.TryGetValue(parent, out var likelyScript)
-                    || !string.Equals(likelyScript, lastSubtag, StringComparison.OrdinalIgnoreCase)))
+                    || string.Compare(likelyScript, 0, name, separatorIndex + 1, ScriptSubtagLength, StringComparison.OrdinalIgnoreCase) != 0))
             {
                 return string.Empty;
             }
 
             return parent;
+        }
+
+        /// <summary>
+        /// Replace a deprecated or legacy language code at the start of a locale name with the code CLDR names.
+        /// </summary>
+        private static string ReplaceLanguageAlias(string localeName)
+        {
+            var languageEnd = localeName.IndexOf(SubtagSeparator);
+            var language = languageEnd < 0 ? localeName : localeName.Substring(0, languageEnd);
+            if (!LanguageAliases.TryGetValue(language, out var replacement))
+            {
+                return localeName;
+            }
+
+            if (languageEnd < 0)
+            {
+                return replacement;
+            }
+
+            // A replacement which carries a script, such as sr-Latn for sh, gives way to a script the name
+            // already has.
+            var replacementLanguageEnd = replacement.IndexOf(SubtagSeparator);
+            var nextSubtagEnd = GetSubtagEnd(localeName, languageEnd + 1);
+            var replacementLanguage = replacementLanguageEnd >= 0 && IsScriptSubtag(localeName, languageEnd + 1, nextSubtagEnd)
+                ? replacement.Substring(0, replacementLanguageEnd)
+                : replacement;
+
+            return string.Concat(replacementLanguage, localeName.Substring(languageEnd));
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -130,34 +161,59 @@ namespace DataStandardizer.Money
 #endif
         {
             // The region follows the language and an optional script: two letters, or three digits.
-            var subtags = localeName.Split(SubtagSeparator);
-            for (var index = 1; index < subtags.Length; index++)
+            var subtagStart = localeName.IndexOf(SubtagSeparator) + 1;
+            if (subtagStart == 0)
             {
-                var subtag = subtags[index];
-                if (index == 1 && subtag.Length == ScriptSubtagLength)
+                return null;
+            }
+
+            var subtagEnd = GetSubtagEnd(localeName, subtagStart);
+            if (IsScriptSubtag(localeName, subtagStart, subtagEnd))
+            {
+                if (subtagEnd == localeName.Length)
                 {
-                    continue;
+                    return null;
                 }
 
-                return IsRegionSubtag(subtag) ? subtag : null;
+                subtagStart = subtagEnd + 1;
+                subtagEnd = GetSubtagEnd(localeName, subtagStart);
             }
 
-            return null;
+            return IsRegionSubtag(localeName, subtagStart, subtagEnd)
+                ? localeName.Substring(subtagStart, subtagEnd - subtagStart)
+                : null;
         }
 
-        private static bool IsRegionSubtag(string subtag)
+        private static int GetSubtagEnd(string name, int subtagStart)
         {
-            if (subtag.Length == AlphaRegionSubtagLength)
+            var separatorIndex = name.IndexOf(SubtagSeparator, subtagStart);
+            return separatorIndex < 0 ? name.Length : separatorIndex;
+        }
+
+        // BCP 47: a script is four letters; a variant of four characters starts with a digit instead.
+        private static bool IsScriptSubtag(string name, int subtagStart, int subtagEnd)
+        {
+            return subtagEnd - subtagStart == ScriptSubtagLength && AreAll(name, subtagStart, subtagEnd, IsAsciiLetter);
+        }
+
+        private static bool IsRegionSubtag(string name, int subtagStart, int subtagEnd)
+        {
+            var length = subtagEnd - subtagStart;
+            return (length == AlphaRegionSubtagLength && AreAll(name, subtagStart, subtagEnd, IsAsciiLetter))
+                   || (length == NumericRegionSubtagLength && AreAll(name, subtagStart, subtagEnd, IsAsciiDigit));
+        }
+
+        private static bool AreAll(string name, int start, int end, Func<char, bool> predicate)
+        {
+            for (var index = start; index < end; index++)
             {
-                return IsAsciiLetter(subtag[0]) && IsAsciiLetter(subtag[1]);
+                if (!predicate(name[index]))
+                {
+                    return false;
+                }
             }
 
-            if (subtag.Length == NumericRegionSubtagLength)
-            {
-                return IsAsciiDigit(subtag[0]) && IsAsciiDigit(subtag[1]) && IsAsciiDigit(subtag[2]);
-            }
-
-            return false;
+            return true;
         }
 
         private static bool IsAsciiLetter(char character)

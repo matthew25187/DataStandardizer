@@ -26,6 +26,9 @@ public class CurrencyFormatInfoTests
     private const string CldrComma = ",";
     private const string CldrNoBreakSpace = "\x00A0";
     private const string CldrRightSingleQuotationMark = "\x2019";
+    private const string CldrHyphenMinus = "-";
+    private const string CldrMinusSign = "\x2212";
+    private const string CldrLeftToRightMarkHyphenMinus = "\x200E-";
 
     // Every CLDR 47.0.0 currency pattern has two fraction digits ("#,##0.00").
     private const int CldrPatternFractionDigits = 2;
@@ -47,6 +50,7 @@ public class CurrencyFormatInfoTests
     private const int IranianRialMinorUnits = 2;
     private const int DollarMinorUnits = 2;
     private const int YenMinorUnits = 0;
+    private const int PesoMinorUnits = 2;
 
     #region Test: InvariantInfo
 
@@ -241,7 +245,7 @@ public class CurrencyFormatInfoTests
         var testResult = CurrencyFormatInfo.CreateForCulture(null);
 
         // assert
-        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "the neutral resources denote no currency");
+        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "a null culture is given the invariant information, which denotes no currency");
     }
 
     [Fact]
@@ -301,8 +305,38 @@ public class CurrencyFormatInfoTests
         { "de-DE_phoneb", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrFullStop, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, EuroMinorUnits },
         // Region 419 (Latin America) has no currency of its own; es-419 is "¤#,##0.00".
         { "es-419", nameof(Iso4217CurrencyCurrent.XXX), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, CldrPatternFractionDigits },
+        // tl is a legacy code that CLDR's language aliases replace with fil, whose pattern is "¤#,##0.00".
+        { "tl-PH", nameof(Iso4217CurrencyCurrent.PHP), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, PesoMinorUnits },
+        // 1901 is a variant, not a script (a script is four letters), so de-1901 inherits from de.
+        { "de-1901", nameof(Iso4217CurrencyCurrent.XXX), CldrComma, CldrFullStop, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, CldrPatternFractionDigits },
         // The invariant culture's empty name resolves to nothing.
         { "", nameof(Iso4217CurrencyCurrent.XXX), InvariantDecimalSeparator, InvariantGroupSeparator, InvariantPositivePattern, InvariantNegativePattern, InvariantDecimalDigits }
+    };
+
+    [Theory]
+    [MemberData(nameof(CldrSignAndGroupingTestCases))]
+    public void CreateForCultureName_ForCultureName_ReturnsTheCldrSignAndGroupSizes(string testCultureName, string expectedNegativeSign, int[] expectedGroupSizes)
+    {
+        // act
+        var testResult = CurrencyFormatInfo.CreateForCultureName(testCultureName);
+
+        // assert
+        testResult.NegativeSign.Should().Be(expectedNegativeSign);
+        testResult.CurrencyGroupSizes.Should().Equal(expectedGroupSizes);
+    }
+
+    // Values from Unicode CLDR 47.0.0: the minusSign of symbols-numberSystem-latn, and the grouping of the
+    // currencyFormats-numberSystem-latn "standard" pattern.
+    public static TheoryData<string, string, int[]> CldrSignAndGroupingTestCases => new()
+    {
+        // en: "-", "¤#,##0.00".
+        { "en-US", CldrHyphenMinus, new[] { FirstGroupSize } },
+        // sv: U+2212 MINUS SIGN, "#,##0.00 ¤".
+        { "sv-SE", CldrMinusSign, new[] { FirstGroupSize } },
+        // ar-SA: U+200E LEFT-TO-RIGHT MARK then "-".
+        { "ar-SA", CldrLeftToRightMarkHyphenMinus, new[] { FirstGroupSize } },
+        // hi: "¤#,##,##0.00", the Indian grouping.
+        { "hi-IN", CldrHyphenMinus, new[] { FirstGroupSize, LaterGroupSize } }
     };
 
     #endregion

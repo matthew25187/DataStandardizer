@@ -20,15 +20,23 @@
 #   always formatted with ASCII digits, whatever the locale's default numbering system.    #
 # - Currency patterns are mapped onto the pattern indices of                               #
 #   NumberFormatInfo.CurrencyPositivePattern and CurrencyNegativePattern. Bidirectional    #
-#   marks in a pattern are dropped, and any white space in a pattern becomes the single    #
-#   space those indices place. A pattern no index expresses stops the generator.           #
-# - minimumGroupingDigits and currencySpacing are not represented.                         #
+#   marks in a pattern are dropped, and every space separator (Unicode category Zs) in a   #
+#   pattern becomes the single space those indices place. A pattern no index expresses     #
+#   stops the generator.                                                                   #
+# - minimumGroupingDigits and currencySpacing are not represented, so that the             #
+#   presentation is the one decimal gives the same NumberFormatInfo values.                #
 # - The root locale (und) is not emitted; a culture that resolves to root, or to nothing,  #
 #   is given the package's invariant information instead.                                  #
+# - Deprecated and legacy language codes are replaced as CLDR's languageAlias data says,   #
+#   where the replacement is a language that is emitted.                                   #
 # - A region's currency is the first current legal tender CLDR lists for it, and only     #
-#   where that currency is a member of Iso4217CurrencyCurrent.                             #
+#   where that currency is a member of Iso4217CurrencyCurrent; a region skipped for that   #
+#   reason is reported as a warning.                                                       #
+#                                                                                          #
+# Requires PowerShell 7.6 or later, which runs on .NET 10, because the generator loads     #
+# the net10.0 build of DataStandardizer.Money to read the ISO 4217 enum.                   #
 ############################################################################################
-#Requires -Version 7.4
+#Requires -Version 7.6
 param (
     [Parameter(Mandatory, HelpMessage = 'Version of CLDR from which the data is taken, such as 47.0.0.')]
     [string]    $CldrVersion,
@@ -50,10 +58,9 @@ $ErrorActionPreference = 'Stop'
 $CldrPackageNames = @('cldr-core', 'cldr-numbers-full')
 
 # The currency sign in CLDR patterns, and the characters a pattern may hold that a NumberFormatInfo
-# pattern index cannot: bidirectional marks, and the forms of space between the number and the sign.
+# pattern index cannot: bidirectional marks. Space separators are recognised by their Unicode category.
 $CurrencySign = [string][char]0x00A4
 $BidiMarks = @([char]0x200E, [char]0x200F, [char]0x061C)
-$PatternSpaces = @([char]0x0020, [char]0x00A0, [char]0x202F)
 
 # The layouts of NumberFormatInfo.CurrencyPositivePattern and CurrencyNegativePattern, written with '$'
 # for the currency, 'n' for the number and '-' for the negative sign.
@@ -151,7 +158,7 @@ function ConvertFrom-CurrencyPattern {
     )
 
     $cleanPattern = -join ($Pattern.ToCharArray() | Where-Object { $BidiMarks -notcontains $_ } | ForEach-Object {
-            if ($PatternSpaces -contains $_) { ' ' } else { $_ }
+            if ([char]::GetUnicodeCategory($_) -eq [System.Globalization.UnicodeCategory]::SpaceSeparator) { ' ' } else { $_ }
         })
 
     if ($cleanPattern.Contains("'")) {
@@ -269,7 +276,9 @@ function Get-RegionCurrencies {
     }
 
     if ($skippedRegions.Count -gt 0) {
-        Write-Verbose "Skipped $($skippedRegions.Count) regions whose currency is not a member of Iso4217CurrencyCurrent: $($skippedRegions -join ', ')."
+        # A skipped region gets no currency at all, which usually means the CLDR release predates a
+        # change to ISO 4217, so it is reported rather than left to verbose output.
+        Write-Warning "Skipped $($skippedRegions.Count) regions whose currency is not a member of Iso4217CurrencyCurrent: $($skippedRegions -join ', ')."
     }
 
     return $regionCurrencies
@@ -327,10 +336,25 @@ function Get-LocaleRelations {
         }
     }
 
+    # Deprecated and legacy language codes, such as iw for he and tl for fil, are replaced by the code CLDR
+    # names. Only a bare language code is replaced, and only by a language (with an optional script) whose
+    # locales are emitted, where the deprecated code has no locales of its own.
+    $languageAliasData = (Read-CldrJson -Path (Join-Path -Path $CorePackageFolder -ChildPath 'supplemental/aliases.json')).supplemental.metadata.alias.languageAlias
+    $languageAliases = [ordered]@{}
+    foreach ($key in $languageAliasData.Keys | Sort-Object -CaseSensitive) {
+        $replacement = $languageAliasData[$key]['_replacement']
+        if ($key -cnotmatch '^[a-z]{2,3}$' -or $replacement -cnotmatch '^[a-z]{2,3}(-[A-Z][a-z]{3})?$' -or $languages.Contains($key) -or -not $languages.Contains($replacement.Split('-')[0])) {
+            continue
+        }
+
+        $languageAliases[$key] = $replacement
+    }
+
     return [pscustomobject]@{
-        LikelyScripts = $likelyScripts
-        Parents       = $parents
-        Aliases       = $aliases
+        LikelyScripts   = $likelyScripts
+        Parents         = $parents
+        Aliases         = $aliases
+        LanguageAliases = $languageAliases
     }
 }
 
@@ -499,6 +523,11 @@ function Out-SourceCode {
                 -Comment 'Language and region pairs whose likely script is not the language''s own, and the locale they name.'))
 
     [void]$classType.Members.Add((Get-FieldDeclaration `
+                -Declaration 'private static readonly System.Collections.Generic.Dictionary<string, string> LanguageAliases = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)' `
+                -Entries ([string[]](& $toStringPairs $Relations.LanguageAliases { param($v) ConvertTo-SourceCodeStringLiteral $v })) `
+                -Comment 'Deprecated and legacy language codes, and the language (with any script) CLDR replaces them with.'))
+
+    [void]$classType.Members.Add((Get-FieldDeclaration `
                 -Declaration 'private static readonly System.Collections.Generic.Dictionary<string, string> ParentLocales = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)' `
                 -Entries ([string[]](& $toStringPairs $Relations.Parents { param($v) ConvertTo-SourceCodeStringLiteral $v })) `
                 -Comment 'Locales whose parent is not the locale truncation would give.'))
@@ -540,7 +569,7 @@ Write-Debug "Generated type comment: $SourceCodeTypeComment"
 Write-Debug "Generated language: $SourceCodeLanguage"
 
 # The ISO 4217 enum must be loaded so that regions are only given currencies it defines.
-$moneyAssemblyPath = Join-Path -Path $PSScriptRoot -ChildPath '..\src\DataStandardizer.Money\bin\Debug\net10.0\DataStandardizer.Money.dll' -Resolve -ErrorAction SilentlyContinue
+$moneyAssemblyPath = Join-Path -Path $PSScriptRoot -ChildPath '..' -AdditionalChildPath 'src', 'DataStandardizer.Money', 'bin', 'Debug', 'net10.0', 'DataStandardizer.Money.dll' -Resolve -ErrorAction SilentlyContinue
 if ([string]::IsNullOrEmpty($moneyAssemblyPath)) {
     throw 'Unable to locate DataStandardizer.Money.dll. Build the project before running this generator.'
 }
