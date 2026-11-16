@@ -24,6 +24,9 @@ namespace DataStandardizer.File.iCal.Tests
         // The start of the rules of OccurrencesFromLaterPeriods: 08:15 on Monday, January 6, 2020.
         private const string FromStart = "20200106T081500";
         private const string NewYearTen = "20260101T100000";
+
+        // Wednesday, May 14, 1997, in week 20 of 1997.
+        private const string WednesdayOfWeek20 = "19970514T090000";
         private const string NewYearMidnight = "20260101T000000";
         private const string StartWithSeconds = "20260105T093015";
         private const string DailyTwice = "FREQ=DAILY;COUNT=2";
@@ -366,6 +369,26 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Equal("19961230T090000", "19971229T090000", "19990104T090000");
+        }
+
+        // ref. RFC 5545 §3.3.10: information a rule does not give is taken from DTSTART.  The start is a Wednesday, so it is neither the
+        // default WKST nor the first day of its week.
+        [Theory]
+        [InlineData(WednesdayOfWeek20, "FREQ=YEARLY;COUNT=3;BYWEEKNO=20", new[] { WednesdayOfWeek20, "19980513T090000", "19990519T090000" })]
+        [InlineData(WednesdayOfWeek20, "FREQ=YEARLY;COUNT=2;BYWEEKNO=20;BYSETPOS=-1", new[] { WednesdayOfWeek20, "19980513T090000" })]
+        // The last week of 2026 runs from 28 December 2026 to 3 January 2027, and of 2027 from 27 December 2027 to 2 January 2028.
+        [InlineData(NewYearTen, "FREQ=YEARLY;COUNT=2;BYWEEKNO=-1", new[] { "20261231T100000", "20271230T100000" })]
+        // Week 1 of 2025 runs from 30 December 2024, and of 2026 from 29 December 2025; BYMONTH keeps only their days in December.
+        [InlineData("20241231T090000", "FREQ=YEARLY;COUNT=2;BYWEEKNO=1;BYMONTH=12", new[] { "20241231T090000", "20251230T090000" })]
+        // With weeks starting on Sunday, week 1 of 2026 runs from 4 January 2026, and of 2027 from 3 January 2027.
+        [InlineData("20260107T090000", "FREQ=YEARLY;COUNT=2;BYWEEKNO=1;WKST=SU", new[] { "20260107T090000", "20270106T090000" })]
+        public void GetOccurrences_WeekNumberWithoutDay_TakesTheDayOfTheWeekFromStart(string start, string rule, string[] expected)
+        {
+            // act
+            var testResult = Expand(start, rule);
+
+            // assert
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
