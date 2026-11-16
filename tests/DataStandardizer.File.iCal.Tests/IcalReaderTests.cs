@@ -855,6 +855,19 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
+        [MemberData(nameof(ConformanceCases.OrderingsAndValuesTheStandardAllows), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendars_OrderingOrValueTheStandardAllows_IsRead(string text)
+        {
+            // arrange
+
+            // act
+            var testResult = ReadCalendars(text);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
+        [Theory]
         [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
         public void ReadCalendars_TextSeparatorTheGrammarAllows_IsRead(string property)
         {

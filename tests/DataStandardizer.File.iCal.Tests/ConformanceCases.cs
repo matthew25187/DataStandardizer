@@ -46,6 +46,31 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Rfc5545RequestStatusWithEscapes =
             "REQUEST-STATUS:2.8; Success\\, repeating event ignored. Scheduled as a single event.;RRULE:FREQ=WEEKLY\\;INTERVAL=2";
 
+        // ref. RFC 5545 §3.6.5, example: the time zone rules for New York City from 2007, an offset of -0500 in winter and -0400 in summer.
+        private static readonly string[] Rfc5545NewYorkTimeZone =
+        {
+            BeginTimeZone, "TZID:America/New_York", "LAST-MODIFIED:20050809T050000Z", BeginDaylight, "DTSTART:20070311T020000",
+            "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", EndDaylight, BeginStandard,
+            "DTSTART:20071104T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST",
+            EndStandard, EndTimeZone
+        };
+
+        // 09:00 in New York on 1 January 2026, which is 14:00 UTC.
+        private const string NewYorkNewYearStart = "DTSTART;TZID=America/New_York:20260101T090000";
+
+        // 02:30 in New York on 8 March 2026, in the hour skipped when clocks go forward, which RFC 5545 §3.3.5 reads as 03:30 EDT.
+        private const string NewYorkGapStart = "DTSTART;TZID=America/New_York:20260308T023000";
+        private const string NewYorkGapEnd = "DTEND;TZID=America/New_York:20260308T023000";
+
+        private const string UtcEndBeforeStart = "DTEND:20260101T080000Z";
+        private const string UtcEndAfterStart = "DTEND:20260101T100000Z";
+        private const string FloatingStart = "DTSTART:20260101T090000";
+        private const string TodoUid = "UID:t@example.com";
+        private const string FreeBusyUid = "UID:f@example.com";
+        private const string FreeBusyPath = "VCALENDAR/VFREEBUSY[1]";
+        private const string DtEnd = "DTEND";
+        private const string Due = "DUE";
+        private const string Status = "STATUS";
         private const string Attachment = "ATTACH";
         private const string DtStart = "DTSTART";
         private const string Duration = "DURATION";
@@ -189,6 +214,47 @@ namespace DataStandardizer.File.iCal.Tests
             ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
             ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath),
+
+            // ref. RFC 5545 §3.8.2.2 and §3.8.2.3: DTEND and DUE MUST be later in time than DTSTART.
+            ["EndBeforeStart"] = new Case(EventCalendar(UtcEndBeforeStart), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["EndAtStart"] = new Case(EventCalendar("DTEND:20260101T090000Z"), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["DateEndAtDateStart"] = new Case(EventCalendar(DateStart, "DTEND;VALUE=DATE:20260101"), IcalDiagnosticKind.InvalidValue, DtEnd,
+                EventPath),
+            ["FloatingEndBeforeFloatingStart"] = new Case(EventCalendar(FloatingStart, "DTEND:20260101T080000"), IcalDiagnosticKind.InvalidValue,
+                DtEnd, EventPath),
+            ["ZonedEndAtZonedStartInGap"] = new Case(NewYorkEventCalendar(NewYorkGapStart, NewYorkGapEnd), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["ZonedEndHourBeforeZonedStart"] = new Case(NewYorkEventCalendar(NewYorkNewYearStart, "DTEND;TZID=America/New_York:20260101T080000"),
+                IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["UtcEndBeforeZonedStart"] = new Case(NewYorkEventCalendar(NewYorkNewYearStart, "DTEND:20260101T120000Z"),
+                IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["DueBeforeStart"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T080000Z", EndTodo),
+                IcalDiagnosticKind.InvalidValue, Due, TodoPath),
+
+            // ref. RFC 5545 §3.8.2.2, §3.8.2.3 and §3.8.4.4: a date with local time if and only if DTSTART is one.
+            ["UtcEndForFloatingStart"] = new Case(EventCalendar(FloatingStart, UtcEndAfterStart), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["FloatingDueForUtcStart"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T100000", EndTodo),
+                IcalDiagnosticKind.InvalidValue, Due, TodoPath),
+            ["FloatingRecurrenceIdForUtcStart"] = new Case(EventCalendar("RECURRENCE-ID:20260101T090000"), IcalDiagnosticKind.InvalidValue,
+                "RECURRENCE-ID", EventPath),
+
+            // ref. RFC 5545 §3.8.2.4 and §3.8.2.2: in a VFREEBUSY, DTSTART and DTEND MUST be in UTC, and DTEND later than DTSTART.
+            ["FloatingFreeBusyStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, FloatingStart, UtcEndAfterStart, EndFreeBusy),
+                IcalDiagnosticKind.InvalidValue, DtStart, FreeBusyPath),
+            ["DateFreeBusyStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, DateStart, UtcEndAfterStart, EndFreeBusy),
+                IcalDiagnosticKind.InvalidValue, DtStart, FreeBusyPath),
+            ["FloatingFreeBusyEnd"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, "DTEND:20260101T100000",
+                EndFreeBusy), IcalDiagnosticKind.InvalidValue, DtEnd, FreeBusyPath),
+            ["FreeBusyEndBeforeStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, UtcEndBeforeStart, EndFreeBusy),
+                IcalDiagnosticKind.InvalidValue, DtEnd, FreeBusyPath),
+
+            // ref. RFC 5545 §3.8.1.11, §3.8.2.7 and §3.7.1: closed sets of values, with no iana-token or x-name.
+            ["UnknownStatus"] = new Case(EventCalendar("STATUS:BANANA"), IcalDiagnosticKind.InvalidValue, Status, EventPath),
+            ["JournalStatusInEvent"] = new Case(EventCalendar("STATUS:DRAFT"), IcalDiagnosticKind.InvalidValue, Status, EventPath),
+            ["EventStatusInTodo"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:TENTATIVE", EndTodo), IcalDiagnosticKind.InvalidValue,
+                Status, TodoPath),
+            ["UnknownTransparency"] = new Case(EventCalendar("TRANSP:MAYBE"), IcalDiagnosticKind.InvalidValue, "TRANSP", EventPath),
+            ["UnknownCalendarScale"] = new Case(Calendar("CALSCALE:JULIAN", BeginJournal, JournalUid, NewYearStamp, EndJournal),
+                IcalDiagnosticKind.InvalidValue, "CALSCALE", CalendarPath),
 
             // The FMTTYPE parameter, ref. RFC 5545 §3.2.8.
             ["FormatTypeWithoutSubtype"] = new Case(EventCalendar("ATTACH;FMTTYPE=audio:http://example.com/a"), IcalDiagnosticKind.InvalidValue,
@@ -346,6 +412,43 @@ namespace DataStandardizer.File.iCal.Tests
                 EscapedTextSeparators, Rfc5545Categories, Rfc5545Resources, Rfc5545RequestStatusSuccess, Rfc5545RequestStatusWithData,
                 Rfc5545RequestStatusWithEscapes
             };
+        }
+
+        /// <summary>
+        /// Calendars whose end and due times, local times and enumerated values RFC 5545 allows, close to ones it does not.
+        /// </summary>
+        public static TheoryData<string> OrderingsAndValuesTheStandardAllows()
+        {
+            return new TheoryData<string>
+            {
+                EventCalendar(UtcEndAfterStart),
+                EventCalendar(DateStart, "DTEND;VALUE=DATE:20260102"),
+                EventCalendar(FloatingStart, "DTEND:20260101T100000"),
+                Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T100000Z", EndTodo),
+
+                // ref. RFC 5545 §3.3.5: an end in the hour skipped when clocks go forward is read with the offset before it, so 02:30 is 03:30 EDT.
+                NewYorkEventCalendar("DTSTART;TZID=America/New_York:20260308T030000", NewYorkGapEnd),
+
+                // 09:00 in New York is 14:00 UTC, and a date with UTC time may end a date with local time and a time zone reference.
+                NewYorkEventCalendar(NewYorkNewYearStart, "DTEND:20260101T150000Z"),
+                Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, UtcEndAfterStart, EndFreeBusy),
+
+                // ref. RFC 5545 §2: enumerated property values are case-insensitive.
+                EventCalendar("STATUS:confirmed"),
+                Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:IN-PROCESS", EndTodo),
+                Calendar(BeginJournal, JournalUid, NewYearStamp, "STATUS:DRAFT", EndJournal),
+                EventCalendar("TRANSP:TRANSPARENT"),
+                Calendar("CALSCALE:GREGORIAN", BeginJournal, JournalUid, NewYearStamp, EndJournal)
+            };
+        }
+
+        /// <summary>
+        /// Builds a calendar holding the New York time zone of RFC 5545 §3.6.5 and one VEVENT with these lines.
+        /// </summary>
+        private static string NewYorkEventCalendar(params string[] eventLines)
+        {
+            return Calendar(IcalTestData.Lines(Rfc5545NewYorkTimeZone, new[] { BeginEvent, OtherEventUid, NewYearStamp }, eventLines,
+                new[] { EndEvent }));
         }
 
         private static bool IsUnescapedTextSeparatorCase(string name)

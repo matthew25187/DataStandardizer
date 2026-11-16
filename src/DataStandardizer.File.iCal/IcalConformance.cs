@@ -58,6 +58,26 @@ namespace DataStandardizer.File.iCal
             IcalPropertyNames.Trigger
         };
 
+        // ref. RFC 5545§3.8.1.11: statvalue-event, statvalue-todo and statvalue-jour, which have no iana-token or x-name.
+        private static readonly string[] EventStatuses = { "TENTATIVE", "CONFIRMED", "CANCELLED" };
+        private static readonly string[] TodoStatuses = { "NEEDS-ACTION", "COMPLETED", "IN-PROCESS", "CANCELLED" };
+        private static readonly string[] JournalStatuses = { "DRAFT", "FINAL", "CANCELLED" };
+        private static readonly string[] AllStatuses = EventStatuses.Concat(TodoStatuses).Concat(JournalStatuses).Distinct().ToArray();
+
+        // ref. RFC 5545§3.8.2.7: transvalue = "OPAQUE" / "TRANSPARENT".
+        private static readonly string[] TransparencyValues = { "OPAQUE", "TRANSPARENT" };
+
+        // ref. RFC 5545§3.7.1: calvalue = "GREGORIAN".
+        private static readonly string[] CalendarScaleValues = { "GREGORIAN" };
+
+        private const long SecondsPerDay = 86400;
+
+        /// <summary>
+        /// The largest size of a UTC offset, in seconds: <c>utc-offset = time-numzone</c> (RFC 5545 §3.3.14), whose hour is at most 23, minute
+        /// at most 59 and second at most 60.
+        /// </summary>
+        private const long MaxOffsetSeconds = SecondsPerDay;
+
         /// <summary>
         /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with one value.  <c>FMTTYPE</c> is left out, as it has a check of its own.
         /// </summary>
@@ -259,9 +279,12 @@ namespace DataStandardizer.File.iCal
                 {
                     if (!IsName(timeZone.Name, IcalComponentNames.TimeZone)) continue;
 
+                    var offsets = GetOffsetRange(timeZone);
                     foreach (var timeZoneId in timeZone.GetProperties(IcalPropertyNames.TimeZoneId))
                     {
-                        context.TimeZoneIds.Add(GetTextOrRaw(timeZoneId));
+                        var id = GetTextOrRaw(timeZoneId);
+                        context.TimeZoneIds.Add(id);
+                        context.AddOffsetRange(id, offsets);
                     }
                 }
             }
@@ -384,7 +407,7 @@ namespace DataStandardizer.File.iCal
 
             foreach (var property in component.Properties)
             {
-                ValidateValue(property, path, context);
+                ValidateValue(property, component.Name, path, context);
                 ValidateFormatType(property, path, context);
                 ValidateParameters(property, path, context);
                 ValidateParameterQuoting(property, path, context);
@@ -526,6 +549,10 @@ namespace DataStandardizer.File.iCal
             {
                 ValidateRecurrence(component, path, false, context);
             }
+            else if (IsName(name, IcalComponentNames.FreeBusy))
+            {
+                ValidateFreeBusyPeriod(component, path, context);
+            }
             else if (IsName(name, IcalComponentNames.TimeZone))
             {
                 // ref. RFC 5545§3.8.3.1: TZID identifies the time zone, so it can't be empty.
@@ -568,8 +595,8 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks that the end of an event, or the due date of a to-do, has the value type of its start, and that a duration from a DATE is in
-        /// days or weeks.
+        /// Checks that the end of an event, or the due date of a to-do, has the value type of its start, is in local time if and only if its
+        /// start is, and is later than its start, and that a duration from a DATE is in days or weeks.
         /// </summary>
         private static void ValidateEnd(IcalComponent component, string path, string endName, Context context)
         {
@@ -577,14 +604,30 @@ namespace DataStandardizer.File.iCal
             IcalDateOrDateTime startValue;
             if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
 
-            // ref. RFC 5545§3.8.2.2 and §3.8.2.3: the value type MUST be the same as DTSTART.
             var end = component.GetProperty(endName);
             IcalDateOrDateTime endValue;
-            if (end != null && TryGetDateOrDateTime(end, out endValue) && endValue.IsDate != startValue.IsDate)
+            if (end != null && TryGetDateOrDateTime(end, out endValue))
             {
-                AddInvalidValue(end, path,
-                    string.Format(CultureInfo.InvariantCulture, "The {0} property must have the same value type as the DTSTART property, {1}.",
-                        endName, IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+                if (endValue.IsDate != startValue.IsDate)
+                {
+                    // ref. RFC 5545§3.8.2.2 and §3.8.2.3: the value type MUST be the same as DTSTART.
+                    AddInvalidValue(end, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} property must have the same value type as the DTSTART property, {1}.",
+                            endName, IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+                }
+                else if (!startValue.IsDate && IsFloating(endValue) != IsFloating(startValue))
+                {
+                    // ref. RFC 5545§3.8.2.2 and §3.8.2.3: it MUST be a date with local time if and only if DTSTART is.
+                    AddInvalidValue(end, path,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "The {0} property must be a date with local time, with no time zone, if and only if the DTSTART property is one.", endName),
+                        context);
+                }
+                else
+                {
+                    // ref. RFC 5545§3.8.2.2 and §3.8.2.3: its value MUST be later in time than the value of DTSTART.
+                    ValidateLater(start, startValue, end, endValue, path, context);
+                }
             }
 
             // ref. RFC 5545§3.6.1: when DTSTART is a DATE, the duration MUST be specified as a dur-day or dur-week value.
@@ -595,6 +638,157 @@ namespace DataStandardizer.File.iCal
             {
                 AddInvalidValue(duration, path, "The DURATION of a component whose DTSTART is a DATE must be in days or weeks.", context);
             }
+        }
+
+        /// <summary>
+        /// Checks that the <c>DTSTART</c> and <c>DTEND</c> of a VFREEBUSY are in UTC, and that <c>DTEND</c> is later than <c>DTSTART</c>
+        /// (RFC 5545 §3.8.2.2 and §3.8.2.4).
+        /// </summary>
+        private static void ValidateFreeBusyPeriod(IcalComponent component, string path, Context context)
+        {
+            IcalDateOrDateTime startValue, endValue;
+            var start = component.GetProperty(IcalPropertyNames.DtStart);
+            var end = component.GetProperty(IcalPropertyNames.DtEnd);
+            var isStartUtc = IsFreeBusyUtc(start, path, out startValue, context);
+            var isEndUtc = IsFreeBusyUtc(end, path, out endValue, context);
+            if (start != null && end != null && isStartUtc && isEndUtc)
+            {
+                ValidateLater(start, startValue, end, endValue, path, context);
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether the <c>DTSTART</c> or <c>DTEND</c> of a VFREEBUSY is a DATE-TIME in UTC, and reports it when it is another valid
+        /// value.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static bool IsFreeBusyUtc(IcalContentLine? property, string path, out IcalDateOrDateTime value, Context context)
+#else
+        private static bool IsFreeBusyUtc(IcalContentLine property, string path, out IcalDateOrDateTime value, Context context)
+#endif
+        {
+            value = default(IcalDateOrDateTime);
+            if (property is null || !TryGetDateOrDateTime(property, out value)) return false;
+
+            // ref. RFC 5545§3.8.2.4 and §3.8.2.2: within VFREEBUSY, the time MUST be specified in UTC.
+            if (!value.IsDate && value.DateTime.Kind == IcalDateTimeKind.Utc) return true;
+
+            AddInvalidValue(property, path,
+                string.Format(CultureInfo.InvariantCulture, "The {0} property of a VFREEBUSY component must be a DATE-TIME in UTC.",
+                    property.Name.ToUpperInvariant()), context);
+            return false;
+        }
+
+        /// <summary>
+        /// Reports an end that is not later in time than its start.  The two have the same value type, and are both floating or both not.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Two dates, two floating date-times, and two date-times in UTC are compared exactly.  A date-time with a time zone is not converted to
+        /// UTC with its VTIMEZONE, as that expands the recurrence rules of the time zone's observances, whose cost a calendar sets.  Instead, the
+        /// UTC offsets that the VTIMEZONE's observances name bound the instant of the wall-clock time: an end is reported when it falls at or
+        /// before its start whatever offsets are in use.  So is an end with the same time zone and wall-clock time as its start, which RFC 5545
+        /// §3.3.5 resolves to the same instant.
+        /// </para>
+        /// <para>
+        /// No end later than its start is reported.  An end with a time zone that is earlier than its start by less than the spread of the
+        /// offsets is not reported either, as it can fall in a gap, such as when clocks go forward, where RFC 5545 §3.3.5 reads it with the
+        /// offset before the gap.
+        /// </para>
+        /// </remarks>
+        private static void ValidateLater(IcalContentLine start, IcalDateOrDateTime startValue, IcalContentLine end, IcalDateOrDateTime endValue,
+            string path, Context context)
+        {
+            bool isNotLater;
+            if (startValue.IsDate)
+            {
+                isNotLater = endValue.Date.DayNumber <= startValue.Date.DayNumber;
+            }
+            else
+            {
+                var startTime = startValue.DateTime;
+                var endTime = endValue.DateTime;
+
+                // How far the end's wall-clock time is before the start's, in seconds.
+                var difference = GetClockSeconds(startTime) - GetClockSeconds(endTime);
+                if (startTime.Kind == IcalDateTimeKind.Zoned && endTime.Kind == IcalDateTimeKind.Zoned &&
+                    string.Equals(startTime.TimeZoneId, endTime.TimeZoneId, StringComparison.Ordinal) && difference == 0)
+                {
+                    isNotLater = true;
+                }
+                else
+                {
+                    // The end's instant, its wall-clock time less its offset, is at or before the start's unless the start's offset exceeds the
+                    // end's by more than the difference.
+                    isNotLater = difference >= GetOffsetBound(startTime, true, context) - GetOffsetBound(endTime, false, context);
+                }
+            }
+
+            if (!isNotLater) return;
+
+            AddInvalidValue(end, path,
+                string.Format(CultureInfo.InvariantCulture, "The {0} property must be later in time than the {1} property.",
+                    end.Name.ToUpperInvariant(), start.Name.ToUpperInvariant()), context);
+        }
+
+        /// <summary>
+        /// Gets the wall-clock time of a date-time, in seconds from the start of 0001-01-01.
+        /// </summary>
+        private static long GetClockSeconds(IcalDateTime value)
+        {
+            var time = value.Time;
+            return value.Date.DayNumber * SecondsPerDay + time.Hour * 3600L + time.Minute * 60L + time.Second;
+        }
+
+        /// <summary>
+        /// Gets the largest or smallest UTC offset, in seconds, that a date-time can be in: none for a floating one or one in UTC, the range of
+        /// the offsets its VTIMEZONE names for one with a time zone, and any offset at all for a time zone the calendar does not define.
+        /// </summary>
+        private static long GetOffsetBound(IcalDateTime value, bool isMaximum, Context context)
+        {
+            if (value.Kind != IcalDateTimeKind.Zoned) return 0;
+
+            OffsetRange range;
+            if (!context.TryGetOffsetRange(value.TimeZoneId ?? string.Empty, out range))
+            {
+                range = OffsetRange.Any;
+            }
+
+            return isMaximum ? range.Maximum : range.Minimum;
+        }
+
+        /// <summary>
+        /// Gets the range of the <c>TZOFFSETFROM</c> and <c>TZOFFSETTO</c> values of a VTIMEZONE's observances: every offset that a local time
+        /// in the time zone can be read with, including one in a gap (RFC 5545 §3.3.5) and one before the first onset.
+        /// </summary>
+        private static OffsetRange GetOffsetRange(IcalComponent timeZone)
+        {
+            var minimum = long.MaxValue;
+            var maximum = long.MinValue;
+            foreach (var observance in timeZone.Components)
+            {
+                if (!IsName(observance.Name, IcalComponentNames.Standard) && !IsName(observance.Name, IcalComponentNames.Daylight)) continue;
+
+                foreach (var property in observance.Properties)
+                {
+                    if (!IsName(property.Name, IcalPropertyNames.TimeZoneOffsetFrom) && !IsName(property.Name, IcalPropertyNames.TimeZoneOffsetTo))
+                        continue;
+
+                    IcalUtcOffset offset;
+                    if (!IcalUtcOffset.TryParse(property.Value.AsSpan(), IcalValueFormat.Text, out offset)) return OffsetRange.Any;
+
+                    var seconds = (long)offset.Offset.TotalSeconds;
+                    minimum = Math.Min(minimum, seconds);
+                    maximum = Math.Max(maximum, seconds);
+                }
+            }
+
+            return minimum > maximum ? OffsetRange.Any : new OffsetRange(minimum, maximum);
+        }
+
+        private static bool IsFloating(IcalDateOrDateTime value)
+        {
+            return value.DateTime.Kind == IcalDateTimeKind.Floating;
         }
 
         /// <summary>
@@ -657,12 +851,20 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 5545§3.8.4.4: the value type of RECURRENCE-ID MUST be the same as DTSTART.
             var recurrenceId = component.GetProperty(IcalPropertyNames.RecurrenceId);
             IcalDateOrDateTime recurrenceIdValue;
-            if (!isObservance && recurrenceId != null && TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue) &&
-                recurrenceIdValue.IsDate != startValue.IsDate)
+            if (isObservance || recurrenceId is null || !TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue)) return;
+
+            if (recurrenceIdValue.IsDate != startValue.IsDate)
             {
                 AddInvalidValue(recurrenceId, path,
                     string.Format(CultureInfo.InvariantCulture, "The RECURRENCE-ID property must have the same value type as the DTSTART property, {0}.",
                         IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+            }
+            else if (!startValue.IsDate && IsFloating(recurrenceIdValue) != IsFloating(startValue))
+            {
+                // ref. RFC 5545§3.8.4.4: it MUST be a date with local time if and only if DTSTART is.
+                AddInvalidValue(recurrenceId, path,
+                    "The RECURRENCE-ID property must be a date with local time, with no time zone, if and only if the DTSTART property is one.",
+                    context);
             }
         }
 
@@ -713,7 +915,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Checks the value of a property RFC 5545 or RFC 7986 defines against its value type.
         /// </summary>
-        private static void ValidateValue(IcalContentLine property, string path, Context context)
+        private static void ValidateValue(IcalContentLine property, string componentName, string path, Context context)
         {
             var name = property.Name;
             if (!IcalValueTypeRegistry.IsKnownProperty(name.AsSpan())) return;
@@ -763,7 +965,7 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            ValidateValueRules(property, path, valueType, context);
+            ValidateValueRules(property, componentName, path, valueType, context);
         }
 
         private static bool IsValidValue(IcalContentLine property, IcalValueType valueType)
@@ -903,7 +1105,8 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Checks the rules for a valid value that RFC 5545 sets on particular properties.
         /// </summary>
-        private static void ValidateValueRules(IcalContentLine property, string path, IcalValueType valueType, Context context)
+        private static void ValidateValueRules(IcalContentLine property, string componentName, string path, IcalValueType valueType,
+            Context context)
         {
             var name = property.Name;
             if (valueType == IcalValueType.DateTime && UtcProperties.Contains(name, StringComparer.OrdinalIgnoreCase))
@@ -937,6 +1140,45 @@ namespace DataStandardizer.File.iCal
             {
                 ValidateRange(property, path, 0, 100, context);
             }
+            else if (IsName(name, IcalPropertyNames.Status))
+            {
+                ValidateValueSet(property, path, GetStatuses(componentName), context);
+            }
+            else if (IsName(name, IcalPropertyNames.Transparency))
+            {
+                ValidateValueSet(property, path, TransparencyValues, context);
+            }
+            else if (IsName(name, IcalPropertyNames.CalendarScale))
+            {
+                ValidateValueSet(property, path, CalendarScaleValues, context);
+            }
+        }
+
+        /// <summary>
+        /// Gets the values RFC 5545 §3.8.1.11 allows <c>STATUS</c> in a component: those of its kind in a VEVENT, VTODO or VJOURNAL, and any of
+        /// them in another component.
+        /// </summary>
+        private static string[] GetStatuses(string componentName)
+        {
+            if (IsName(componentName, IcalComponentNames.Event)) return EventStatuses;
+            if (IsName(componentName, IcalComponentNames.Todo)) return TodoStatuses;
+            if (IsName(componentName, IcalComponentNames.Journal)) return JournalStatuses;
+
+            return AllStatuses;
+        }
+
+        /// <summary>
+        /// Checks that a property whose grammar has a closed set of values, with no <c>iana-token</c> or <c>x-name</c>, has one of them.  Like
+        /// every enumerated value, they are case-insensitive (RFC 5545 §2).
+        /// </summary>
+        private static void ValidateValueSet(IcalContentLine property, string path, string[] values, Context context)
+        {
+            if (values.Contains(property.Value, StringComparer.OrdinalIgnoreCase)) return;
+
+            AddInvalidValue(property, path,
+                string.Format(CultureInfo.InvariantCulture, "The value of the {0} property must be {1}.", property.Name.ToUpperInvariant(),
+                    values.Length == 1 ? values[0] : string.Join(", ", values, 0, values.Length - 1) + " or " + values[values.Length - 1]),
+                context);
         }
 
         private static void ValidateRange(IcalContentLine property, string path, int minimum, int maximum, Context context)
@@ -1129,11 +1371,33 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// The smallest and largest UTC offsets, in seconds, that a local time in a time zone can be read with.
+        /// </summary>
+        private readonly struct OffsetRange
+        {
+            /// <summary>
+            /// Every offset <c>utc-offset</c> can express, for a time zone whose offsets are not known.
+            /// </summary>
+            internal static readonly OffsetRange Any = new OffsetRange(-MaxOffsetSeconds, MaxOffsetSeconds);
+
+            internal OffsetRange(long minimum, long maximum)
+            {
+                Minimum = minimum;
+                Maximum = maximum;
+            }
+
+            internal long Minimum { get; }
+
+            internal long Maximum { get; }
+        }
+
+        /// <summary>
         /// What the checks of a component need to know about the calendar it is in, and where they report.
         /// </summary>
         private sealed class Context
         {
             private readonly List<IcalDiagnostic> _diagnostics;
+            private readonly Dictionary<string, OffsetRange> _offsetRanges = new Dictionary<string, OffsetRange>(StringComparer.Ordinal);
 
             internal Context(List<IcalDiagnostic> diagnostics)
             {
@@ -1160,6 +1424,25 @@ namespace DataStandardizer.File.iCal
             /// Gets the identifiers of the calendar's VTIMEZONE components.
             /// </summary>
             internal HashSet<string> TimeZoneIds { get; }
+
+            /// <summary>
+            /// Adds the UTC offsets of a VTIMEZONE to those of any other with the same identifier.
+            /// </summary>
+            internal void AddOffsetRange(string timeZoneId, OffsetRange range)
+            {
+                OffsetRange existing;
+                _offsetRanges[timeZoneId] = _offsetRanges.TryGetValue(timeZoneId, out existing)
+                    ? new OffsetRange(Math.Min(existing.Minimum, range.Minimum), Math.Max(existing.Maximum, range.Maximum))
+                    : range;
+            }
+
+            /// <summary>
+            /// Gets the range of the UTC offsets of the calendar's VTIMEZONE components with an identifier.
+            /// </summary>
+            internal bool TryGetOffsetRange(string timeZoneId, out OffsetRange range)
+            {
+                return _offsetRanges.TryGetValue(timeZoneId, out range);
+            }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal void Add(IcalDiagnosticKind kind, string message, string path, string? propertyName, long lineNumber)
