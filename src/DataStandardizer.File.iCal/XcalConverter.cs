@@ -484,7 +484,7 @@ namespace DataStandardizer.File.iCal
 #endif
             if (valueType != IcalValueType.Unknown)
             {
-                values = TryWriteValues(property, valueType, valueParameter is null);
+                values = TryWriteValues(property, valueType);
             }
 
             // A value that cannot be converted is kept in an unknown element, with its VALUE parameter.
@@ -555,15 +555,17 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns>The elements; or <c>null</c> if the value is not a valid value of its type.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static List<XcalElement>? TryWriteValues(IcalContentLine property, IcalValueType valueType, bool isDefaultValueType)
+        private static List<XcalElement>? TryWriteValues(IcalContentLine property, IcalValueType valueType)
 #else
-        private static List<XcalElement> TryWriteValues(IcalContentLine property, IcalValueType valueType, bool isDefaultValueType)
+        private static List<XcalElement> TryWriteValues(IcalContentLine property, IcalValueType valueType)
 #endif
         {
             var name = property.Name;
             var value = property.Value;
-            if (isDefaultValueType && IsName(name, IcalPropertyNames.Geo)) return TryWriteGeo(value, property);
-            if (isDefaultValueType && IsName(name, IcalPropertyNames.RequestStatus)) return TryWriteRequestStatus(value, property);
+
+            // ref. RFC 5545§3.2.20: a VALUE parameter may name the default type, so the structure follows the type, not the parameter.
+            if (valueType == IcalValueType.Float && IsName(name, IcalPropertyNames.Geo)) return TryWriteGeo(value, property);
+            if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.RequestStatus)) return TryWriteRequestStatus(value, property);
 
             // ref. RFC 6321§3.4.1.1: each value of a multi-valued property is an element.  The values of a property whose type is not known
             // may be a list too, so they are split as well.

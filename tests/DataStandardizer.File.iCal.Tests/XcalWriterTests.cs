@@ -18,6 +18,16 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ParametersElement = "parameters";
         private const string VcalendarElement = "vcalendar";
 
+        // ref. RFC 5545 §3.8.1.6: the example GEO value, and the elements RFC 6321 §3.4.1.2 gives it.
+        private const string GeoValue = "37.386013;-122.082932";
+        private const string GeoElement = "geo";
+        private const string GeoXcal = "<latitude>37.386013</latitude><longitude>-122.082932</longitude>";
+
+        // ref. RFC 5545 §3.8.8.3: the example REQUEST-STATUS value 2.0;Success, and the elements RFC 6321 §3.4.1.3 gives it.
+        private const string SuccessStatusValue = "2.0;Success";
+        private const string RequestStatusElement = "request-status";
+        private const string SuccessStatusXcal = "<code>2.0</code><description>Success</description>";
+
         // The octets of "<?xml", which an XML declaration starts with.
         private static readonly byte[] XmlDeclarationStart = { 0x3C, 0x3F, 0x78, 0x6D, 0x6C };
 
@@ -132,7 +142,7 @@ namespace DataStandardizer.File.iCal.Tests
                 "EXDATE;TZID=Europe/London:20260102T090000,20260103T090000",
                 "RDATE;VALUE=PERIOD:20260104T090000Z/PT1H,20260105T090000Z/20260105T100000Z",
                 "RRULE:FREQ=WEEKLY;UNTIL=20261231T235959Z;WKST=MO;BYDAY=TU,FR",
-                "GEO:37.386013;-122.082932",
+                "GEO:" + GeoValue,
                 "REQUEST-STATUS:3.1;Invalid property value;DTSTART:96-Apr-01",
                 "ATTENDEE;RSVP=TRUE;MEMBER=\"mailto:a@example.com\";X-FOO=bar:mailto:jane@example.com",
                 IcalLines.BeginAlarm, "ACTION:AUDIO", "TRIGGER;VALUE=DATE-TIME:20260101T080000Z", IcalLines.EndAlarm), options);
@@ -153,14 +163,38 @@ namespace DataStandardizer.File.iCal.Tests
                 "<period><start>2026-01-05T09:00:00Z</start><end>2026-01-05T10:00:00Z</end></period>");
             Inner(properties, "rrule").Should().Be(
                 "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><wkst>MO</wkst><byday>TU</byday><byday>FR</byday></recur>");
-            Inner(properties, "geo").Should().Be("<latitude>37.386013</latitude><longitude>-122.082932</longitude>");
-            Inner(properties, "request-status").Should().Be(
+            Inner(properties, GeoElement).Should().Be(GeoXcal);
+            Inner(properties, RequestStatusElement).Should().Be(
                 "<code>3.1</code><description>Invalid property value</description><data>DTSTART:96-Apr-01</data>");
             Inner(properties, "attendee").Should().Be(
                 "<parameters><rsvp><boolean>true</boolean></rsvp><member><cal-address>mailto:a@example.com</cal-address></member>" +
                 "<x-foo><unknown>bar</unknown></x-foo></parameters><cal-address>mailto:jane@example.com</cal-address>");
             Inner(testResult.Descendants(Ns + "valarm").Single().Element(Ns + PropertiesElement), "trigger")
                 .Should().Be("<date-time>2026-01-01T08:00:00Z</date-time>");
+        }
+
+        // ref. RFC 5545 §3.2.20: a VALUE parameter may name the default value type.  ref. RFC 6321 §3.4.1.2 and §3.4.1.3: GEO and
+        // REQUEST-STATUS have structured values whatever the parameters.
+        public static TheoryData<string, string, string> ExplicitDefaultValueTypeCases => new TheoryData<string, string, string>
+        {
+            { "GEO;VALUE=FLOAT:" + GeoValue, GeoElement, GeoXcal },
+            { "REQUEST-STATUS;VALUE=TEXT:" + SuccessStatusValue, RequestStatusElement, SuccessStatusXcal },
+            { "REQUEST-STATUS;VALUE=text:" + SuccessStatusValue, RequestStatusElement, SuccessStatusXcal },
+        };
+
+        [Theory]
+        [MemberData(nameof(ExplicitDefaultValueTypeCases))]
+        public void WriteCalendar_StructuredPropertyWithExplicitDefaultValueType_WritesStructuredValue(string line, string propertyName,
+            string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), propertyName).Should().Be(expected);
         }
 
         [Fact]

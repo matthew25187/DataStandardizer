@@ -479,7 +479,7 @@ namespace DataStandardizer.File.iCal
 #endif
             if (valueType != IcalValueType.Unknown)
             {
-                values = TryConvertValues(property, valueType, valueParameter is null);
+                values = TryConvertValues(property, valueType);
             }
 
             // A value that cannot be converted is kept with the unknown type, with its VALUE parameter; and an extension value type is kept as
@@ -622,15 +622,17 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns>The values; or <c>null</c> if the value is not a valid value of its type.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static List<JcalNode>? TryConvertValues(IcalContentLine property, IcalValueType valueType, bool isDefaultValueType)
+        private static List<JcalNode>? TryConvertValues(IcalContentLine property, IcalValueType valueType)
 #else
-        private static List<JcalNode> TryConvertValues(IcalContentLine property, IcalValueType valueType, bool isDefaultValueType)
+        private static List<JcalNode> TryConvertValues(IcalContentLine property, IcalValueType valueType)
 #endif
         {
             var name = property.Name;
             var value = property.Value;
-            if (isDefaultValueType && IsName(name, IcalPropertyNames.Geo)) return ToList(TryConvertGeo(value));
-            if (isDefaultValueType && IsName(name, IcalPropertyNames.RequestStatus)) return ToList(TryConvertRequestStatus(value));
+
+            // ref. RFC 5545§3.2.20: a VALUE parameter may name the default type, so the structure follows the type, not the parameter.
+            if (valueType == IcalValueType.Float && IsName(name, IcalPropertyNames.Geo)) return ToList(TryConvertGeo(value));
+            if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.RequestStatus)) return ToList(TryConvertRequestStatus(value));
 
             // ref. RFC 7265§3.4: each value of a multi-valued property is an element of the array.  The values of a property whose type is
             // not known may be a list too, so they are split as well.
