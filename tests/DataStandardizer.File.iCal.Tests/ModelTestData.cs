@@ -72,13 +72,15 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
-        /// Reads a calendar of one event, and adds the event to its own components.
+        /// Reads a calendar of one event, and adds to it a <see cref="NestedComponentName"/> component that holds itself, so that the only
+        /// problem is the nesting in itself.
         /// </summary>
-        public static IcalCalendar CalendarWithEventInItself()
+        public static IcalCalendar CalendarWithComponentInItself()
         {
             var calendar = ReadCalendar(EventCalendar());
-            var nested = calendar.Events.Single();
+            var nested = new IcalComponent(NestedComponentName);
             nested.Components.Add(nested);
+            calendar.Components.Add(nested);
             return calendar;
         }
 
@@ -99,7 +101,7 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public static TheoryData<Func<IcalCalendar>> CalendarsNestedTooDeeply => new TheoryData<Func<IcalCalendar>>
         {
-            CalendarWithEventInItself,
+            CalendarWithComponentInItself,
             CalendarNestedPastLimit
         };
 

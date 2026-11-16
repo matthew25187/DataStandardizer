@@ -613,15 +613,17 @@ namespace DataStandardizer.File.iCal
 
             foreach (var component in calendar.Components)
             {
-                AddComponent(component, lines, ref componentCount);
+                AddComponent(component, 2, lines, ref componentCount);
             }
 
             lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, calendar.Name));
             return lines;
         }
 
-        private static void AddComponent(IcalComponent component, List<IcalContentLine> lines, ref int componentCount)
+        // depth is the level of the component, counting the VCALENDAR as the first.
+        private static void AddComponent(IcalComponent component, int depth, List<IcalContentLine> lines, ref int componentCount)
         {
+            IcalConformance.CheckWriteDepth(depth);
             lines.Add(new IcalContentLine(IcalCalendarBuilder.BeginName, component.Name));
             foreach (var property in component.Properties)
             {
@@ -630,7 +632,7 @@ namespace DataStandardizer.File.iCal
 
             foreach (var child in component.Components)
             {
-                AddComponent(child, lines, ref componentCount);
+                AddComponent(child, depth + 1, lines, ref componentCount);
             }
 
             lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, component.Name));
