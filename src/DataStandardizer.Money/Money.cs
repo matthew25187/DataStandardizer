@@ -1498,6 +1498,10 @@ namespace DataStandardizer.Money
         /// <see cref="CurrencyFormatInfo"/>. Where it is <c>null</c> or supplies neither, the culture of the
         /// current thread is used.
         /// </para>
+        /// <para>
+        /// A value with no currency has no currency token to emit, so the money formats give it the separators
+        /// and negative sign of the general format, which parsing reads back without a currency token.
+        /// </para>
         /// </remarks>
         /// <exception cref="FormatException">
         /// Thrown when <paramref name="format"/> is not a valid format string, or names a currency other than
@@ -1618,10 +1622,18 @@ namespace DataStandardizer.Money
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
         /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
         /// <remarks>
+        /// <para>
         /// A currency is identified from an ISO 4217 currency code, or from a currency symbol which denotes
         /// exactly one currency. A symbol shared by several currencies is resolved from the currency of
         /// <paramref name="provider"/>, and only when <paramref name="styles"/> includes
         /// <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/>.
+        /// </para>
+        /// <para>
+        /// The amount is read with the separators and negative sign it is formatted with under
+        /// <paramref name="provider"/>. Where <paramref name="s"/> has a currency token, they are those of the
+        /// provider's currency formatting information, which the money formats use. Where it has none, they are
+        /// those of the provider's number formatting information, which the general format uses.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> is <c>null</c>.</exception>
         /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in a correct format, or its currency cannot be determined.</exception>
@@ -1653,6 +1665,12 @@ namespace DataStandardizer.Money
         /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
         /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
         /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// The amount is read with the separators and negative sign it is formatted with under
+        /// <paramref name="provider"/>. Where <paramref name="s"/> has a currency token, they are those of the
+        /// provider's currency formatting information, which the money formats use. Where it has none, they are
+        /// those of the provider's number formatting information, which the general format uses.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, out Money result)
 #else
@@ -1670,9 +1688,13 @@ namespace DataStandardizer.Money
 
             var moneyProvider = ResolveMoneyProvider(provider);
             var currencyFormat = moneyProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo ?? CurrencyFormatInfo.InvariantInfo;
-            var numberFormat = GetNumberFormat(provider, currencyFormat);
+            var currencyNumberFormat = GetNumberFormat(provider, currencyFormat);
 
-            return MoneyParser.TryParse(s, useStyles, currencyFormat, numberFormat, out result);
+            // The number formatting the general format uses for this provider, so that an amount without a
+            // currency token is read as it was written.
+            var amountNumberFormat = NumberFormatInfo.GetInstance(moneyProvider);
+
+            return MoneyParser.TryParse(s, useStyles, currencyFormat, currencyNumberFormat, amountNumberFormat, out result);
         }
 
         /// <summary>
@@ -1845,11 +1867,12 @@ namespace DataStandardizer.Money
 #endif
 
         /// <summary>
-        /// Determine the number formatting information used to interpret the amount of a monetary value.
+        /// Determine the number formatting information used to interpret the amount of a monetary value with
+        /// a currency token.
         /// </summary>
         /// <remarks>
         /// The separators are taken from the currency formatting information so that parsing accepts what
-        /// formatting produces, rather than differing from it.
+        /// the money formats produce, rather than differing from it.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         private static NumberFormatInfo GetNumberFormat(IFormatProvider? provider, CurrencyFormatInfo currencyFormat)
@@ -1863,7 +1886,8 @@ namespace DataStandardizer.Money
             result.NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator;
             result.NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator;
             result.NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied;
-            result.NegativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
+            // An empty sign is passed on as it stands; the parser decides what is read in its place.
+            result.NegativeSign = currencyFormat.NegativeSign ?? string.Empty;
 
             return result;
         }

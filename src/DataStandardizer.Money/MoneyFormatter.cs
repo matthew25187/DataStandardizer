@@ -55,6 +55,9 @@ namespace DataStandardizer.Money
             InvalidPrecision
         }
 
+        // The standard numeric format of a grouped number, to which a precision may be appended.
+        private const string GroupedNumberFormat = "N";
+
         // Placement templates matching the indices documented for NumberFormatInfo.CurrencyPositivePattern
         // and NumberFormatInfo.CurrencyNegativePattern, so that values taken from a culture may be used
         // directly. {0} is the currency token, {1} the number and {2} the negative sign.
@@ -110,12 +113,10 @@ namespace DataStandardizer.Money
                 return HandleOtherFormats(format, arg, formatProvider);
             }
 
+            // The culture of the current thread on every target, as for the number formatting, so that the same
+            // inputs give the same output whichever target is in use.
             var currencyFormat = formatProvider?.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo
-#if NETSTANDARD2_0_OR_GREATER||NET
-                                 ?? CurrencyFormatInfo.CurrentInfo;
-#else
-                                 ?? CurrencyFormatInfo.InvariantInfo;
-#endif
+                                 ?? MoneyInfo.GetCurrentMoney().CurrencyFormat;
 
             switch (ParseFormat(format, moneyValue.IsoCurrencyCode, out var specifier, out var precision))
             {
@@ -142,15 +143,24 @@ namespace DataStandardizer.Money
             // A value with no currency has no currency token to emit. The format string is deliberately not
             // passed on to the number: a currency specifier handed to decimal would emit the culture's own
             // currency symbol, which would misrepresent a value that has no currency of its own.
+            //
+            // Without a currency token the result cannot be told apart from the general format, so it takes
+            // the separators and sign the general format uses rather than those of the currency. Parsing reads
+            // an amount without a currency token with those same separators and sign.
             if (moneyValue.IsoCurrencyCode == Money.NoCurrency)
             {
+                var amountNumberFormat = NumberFormatInfo.GetInstance(formatProvider ?? CultureInfo.CurrentCulture);
                 var currencylessAmount = (decimal)moneyValue;
                 var currencylessIsNegative = currencylessAmount < decimal.Zero;
                 var currencylessDigits = precision ?? currencyFormat.CurrencyDecimalDigits;
-                var currencylessNumberPart = FormatNumber(currencylessIsNegative ? decimal.Negate(currencylessAmount) : currencylessAmount, currencylessDigits, currencyFormat);
+
+                // The amount is formatted without its sign, so the negative pattern of the number formatting
+                // never applies and only its separators and group sizes are used.
+                var currencylessNumberPart = (currencylessIsNegative ? decimal.Negate(currencylessAmount) : currencylessAmount)
+                    .ToString(GroupedNumberFormat + currencylessDigits.ToString(CultureInfo.InvariantCulture), amountNumberFormat);
 
                 return currencylessIsNegative
-                    ? string.Concat(currencyFormat.NegativeSign, currencylessNumberPart)
+                    ? string.Concat(amountNumberFormat.NegativeSign, currencylessNumberPart)
                     : currencylessNumberPart;
             }
 
@@ -346,7 +356,7 @@ namespace DataStandardizer.Money
                 NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied
             };
 
-            return amount.ToString("N", numberFormat);
+            return amount.ToString(GroupedNumberFormat, numberFormat);
         }
 
         /// <summary>

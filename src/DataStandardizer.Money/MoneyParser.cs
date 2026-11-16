@@ -24,18 +24,39 @@ namespace DataStandardizer.Money
         private const string HyphenMinus = "-";
 
         /// <summary>
+        /// The outcome of an attempt to parse a value with one set of separators and sign.
+        /// </summary>
+        private enum ParseOutcome
+        {
+            /// <summary>The value is not a monetary value.</summary>
+            Failed,
+
+            /// <summary>The value was parsed.</summary>
+            Parsed,
+
+            /// <summary>The value has no currency token, so its amount is to be read with other separators.</summary>
+            NoCurrencyToken
+        }
+
+        /// <summary>
         /// Attempt to parse the string representation of a monetary value.
         /// </summary>
         /// <param name="value">String to parse.</param>
         /// <param name="styles">Elements permitted in <paramref name="value"/>.</param>
         /// <param name="currencyFormat">Currency formatting information of the culture to parse for.</param>
-        /// <param name="numberFormat">Number formatting information used to interpret the amount.</param>
+        /// <param name="currencyNumberFormat">Number formatting information with the separators and negative sign of <paramref name="currencyFormat"/>, used to interpret an amount with a currency token.</param>
+        /// <param name="amountNumberFormat">Number formatting information used by the general format, used to interpret an amount without a currency token.</param>
         /// <param name="result">Monetary value parsed from <paramref name="value"/>.</param>
         /// <returns><c>true</c> if <paramref name="value"/> was parsed successfully; otherwise <c>false</c>.</returns>
+        /// <remarks>
+        /// An amount is read with the separators and sign it was formatted with. A value with a currency token
+        /// is in one of the money forms, which use those of the currency. A value without one is in the
+        /// general form, or is a value with no currency, and both use those of the number formatting.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParse(string? value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo numberFormat, out Money result)
+        internal static bool TryParse(string? value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo currencyNumberFormat, NumberFormatInfo amountNumberFormat, out Money result)
 #else
-        internal static bool TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo numberFormat, out Money result)
+        internal static bool TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, NumberFormatInfo currencyNumberFormat, NumberFormatInfo amountNumberFormat, out Money result)
 #endif
         {
             result = default(Money);
@@ -45,13 +66,74 @@ namespace DataStandardizer.Money
                 return false;
             }
 
+            var currencyNegativeSign = GetNegativeSign(currencyNumberFormat);
+            var amountNegativeSign = GetNegativeSign(amountNumberFormat);
+
+            // Where both read the same sign, one reading finds the sign and currency token for either, and the
+            // token decides which separators the amount is read with.
+            if (string.Equals(currencyNegativeSign, amountNegativeSign, StringComparison.Ordinal))
+            {
+                return TryParse(value, styles, currencyFormat, currencyNegativeSign, currencyNumberFormat, amountNumberFormat, out result) == ParseOutcome.Parsed;
+            }
+
+            switch (TryParse(value, styles, currencyFormat, currencyNegativeSign, currencyNumberFormat, null, out result))
+            {
+                case ParseOutcome.Parsed:
+                    return true;
+
+                case ParseOutcome.NoCurrencyToken:
+                    // Read again with the sign of the number formatting, which must not then find a currency
+                    // token that the reading with the currency's sign did not.
+                    return TryParse(value, styles, currencyFormat, amountNegativeSign, null, amountNumberFormat, out result) == ParseOutcome.Parsed;
+
+                default:
+                    return false;
+            }
+        }
+
+        #region Private Methods
+
+        /// <summary>
+        /// Determine the negative sign read for number formatting information, which is a hyphen-minus where
+        /// it has none, since an empty sign cannot be recognised in input.
+        /// </summary>
+        private static string GetNegativeSign(NumberFormatInfo numberFormat)
+        {
+            return string.IsNullOrEmpty(numberFormat.NegativeSign) ? HyphenMinus : numberFormat.NegativeSign;
+        }
+
+        /// <summary>
+        /// Attempt to parse the string representation of a monetary value with one negative sign.
+        /// </summary>
+        /// <param name="value">String to parse, which is neither <c>null</c> nor empty.</param>
+        /// <param name="styles">Elements permitted in <paramref name="value"/>.</param>
+        /// <param name="currencyFormat">Currency formatting information of the culture to parse for.</param>
+        /// <param name="negativeSign">Negative sign to read.</param>
+        /// <param name="tokenNumberFormat">
+        /// Number formatting information whose separators are used where <paramref name="value"/> has a
+        /// currency token, or <c>null</c> to fail where it has one.
+        /// </param>
+        /// <param name="tokenlessNumberFormat">
+        /// Number formatting information whose separators are used where <paramref name="value"/> has no
+        /// currency token, or <c>null</c> to stop with <see cref="ParseOutcome.NoCurrencyToken"/> where it has none.
+        /// </param>
+        /// <param name="result">Monetary value parsed from <paramref name="value"/>.</param>
+        /// <returns>The outcome of the attempt.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, string negativeSign, NumberFormatInfo? tokenNumberFormat, NumberFormatInfo? tokenlessNumberFormat, out Money result)
+#else
+        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, string negativeSign, NumberFormatInfo tokenNumberFormat, NumberFormatInfo tokenlessNumberFormat, out Money result)
+#endif
+        {
+            result = default(Money);
+
             var remaining = value;
 
             remaining = TrimWhite(remaining, styles, out var hadLeadingWhite, out var hadTrailingWhite);
             if ((hadLeadingWhite && (styles & MoneyStyles.AllowLeadingWhite) == 0)
                 || (hadTrailingWhite && (styles & MoneyStyles.AllowTrailingWhite) == 0))
             {
-                return false;
+                return ParseOutcome.Failed;
             }
 
             // Parentheses denote a negative value, and enclose the whole of it.
@@ -60,7 +142,7 @@ namespace DataStandardizer.Money
             {
                 if ((styles & MoneyStyles.AllowParentheses) == 0)
                 {
-                    return false;
+                    return ParseOutcome.Failed;
                 }
 
                 isNegative = true;
@@ -69,30 +151,36 @@ namespace DataStandardizer.Money
 
             // A sign may appear outside the currency token as well as beside the amount, so it is looked for
             // both before and after the currency token is removed.
-            if (!TryExtractSign(ref remaining, styles, currencyFormat, ref isNegative))
+            if (!TryExtractSign(ref remaining, styles, negativeSign, ref isNegative))
             {
-                return false;
+                return ParseOutcome.Failed;
             }
 
             remaining = remaining.Trim();
 
             if (!TryExtractCurrency(ref remaining, styles, currencyFormat, out var currencyCode, out var hasCurrency))
             {
-                return false;
+                return ParseOutcome.Failed;
+            }
+
+            var numberFormat = hasCurrency ? tokenNumberFormat : tokenlessNumberFormat;
+            if (numberFormat is null)
+            {
+                return hasCurrency ? ParseOutcome.Failed : ParseOutcome.NoCurrencyToken;
             }
 
             remaining = remaining.Trim();
 
-            if (!TryExtractSign(ref remaining, styles, currencyFormat, ref isNegative))
+            if (!TryExtractSign(ref remaining, styles, negativeSign, ref isNegative))
             {
-                return false;
+                return ParseOutcome.Failed;
             }
 
             remaining = remaining.Trim();
 
             if (!TryParseAmount(remaining, styles, numberFormat, out var amount))
             {
-                return false;
+                return ParseOutcome.Failed;
             }
 
             if (isNegative)
@@ -101,10 +189,8 @@ namespace DataStandardizer.Money
             }
 
             result = hasCurrency ? Money.Create(amount, currencyCode) : Money.Create(amount);
-            return true;
+            return ParseOutcome.Parsed;
         }
-
-        #region Private Methods
 
         private static string TrimWhite(string value, MoneyStyles styles, out bool hadLeadingWhite, out bool hadTrailingWhite)
         {
@@ -285,10 +371,8 @@ namespace DataStandardizer.Money
         /// A value carries at most one sign, and parentheses are a sign, so a sign found once
         /// <paramref name="isNegative"/> is already set fails the parse.
         /// </remarks>
-        private static bool TryExtractSign(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, ref bool isNegative)
+        private static bool TryExtractSign(ref string value, MoneyStyles styles, string negativeSign, ref bool isNegative)
         {
-            var negativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? HyphenMinus : currencyFormat.NegativeSign;
-
             // As for decimal, a hyphen-minus is also read as the sign where the sign is a single dash such as
             // U+2212 MINUS SIGN, which few keyboards can type.
             var alternativeSign = AllowsHyphenMinus(negativeSign) ? HyphenMinus : null;

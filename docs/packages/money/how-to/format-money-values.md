@@ -81,7 +81,17 @@ symbol would assert that 1,234,567.50 New Zealand Dollars *is* the same quantity
 of Indian Rupees, which is false and which neither a reader nor a subsequent
 parse could detect.
 
-A value with no currency emits no currency token at all.
+A value with no currency emits no currency token at all. Without a token, `C`,
+`H`, `I` and `N` give it the separators and negative sign of the general format
+`G`, which are those of the culture's number formatting, and parsing reads an
+amount without a currency token with those. They differ from the currency
+separators in some cultures.
+
+```csharp
+var rn = new CultureInfo("rn");   // numbers use "," for decimals, currencies "."
+Money.Create(1234.5m).ToString("C", rn);                               // 1.234,50
+Money.Create(1234.5m, Iso4217CurrencyCurrent.USD).ToString("I", rn);   // USD1,234.50
+```
 
 To express an amount *in* another currency you need a conversion, which requires
 an exchange rate and is outside the scope of this package.
