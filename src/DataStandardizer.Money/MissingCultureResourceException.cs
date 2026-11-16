@@ -9,8 +9,10 @@ namespace DataStandardizer.Money
     /// <remarks>
     /// The package no longer throws this exception: culture-specific currency formatting
     /// information is generated from Unicode CLDR data and is complete for every culture. The type
-    /// remains so that code which refers to it still compiles.
+    /// remains so that code which refers to it still compiles, and will be removed in a future major
+    /// version.
     /// </remarks>
+    [Obsolete("The package no longer throws MissingCultureResourceException, which will be removed in a future major version. Remove code that catches it.")]
     public sealed class MissingCultureResourceException : Exception
     {
         public MissingCultureResourceException(string cultureName, string resourceName)

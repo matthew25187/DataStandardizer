@@ -21,16 +21,16 @@ public class CurrencyFormatInfoTests
     private const int InvariantNegativePattern = 0;
     private const int InvariantDecimalDigits = 2;
 
-    // Separators in Unicode CLDR 47.0.0 symbols-numberSystem-latn.
+    // Separators in Unicode CLDR 49.0.0 symbols-numberSystem-latn.
     private const string CldrFullStop = ".";
     private const string CldrComma = ",";
     private const string CldrNoBreakSpace = "\x00A0";
-    private const string CldrRightSingleQuotationMark = "\x2019";
+    private const string CldrApostrophe = "'";
     private const string CldrHyphenMinus = "-";
     private const string CldrMinusSign = "\x2212";
     private const string CldrLeftToRightMarkHyphenMinus = "\x200E-";
 
-    // Every CLDR 47.0.0 currency pattern has two fraction digits ("#,##0.00").
+    // Every CLDR 49.0.0 currency pattern has two fraction digits ("#,##0.00").
     private const int CldrPatternFractionDigits = 2;
 
     // NumberFormatInfo.CurrencyPositivePattern and CurrencyNegativePattern indices, by layout.
@@ -51,6 +51,7 @@ public class CurrencyFormatInfoTests
     private const int DollarMinorUnits = 2;
     private const int YenMinorUnits = 0;
     private const int PesoMinorUnits = 2;
+    private const int NorwegianKroneMinorUnits = 2;
 
     #region Test: InvariantInfo
 
@@ -278,7 +279,7 @@ public class CurrencyFormatInfoTests
         testResult.CurrencyDecimalDigits.Should().Be(expectedDecimalDigits);
     }
 
-    // Values from Unicode CLDR 47.0.0: the symbols-numberSystem-latn and currencyFormats-numberSystem-latn
+    // Values from Unicode CLDR 49.0.0: the symbols-numberSystem-latn and currencyFormats-numberSystem-latn
     // "standard" pattern of the locale the name resolves to, and the region's currency from
     // supplemental/currencyData.json. Decimal digits are the ISO 4217 minor units of that currency.
     public static TheoryData<string, string, string, string, int, int, int> CldrCultureNameTestCases => new()
@@ -289,8 +290,8 @@ public class CurrencyFormatInfoTests
         { "cy-GB", nameof(Iso4217CurrencyCurrent.GBP), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, PoundMinorUnits },
         // fr-CA: group U+00A0; "#,##0.00 ¤".
         { "fr-CA", nameof(Iso4217CurrencyCurrent.CAD), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, CanadianDollarMinorUnits },
-        // de-CH: group U+2019; an explicit negative subpattern, "¤ #,##0.00;¤-#,##0.00".
-        { "de-CH", nameof(Iso4217CurrencyCurrent.CHF), CldrFullStop, CldrRightSingleQuotationMark, SymbolSpaceNumberPattern, SymbolSignNumberPattern, SwissFrancMinorUnits },
+        // de-CH: group U+0027 (apostrophe); an explicit negative subpattern, "¤ #,##0.00;¤-#,##0.00".
+        { "de-CH", nameof(Iso4217CurrencyCurrent.CHF), CldrFullStop, CldrApostrophe, SymbolSpaceNumberPattern, SymbolSignNumberPattern, SwissFrancMinorUnits },
         // pt-FR is not a modern locale; its CLDR parent is pt-PT, "#,##0.00 ¤", not pt, "¤ #,##0.00".
         { "pt-FR", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, EuroMinorUnits },
         // az-IR is likely az-Arab-IR, and az-Arab inherits from root, not from az: the invariant layout.
@@ -307,6 +308,10 @@ public class CurrencyFormatInfoTests
         { "es-419", nameof(Iso4217CurrencyCurrent.XXX), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, CldrPatternFractionDigits },
         // tl is a legacy code that CLDR's language aliases replace with fil, whose pattern is "¤#,##0.00".
         { "tl-PH", nameof(Iso4217CurrencyCurrent.PHP), CldrFullStop, CldrComma, SymbolNumberPattern, SignSymbolNumberPattern, PesoMinorUnits },
+        // nb is not a modern locale; its CLDR parent is no, "#,##0.00 ¤" with group U+00A0.
+        { "nb-NO", nameof(Iso4217CurrencyCurrent.NOK), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, NorwegianKroneMinorUnits },
+        // Bulgaria's current tender is EUR from 2026-01-01; bg is "#,##0.00 ¤" with group U+00A0.
+        { "bg-BG", nameof(Iso4217CurrencyCurrent.EUR), CldrComma, CldrNoBreakSpace, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, EuroMinorUnits },
         // 1901 is a variant, not a script (a script is four letters), so de-1901 inherits from de.
         { "de-1901", nameof(Iso4217CurrencyCurrent.XXX), CldrComma, CldrFullStop, NumberSpaceSymbolPattern, SignNumberSpaceSymbolPattern, CldrPatternFractionDigits },
         // The invariant culture's empty name resolves to nothing.
@@ -325,7 +330,7 @@ public class CurrencyFormatInfoTests
         testResult.CurrencyGroupSizes.Should().Equal(expectedGroupSizes);
     }
 
-    // Values from Unicode CLDR 47.0.0: the minusSign of symbols-numberSystem-latn, and the grouping of the
+    // Values from Unicode CLDR 49.0.0: the minusSign of symbols-numberSystem-latn, and the grouping of the
     // currencyFormats-numberSystem-latn "standard" pattern.
     public static TheoryData<string, string, int[]> CldrSignAndGroupingTestCases => new()
     {

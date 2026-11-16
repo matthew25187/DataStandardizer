@@ -15,6 +15,7 @@ Raised when a resource required to format monetary values for a culture is
 absent.
 
 ```csharp
+[Obsolete]
 public sealed class MissingCultureResourceException : Exception
 ```
 
@@ -22,8 +23,10 @@ public sealed class MissingCultureResourceException : Exception
 
 The package no longer throws this exception. Culture information now comes from
 CLDR data built into the package, which is complete for every culture, so no value
-can be missing (see [CurrencyFormatInfo](CurrencyFormatInfo.md)). The type remains
-so that code which refers to it still compiles.
+can be missing (see [CurrencyFormatInfo](CurrencyFormatInfo.md)). The type is
+obsolete: it remains so that code which refers to it still compiles, with a
+warning, and will be removed in a future major version. Remove code that catches
+it.
 
 ## Constructors
 

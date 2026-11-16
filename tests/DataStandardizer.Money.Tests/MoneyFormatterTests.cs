@@ -36,6 +36,9 @@ public class MoneyFormatterTests
     private const string GeneralResult = "1234.5";
 
     private const string ChfResult = "CHF1,234.50";
+
+    // CHF has the narrow symbol "Fr." in the Unicode CLDR 49.0.0 currency data for the en locale.
+    private const string ChfNarrowResult = "Fr.1,234.50";
     private const string GermanNzdResult = "1.234,50 NZ$";
     private const string SymbolSpaceAmountNzdResult = "NZ$ 1.234,50";
     private const string IndianGroupedNzdResult = "NZ$12,34,567.50";
@@ -93,7 +96,7 @@ public class MoneyFormatterTests
     [Theory]
     [InlineData(Iso4217CurrencyCurrent.NZD, NarrowDollarResult)]
     [InlineData(Iso4217CurrencyCurrent.CAD, NarrowDollarResult)]
-    [InlineData(Iso4217CurrencyCurrent.CHF, ChfResult)]
+    [InlineData(Iso4217CurrencyCurrent.CHF, ChfNarrowResult)]
     public void Format_NarrowSymbolSpecifier_UsesNarrowSymbol(Iso4217CurrencyCurrent testCurrency, string expectedResult)
     {
         // arrange

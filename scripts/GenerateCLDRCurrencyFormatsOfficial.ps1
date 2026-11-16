@@ -313,11 +313,21 @@ function Get-LocaleRelations {
     }
 
     # Explicit parents, for locales that are not emitted themselves but inherit from another locale than
-    # the one truncation would give, such as en-150 from en-001.
+    # the one truncation would give, such as en-150 from en-001. A language whose own locales are not
+    # emitted keeps its parent where that parent's language is, such as nb, which inherits from no.
     $parents = [ordered]@{}
     foreach ($child in $parentLocales.Keys | Sort-Object -CaseSensitive) {
-        if (-not $emitted.Contains($child) -and $languages.Contains($child.Split('-')[0])) {
-            $parents[$child] = $parentLocales[$child]
+        $parent = $parentLocales[$child]
+        if (-not $emitted.Contains($child) -and ($languages.Contains($child.Split('-')[0]) -or $languages.Contains($parent.Split('-')[0]))) {
+            $parents[$child] = $parent
+        }
+    }
+
+    # A language resolves when its locales are emitted, or when it has an emitted parent of its own.
+    $resolvedLanguages = [System.Collections.Generic.HashSet[string]]::new($languages, [System.StringComparer]::Ordinal)
+    foreach ($child in $parents.Keys) {
+        if ($child -cnotmatch '-') {
+            [void]$resolvedLanguages.Add($child)
         }
     }
 
@@ -337,13 +347,13 @@ function Get-LocaleRelations {
     }
 
     # Deprecated and legacy language codes, such as iw for he and tl for fil, are replaced by the code CLDR
-    # names. Only a bare language code is replaced, and only by a language (with an optional script) whose
-    # locales are emitted, where the deprecated code has no locales of its own.
+    # names. Only a bare language code is replaced, and only by a language (with an optional script) that
+    # resolves, where the deprecated code does not resolve itself.
     $languageAliasData = (Read-CldrJson -Path (Join-Path -Path $CorePackageFolder -ChildPath 'supplemental/aliases.json')).supplemental.metadata.alias.languageAlias
     $languageAliases = [ordered]@{}
     foreach ($key in $languageAliasData.Keys | Sort-Object -CaseSensitive) {
         $replacement = $languageAliasData[$key]['_replacement']
-        if ($key -cnotmatch '^[a-z]{2,3}$' -or $replacement -cnotmatch '^[a-z]{2,3}(-[A-Z][a-z]{3})?$' -or $languages.Contains($key) -or -not $languages.Contains($replacement.Split('-')[0])) {
+        if ($key -cnotmatch '^[a-z]{2,3}$' -or $replacement -cnotmatch '^[a-z]{2,3}(-[A-Z][a-z]{3})?$' -or $resolvedLanguages.Contains($key) -or -not $resolvedLanguages.Contains($replacement.Split('-')[0])) {
             continue
         }
 

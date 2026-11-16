@@ -115,7 +115,7 @@ public class MoneyInfoTests
         var testResult = new MoneyInfo((Iso639Part1Language)GermanLanguageCode, Iso3166Part1Alpha2Country.NZ);
 
         // assert
-        // CLDR 47.0.0: de-NZ inherits the presentation of de, and NZ's currency is NZD.
+        // CLDR 49.0.0: de-NZ inherits the presentation of de, and NZ's currency is NZD.
         testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
         testResult.CurrencyFormat.CurrencyDecimalSeparator.Should().Be(GermanDecimalSeparator);
     }
