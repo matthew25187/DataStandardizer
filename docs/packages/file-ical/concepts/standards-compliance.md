@@ -169,9 +169,9 @@ summary:
   `ENCODING=BASE64` on inline BINARY values.
 - **Values tied to their property:** date-times that must be in UTC, including the
   `DTSTART` and `DTEND` of a VFREEBUSY; a `DTEND`, `DUE` or `RECURRENCE-ID` with the
-  same value type as `DTSTART`, in local time if and only if `DTSTART` is; a `DTEND`
-  or `DUE` later in time than `DTSTART`; `STATUS`, `TRANSP` and `CALSCALE` values
-  from their closed sets; a duration from
+  same value type as `DTSTART`; a `DTEND` or `DUE` in local time if and only if
+  `DTSTART` is, and later in time than it; `STATUS`, `TRANSP` and `CALSCALE` values
+  from their closed sets, in the components that define them; a duration from
   a DATE given in days or weeks; recurrence rules checked against `DTSTART`, with
   a `UNTIL` in UTC inside a VTIMEZONE; an observance `DTSTART` given as local
   time; and a VTIMEZONE `TZID` that isn't empty.

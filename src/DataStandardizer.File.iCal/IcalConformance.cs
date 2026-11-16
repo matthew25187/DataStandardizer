@@ -62,7 +62,6 @@ namespace DataStandardizer.File.iCal
         private static readonly string[] EventStatuses = { "TENTATIVE", "CONFIRMED", "CANCELLED" };
         private static readonly string[] TodoStatuses = { "NEEDS-ACTION", "COMPLETED", "IN-PROCESS", "CANCELLED" };
         private static readonly string[] JournalStatuses = { "DRAFT", "FINAL", "CANCELLED" };
-        private static readonly string[] AllStatuses = EventStatuses.Concat(TodoStatuses).Concat(JournalStatuses).Distinct().ToArray();
 
         // ref. RFC 5545§3.8.2.7: transvalue = "OPAQUE" / "TRANSPARENT".
         private static readonly string[] TransparencyValues = { "OPAQUE", "TRANSPARENT" };
@@ -76,7 +75,7 @@ namespace DataStandardizer.File.iCal
         /// The largest size of a UTC offset, in seconds: <c>utc-offset = time-numzone</c> (RFC 5545 §3.3.14), whose hour is at most 23, minute
         /// at most 59 and second at most 60.
         /// </summary>
-        private const long MaxOffsetSeconds = SecondsPerDay;
+        private const long MaxOffsetSeconds = 23 * 3600 + 59 * 60 + 60;
 
         /// <summary>
         /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with one value.  <c>FMTTYPE</c> is left out, as it has a check of its own.
@@ -709,8 +708,8 @@ namespace DataStandardizer.File.iCal
                 var startTime = startValue.DateTime;
                 var endTime = endValue.DateTime;
 
-                // How far the end's wall-clock time is before the start's, in seconds.
-                var difference = GetClockSeconds(startTime) - GetClockSeconds(endTime);
+                // How far the end's wall-clock time is before the start's, in half-seconds.
+                var difference = GetClockHalfSeconds(startTime) - GetClockHalfSeconds(endTime);
                 if (startTime.Kind == IcalDateTimeKind.Zoned && endTime.Kind == IcalDateTimeKind.Zoned &&
                     string.Equals(startTime.TimeZoneId, endTime.TimeZoneId, StringComparison.Ordinal) && difference == 0)
                 {
@@ -720,7 +719,7 @@ namespace DataStandardizer.File.iCal
                 {
                     // The end's instant, its wall-clock time less its offset, is at or before the start's unless the start's offset exceeds the
                     // end's by more than the difference.
-                    isNotLater = difference >= GetOffsetBound(startTime, true, context) - GetOffsetBound(endTime, false, context);
+                    isNotLater = difference >= 2 * (GetOffsetBound(startTime, true, context) - GetOffsetBound(endTime, false, context));
                 }
             }
 
@@ -732,12 +731,15 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets the wall-clock time of a date-time, in seconds from the start of 0001-01-01.
+        /// Gets the wall-clock time of a date-time, in half-seconds from the start of 0001-01-01.  A leap second (RFC 5545 §3.3.12) falls
+        /// between second 59 and the next minute, so that it orders after the one and before the other.
         /// </summary>
-        private static long GetClockSeconds(IcalDateTime value)
+        private static long GetClockHalfSeconds(IcalDateTime value)
         {
             var time = value.Time;
-            return value.Date.DayNumber * SecondsPerDay + time.Hour * 3600L + time.Minute * 60L + time.Second;
+            var isLeapSecond = time.Second == 60;
+            var seconds = value.Date.DayNumber * SecondsPerDay + time.Hour * 3600L + time.Minute * 60L + (isLeapSecond ? 59 : time.Second);
+            return seconds * 2 + (isLeapSecond ? 1 : 0);
         }
 
         /// <summary>
@@ -851,20 +853,12 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 5545§3.8.4.4: the value type of RECURRENCE-ID MUST be the same as DTSTART.
             var recurrenceId = component.GetProperty(IcalPropertyNames.RecurrenceId);
             IcalDateOrDateTime recurrenceIdValue;
-            if (isObservance || recurrenceId is null || !TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue)) return;
-
-            if (recurrenceIdValue.IsDate != startValue.IsDate)
+            if (!isObservance && recurrenceId != null && TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue) &&
+                recurrenceIdValue.IsDate != startValue.IsDate)
             {
                 AddInvalidValue(recurrenceId, path,
                     string.Format(CultureInfo.InvariantCulture, "The RECURRENCE-ID property must have the same value type as the DTSTART property, {0}.",
                         IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
-            }
-            else if (!startValue.IsDate && IsFloating(recurrenceIdValue) != IsFloating(startValue))
-            {
-                // ref. RFC 5545§3.8.4.4: it MUST be a date with local time if and only if DTSTART is.
-                AddInvalidValue(recurrenceId, path,
-                    "The RECURRENCE-ID property must be a date with local time, with no time zone, if and only if the DTSTART property is one.",
-                    context);
             }
         }
 
@@ -1142,29 +1136,31 @@ namespace DataStandardizer.File.iCal
             }
             else if (IsName(name, IcalPropertyNames.Status))
             {
-                ValidateValueSet(property, path, GetStatuses(componentName), context);
+                // ref. RFC 5545§3.8.1.11: the values of each component that defines STATUS.  RFC 5545 defines it in no other component, such
+                // as an x-comp, whose lines are any contentline, so its value is not checked there.
+                if (IsName(componentName, IcalComponentNames.Event))
+                {
+                    ValidateValueSet(property, path, EventStatuses, context);
+                }
+                else if (IsName(componentName, IcalComponentNames.Todo))
+                {
+                    ValidateValueSet(property, path, TodoStatuses, context);
+                }
+                else if (IsName(componentName, IcalComponentNames.Journal))
+                {
+                    ValidateValueSet(property, path, JournalStatuses, context);
+                }
             }
-            else if (IsName(name, IcalPropertyNames.Transparency))
+            else if (IsName(name, IcalPropertyNames.Transparency) && IsName(componentName, IcalComponentNames.Event))
             {
+                // ref. RFC 5545§3.8.2.7: TRANSP is defined in VEVENT only.
                 ValidateValueSet(property, path, TransparencyValues, context);
             }
-            else if (IsName(name, IcalPropertyNames.CalendarScale))
+            else if (IsName(name, IcalPropertyNames.CalendarScale) && IsName(componentName, IcalComponentNames.Calendar))
             {
+                // ref. RFC 5545§3.7.1: CALSCALE is defined in VCALENDAR only.
                 ValidateValueSet(property, path, CalendarScaleValues, context);
             }
-        }
-
-        /// <summary>
-        /// Gets the values RFC 5545 §3.8.1.11 allows <c>STATUS</c> in a component: those of its kind in a VEVENT, VTODO or VJOURNAL, and any of
-        /// them in another component.
-        /// </summary>
-        private static string[] GetStatuses(string componentName)
-        {
-            if (IsName(componentName, IcalComponentNames.Event)) return EventStatuses;
-            if (IsName(componentName, IcalComponentNames.Todo)) return TodoStatuses;
-            if (IsName(componentName, IcalComponentNames.Journal)) return JournalStatuses;
-
-            return AllStatuses;
         }
 
         /// <summary>

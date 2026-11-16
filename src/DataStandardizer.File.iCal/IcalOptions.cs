@@ -78,9 +78,10 @@ namespace DataStandardizer.File.iCal
         /// to write one, with an <see cref="IcalFileException"/>.  The checks cover the value types of RFC 5545 §3.3 and the rules that tie a value
         /// to its property: a <c>VALUE</c> parameter the property does not allow, or one it requires; a DATE-TIME that must be in UTC, such as
         /// the <c>DTSTART</c> and <c>DTEND</c> of a VFREEBUSY (RFC 5545 §3.8.2.4 and §3.8.2.2); date-times that must have the same value type
-        /// as the component's <c>DTSTART</c>, and be in local time with no time zone if and only if it is; a <c>DTEND</c> or <c>DUE</c> that
-        /// is not later in time than <c>DTSTART</c> (RFC 5545 §3.8.2.2 and §3.8.2.3); and a <c>STATUS</c>, <c>TRANSP</c> or <c>CALSCALE</c>
-        /// value outside the closed set of RFC 5545 §3.8.1.11, §3.8.2.7 or §3.7.1.  A <c>DTEND</c> or <c>DUE</c> with a time zone is compared
+        /// as the component's <c>DTSTART</c>; a <c>DTEND</c> or <c>DUE</c> that is in local time with no time zone when <c>DTSTART</c> is not,
+        /// or the other way round, or that is not later in time than <c>DTSTART</c> (RFC 5545 §3.8.2.2 and §3.8.2.3); and a <c>STATUS</c>,
+        /// <c>TRANSP</c> or <c>CALSCALE</c> value, in a component that defines it, outside the closed set of RFC 5545 §3.8.1.11, §3.8.2.7 or
+        /// §3.7.1.  A <c>DTEND</c> or <c>DUE</c> with a time zone is compared
         /// without expanding the rules of its VTIMEZONE, so one earlier than <c>DTSTART</c> by less than the spread of the time zone's UTC
         /// offsets is not reported.  They also cover the <c>FMTTYPE</c> parameter, which
         /// RFC 5545 §3.2.8 makes one type and subtype with no media type parameters, and which may appear only once; a parameter defined with one

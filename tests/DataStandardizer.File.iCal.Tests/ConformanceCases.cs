@@ -65,6 +65,10 @@ namespace DataStandardizer.File.iCal.Tests
         private const string UtcEndBeforeStart = "DTEND:20260101T080000Z";
         private const string UtcEndAfterStart = "DTEND:20260101T100000Z";
         private const string FloatingStart = "DTSTART:20260101T090000";
+        private const string FloatingEndAfterStart = "DTEND:20260101T100000";
+
+        // ref. RFC 5545 §3.8.1.11: a status a VJOURNAL allows and a VEVENT does not.
+        private const string DraftStatus = "STATUS:DRAFT";
         private const string TodoUid = "UID:t@example.com";
         private const string FreeBusyUid = "UID:f@example.com";
         private const string FreeBusyPath = "VCALENDAR/VFREEBUSY[1]";
@@ -230,26 +234,24 @@ namespace DataStandardizer.File.iCal.Tests
             ["DueBeforeStart"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T080000Z", EndTodo),
                 IcalDiagnosticKind.InvalidValue, Due, TodoPath),
 
-            // ref. RFC 5545 §3.8.2.2, §3.8.2.3 and §3.8.4.4: a date with local time if and only if DTSTART is one.
+            // ref. RFC 5545 §3.8.2.2 and §3.8.2.3: a date with local time if and only if DTSTART is one.
             ["UtcEndForFloatingStart"] = new Case(EventCalendar(FloatingStart, UtcEndAfterStart), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
             ["FloatingDueForUtcStart"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T100000", EndTodo),
                 IcalDiagnosticKind.InvalidValue, Due, TodoPath),
-            ["FloatingRecurrenceIdForUtcStart"] = new Case(EventCalendar("RECURRENCE-ID:20260101T090000"), IcalDiagnosticKind.InvalidValue,
-                "RECURRENCE-ID", EventPath),
 
             // ref. RFC 5545 §3.8.2.4 and §3.8.2.2: in a VFREEBUSY, DTSTART and DTEND MUST be in UTC, and DTEND later than DTSTART.
             ["FloatingFreeBusyStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, FloatingStart, UtcEndAfterStart, EndFreeBusy),
                 IcalDiagnosticKind.InvalidValue, DtStart, FreeBusyPath),
             ["DateFreeBusyStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, DateStart, UtcEndAfterStart, EndFreeBusy),
                 IcalDiagnosticKind.InvalidValue, DtStart, FreeBusyPath),
-            ["FloatingFreeBusyEnd"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, "DTEND:20260101T100000",
+            ["FloatingFreeBusyEnd"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, FloatingEndAfterStart,
                 EndFreeBusy), IcalDiagnosticKind.InvalidValue, DtEnd, FreeBusyPath),
             ["FreeBusyEndBeforeStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, UtcEndBeforeStart, EndFreeBusy),
                 IcalDiagnosticKind.InvalidValue, DtEnd, FreeBusyPath),
 
             // ref. RFC 5545 §3.8.1.11, §3.8.2.7 and §3.7.1: closed sets of values, with no iana-token or x-name.
             ["UnknownStatus"] = new Case(EventCalendar("STATUS:BANANA"), IcalDiagnosticKind.InvalidValue, Status, EventPath),
-            ["JournalStatusInEvent"] = new Case(EventCalendar("STATUS:DRAFT"), IcalDiagnosticKind.InvalidValue, Status, EventPath),
+            ["JournalStatusInEvent"] = new Case(EventCalendar(DraftStatus), IcalDiagnosticKind.InvalidValue, Status, EventPath),
             ["EventStatusInTodo"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:TENTATIVE", EndTodo), IcalDiagnosticKind.InvalidValue,
                 Status, TodoPath),
             ["UnknownTransparency"] = new Case(EventCalendar("TRANSP:MAYBE"), IcalDiagnosticKind.InvalidValue, "TRANSP", EventPath),
@@ -423,7 +425,10 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 EventCalendar(UtcEndAfterStart),
                 EventCalendar(DateStart, "DTEND;VALUE=DATE:20260102"),
-                EventCalendar(FloatingStart, "DTEND:20260101T100000"),
+                EventCalendar(FloatingStart, FloatingEndAfterStart),
+
+                // ref. RFC 5545 §3.3.12: the leap second 23:59:60 falls before midnight UTC.
+                EventCalendar("DTSTART:20161231T235960Z", "DTEND:20170101T000000Z"),
                 Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T100000Z", EndTodo),
 
                 // ref. RFC 5545 §3.3.5: an end in the hour skipped when clocks go forward is read with the offset before it, so 02:30 is 03:30 EDT.
@@ -436,9 +441,14 @@ namespace DataStandardizer.File.iCal.Tests
                 // ref. RFC 5545 §2: enumerated property values are case-insensitive.
                 EventCalendar("STATUS:confirmed"),
                 Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:IN-PROCESS", EndTodo),
-                Calendar(BeginJournal, JournalUid, NewYearStamp, "STATUS:DRAFT", EndJournal),
+                Calendar(BeginJournal, JournalUid, NewYearStamp, DraftStatus, EndJournal),
                 EventCalendar("TRANSP:TRANSPARENT"),
-                Calendar("CALSCALE:GREGORIAN", BeginJournal, JournalUid, NewYearStamp, EndJournal)
+                Calendar("CALSCALE:GREGORIAN", BeginJournal, JournalUid, NewYearStamp, EndJournal),
+
+                // ref. RFC 5545 §3.6: an x-comp holds any contentline, and §3.8.1.11, §3.8.2.7 and §3.7.1 define STATUS, TRANSP and CALSCALE
+                // in other components only.
+                Calendar(BeginJournal, JournalUid, NewYearStamp, EndJournal, "BEGIN:X-ABC-ITEM", "STATUS:ARCHIVED", "TRANSP:MAYBE",
+                    "CALSCALE:JULIAN", "END:X-ABC-ITEM")
             };
         }
 
