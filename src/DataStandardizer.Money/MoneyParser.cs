@@ -298,7 +298,7 @@ namespace DataStandardizer.Money
                     return false;
                 }
 
-                if (!Enum.TryParse(currencyFormat.CurrencyCode, false, out Iso4217CurrencyCurrent cultureCurrency))
+                if (!Iso4217Extensions.TryGetCurrentCurrency(currencyFormat.CurrencyCode, out var cultureCurrency))
                 {
                     return false;
                 }
@@ -353,18 +353,7 @@ namespace DataStandardizer.Money
 
         private static bool IsCurrencyCode(string candidate, out Iso4217CurrencyCurrent currencyCode)
         {
-            currencyCode = default(Iso4217CurrencyCurrent);
-
-            foreach (var character in candidate)
-            {
-                if (character < 'A' || character > 'Z')
-                {
-                    return false;
-                }
-            }
-
-            return Enum.TryParse(candidate, false, out currencyCode)
-                   && Enum.IsDefined(typeof(Iso4217CurrencyCurrent), currencyCode)
+            return Iso4217Extensions.TryGetCurrentCurrency(candidate, out currencyCode)
                    && Money.IsCurrencyCodeValidForMoneyValue(currencyCode);
         }
 

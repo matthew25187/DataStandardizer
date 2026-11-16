@@ -14,6 +14,18 @@ public class CurrencyFormatInfoTests
     private const string SetterParameterName = "value";
     private static readonly int[] ExpectedGroupSizes = { FirstGroupSize, LaterGroupSize };
 
+    // The ranges NumberFormatInfo accepts: CurrencyNegativePattern 0 to 16, CurrencyPositivePattern 0 to 3,
+    // and CurrencyDecimalDigits 0 to 99.
+    private const int BelowMinimum = -1;
+    private const int FirstPattern = 0;
+    private const int LastNegativePattern = 16;
+    private const int NegativePatternAfterLast = 17;
+    private const int LastPositivePattern = 3;
+    private const int PositivePatternAfterLast = 4;
+    private const int MinimumDecimalDigits = 0;
+    private const int MaximumDecimalDigits = 99;
+    private const int DecimalDigitsAfterMaximum = 100;
+
     // The invariant information, which a culture CLDR resolves to root, or to nothing, keeps.
     private const string InvariantDecimalSeparator = ".";
     private const string InvariantGroupSeparator = ",";
@@ -198,6 +210,273 @@ public class CurrencyFormatInfoTests
         { new[] { 0 }, new[] { 0 } },
         { new[] { 3, 0 }, new[] { 3, 0 } }
     };
+
+    #endregion
+
+    #region Test: CurrencyNegativePattern and CurrencyPositivePattern
+
+    [Theory]
+    [InlineData(BelowMinimum)]
+    [InlineData(NegativePatternAfterLast)]
+    public void CurrencyNegativePattern_WhenSetOutOfRange_ThrowsArgumentOutOfRangeException(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyNegativePattern = testPattern;
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("NumberFormatInfo.CurrencyNegativePattern accepts 0 to 16").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(FirstPattern)]
+    [InlineData(LastNegativePattern)]
+    public void CurrencyNegativePattern_WhenSetInRange_StoresThePattern(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyNegativePattern = testPattern;
+        var testResult = testInfo.CurrencyNegativePattern;
+
+        // assert
+        testResult.Should().Be(testPattern);
+    }
+
+    [Theory]
+    [InlineData(BelowMinimum)]
+    [InlineData(PositivePatternAfterLast)]
+    public void CurrencyPositivePattern_WhenSetOutOfRange_ThrowsArgumentOutOfRangeException(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyPositivePattern = testPattern;
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("NumberFormatInfo.CurrencyPositivePattern accepts 0 to 3").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(FirstPattern)]
+    [InlineData(LastPositivePattern)]
+    public void CurrencyPositivePattern_WhenSetInRange_StoresThePattern(int testPattern)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyPositivePattern = testPattern;
+        var testResult = testInfo.CurrencyPositivePattern;
+
+        // assert
+        testResult.Should().Be(testPattern);
+    }
+
+    #endregion
+
+    #region Test: CurrencyDecimalDigits
+
+    [Theory]
+    [InlineData(BelowMinimum)]
+    [InlineData(DecimalDigitsAfterMaximum)]
+    public void CurrencyDecimalDigits_WhenSetOutOfRange_ThrowsArgumentOutOfRangeException(int testDigits)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyDecimalDigits = testDigits;
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("NumberFormatInfo.CurrencyDecimalDigits accepts 0 to 99").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(MinimumDecimalDigits)]
+    [InlineData(MaximumDecimalDigits)]
+    public void CurrencyDecimalDigits_WhenSetInRange_StoresTheDigits(int testDigits)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyDecimalDigits = testDigits;
+        var testResult = testInfo.CurrencyDecimalDigits;
+
+        // assert
+        testResult.Should().Be(testDigits);
+    }
+
+    #endregion
+
+    #region Test: Read-only instance with an invalid value
+
+    [Theory]
+    [MemberData(nameof(ValueCheckedFirstTestCases))]
+    public void Setter_WhenValueCheckedFirstIsInvalidOnAReadOnlyInstance_ThrowsArgumentException(Action<CurrencyFormatInfo> testSetter)
+    {
+        // act
+        Action testAction = () => testSetter(CurrencyFormatInfo.InvariantInfo);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>("the value is checked before the instance is, as NumberFormatInfo does");
+    }
+
+    [Theory]
+    [MemberData(nameof(ReadOnlyCheckedFirstTestCases))]
+    public void Setter_WhenReadOnlyCheckedFirstIsInvalidOnAReadOnlyInstance_ThrowsInvalidOperationException(Action<CurrencyFormatInfo> testSetter)
+    {
+        // act
+        Action testAction = () => testSetter(CurrencyFormatInfo.InvariantInfo);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("the instance is checked before the value is, as NumberFormatInfo does");
+    }
+
+    // The setters that check the value first, as their NumberFormatInfo counterparts do, each given an invalid value.
+    public static TheoryData<Action<CurrencyFormatInfo>> ValueCheckedFirstTestCases => new()
+    {
+        info => info.CurrencyNegativePattern = NegativePatternAfterLast,
+        info => info.CurrencyPositivePattern = PositivePatternAfterLast,
+        info => info.CurrencyDecimalDigits = DecimalDigitsAfterMaximum,
+        info => info.NegativeSign = null!,
+        info => info.CurrencyCode = null!,
+        info => info.CurrencyCode = "840"
+    };
+
+    // The setters that check whether the instance is read-only first, as their NumberFormatInfo counterparts do.
+    public static TheoryData<Action<CurrencyFormatInfo>> ReadOnlyCheckedFirstTestCases => new()
+    {
+        info => info.CurrencyDecimalSeparator = null!,
+        info => info.CurrencyDecimalSeparator = string.Empty,
+        info => info.CurrencyGroupSeparator = null!
+    };
+
+    #endregion
+
+    #region Test: Separators and NegativeSign
+
+    [Theory]
+    [MemberData(nameof(StringSetterTestCases))]
+    public void StringSetter_WhenSetToNull_ThrowsArgumentNullException(Action<CurrencyFormatInfo, string> testSetter)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testSetter(testInfo, null!);
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>("the NumberFormatInfo counterpart rejects null").WithParameterName(SetterParameterName);
+    }
+
+    // The string properties whose NumberFormatInfo counterparts reject null.
+    public static TheoryData<Action<CurrencyFormatInfo, string>> StringSetterTestCases => new()
+    {
+        (info, value) => info.CurrencyDecimalSeparator = value,
+        (info, value) => info.CurrencyGroupSeparator = value,
+        (info, value) => info.NegativeSign = value
+    };
+
+    [Fact]
+    public void CurrencyDecimalSeparator_WhenSetToEmpty_ThrowsArgumentException()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyDecimalSeparator = string.Empty;
+
+        // assert
+        testAction.Should().ThrowExactly<ArgumentException>("NumberFormatInfo.CurrencyDecimalSeparator rejects an empty string").WithParameterName(SetterParameterName);
+    }
+
+    [Fact]
+    public void CurrencyGroupSeparator_WhenSetToEmpty_StoresTheSeparator()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyGroupSeparator = string.Empty;
+        var testResult = testInfo.CurrencyGroupSeparator;
+
+        // assert
+        testResult.Should().BeEmpty("NumberFormatInfo.CurrencyGroupSeparator accepts an empty string");
+    }
+
+    [Fact]
+    public void NegativeSign_WhenSetToEmpty_StoresTheSign()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.NegativeSign = string.Empty;
+        var testResult = testInfo.NegativeSign;
+
+        // assert
+        testResult.Should().BeEmpty("NumberFormatInfo.NegativeSign accepts an empty string");
+    }
+
+    #endregion
+
+    #region Test: CurrencyCode
+
+    [Fact]
+    public void CurrencyCode_WhenSetToNull_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyCode = null!;
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>().WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("US")]
+    [InlineData("USDX")]
+    [InlineData("usd")]
+    [InlineData(" USD ")]
+    [InlineData("840")]
+    [InlineData("USD,EUR")]
+    [InlineData("AAA")]
+    public void CurrencyCode_WhenSetToAnythingButADefinedCode_ThrowsArgumentException(string testCode)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        Action testAction = () => testInfo.CurrencyCode = testCode;
+
+        // assert
+        testAction.Should().ThrowExactly<ArgumentException>("only three letters A-Z naming a current ISO 4217 code are accepted").WithParameterName(SetterParameterName);
+    }
+
+    [Theory]
+    [InlineData(nameof(Iso4217CurrencyCurrent.USD))]
+    [InlineData(nameof(Iso4217CurrencyCurrent.XXX))]
+    public void CurrencyCode_WhenSetToADefinedCode_StoresTheCode(string testCode)
+    {
+        // arrange
+        var testInfo = new CurrencyFormatInfo();
+
+        // act
+        testInfo.CurrencyCode = testCode;
+        var testResult = testInfo.CurrencyCode;
+
+        // assert
+        testResult.Should().Be(testCode);
+    }
 
     #endregion
 

@@ -32,6 +32,12 @@ namespace DataStandardizer.Money
         private const int InvariantCurrencyPositivePattern = 0;
         private const string InvariantNegativeSign = "-";
 
+        // The largest values NumberFormatInfo accepts for the properties of the same names.
+        private const int MaximumCurrencyDecimalDigits = 99;
+        private const int MaximumCurrencyNegativePattern = 16;
+        private const int MaximumCurrencyPositivePattern = 3;
+        private const string RangeMessage = "The value must be from 0 to {0}.";
+
         /// <summary>
         /// The generic currency sign (U+00A4), used where a monetary value has no currency of its own.
         /// </summary>
@@ -116,7 +122,19 @@ namespace DataStandardizer.Money
         /// US Dollar, "EUR" for Euro). It is not the currency of any value being formatted: a
         /// <see cref="Money"/> value carries its own currency. This property exists so that a currency
         /// symbol shared by several currencies can be resolved when parsing.
+        /// <para>
+        /// The value is exactly the three upper-case letters of a code <see cref="Iso4217CurrencyCurrent"/>
+        /// defines. A numeric code, a code in another case or surrounded by white space, and a list of codes are
+        /// all rejected.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the property is set to a value which is not the alphabetic code of a currency
+        /// <see cref="Iso4217CurrencyCurrent"/> defines.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -125,6 +143,16 @@ namespace DataStandardizer.Money
             get => _currencyCode;
             set
             {
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (!Iso4217Extensions.TryGetCurrentCurrency(value, out _))
+                {
+                    throw new ArgumentException("The value must be the alphabetic code of a currency Iso4217CurrencyCurrent defines.", nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -141,7 +169,11 @@ namespace DataStandardizer.Money
         /// This is the culture's default precision, and has the lowest priority when formatting: an explicit
         /// precision specifier is preferred, then the minor units of the currency being formatted, and only
         /// then this value. It therefore applies in practice only to currencies which define no minor units.
+        /// As with <see cref="NumberFormatInfo.CurrencyDecimalDigits"/>, the value is from 0 to 99.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the property is set to a value less than 0 or greater than 99.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set this property on a read-only <see cref="CurrencyFormatInfo"/> instance.
         /// </exception>
@@ -150,6 +182,11 @@ namespace DataStandardizer.Money
             get => _currencyDecimalDigits;
             set
             {
+                if (value < 0 || value > MaximumCurrencyDecimalDigits)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyDecimalDigits));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -165,7 +202,14 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// This property defines the character used as the decimal separator in currency values.
         /// For example, in the currency value "123.45", the period (".") is the decimal separator.
+        /// As with <see cref="NumberFormatInfo.CurrencyDecimalSeparator"/>, it can't be empty.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the property is set to an empty string.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property on a read-only <see cref="CurrencyFormatInfo"/> instance.
         /// </exception>
@@ -179,6 +223,16 @@ namespace DataStandardizer.Money
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
                 }
 
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (value.Length == 0)
+                {
+                    throw new ArgumentException("The decimal separator cannot be the empty string.", nameof(value));
+                }
+
                 _currencyDecimalSeparator = value;
             }
         }
@@ -190,6 +244,9 @@ namespace DataStandardizer.Money
         /// This property is used to define the character or string that separates digit groups in formatted currency values.
         /// For example, in the currency value "1,000.00", the comma (",") is the group separator.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -201,6 +258,11 @@ namespace DataStandardizer.Money
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
+                }
+
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
                 }
 
                 _currencyGroupSeparator = value;
@@ -236,7 +298,7 @@ namespace DataStandardizer.Money
             get => (int[])_currencyGroupSizes.Clone();
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -269,12 +331,16 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// The <see cref="CurrencyNegativePattern"/> property determines how negative currency values are formatted.
         /// The value is an integer that corresponds to a specific pattern, using the same indices as
-        /// <see cref="NumberFormatInfo.CurrencyNegativePattern"/>. For example:
+        /// <see cref="NumberFormatInfo.CurrencyNegativePattern"/>, from 0 to 16. For example:
         /// - 0: ($n)
         /// - 1: -$n
         /// - 2: $-n
         /// - 3: $n-
+        /// - 16: $- n
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the property is set to a value less than 0 or greater than 16.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -283,6 +349,11 @@ namespace DataStandardizer.Money
             get => _currencyNegativePattern;
             set
             {
+                if (value < 0 || value > MaximumCurrencyNegativePattern)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyNegativePattern));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -298,8 +369,11 @@ namespace DataStandardizer.Money
         /// <remarks>
         /// The <see cref="CurrencyPositivePattern"/> property determines the placement of the currency token
         /// and the formatting of positive currency values, using the same indices as
-        /// <see cref="NumberFormatInfo.CurrencyPositivePattern"/>.
+        /// <see cref="NumberFormatInfo.CurrencyPositivePattern"/>, from 0 to 3.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the property is set to a value less than 0 or greater than 3.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property on a read-only <see cref="CurrencyFormatInfo"/> instance.
         /// </exception>
@@ -308,6 +382,11 @@ namespace DataStandardizer.Money
             get => _currencyPositivePattern;
             set
             {
+                if (value < 0 || value > MaximumCurrencyPositivePattern)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, RangeMessage, MaximumCurrencyPositivePattern));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");
@@ -324,6 +403,9 @@ namespace DataStandardizer.Money
         /// This is not always the ASCII hyphen-minus: several cultures use U+2212 MINUS SIGN, and some
         /// prefix it with a directional mark.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="CurrencyFormatInfo"/> instance is read-only.
         /// </exception>
@@ -332,6 +414,11 @@ namespace DataStandardizer.Money
             get => _negativeSign;
             set
             {
+                if (value is null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(CurrencyFormatInfo)} is read only.");

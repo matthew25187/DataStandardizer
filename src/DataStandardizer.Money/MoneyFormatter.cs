@@ -86,7 +86,8 @@ namespace DataStandardizer.Money
             "{0} {2}{1}",   // 12: $ -n
             "{1}{2} {0}",   // 13: n- $
             "({0} {1})",    // 14: ($ n)
-            "({1} {0})"     // 15: (n $)
+            "({1} {0})",    // 15: (n $)
+            "{0}{2} {1}"    // 16: $- n
         };
 
         #region Public Methods
@@ -176,14 +177,12 @@ namespace DataStandardizer.Money
             var isNegative = amount < decimal.Zero;
 
             var numberPart = FormatNumber(amount < decimal.Zero ? decimal.Negate(amount) : amount, currencyDecimalDigits, currencyFormat);
-            var patterns = isNegative ? NegativePatterns : PositivePatterns;
-            var patternIndex = isNegative ? currencyFormat.CurrencyNegativePattern : currencyFormat.CurrencyPositivePattern;
-            if (patternIndex < 0 || patternIndex >= patterns.Length)
-            {
-                patternIndex = 0;
-            }
+            // CurrencyFormatInfo accepts only the indices these tables hold.
+            var pattern = isNegative
+                ? NegativePatterns[currencyFormat.CurrencyNegativePattern]
+                : PositivePatterns[currencyFormat.CurrencyPositivePattern];
 
-            return string.Format(CultureInfo.InvariantCulture, patterns[patternIndex], currencyToken, numberPart, currencyFormat.NegativeSign);
+            return string.Format(CultureInfo.InvariantCulture, pattern, currencyToken, numberPart, currencyFormat.NegativeSign);
         }
 
         #endregion
@@ -297,8 +296,7 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            return Enum.TryParse(format.Substring(0, currencyCodeLength), false, out currencyCode)
-                   && Enum.IsDefined(typeof(Iso4217CurrencyCurrent), currencyCode);
+            return Iso4217Extensions.TryGetCurrentCurrency(format.Substring(0, currencyCodeLength), out currencyCode);
         }
 
         /// <summary>

@@ -17,6 +17,7 @@ namespace DataStandardizer.Money
         private static readonly Dictionary<Iso4217CurrencyCurrent, Iso4217CurrencyCodeAttribute> CurrentAttributes = BuildAttributeCache<Iso4217CurrencyCurrent>();
         private static readonly Dictionary<Iso4217CurrencyHistoric, Iso4217CurrencyCodeAttribute> HistoricAttributes = BuildAttributeCache<Iso4217CurrencyHistoric>();
         private static readonly Dictionary<Iso4217CurrencyCurrent, string> CurrentNames = BuildNameCache<Iso4217CurrencyCurrent>();
+        private static readonly Dictionary<string, Iso4217CurrencyCurrent> CurrentCodesByName = BuildCodeByNameCache(CurrentNames);
 
         private static Dictionary<TCurrencyCode, Iso4217CurrencyCodeAttribute> BuildAttributeCache<TCurrencyCode>()
 #if NETCOREAPP3_0_OR_GREATER
@@ -70,7 +71,34 @@ namespace DataStandardizer.Money
             return cache;
         }
 
+        private static Dictionary<string, Iso4217CurrencyCurrent> BuildCodeByNameCache(Dictionary<Iso4217CurrencyCurrent, string> names)
+        {
+            // Ordinal, so that only the exact upper-case code is found.
+            var cache = new Dictionary<string, Iso4217CurrencyCurrent>(StringComparer.Ordinal);
+            foreach (var name in names)
+            {
+                cache[name.Value] = name.Key;
+            }
+
+            return cache;
+        }
+
         #endregion
+
+        /// <summary>
+        /// Find the current currency an ISO 4217 alphabetic code names.
+        /// </summary>
+        /// <param name="code">The code, which must match the name of a defined <see cref="Iso4217CurrencyCurrent"/> member exactly.</param>
+        /// <param name="currencyCode">The currency <paramref name="code"/> names, if it names one.</param>
+        /// <returns><c>true</c> if <paramref name="code"/> names a defined currency; otherwise <c>false</c>.</returns>
+        /// <remarks>
+        /// Unlike <see cref="Enum.TryParse{TEnum}(string, bool, out TEnum)"/>, this accepts neither a numeric
+        /// value, nor surrounding white space, nor a comma-separated list, nor a different case.
+        /// </remarks>
+        internal static bool TryGetCurrentCurrency(string code, out Iso4217CurrencyCurrent currencyCode)
+        {
+            return CurrentCodesByName.TryGetValue(code, out currencyCode);
+        }
 
         /// <summary>
         /// Get the name of a currency.
