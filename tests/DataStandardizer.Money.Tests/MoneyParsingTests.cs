@@ -42,7 +42,35 @@ public class MoneyParsingTests
     private const string UnitedStatesCurrencyCodeRepresentation = "USD1,234.56";
     private const string FrenchCurrencyCodeRepresentation = "1\x202F234,56 EUR"; // the group separator is a narrow no-break space
 
+    private const string AustrianCulture = "de-AT";
+    private const decimal OneAndAHalf = 1.5m;
+    private const decimal NegativeOneAndAHalf = -1.5m;
+
+    // Amounts with the decimal separator "," and the group separator ".".
+    private const string CommaDecimalOneAndAHalfValue = "1,5";
+    private const string CommaDecimalGroupedValue = "1.234,56";
+
+    // NegativeOneAndAHalf with the negative sign U+2212 MINUS SIGN.
+    private const string MinusSignOneAndAHalfValue = "\x22121.5";
+
     private static MoneyInfo MoneyInfoFor(string cultureName) => MoneyInfo.GetMoneyInfo(new CultureInfo(cultureName));
+
+    /// <summary>
+    /// An en-US culture whose number formatting has the decimal separator "," and the group separator ".",
+    /// the reverse of the currency formatting Unicode CLDR gives en-US.
+    /// </summary>
+    private static CultureInfo CommaDecimalCulture()
+    {
+        var culture = new CultureInfo(UnitedStatesCulture);
+        culture.NumberFormat.NumberDecimalSeparator = ",";
+        culture.NumberFormat.NumberGroupSeparator = ".";
+        return culture;
+    }
+
+    /// <summary>
+    /// Invariant number formatting whose negative sign is U+2212 MINUS SIGN.
+    /// </summary>
+    private static NumberFormatInfo MinusSignNumberFormat() => new() { NegativeSign = MinusSign };
 
     #region Test: TryParse_CurrencyCode
 
@@ -267,6 +295,56 @@ public class MoneyParsingTests
         // assert
         testResult.Should().BeTrue();
         ((decimal)result).Should().Be(expectedAmount, "the separators of {0} apply", testCulture);
+    }
+
+    #endregion
+
+    #region Test: TryParse_AmountWithoutCurrencyToken
+
+    // Each value is what the general format, or a money format of a value with no currency, gives under the
+    // same provider and thread culture, except where it has a currency token.
+    [Theory]
+    [MemberData(nameof(AmountSeparatorsTestCases), DisableDiscoveryEnumeration = true)]
+    public void TryParse_SeparatorsOfNumberAndCurrencyFormattingDiffer_ReadsTheAmountWithTheSeparatorsItIsFormattedWith(CultureInfo threadCulture, IFormatProvider? testProvider, string testValue, decimal expectedAmount)
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(threadCulture);
+
+        // act
+        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, testProvider, out var result);
+
+        // assert
+        testResult.Should().BeTrue("{0} is how the amount is formatted under the provider", testValue);
+        ((decimal)result).Should().Be(expectedAmount);
+    }
+
+    // The currency formatting of en-US, from Unicode CLDR, has the decimal separator "." and the group separator ",".
+    public static TheoryData<CultureInfo, IFormatProvider?, string, decimal> AmountSeparatorsTestCases => new()
+    {
+        // A NumberFormatInfo, whose currency formatting comes from the thread culture.
+        { new CultureInfo(GermanCulture), NumberFormatInfo.InvariantInfo, "1.5", OneAndAHalf },
+        { new CultureInfo(UnitedStatesCulture), new CultureInfo(GermanCulture).NumberFormat, "1234,56", RoundTripAmount },
+        { new CultureInfo(UnitedStatesCulture), MinusSignNumberFormat(), MinusSignOneAndAHalfValue, NegativeOneAndAHalf },
+        // A culture, MoneyInfo or CurrencyFormatInfo whose number formatting differs from its currency formatting.
+        { new CultureInfo(UnitedStatesCulture), new CultureInfo(AustrianCulture), CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), CommaDecimalGroupedValue, RoundTripAmount },
+        { new CultureInfo(UnitedStatesCulture), new MoneyInfo(CommaDecimalCulture()), CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        { new CultureInfo(UnitedStatesCulture), new CurrencyFormatInfo { CurrencyDecimalSeparator = ",", CurrencyGroupSeparator = "." }, CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        // No provider, so the thread culture.
+        { CommaDecimalCulture(), null, CommaDecimalOneAndAHalfValue, OneAndAHalf },
+        // A currency token, so the currency formatting.
+        { new CultureInfo(UnitedStatesCulture), CommaDecimalCulture(), UnitedStatesCurrencyCodeRepresentation, RoundTripAmount },
+    };
+
+    [Fact]
+    public void TryParse_AmountWithoutCurrencyTokenInTheSeparatorsOfTheCurrency_ReturnsFalse()
+    {
+        // act
+        var testResult = Money.TryParse("1,234.56", MoneyStyles.Currency, CommaDecimalCulture(), out _);
+
+        // assert
+        testResult.Should().BeFalse("an amount without a currency token is read with the separators of the number formatting, in which \",\" is the decimal separator");
     }
 
     #endregion

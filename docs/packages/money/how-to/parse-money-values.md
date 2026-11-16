@@ -103,6 +103,19 @@ Formatting with `C` also round-trips wherever the currency's symbol is
 unambiguous. Where it is shared, as `$` is, parsing the result needs both the
 culture and `MoneyStyles.AllowAmbiguousCurrencySymbol`.
 
+The amount is read with the separators and negative sign it was formatted with.
+A value with a currency token uses those of the culture's currency formatting,
+as `C`, `H`, `I` and `N` do. A value without one uses those of the culture's
+number formatting, as `G` does, and as the money formats do for a value with no
+currency. In some cultures the two differ, so formatting with `G` and parsing
+the result also returns the same amount.
+
+```csharp
+var rn = new CultureInfo("rn");   // numbers use "," for decimals, currencies "."
+Money.Parse("1,5", MoneyStyles.Number, rn);   // 1.5, no currency
+Money.Parse("USD1,234.50", rn);               // USD 1234.50
+```
+
 Note that a value carrying more precision than its currency has minor units is
 rounded when formatted, so `1234.567` in a two-minor-unit currency round-trips as
 `1234.57`.

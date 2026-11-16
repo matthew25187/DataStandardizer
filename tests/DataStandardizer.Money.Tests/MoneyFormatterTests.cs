@@ -47,7 +47,30 @@ public class MoneyFormatterTests
 
     private const string MinusSign = "\x2212";
 
+    // TestAmount with the decimal separator "," and the group separator ".".
+    private const string CommaDecimalGroupedAmountResult = "1.234,50";
+
+    // NegativeTestAmount with the negative sign U+2212 MINUS SIGN.
+    private const string MinusSignGroupedAmountResult = "\x22121,234.50";
+
     private static MoneyInfo MoneyInfoFor(string cultureName) => MoneyInfo.GetMoneyInfo(new CultureInfo(cultureName));
+
+    /// <summary>
+    /// An en-US culture whose number formatting has the decimal separator "," and the group separator ".",
+    /// the reverse of the currency formatting Unicode CLDR gives en-US.
+    /// </summary>
+    private static CultureInfo CommaDecimalCulture()
+    {
+        var culture = new CultureInfo(UnitedStatesCulture);
+        culture.NumberFormat.NumberDecimalSeparator = ",";
+        culture.NumberFormat.NumberGroupSeparator = ".";
+        return culture;
+    }
+
+    /// <summary>
+    /// Invariant number formatting whose negative sign is U+2212 MINUS SIGN.
+    /// </summary>
+    private static NumberFormatInfo MinusSignNumberFormat() => new() { NegativeSign = MinusSign };
 
     #region Test: Format_StandardSpecifier
 
@@ -307,6 +330,34 @@ public class MoneyFormatterTests
         // assert
         testResult.Should().Be(GroupedAmountResult, "a value with no currency has no currency token to denote");
     }
+
+    [Theory]
+    [MemberData(nameof(ValueWithoutCurrencyNumberFormattingTestCases), DisableDiscoveryEnumeration = true)]
+    public void Format_ValueWithoutCurrencyWhereNumberAndCurrencySeparatorsDiffer_UsesTheSeparatorsOfTheGeneralFormat(decimal testAmount, string testFormat, IFormatProvider testProvider, string expectedResult)
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(UnitedStatesCulture));
+        var testSubject = Money.Create(testAmount);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "without a currency token the amount is presented as the general format presents it, so that it reads back the same");
+    }
+
+    // The currency formatting of en-US, from Unicode CLDR, has the decimal separator "." and the group separator ",".
+    // Each provider's number formatting has the decimal separator "," and the group separator ".", or the sign U+2212.
+    public static TheoryData<decimal, string, IFormatProvider, string> ValueWithoutCurrencyNumberFormattingTestCases => new()
+    {
+        { TestAmount, StandardSymbolFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, NarrowSymbolFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, CurrencyCodeFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, CurrencyNameFormat, CommaDecimalCulture(), CommaDecimalGroupedAmountResult },
+        { TestAmount, StandardSymbolFormat, new MoneyInfo(CommaDecimalCulture()), CommaDecimalGroupedAmountResult },
+        { TestAmount, StandardSymbolFormat, CommaDecimalCulture().NumberFormat, CommaDecimalGroupedAmountResult },
+        { NegativeTestAmount, StandardSymbolFormat, MinusSignNumberFormat(), MinusSignGroupedAmountResult },
+    };
 
     #endregion
 

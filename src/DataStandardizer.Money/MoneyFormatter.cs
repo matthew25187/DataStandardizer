@@ -142,15 +142,26 @@ namespace DataStandardizer.Money
             // A value with no currency has no currency token to emit. The format string is deliberately not
             // passed on to the number: a currency specifier handed to decimal would emit the culture's own
             // currency symbol, which would misrepresent a value that has no currency of its own.
+            //
+            // Without a currency token the result cannot be told apart from the general format, so it takes
+            // the separators and sign the general format uses rather than those of the currency. Parsing reads
+            // an amount without a currency token by the same rule, so that every such form reads back as the
+            // amount it was formatted from.
             if (moneyValue.IsoCurrencyCode == Money.NoCurrency)
             {
+                var amountNumberFormat = NumberFormatInfo.GetInstance(formatProvider ?? CultureInfo.CurrentCulture);
                 var currencylessAmount = (decimal)moneyValue;
                 var currencylessIsNegative = currencylessAmount < decimal.Zero;
                 var currencylessDigits = precision ?? currencyFormat.CurrencyDecimalDigits;
-                var currencylessNumberPart = FormatNumber(currencylessIsNegative ? decimal.Negate(currencylessAmount) : currencylessAmount, currencylessDigits, currencyFormat);
+                var currencylessNumberPart = FormatNumber(
+                    currencylessIsNegative ? decimal.Negate(currencylessAmount) : currencylessAmount,
+                    currencylessDigits,
+                    amountNumberFormat.NumberDecimalSeparator,
+                    amountNumberFormat.NumberGroupSeparator,
+                    amountNumberFormat.NumberGroupSizes);
 
                 return currencylessIsNegative
-                    ? string.Concat(currencyFormat.NegativeSign, currencylessNumberPart)
+                    ? string.Concat(amountNumberFormat.NegativeSign, currencylessNumberPart)
                     : currencylessNumberPart;
             }
 
@@ -338,12 +349,25 @@ namespace DataStandardizer.Money
         /// </remarks>
         private static string FormatNumber(decimal amount, int currencyDecimalDigits, CurrencyFormatInfo currencyFormat)
         {
+            return FormatNumber(
+                amount,
+                currencyDecimalDigits,
+                currencyFormat.CurrencyDecimalSeparator,
+                currencyFormat.CurrencyGroupSeparator,
+                currencyFormat.CurrencyGroupSizesUncopied);
+        }
+
+        /// <summary>
+        /// Format the numeric part of a monetary value with the given separators and group sizes.
+        /// </summary>
+        private static string FormatNumber(decimal amount, int decimalDigits, string decimalSeparator, string groupSeparator, int[] groupSizes)
+        {
             var numberFormat = new NumberFormatInfo
             {
-                NumberDecimalDigits = currencyDecimalDigits,
-                NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator,
-                NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator,
-                NumberGroupSizes = currencyFormat.CurrencyGroupSizesUncopied
+                NumberDecimalDigits = decimalDigits,
+                NumberDecimalSeparator = decimalSeparator,
+                NumberGroupSeparator = groupSeparator,
+                NumberGroupSizes = groupSizes
             };
 
             return amount.ToString("N", numberFormat);
