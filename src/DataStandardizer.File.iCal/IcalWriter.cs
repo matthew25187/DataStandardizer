@@ -643,19 +643,12 @@ namespace DataStandardizer.File.iCal
         private static IcalContentLine PrepareProperty(IcalContentLine property)
         {
             // ref. RFC 5545§3.3.10: rule parts are read in any order, so one read with FREQ elsewhere is kept as it is, but FREQ MUST be the
-            // first rule part written.  ref. RFC 5545§3.2.20: a VALUE parameter names the type of any property, such as an x-prop.
-            var valueParameter = property.GetParameter(IcalParameterNames.Value);
-            IcalValueType valueType;
-            if (valueParameter is null)
-            {
-                valueType = IcalValueTypeRegistry.GetDefaultValueType(property.Name.AsSpan());
-            }
-            else if (!IcalValueTypeRegistry.TryParseValueTypeName(valueParameter.ValueArray[0].AsSpan(), out valueType))
-            {
-                return property;
-            }
+            // first rule part written.  ref. RFC 5545§3.2.20: a VALUE parameter names the type of any property, such as an x-prop.  Without
+            // one, only RRULE has a RECUR value, so other properties are passed over without a search of the registry.
+            var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
+            if (valueParameter is null && !IcalComponent.IsNamed(property, IcalPropertyNames.RecurrenceRule)) return property;
 
-            if (valueType != IcalValueType.Recur) return property;
+            if (IcalValueTypeRegistry.GetValueTypeOfAnyProperty(property.Name, valueParameter) != IcalValueType.Recur) return property;
 
             var value = IcalRecurrenceRule.MoveFrequencyFirst(property.Value);
             return ReferenceEquals(value, property.Value) ? property : property.WithValue(value);

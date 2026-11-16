@@ -296,7 +296,7 @@ namespace DataStandardizer.File.iCal
         private static string ReadRecur(JcalNode recur, string propertyName)
         {
             // ref. RFC 7265§3.6.10: an object with a member for each rule part, whose value is a string, a number, or an array of them for a
-            // BYxxx rule part.  The parts are written in the order of the members, except that FREQ comes first, as RFC 5545§3.3.10 requires.
+            // BYxxx rule part.  The parts are written in the order of the members.
             if (recur.Items.Count == 0)
                 throw BuildException(recur, propertyName, "A recurrence rule must be an object with a member for each rule part.");
 
@@ -339,7 +339,7 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            return IcalRecurrenceRule.MoveFrequencyFirst(builder.ToString());
+            return builder.ToString();
         }
 
         private static string ReadRulePartValue(JcalNode value, string partName, string propertyName)
@@ -456,18 +456,14 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 7265§3.5.1: the type identifier gives the value type, so the VALUE parameter is not written.  ref. RFC 7265§5.1: a
             // property whose value type is not known has the unknown type.
             var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
-            IcalValueType valueType;
+            var valueType = IcalValueTypeRegistry.GetValueTypeOfAnyProperty(name, valueParameter);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? extensionTypeName = null;
 #else
             string extensionTypeName = null;
 #endif
-            if (valueParameter is null)
-            {
-                valueType = IcalValueTypeRegistry.GetDefaultValueType(name.AsSpan());
-            }
-            else if (!IcalValueTypeRegistry.TryParseValueTypeName(valueParameter.AsSpan(), out valueType) &&
-                     IcalComponent.IsValidName(valueParameter) && !IcalValueFormatting.EqualsKeyword(valueParameter.AsSpan(), "UNKNOWN"))
+            if (valueParameter != null && valueType == IcalValueType.Unknown && IcalComponent.IsValidName(valueParameter) &&
+                !IcalValueFormatting.EqualsKeyword(valueParameter.AsSpan(), "UNKNOWN"))
             {
                 extensionTypeName = valueParameter;
             }

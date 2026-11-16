@@ -179,6 +179,29 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets the value type of a property of any name, such as an x-prop: the type its <c>VALUE</c> parameter names, or else its default
+        /// value type.
+        /// </summary>
+        /// <param name="propertyName">The property name.</param>
+        /// <param name="valueParameter">The first value of the <c>VALUE</c> parameter; or <c>null</c> if there is none.</param>
+        /// <returns>The value type; or <see cref="IcalValueType.Unknown"/> for a parameter that names no value type of RFC 5545, or a
+        /// property with no parameter whose value type is not known.</returns>
+        /// <remarks>Unlike <see cref="GetValueType(ReadOnlySpan{char}, ReadOnlySpan{char})"/>, a property that is not known gets the type
+        /// its <c>VALUE</c> parameter names (RFC 5545 §3.2.20).</remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static IcalValueType GetValueTypeOfAnyProperty(string propertyName, string? valueParameter)
+#else
+        internal static IcalValueType GetValueTypeOfAnyProperty(string propertyName, string valueParameter)
+#endif
+        {
+            if (valueParameter is null) return GetDefaultValueType(propertyName.AsSpan());
+
+            IcalValueType valueType;
+            TryParseValueTypeName(valueParameter.AsSpan(), out valueType);
+            return valueType;
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a property allows a value type: its default type, or one a <c>VALUE</c> parameter may name.
         /// </summary>
         /// <param name="propertyName">The property name.</param>

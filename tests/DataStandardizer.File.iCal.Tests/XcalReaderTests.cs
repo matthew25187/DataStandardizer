@@ -182,9 +182,6 @@ namespace DataStandardizer.File.iCal.Tests
             "X-PROPERTY;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
         [InlineData("<x-property><recur><freq>WEEKLY</freq><until>2011-05-17</until><byday>MO</byday><byday>-1FR</byday><wkst>SU</wkst></recur></x-property>",
             "X-PROPERTY;VALUE=RECUR:FREQ=WEEKLY;UNTIL=20110517;BYDAY=MO,-1FR;WKST=SU")]
-        [InlineData("<x-property><recur><count>5</count><freq>DAILY</freq></recur></x-property>", "X-PROPERTY;VALUE=RECUR:FREQ=DAILY;COUNT=5")]
-        [InlineData("<x-property><recur><count>5</count><freq>DAILY</freq><interval>2</interval></recur></x-property>",
-            "X-PROPERTY;VALUE=RECUR:FREQ=DAILY;COUNT=5;INTERVAL=2")]
         [InlineData("<x-property><text>a,b;c\\d\ne</text></x-property>", "X-PROPERTY;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
         [InlineData("<x-property><time>12:00:00Z</time></x-property>", "X-PROPERTY;VALUE=TIME:120000Z")]
         [InlineData("<x-property><uri>http://example.com/</uri></x-property>", "X-PROPERTY;VALUE=URI:http://example.com/")]

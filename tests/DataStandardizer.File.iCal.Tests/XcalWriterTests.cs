@@ -211,6 +211,13 @@ namespace DataStandardizer.File.iCal.Tests
                 "RRULE:freq=monthly;wkst=su;byday=-1fr,2mo;bymonthday=13",
                 "<recur><freq>MONTHLY</freq><byday>-1FR</byday><byday>2MO</byday><bymonthday>13</bymonthday><wkst>SU</wkst></recur>"
             },
+            {
+                "RRULE:WKST=MO;BYSETPOS=-1;BYMONTH=6;BYWEEKNO=20;BYYEARDAY=150;BYMONTHDAY=7;BYDAY=TU;BYHOUR=8;BYMINUTE=30;BYSECOND=15;" +
+                "INTERVAL=3;COUNT=4;FREQ=YEARLY",
+                "<recur><freq>YEARLY</freq><count>4</count><interval>3</interval><bysecond>15</bysecond><byminute>30</byminute>" +
+                "<byhour>8</byhour><byday>TU</byday><bymonthday>7</bymonthday><byyearday>150</byyearday><byweekno>20</byweekno>" +
+                "<bymonth>6</bymonth><bysetpos>-1</bysetpos><wkst>MO</wkst></recur>"
+            },
         };
 
         [Theory]

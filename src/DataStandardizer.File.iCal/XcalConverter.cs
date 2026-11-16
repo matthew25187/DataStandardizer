@@ -307,7 +307,7 @@ namespace DataStandardizer.File.iCal
         private static string ReadRecur(XcalElement recur, string propertyName)
         {
             // ref. RFC 6321§3.6.10: each rule part is an element, and the values of a BYxxx rule part are repeated elements.  The parts are
-            // written in the order of their first elements, except that FREQ comes first, as RFC 5545§3.3.10 requires.
+            // written in the order of their first elements.
             CheckNoText(recur, propertyName);
             if (recur.Children.Count == 0)
                 throw BuildException(recur, propertyName, "A recur element must have a child element for each rule part.");
@@ -334,7 +334,7 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            return IcalRecurrenceRule.MoveFrequencyFirst(string.Join(";", parts.Select(pair => pair.Key + "=" + pair.Value)));
+            return string.Join(";", parts.Select(pair => pair.Key + "=" + pair.Value));
         }
 
         private static string ReadGeo(List<XcalElement> values, string propertyName)
@@ -479,16 +479,8 @@ namespace DataStandardizer.File.iCal
 
             // ref. RFC 6321§3.5.1 and §5: the value type gives the value element, so the VALUE parameter is not written.  A property whose
             // value type is not known has an unknown element.
-            var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
-            IcalValueType valueType;
-            if (valueParameter is null)
-            {
-                valueType = IcalValueTypeRegistry.GetDefaultValueType(name.AsSpan());
-            }
-            else if (!IcalValueTypeRegistry.TryParseValueTypeName(valueParameter.AsSpan(), out valueType))
-            {
-                valueType = IcalValueType.Unknown;
-            }
+            var valueType = IcalValueTypeRegistry.GetValueTypeOfAnyProperty(name,
+                IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value));
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             List<XcalElement>? values = null;
