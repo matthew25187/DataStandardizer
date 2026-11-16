@@ -10,7 +10,7 @@ namespace DataStandardizer.Money
     public enum CurrencySymbolKind
     {
         /// <summary>
-        /// The standard currency symbol; no other currency has it as its standard symbol.
+        /// The standard currency symbol, which distinguishes currencies that share a glyph.
         /// </summary>
         /// <remarks>
         /// Where a glyph is shared by several currencies, the standard form distinguishes between them,

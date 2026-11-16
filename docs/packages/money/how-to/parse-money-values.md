@@ -93,12 +93,16 @@ This gives the round trip its strongest form. A feed which is expected to carry
 currency codes fails loudly if it begins carrying symbols, rather than continuing
 to parse by luck.
 
-Against a `C` format the value carries a standard symbol, and no two currencies
-have the same standard symbol. So a symbol that is the standard symbol of one
-currency denotes that currency, even where it is also the narrow symbol of
-others. This needs neither `AllowAmbiguousCurrencySymbol` nor the culture's
-currency. Against any other format, and in `Parse` and `TryParse`, the symbol is
-still shared.
+Against a `C` format the value carries a standard symbol. So a symbol that is
+the standard symbol of exactly one currency denotes that currency, even where it
+is also the narrow symbol of others. This needs neither
+`AllowAmbiguousCurrencySymbol` nor the culture's currency. Against any other
+format, and in `Parse` and `TryParse`, the symbol is still shared.
+
+A value that is the rendering of different values under different formats you
+name is ambiguous, and parsing it fails, whatever the order of the formats.
+Under `en-AU` with `MoneyStyles.Any`, `$5.00` is both the `C` rendering of 5 US
+Dollars and the `H` rendering of 5 Australian Dollars.
 
 ```csharp
 var enUs = MoneyInfo.GetMoneyInfo(new CultureInfo("en-US"));
@@ -108,6 +112,7 @@ Money.ParseExact("$5.00", "C", enUs);                    // USD 5.00
 Money.Parse("$5.00", enUs);                              // FormatException
 Money.Parse("$5.00", MoneyStyles.Any, enAu);             // AUD 5.00
 Money.TryParseExact("$5.00", new[] { "H" }, enUs, MoneyStyles.Currency, out _);   // false
+Money.TryParseExact("$5.00", new[] { "C", "H" }, enAu, MoneyStyles.Any, out _);   // false
 ```
 
 ## Round-tripping
@@ -120,9 +125,10 @@ var restored = Money.Parse(original.ToString("I", enNz), enNz);
 ```
 
 Formatting with `C` and parsing the result with `ParseExact` and `C` also
-returns an equivalent value, for every currency. With `Parse`, `C` round-trips
-wherever the currency's standard symbol is the symbol of no other currency, as
-`NZ$` is. Where it is shared, as `$` is, `Parse` needs both the culture and
+returns an equivalent value wherever the currency's standard symbol is the
+standard symbol of no other currency. In the current CLDR data that is every
+currency. With `Parse`, `C` round-trips wherever the currency's standard symbol
+is the symbol of no other currency, standard or narrow, as `NZ$` is. Where it is shared, as `$` is, `Parse` needs both the culture and
 `MoneyStyles.AllowAmbiguousCurrencySymbol`.
 
 The amount is read with the separators and negative sign it was formatted with.

@@ -51,15 +51,19 @@ namespace DataStandardizer.Money
                 }
             }
 
-            var standardSymbolCandidates = new Dictionary<string, List<Iso4217CurrencyCurrent>>();
-            CollectSymbolCandidates(CurrentStandardSymbols, standardSymbolCandidates);
-
+            // A standard symbol seen a second time is the standard symbol of several currencies, so it is
+            // dropped, and remembered so that a third occurrence does not add it again.
             SoleStandardCurrentSymbols = new Dictionary<string, Iso4217CurrencyCurrent>();
-            foreach (var standardSymbolCandidate in standardSymbolCandidates)
+            var sharedStandardSymbols = new List<string>();
+            foreach (var standardSymbol in CurrentStandardSymbols)
             {
-                if (standardSymbolCandidate.Value.Count == 1)
+                if (SoleStandardCurrentSymbols.Remove(standardSymbol.Value))
                 {
-                    SoleStandardCurrentSymbols[standardSymbolCandidate.Key] = standardSymbolCandidate.Value[0];
+                    sharedStandardSymbols.Add(standardSymbol.Value);
+                }
+                else if (!sharedStandardSymbols.Contains(standardSymbol.Value))
+                {
+                    SoleStandardCurrentSymbols[standardSymbol.Value] = standardSymbol.Key;
                 }
             }
 

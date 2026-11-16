@@ -50,9 +50,10 @@ names the wrong currency.
 ISO 4217 defines no currency symbols, so they are taken from the Unicode Common
 Locale Data Repository, which publishes two forms.
 
-The **standard** form, emitted by `C`, is unambiguous among standard symbols: no
-two currencies have the same one. It is `NZ$` for the New Zealand Dollar and
-`CA$` for the Canadian Dollar. The **narrow** form, emitted by `H`, is the
+The **standard** form, emitted by `C`, distinguishes currencies that share a
+glyph, such as `NZ$` for the New Zealand Dollar and `CA$` for the Canadian
+Dollar. In the current CLDR data no two currencies have the same standard
+symbol. The **narrow** form, emitted by `H`, is the
 shortest recognisable form and may be shared: `$` alone is the narrow symbol of
 some thirty currencies. Use `H` only where the currency is already clear from the
 context.

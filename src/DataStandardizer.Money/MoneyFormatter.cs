@@ -259,10 +259,10 @@ namespace DataStandardizer.Money
         /// <returns><c>true</c> if <paramref name="format"/> renders a value with the standard symbol of its currency; otherwise <c>false</c>.</returns>
         internal static bool IsStandardSymbolFormat(string format)
         {
-            // A currency code format such as CAD cannot match, since its precision would not be numeric.
-            return !string.IsNullOrEmpty(format)
-                   && char.ToUpperInvariant(format[0]) == Specifier.CurrencySymbol
-                   && TryParsePrecision(format, 1, out _);
+            // The currency only decides whether a currency code format such as CAD matches the value, and such
+            // a format is never the standard symbol format, so any currency serves.
+            return ParseFormat(format, default(Iso4217CurrencyCurrent), out var specifier, out _) == FormatParseResult.Recognised
+                   && specifier == Specifier.CurrencySymbol;
         }
 
         /// <summary>

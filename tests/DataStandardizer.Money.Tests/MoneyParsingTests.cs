@@ -430,30 +430,9 @@ public class MoneyParsingTests
     private const string JpyStandardSymbolValue = "\x00A5500";
     private const string KrwStandardSymbolValue = "\x20A9500";
     private const string DkkNarrowSymbolValue = "500,00 kr";
+    private const string UsdNoDecimalsStandardSymbolValue = "$500";
 
-    [Theory]
-    [MemberData(nameof(StandardSymbolRenderingTestCases))]
-    public void ToString_SharedStandardSymbol_RendersTheStandardSymbol(string testCulture, Iso4217CurrencyCurrent testCurrency, string testFormat, string expectedResult)
-    {
-        // arrange
-        var testSubject = Money.Create(WholeAmount, testCurrency);
-
-        // act
-        var testResult = testSubject.ToString(testFormat, MoneyInfoFor(testCulture));
-
-        // assert
-        testResult.Should().Be(expectedResult, "the format {0} was requested under the culture {1}", testFormat, testCulture);
-    }
-
-    public static TheoryData<string, Iso4217CurrencyCurrent, string, string> StandardSymbolRenderingTestCases => new()
-    {
-        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, StandardSymbolFormat, UsdStandardSymbolValue },
-        { BritishCulture, Iso4217CurrencyCurrent.GBP, StandardSymbolFormat, GbpStandardSymbolValue },
-        { JapaneseCulture, Iso4217CurrencyCurrent.JPY, StandardSymbolFormat, JpyStandardSymbolValue },
-        { KoreanCulture, Iso4217CurrencyCurrent.KRW, StandardSymbolFormat, KrwStandardSymbolValue },
-        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, NarrowSymbolFormat, UsdStandardSymbolValue },
-        { DanishCulture, Iso4217CurrencyCurrent.DKK, NarrowSymbolFormat, DkkNarrowSymbolValue },
-    };
+    // MoneyFormatterTests pins the C and H renderings of WholeAmount that these values are.
 
     [Theory]
     [MemberData(nameof(StandardSymbolParseExactTestCases))]
@@ -511,6 +490,61 @@ public class MoneyParsingTests
         { UnitedStatesCulture, UsdStandardSymbolValue, NarrowSymbolFormat },
         // 'kr' is the standard symbol of no currency, and the narrow symbol of several.
         { DanishCulture, DkkNarrowSymbolValue, NarrowSymbolFormat },
+    };
+
+    [Theory]
+    [InlineData("c", UsdStandardSymbolValue)]
+    [InlineData("C2", UsdStandardSymbolValue)]
+    [InlineData("C0", UsdNoDecimalsStandardSymbolValue)]
+    public void TryParseExact_StandardSymbolFormatWithCaseOrPrecision_ReadsTheStandardSymbolCurrency(string testFormat, string testValue)
+    {
+        // act
+        var testResult = Money.TryParseExact(testValue, new[] { testFormat }, MoneyInfoFor(UnitedStatesCulture), MoneyStyles.Currency, out var result);
+
+        // assert
+        testResult.Should().BeTrue();
+        result.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.USD, "{0} is the C format", testFormat);
+    }
+
+    [Theory]
+    [MemberData(nameof(MixedFormatsTestCases))]
+    public void TryParseExact_FormatsMixingStandardSymbolFormat_ReadsTheMatchingCurrency(string testCulture, MoneyStyles testStyles, string[] testFormats, Iso4217CurrencyCurrent expectedCurrency)
+    {
+        // act
+        var testResult = Money.TryParseExact(UsdStandardSymbolValue, testFormats, MoneyInfoFor(testCulture), testStyles, out var result);
+
+        // assert
+        testResult.Should().BeTrue();
+        result.IsoCurrencyCode.Should().Be(expectedCurrency);
+    }
+
+    public static TheoryData<string, MoneyStyles, string[], Iso4217CurrencyCurrent> MixedFormatsTestCases => new()
+    {
+        // Only the C format matches.
+        { UnitedStatesCulture, MoneyStyles.Currency, new[] { CurrencyCodeFormat, StandardSymbolFormat }, Iso4217CurrencyCurrent.USD },
+        // The value is read as AUD for the I format, whose rendering doesn't match, and as USD for the C format.
+        { AustralianCulture, MoneyStyles.Any, new[] { CurrencyCodeFormat, StandardSymbolFormat }, Iso4217CurrencyCurrent.USD },
+        // Both formats read the value as USD.
+        { UnitedStatesCulture, MoneyStyles.Any, new[] { StandardSymbolFormat, NarrowSymbolFormat }, Iso4217CurrencyCurrent.USD },
+        // Without the opt-in, the H format can't read '$', so only the C format matches.
+        { AustralianCulture, MoneyStyles.Currency, new[] { NarrowSymbolFormat, StandardSymbolFormat }, Iso4217CurrencyCurrent.USD },
+    };
+
+    [Theory]
+    [MemberData(nameof(DifferentCurrenciesUnderDifferentFormatsTestCases))]
+    public void TryParseExact_ValueIsTheRenderingOfDifferentCurrenciesUnderDifferentFormats_ReturnsFalse(string[] testFormats)
+    {
+        // act
+        var testResult = Money.TryParseExact(UsdStandardSymbolValue, testFormats, MoneyInfoFor(AustralianCulture), MoneyStyles.Any, out _);
+
+        // assert
+        testResult.Should().BeFalse("'$500.00' is the C rendering of USD and, under en-AU, the H rendering of AUD");
+    }
+
+    public static TheoryData<string[]> DifferentCurrenciesUnderDifferentFormatsTestCases => new()
+    {
+        new[] { StandardSymbolFormat, NarrowSymbolFormat },
+        new[] { NarrowSymbolFormat, StandardSymbolFormat },
     };
 
     [Theory]

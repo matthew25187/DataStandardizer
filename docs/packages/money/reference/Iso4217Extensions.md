@@ -47,11 +47,11 @@ Locale Data Repository rather than from the currency code standard itself. Most
 currencies have no symbol distinct from their code, in which case
 `GetCurrencySymbol` returns `null` and the currency code should be used.
 
-Two forms are published. The standard form, such as `NZ$` for the New Zealand
-Dollar, is unique among standard forms, though it may be another currency's
-narrow form, as `$` is. The narrow form is the shortest recognisable form and may
-be shared, as `$` is by some thirty currencies. Where a currency has no distinct
-narrow form, the standard form is returned. See
+Two forms are published. The standard form distinguishes currencies that share
+a glyph, such as `NZ$` for the New Zealand Dollar, though it may be another
+currency's narrow form, as `$` is. The narrow form is the shortest recognisable
+form and may be shared, as `$` is by some thirty currencies. Where a currency has
+no distinct narrow form, the standard form is returned. See
 [CurrencySymbolKind](CurrencySymbolKind.md).
 
 ## Applies to

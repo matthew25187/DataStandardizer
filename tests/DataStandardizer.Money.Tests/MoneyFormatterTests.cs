@@ -132,6 +132,54 @@ public class MoneyFormatterTests
         testResult.Should().Be(expectedResult, "the narrow symbol is the shortest recognisable form");
     }
 
+    // CLDR root symbols: '$', '£', '¥' and '₩' are the standard symbols of USD, GBP, JPY and KRW, and the narrow
+    // symbols of other currencies too. MoneyParsingTests reads these renderings back.
+
+    private const string BritishCulture = "en-GB";
+    private const string JapaneseCulture = "ja-JP";
+    private const string KoreanCulture = "ko-KR";
+    private const string DanishCulture = "da-DK";
+
+    private const decimal WholeAmount = 500m; // a whole amount, so currencies without minor units render it unrounded
+    private const string UsdSymbolResult = "$500.00";
+
+    [Theory]
+    [MemberData(nameof(StandardSymbolSharedAsNarrowSymbolTestCases))]
+    public void Format_StandardSymbolSpecifierForSymbolSharedAsNarrowSymbol_UsesStandardSymbol(string testCulture, Iso4217CurrencyCurrent testCurrency, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(WholeAmount, testCurrency);
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, MoneyInfoFor(testCulture));
+
+        // assert
+        testResult.Should().Be(expectedResult, "the currency's standard symbol is rendered under the culture {0}", testCulture);
+    }
+
+    public static TheoryData<string, Iso4217CurrencyCurrent, string> StandardSymbolSharedAsNarrowSymbolTestCases => new()
+    {
+        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, UsdSymbolResult },
+        { BritishCulture, Iso4217CurrencyCurrent.GBP, "\x00A3500.00" },
+        { JapaneseCulture, Iso4217CurrencyCurrent.JPY, "\x00A5500" },
+        { KoreanCulture, Iso4217CurrencyCurrent.KRW, "\x20A9500" },
+    };
+
+    [Theory]
+    [InlineData(UnitedStatesCulture, Iso4217CurrencyCurrent.USD, UsdSymbolResult)]
+    [InlineData(DanishCulture, Iso4217CurrencyCurrent.DKK, "500,00 kr")]
+    public void Format_NarrowSymbolSpecifierInTheCurrencysCulture_UsesNarrowSymbol(string testCulture, Iso4217CurrencyCurrent testCurrency, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(WholeAmount, testCurrency);
+
+        // act
+        var testResult = testSubject.ToString(NarrowSymbolFormat, MoneyInfoFor(testCulture));
+
+        // assert
+        testResult.Should().Be(expectedResult, "the currency's narrow symbol is rendered under the culture {0}", testCulture);
+    }
+
     [Fact]
     public void Format_CurrencySymbolSpecifierForCurrencyWithoutSymbol_FallsBackToCurrencyCode()
     {
