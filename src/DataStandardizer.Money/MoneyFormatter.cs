@@ -160,6 +160,8 @@ namespace DataStandardizer.Money
             {
                 var amountNumberFormat = NumberFormatInfo.GetInstance(formatProvider ?? CultureInfo.CurrentCulture);
                 var currencylessDigits = precision ?? currencyFormat.CurrencyDecimalDigits;
+                // A value with no currency carries no rounding, so its amount is rounded once, here, to the
+                // display precision as decimal rounds it, midpoints away from zero.
                 var currencylessAmount = RoundForDisplay((decimal)moneyValue, currencylessDigits);
                 var currencylessIsNegative = currencylessAmount < decimal.Zero;
 

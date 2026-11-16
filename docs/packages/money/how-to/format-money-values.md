@@ -59,17 +59,27 @@ names the wrong currency.
 
 The amount shown is the rounded amount, as `(decimal)money` gives it, with the
 value's `RoundingPrecision` and `RoundingMethod` applied. Where that amount has
-more decimal places than the format displays, it's rounded again to the display
-precision as `decimal` rounds it, with midpoints away from zero. The value's
-`RoundingMethod` doesn't apply to that second rounding:
+more decimal places than `C`, `H`, `I` or `N` display, it's rounded again to the
+display precision as `decimal` rounds it, with midpoints away from zero. The
+value's `RoundingMethod` doesn't apply to that second rounding:
 
 ```csharp
 var enUs = new CultureInfo("en-US");
 var money = Money.Create(1.125m, Iso4217CurrencyCurrent.USD, 4, MidpointRounding.ToEven);
 
-(decimal)money;                 // 1.125
+var amount = (decimal)money;    // 1.125
 money.ToString("C", enUs);      // $1.13, not $1.12
 ```
+
+Rounding twice can also display an amount other than the original amount rounded
+once to the display precision. 1.0049 rounded to cents is 1.00, but rounded first
+to three places it's 1.005, which is then displayed as 1.01:
+
+```csharp
+Money.Create(1.0049m, Iso4217CurrencyCurrent.USD, 3, MidpointRounding.ToEven).ToString("C", enUs);   // $1.01
+```
+
+`G` rounds to significant digits, as it does for `decimal`.
 
 To display an amount rounded by the value's own method, give the value a
 `RoundingPrecision` no greater than the precision displayed:
