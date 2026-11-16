@@ -833,6 +833,31 @@
           "text": "`CsvFileWriter` throws `CsvFileException`, not `EncoderFallbackException`, for a value that holds a lone surrogate"
         }
       ]
+    },
+    "fdb0a9df524f9e57c76db0b1029c07d20ebe7bbf": {
+      "subject": "Every culture gets its currency formatting and currency from Unicode CLDR, not only the 16 with built-in resources (#961) (#971)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A culture without built-in formatting data, such as de-AT, fr-CA, cy-GB or es-MX, now gets its own currency layout and currency from Unicode CLDR, instead of the invariant layout and currency XXX. For example, `Money.Create(1234.5m, EUR).ToString(\"C\", new CultureInfo(\"de-AT\"))` gives `€ 1.234,50`, and `Money.Parse(\"1,5\", MoneyStyles.Number, new CultureInfo(\"de-AT\"))` gives 1.5, not 15."
+        },
+        {
+          "category": "changed",
+          "text": "Culture formatting data and currency symbols come from Unicode CLDR 49.0.0, built into the assembly, the same on every operating system and target, and the package no longer ships satellite resource assemblies. The 16 cultures that had built-in resources format as before. Bulgarian cultures use EUR, Swiss cultures group digits with an apostrophe (U+0027), and CHF has the narrow symbol \"Fr.\"."
+        },
+        {
+          "category": "fixed",
+          "text": "A culture name with a deprecated or legacy language code, such as `iw-IL` or `tl-PH`, gets the currency formatting of the language CLDR replaces it with."
+        },
+        {
+          "category": "fixed",
+          "text": "`new MoneyInfo(language, country)` gives the CLDR currency formatting and currency of the combination even where the host doesn't know the culture, such as in invariant globalization mode, instead of the invariant information and `XXX`."
+        },
+        {
+          "category": "deprecated",
+          "text": "`MissingCultureResourceException` is obsolete, since the package no longer throws it, and will be removed in a future major version."
+        }
+      ]
     }
   }
 }
