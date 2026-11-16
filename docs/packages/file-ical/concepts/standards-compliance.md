@@ -82,12 +82,16 @@ Two kinds of problem have no option:
 
 - **Component nesting:** a component inside one where RFC 5545 doesn't allow it,
   such as a VEVENT inside a VTODO.
-- **vCalendar 1.0:** only iCalendar 2.0 is read. A `VERSION` that doesn't
-  include 2.0, such as `VERSION:1.0`, throws as soon as it is read:
+- **vCalendar 1.0:** only iCalendar 2.0 is read. RFC 5545 §3.7.4 allows a
+  `VERSION` made of registered version identifiers, and the only one is `2.0`, so
+  the readers accept `VERSION:2.0` and `VERSION:2.0;2.0` and nothing else. Any other
+  value, such as `VERSION:1.0`, `VERSION:2` or `VERSION:1.0;2.0`, throws as soon as
+  it is read:
 
   ```text
-  The calendar has VERSION:1.0, which does not include iCalendar 2.0, the only
-  version RFC 5545 defines.  vCalendar 1.0 (VERSION:1.0) is not supported.
+  The calendar has VERSION:1.0, but RFC 5545 allows only VERSION:2.0 (or the range
+  2.0;2.0), since 2.0 is the only iCalendar version it defines.  vCalendar 1.0
+  (VERSION:1.0) is not supported.
   ```
 
   vCalendar 1.0 differs in more than its version: it has quoted-printable

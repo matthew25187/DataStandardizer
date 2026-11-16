@@ -12,8 +12,8 @@ namespace DataStandardizer.File.iCal
     /// <c>URL</c>, <c>CATEGORIES</c>, <c>REFRESH-INTERVAL</c>, <c>SOURCE</c>, <c>COLOR</c> and <c>IMAGE</c>.
     /// </para>
     /// <para>
-    /// RFC 5545 defines iCalendar 2.0 only.  <see cref="IcalReader"/> rejects a calendar whose <c>VERSION</c> does not include 2.0, and
-    /// <see cref="IcalWriter"/> always writes <c>VERSION:2.0</c>.
+    /// RFC 5545 defines iCalendar 2.0 only.  <see cref="IcalReader"/> rejects a calendar whose <c>VERSION</c> is not <c>2.0</c> or
+    /// <c>2.0;2.0</c>, and <see cref="IcalWriter"/> always writes <c>VERSION:2.0</c>.
     /// </para>
     /// </remarks>
     public sealed class IcalCalendar : IcalComponent
@@ -286,7 +286,7 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets or sets the iCalendar version (RFC 5545 §3.7.4, <c>VERSION</c>), as written: <c>2.0</c>, or a range such as <c>1.0;2.0</c>;
+        /// Gets or sets the iCalendar version (RFC 5545 §3.7.4, <c>VERSION</c>), as written: <c>2.0</c>, or the range <c>2.0;2.0</c>;
         /// or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
@@ -300,7 +300,7 @@ namespace DataStandardizer.File.iCal
 #endif
         {
             get { return GetText(IcalPropertyNames.Version); }
-            set { SetText(IcalPropertyNames.Version, value); }
+            set { SetVersionText(IcalPropertyNames.Version, value); }
         }
     }
 }

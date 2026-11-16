@@ -441,10 +441,12 @@ namespace DataStandardizer.File.iCal
             switch (valueType)
             {
                 case IcalValueType.Text:
-                    // ref. RFC 7265§4: iCalendar escaping MUST be applied.
+                    // ref. RFC 7265§4: iCalendar escaping MUST be applied, except to the semicolon of a VERSION range (RFC 5545§3.7.4).
                     try
                     {
-                        return IcalValue.FormatText(json, IcalValueFormat.Text);
+                        return IsName(propertyName, IcalPropertyNames.Version)
+                            ? IcalConformance.FormatVersion(json)
+                            : IcalValue.FormatText(json, IcalValueFormat.Text);
                     }
                     catch (ArgumentException)
                     {

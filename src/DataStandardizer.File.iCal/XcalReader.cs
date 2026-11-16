@@ -289,7 +289,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns>The calendar; or <c>null</c> if the end of the <c>icalendar</c> element has been reached.</returns>
         /// <exception cref="IcalFileException">The data is not valid xCal: it is not well-formed XML, an element is not allowed where it is or
-        /// is not valid, the <c>VERSION</c> does not include 2.0, or the data holds no calendar.
+        /// is not valid, the <c>VERSION</c> is not <c>2.0</c> or <c>2.0;2.0</c>, or the data holds no calendar.
         /// -or-
         /// The calendar breaks a rule of RFC 5545 that the options do not accept.  The calendar has been read, and reading can continue.</exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>

@@ -48,16 +48,8 @@ namespace DataStandardizer.File.iCal.Tests
         // CalendarFixtures.GoogleExport followed by RfcFixtures.Rfc5545Event.
         private static readonly string GoogleExportThenRfc5545Event = CalendarFixtures.GoogleExport + RfcFixtures.Rfc5545Event;
 
-        public static TheoryData<string, string> VersionRanges()
-        {
-            var data = new TheoryData<string, string>();
-            foreach (var version in new[] { "1.0;2.0", "2.0;3.0" })
-            {
-                data.Add(version, RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:" + version));
-            }
-
-            return data;
-        }
+        // RfcFixtures.Rfc5545Event with VERSION:2.0;2.0, the only range RFC 5545 §3.7.4 allows.
+        private static readonly string Rfc5545EventWithVersionRange = RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:2.0;2.0");
 
         // The conformance cases that the writer rejects: all but the missing VERSION, which the writer supplies itself.
         public static TheoryData<string> RejectedConformanceCases()
@@ -240,13 +232,11 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().ContainSingle().Which.PropertyName.Should().Be("VERSION");
         }
 
-        [Theory]
-        [MemberData(nameof(VersionRanges))]
-        public void WriteCalendar_VersionRangeIncluding2_WritesVersion20InPlace(string version, string text)
+        [Fact]
+        public void WriteCalendar_VersionRange_WritesVersion20InPlace()
         {
             // arrange
-            _ = version;
-            var calendar = ReadCalendar(text);
+            var calendar = ReadCalendar(Rfc5545EventWithVersionRange);
 
             // act
             var testResult = WriteCalendars(new[] { calendar });
@@ -256,11 +246,28 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void WriteCalendar_UnsupportedVersion_Throws()
+        public void WriteCalendar_VersionRangeSetInCode_WritesVersion20InPlace()
         {
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
-            calendar.Version = "1.0";
+            calendar.Version = "2.0;2.0";
+
+            // act
+            var testResult = WriteCalendars(new[] { calendar });
+
+            // assert
+            testResult.Should().StartWith(VersionRangeStart);
+        }
+
+        [Theory]
+        [InlineData("1.0")]
+        [InlineData("2")]
+        [InlineData("1.0;2.0")]
+        public void WriteCalendar_UnsupportedVersion_Throws(string version)
+        {
+            // arrange
+            var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
+            calendar.Version = version;
             var text = new StringWriter();
             using (var writer = new IcalWriter(text))
             {

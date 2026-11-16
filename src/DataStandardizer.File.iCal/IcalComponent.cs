@@ -224,6 +224,18 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Sets a <c>VERSION</c> value from unescaped text, keeping the semicolon between <c>minver</c> and <c>maxver</c> (RFC 5545 §3.7.4).
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal void SetVersionText(string name, string? value)
+#else
+        internal void SetVersionText(string name, string value)
+#endif
+        {
+            SetValue(name, value is null ? null : IcalConformance.FormatVersion(value));
+        }
+
+        /// <summary>
         /// Gets the items of every property with a name whose value is a list of TEXT values, such as <c>CATEGORIES</c>.
         /// </summary>
         internal IReadOnlyList<string> GetTextList(string name)

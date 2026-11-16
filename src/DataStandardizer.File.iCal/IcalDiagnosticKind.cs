@@ -35,7 +35,7 @@
         InvalidComponentNesting = 5,
 
         /// <summary>
-        /// The <c>VERSION</c> property does not include iCalendar 2.0.  Never accepted.
+        /// The <c>VERSION</c> property is not <c>2.0</c> or <c>2.0;2.0</c>, the only values RFC 5545 §3.7.4 allows.  Never accepted.
         /// </summary>
         UnsupportedVersion = 6,
 

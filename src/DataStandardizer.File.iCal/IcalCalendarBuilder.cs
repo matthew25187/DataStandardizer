@@ -48,7 +48,7 @@ namespace DataStandardizer.File.iCal
         /// <param name="line">The line.</param>
         /// <returns>The calendar, if the line ends it; otherwise <c>null</c>.  The calendar has not been checked for conformance.</returns>
         /// <exception cref="IcalFileException">The line is not where it may be: a property outside a calendar, an <c>END</c> that does not match
-        /// the open <c>BEGIN</c>, or a <c>VERSION</c> that does not include 2.0.</exception>
+        /// the open <c>BEGIN</c>, or a <c>VERSION</c> other than <c>2.0</c> or <c>2.0;2.0</c>.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal IcalCalendar? Add(IcalContentLine line)
 #else

@@ -396,10 +396,12 @@ namespace DataStandardizer.File.iCal
             switch (valueType)
             {
                 case IcalValueType.Text:
-                    // ref. RFC 6321§4: BACKSLASH character encoding MUST be applied.
+                    // ref. RFC 6321§4: BACKSLASH character encoding MUST be applied, except to the semicolon of a VERSION range (RFC 5545§3.7.4).
                     try
                     {
-                        return IcalValue.FormatText(xml, IcalValueFormat.Text);
+                        return IsName(propertyName, IcalPropertyNames.Version)
+                            ? IcalConformance.FormatVersion(xml)
+                            : IcalValue.FormatText(xml, IcalValueFormat.Text);
                     }
                     catch (ArgumentException)
                     {

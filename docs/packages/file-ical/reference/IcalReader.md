@@ -54,9 +54,9 @@ at a time, so the whole data does not have to fit in memory.
 Unknown and `X-` properties are kept, in order, with their parameters. Each property
 keeps its parameters exactly as read, so `IcalWriter` writes them back unchanged.
 
-**Version.** Only iCalendar 2.0 is read. A `VERSION` property of the calendar that
-does not include 2.0 (`2.0` or `minver;maxver` spanning 2.0), such as the
-`VERSION:1.0` of vCalendar 1.0, throws `IcalFileException` as soon as it is read, with
+**Version.** Only iCalendar 2.0 is read. A `VERSION` property of the calendar other
+than `2.0` or `2.0;2.0`, the only values RFC 5545 allows, such as the `VERSION:1.0`
+of vCalendar 1.0 or `VERSION:2`, throws `IcalFileException` as soon as it is read, with
 `DiagnosticKind` set to `UnsupportedVersion` in its `Data` (RFC 5545 §3.7.4). To read
 the content lines of such data, use `IcalContentLineReader`, which does not check
 `VERSION`.
