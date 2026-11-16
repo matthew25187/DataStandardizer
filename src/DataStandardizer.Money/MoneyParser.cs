@@ -17,11 +17,20 @@ namespace DataStandardizer.Money
     /// Where a currency cannot be identified with certainty, parsing fails. Choosing a currency on a value's
     /// behalf would silently misstate the amount it represents.
     /// </para>
+    /// <para>
+    /// The elements around the amount are read as <see cref="NumberStyles"/> reads those of a number: a
+    /// leading part of white space, sign, opening parenthesis and currency token before the amount, and a
+    /// trailing part of white space, sign, closing parenthesis and currency token after it.
+    /// </para>
     /// </remarks>
     internal static class MoneyParser
     {
         private const int CurrencyCodeLength = 3;
         private const string HyphenMinus = "-";
+
+        // The NumberFormatInfo.NumberNegativePattern "- n", under which NumberStyles reads white space between
+        // a leading sign and the number.
+        private const int SpaceAfterSignNumberNegativePattern = 2;
 
         /// <summary>
         /// The outcome of an attempt to parse a value with one set of separators and sign.
@@ -36,6 +45,21 @@ namespace DataStandardizer.Money
 
             /// <summary>The value has no currency token, so its amount is to be read with other separators.</summary>
             NoCurrencyToken
+        }
+
+        /// <summary>
+        /// The outcome of looking for a currency token at one end of a value.
+        /// </summary>
+        private enum TokenOutcome
+        {
+            /// <summary>There is no currency token there.</summary>
+            NotFound,
+
+            /// <summary>A currency token was read.</summary>
+            Read,
+
+            /// <summary>There is a currency token there that the styles do not permit or that cannot be resolved.</summary>
+            Rejected
         }
 
         /// <summary>
@@ -79,14 +103,18 @@ namespace DataStandardizer.Money
             var currencyNegativeSign = GetNegativeSign(currencyNumberFormat);
             var amountNegativeSign = GetNegativeSign(amountNumberFormat);
 
+            // As for decimal, the number pattern of the culture decides whether white space may follow a sign
+            // which no currency token precedes.
+            var allowsWhiteAfterSign = amountNumberFormat.NumberNegativePattern == SpaceAfterSignNumberNegativePattern;
+
             // Where both read the same sign, one reading finds the sign and currency token for either, and the
             // token decides which separators the amount is read with.
             if (string.Equals(currencyNegativeSign, amountNegativeSign, StringComparison.Ordinal))
             {
-                return TryParse(value, styles, currencyFormat, standardSymbolsFirst, currencyNegativeSign, currencyNumberFormat, amountNumberFormat, out result, out readAsStandardSymbol) == ParseOutcome.Parsed;
+                return TryParse(value, styles, currencyFormat, standardSymbolsFirst, currencyNegativeSign, allowsWhiteAfterSign, currencyNumberFormat, amountNumberFormat, out result, out readAsStandardSymbol) == ParseOutcome.Parsed;
             }
 
-            switch (TryParse(value, styles, currencyFormat, standardSymbolsFirst, currencyNegativeSign, currencyNumberFormat, null, out result, out readAsStandardSymbol))
+            switch (TryParse(value, styles, currencyFormat, standardSymbolsFirst, currencyNegativeSign, allowsWhiteAfterSign, currencyNumberFormat, null, out result, out readAsStandardSymbol))
             {
                 case ParseOutcome.Parsed:
                     return true;
@@ -94,7 +122,7 @@ namespace DataStandardizer.Money
                 case ParseOutcome.NoCurrencyToken:
                     // Read again with the sign of the number formatting, which must not then find a currency
                     // token that the reading with the currency's sign did not.
-                    return TryParse(value, styles, currencyFormat, standardSymbolsFirst, amountNegativeSign, null, amountNumberFormat, out result, out readAsStandardSymbol) == ParseOutcome.Parsed;
+                    return TryParse(value, styles, currencyFormat, standardSymbolsFirst, amountNegativeSign, allowsWhiteAfterSign, null, amountNumberFormat, out result, out readAsStandardSymbol) == ParseOutcome.Parsed;
 
                 default:
                     return false;
@@ -120,6 +148,10 @@ namespace DataStandardizer.Money
         /// <param name="currencyFormat">Currency formatting information of the culture to parse for.</param>
         /// <param name="standardSymbolsFirst"><c>true</c> to resolve a symbol from the standard symbols first; otherwise <c>false</c>.</param>
         /// <param name="negativeSign">Negative sign to read.</param>
+        /// <param name="allowsWhiteAfterSign">
+        /// <c>true</c> if white space may follow a leading sign or opening parenthesis which no currency token
+        /// precedes, as under the number pattern <c>- n</c>; otherwise <c>false</c>.
+        /// </param>
         /// <param name="tokenNumberFormat">
         /// Number formatting information whose separators are used where <paramref name="value"/> has a
         /// currency token, or <c>null</c> to fail where it has one.
@@ -131,47 +163,149 @@ namespace DataStandardizer.Money
         /// <param name="result">Monetary value parsed from <paramref name="value"/>.</param>
         /// <param name="readAsStandardSymbol"><c>true</c> if the currency was decided by reading a shared symbol as a standard symbol; otherwise <c>false</c>.</param>
         /// <returns>The outcome of the attempt.</returns>
+        /// <remarks>
+        /// The value is read in place, from each end towards the amount, and only the amount is passed on.
+        /// A value carries at most one sign, and parentheses are a sign. Parentheses enclose the whole of the
+        /// value, with only white space outside them.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, string negativeSign, NumberFormatInfo? tokenNumberFormat, NumberFormatInfo? tokenlessNumberFormat, out Money result, out bool readAsStandardSymbol)
+        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, string negativeSign, bool allowsWhiteAfterSign, NumberFormatInfo? tokenNumberFormat, NumberFormatInfo? tokenlessNumberFormat, out Money result, out bool readAsStandardSymbol)
 #else
-        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, string negativeSign, NumberFormatInfo tokenNumberFormat, NumberFormatInfo tokenlessNumberFormat, out Money result, out bool readAsStandardSymbol)
+        private static ParseOutcome TryParse(string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, string negativeSign, bool allowsWhiteAfterSign, NumberFormatInfo tokenNumberFormat, NumberFormatInfo tokenlessNumberFormat, out Money result, out bool readAsStandardSymbol)
 #endif
         {
             result = default(Money);
             readAsStandardSymbol = false;
 
-            var remaining = value;
+            // As for decimal, a hyphen-minus is also read as the sign where the sign is a single dash such as
+            // U+2212 MINUS SIGN, which few keyboards can type.
+            var alternativeSign = AllowsHyphenMinus(negativeSign) ? HyphenMinus : null;
 
-            remaining = TrimWhite(remaining, styles, out var hadLeadingWhite, out var hadTrailingWhite);
-            if ((hadLeadingWhite && (styles & MoneyStyles.AllowLeadingWhite) == 0)
-                || (hadTrailingWhite && (styles & MoneyStyles.AllowTrailingWhite) == 0))
-            {
-                return ParseOutcome.Failed;
-            }
-
-            // Parentheses denote a negative value, and enclose the whole of it.
+            var start = 0;
+            var end = value.Length;
             var isNegative = false;
-            if (remaining.Length > 1 && remaining[0] == '(' && remaining[remaining.Length - 1] == ')')
+            var hasParentheses = false;
+            var hasCurrency = false;
+            var currencyCode = default(Iso4217CurrencyCurrent);
+            var currencyReadAsStandardSymbol = false;
+            int length;
+
+            // The leading part. As for decimal, white space may not follow a sign or opening parenthesis until
+            // a currency token has been read, so "- 5" and "( 5)" are rejected while "-$ 5" is read.
+            while (start < end)
             {
-                if ((styles & MoneyStyles.AllowParentheses) == 0)
+                if (IsWhite(value[start]))
                 {
-                    return ParseOutcome.Failed;
+                    if ((styles & MoneyStyles.AllowLeadingWhite) == 0 || (isNegative && !hasCurrency && !allowsWhiteAfterSign))
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    start++;
+                    continue;
                 }
 
-                isNegative = true;
-                remaining = remaining.Substring(1, remaining.Length - 2).Trim();
+                if (!isNegative && IsSignAt(value, start, end, true, negativeSign, alternativeSign, out length))
+                {
+                    if ((styles & MoneyStyles.AllowLeadingSign) == 0)
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    isNegative = true;
+                    start += length;
+                    continue;
+                }
+
+                if (!isNegative && !hasCurrency && value[start] == '(')
+                {
+                    if ((styles & MoneyStyles.AllowParentheses) == 0)
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    isNegative = true;
+                    hasParentheses = true;
+                    start++;
+                    continue;
+                }
+
+                if (!hasCurrency)
+                {
+                    var tokenOutcome = TryReadCurrency(value, start, end, true, styles, currencyFormat, standardSymbolsFirst, out length, out currencyCode, out currencyReadAsStandardSymbol);
+                    if (tokenOutcome == TokenOutcome.Rejected)
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    if (tokenOutcome == TokenOutcome.Read)
+                    {
+                        hasCurrency = true;
+                        start += length;
+                        continue;
+                    }
+                }
+
+                break;
             }
 
-            // A sign may appear outside the currency token as well as beside the amount, so it is looked for
-            // both before and after the currency token is removed.
-            if (!TryExtractSign(ref remaining, styles, negativeSign, ref isNegative))
+            // The trailing part, read from the end. As for decimal, white space may appear anywhere in it.
+            var hasClosingParenthesis = false;
+            var hasTrailingElement = false;
+            while (end > start)
             {
-                return ParseOutcome.Failed;
+                if (IsWhite(value[end - 1]))
+                {
+                    if ((styles & MoneyStyles.AllowTrailingWhite) == 0)
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    end--;
+                    continue;
+                }
+
+                if (hasParentheses && !hasClosingParenthesis && !hasTrailingElement && value[end - 1] == ')')
+                {
+                    hasClosingParenthesis = true;
+                    end--;
+                    continue;
+                }
+
+                if (!isNegative && IsSignAt(value, start, end, false, negativeSign, alternativeSign, out length))
+                {
+                    if ((styles & MoneyStyles.AllowTrailingSign) == 0)
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    isNegative = true;
+                    hasTrailingElement = true;
+                    end -= length;
+                    continue;
+                }
+
+                if (!hasCurrency)
+                {
+                    var tokenOutcome = TryReadCurrency(value, start, end, false, styles, currencyFormat, standardSymbolsFirst, out length, out currencyCode, out currencyReadAsStandardSymbol);
+                    if (tokenOutcome == TokenOutcome.Rejected)
+                    {
+                        return ParseOutcome.Failed;
+                    }
+
+                    if (tokenOutcome == TokenOutcome.Read)
+                    {
+                        hasCurrency = true;
+                        hasTrailingElement = true;
+                        end -= length;
+                        continue;
+                    }
+                }
+
+                break;
             }
 
-            remaining = remaining.Trim();
-
-            if (!TryExtractCurrency(ref remaining, styles, currencyFormat, standardSymbolsFirst, out var currencyCode, out var hasCurrency, out var currencyReadAsStandardSymbol))
+            if (hasParentheses && !hasClosingParenthesis)
             {
                 return ParseOutcome.Failed;
             }
@@ -182,16 +316,7 @@ namespace DataStandardizer.Money
                 return hasCurrency ? ParseOutcome.Failed : ParseOutcome.NoCurrencyToken;
             }
 
-            remaining = remaining.Trim();
-
-            if (!TryExtractSign(ref remaining, styles, negativeSign, ref isNegative))
-            {
-                return ParseOutcome.Failed;
-            }
-
-            remaining = remaining.Trim();
-
-            if (!TryParseAmount(remaining, styles, numberFormat, out var amount))
+            if (!TryParseAmount(value, start, end - start, styles, numberFormat, out var amount))
             {
                 return ParseOutcome.Failed;
             }
@@ -206,56 +331,79 @@ namespace DataStandardizer.Money
             return ParseOutcome.Parsed;
         }
 
-        private static string TrimWhite(string value, MoneyStyles styles, out bool hadLeadingWhite, out bool hadTrailingWhite)
+        /// <summary>
+        /// Determine whether a character is white space as <see cref="NumberStyles"/> defines it: U+0009 to
+        /// U+000D and U+0020, and no other character that Unicode classes as white space.
+        /// </summary>
+        private static bool IsWhite(char character)
         {
-            var trimmed = value.Trim();
-            hadLeadingWhite = trimmed.Length != value.Length && !value.StartsWith(trimmed, StringComparison.Ordinal);
-            hadTrailingWhite = trimmed.Length != value.Length && !value.EndsWith(trimmed, StringComparison.Ordinal);
-
-            // A value which is white space at both ends satisfies neither test above on its own.
-            if (trimmed.Length != value.Length)
-            {
-                hadLeadingWhite = value.Length > 0 && char.IsWhiteSpace(value[0]);
-                hadTrailingWhite = value.Length > 0 && char.IsWhiteSpace(value[value.Length - 1]);
-            }
-
-            return trimmed;
+            return character == ' ' || (character >= '\t' && character <= '\r');
         }
 
         /// <summary>
-        /// Remove the currency token from a value and identify the currency it denotes.
+        /// Determine whether a string appears at one end of a range of a value.
         /// </summary>
-        private static bool TryExtractCurrency(ref string value, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, out Iso4217CurrencyCurrent currencyCode, out bool hasCurrency, out bool readAsStandardSymbol)
+        /// <param name="value">Value to examine.</param>
+        /// <param name="start">Start of the range.</param>
+        /// <param name="end">End of the range, exclusive.</param>
+        /// <param name="atStart"><c>true</c> to look at the start of the range; <c>false</c> to look at its end.</param>
+        /// <param name="affix">String to look for, which is not empty.</param>
+        private static bool IsAffixAt(string value, int start, int end, bool atStart, string affix)
         {
+            if (affix.Length > end - start)
+            {
+                return false;
+            }
+
+            var index = atStart ? start : end - affix.Length;
+            return string.CompareOrdinal(value, index, affix, 0, affix.Length) == 0;
+        }
+
+        /// <summary>
+        /// Look for a currency token at one end of a range of a value and identify the currency it denotes.
+        /// </summary>
+        /// <param name="value">Value to examine.</param>
+        /// <param name="start">Start of the range.</param>
+        /// <param name="end">End of the range, exclusive.</param>
+        /// <param name="atStart"><c>true</c> to look at the start of the range; <c>false</c> to look at its end.</param>
+        /// <param name="styles">Elements permitted in <paramref name="value"/>.</param>
+        /// <param name="currencyFormat">Currency formatting information of the culture to parse for.</param>
+        /// <param name="standardSymbolsFirst"><c>true</c> to resolve a symbol from the standard symbols first; otherwise <c>false</c>.</param>
+        /// <param name="length">Length of the currency token read.</param>
+        /// <param name="currencyCode">Currency the token denotes.</param>
+        /// <param name="readAsStandardSymbol"><c>true</c> if the currency was decided by reading a shared symbol as a standard symbol; otherwise <c>false</c>.</param>
+        /// <returns>The outcome of the attempt.</returns>
+        private static TokenOutcome TryReadCurrency(string value, int start, int end, bool atStart, MoneyStyles styles, CurrencyFormatInfo currencyFormat, bool standardSymbolsFirst, out int length, out Iso4217CurrencyCurrent currencyCode, out bool readAsStandardSymbol)
+        {
+            length = 0;
             currencyCode = default(Iso4217CurrencyCurrent);
-            hasCurrency = false;
             readAsStandardSymbol = false;
 
             // An ISO 4217 currency code identifies a currency without ambiguity.
-            if (TryExtractCurrencyCode(ref value, out var extractedCode))
+            if (TryReadCurrencyCode(value, start, end, atStart, out var extractedCode))
             {
                 if ((styles & MoneyStyles.AllowCurrencyCode) == 0)
                 {
-                    return false;
+                    return TokenOutcome.Rejected;
                 }
 
+                length = CurrencyCodeLength;
                 currencyCode = extractedCode;
-                hasCurrency = true;
-                return true;
+                return TokenOutcome.Read;
             }
 
             // Symbols are matched longest first so that a longer symbol is preferred over a shorter one
             // which forms part of it, such as NZ$ over $.
             foreach (var symbol in CurrencySymbols.SymbolsByDescendingLength)
             {
-                if (!TryRemoveAffix(ref value, symbol, out var withoutSymbol))
+                if (symbol.Length == 0 || !IsAffixAt(value, start, end, atStart, symbol))
                 {
                     continue;
                 }
 
                 if ((styles & MoneyStyles.AllowCurrencySymbol) == 0)
                 {
-                    return false;
+                    return TokenOutcome.Rejected;
                 }
 
                 if (CurrencySymbols.TryGetUnambiguousCurrency(symbol, out var unambiguousCurrency))
@@ -264,13 +412,12 @@ namespace DataStandardizer.Money
                     // currency sign for XXX, so it is held to the same test as a currency code.
                     if (!Money.IsCurrencyCodeValidForMoneyValue(unambiguousCurrency))
                     {
-                        return false;
+                        return TokenOutcome.Rejected;
                     }
 
-                    value = withoutSymbol;
+                    length = symbol.Length;
                     currencyCode = unambiguousCurrency;
-                    hasCurrency = true;
-                    return true;
+                    return TokenOutcome.Read;
                 }
 
                 // In a value known to carry a standard symbol, a shared symbol that is the standard symbol of
@@ -279,28 +426,27 @@ namespace DataStandardizer.Money
                     && CurrencySymbols.TryGetSoleStandardCurrency(symbol, out var standardCurrency)
                     && Money.IsCurrencyCodeValidForMoneyValue(standardCurrency))
                 {
-                    value = withoutSymbol;
+                    length = symbol.Length;
                     currencyCode = standardCurrency;
-                    hasCurrency = true;
                     readAsStandardSymbol = true;
-                    return true;
+                    return TokenOutcome.Read;
                 }
 
                 // A shared symbol is otherwise resolved only from the currency of the culture being parsed for,
                 // and only when the caller has accepted that.
                 if ((styles & MoneyStyles.AllowAmbiguousCurrencySymbol) == 0)
                 {
-                    return false;
+                    return TokenOutcome.Rejected;
                 }
 
                 if (!CurrencySymbols.TryGetAmbiguousCurrencies(symbol, out var candidates) || candidates is null)
                 {
-                    return false;
+                    return TokenOutcome.Rejected;
                 }
 
                 if (!Iso4217Extensions.TryGetCurrentCurrency(currencyFormat.CurrencyCode, out var cultureCurrency))
                 {
-                    return false;
+                    return TokenOutcome.Rejected;
                 }
 
                 foreach (var candidate in candidates)
@@ -310,137 +456,54 @@ namespace DataStandardizer.Money
                         continue;
                     }
 
-                    value = withoutSymbol;
+                    length = symbol.Length;
                     currencyCode = candidate;
-                    hasCurrency = true;
-                    return true;
+                    return TokenOutcome.Read;
                 }
 
                 // The culture does not account for this symbol, so the currency cannot be determined.
-                return false;
+                return TokenOutcome.Rejected;
             }
 
-            // No currency token at all is permitted; the value simply carries no currency.
-            return true;
+            return TokenOutcome.NotFound;
         }
 
-        private static bool TryExtractCurrencyCode(ref string value, out Iso4217CurrencyCurrent currencyCode)
+        private static bool TryReadCurrencyCode(string value, int start, int end, bool atStart, out Iso4217CurrencyCurrent currencyCode)
         {
             currencyCode = default(Iso4217CurrencyCurrent);
 
-            if (value.Length < CurrencyCodeLength)
+            if (end - start < CurrencyCodeLength)
             {
                 return false;
             }
 
-            // A currency code appears at one end of the value or the other.
-            var leading = value.Substring(0, CurrencyCodeLength);
-            if (IsCurrencyCode(leading, out currencyCode))
+            // A currency code is three upper-case Latin letters, so other text is passed over without
+            // allocating a candidate.
+            var index = atStart ? start : end - CurrencyCodeLength;
+            for (var offset = 0; offset < CurrencyCodeLength; offset++)
             {
-                value = value.Substring(CurrencyCodeLength);
-                return true;
+                var character = value[index + offset];
+                if (character < 'A' || character > 'Z')
+                {
+                    return false;
+                }
             }
 
-            var trailing = value.Substring(value.Length - CurrencyCodeLength);
-            if (IsCurrencyCode(trailing, out currencyCode))
-            {
-                value = value.Substring(0, value.Length - CurrencyCodeLength);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool IsCurrencyCode(string candidate, out Iso4217CurrencyCurrent currencyCode)
-        {
-            return Iso4217Extensions.TryGetCurrentCurrency(candidate, out currencyCode)
+            return Iso4217Extensions.TryGetCurrentCurrency(value.Substring(index, CurrencyCodeLength), out currencyCode)
                    && Money.IsCurrencyCodeValidForMoneyValue(currencyCode);
         }
 
-        private static bool TryRemoveAffix(ref string value, string affix, out string withoutAffix)
-        {
-            withoutAffix = value;
-
-            if (affix.Length == 0 || value.Length < affix.Length)
-            {
-                return false;
-            }
-
-            if (value.StartsWith(affix, StringComparison.Ordinal))
-            {
-                withoutAffix = value.Substring(affix.Length);
-                return true;
-            }
-
-            if (value.EndsWith(affix, StringComparison.Ordinal))
-            {
-                withoutAffix = value.Substring(0, value.Length - affix.Length);
-                return true;
-            }
-
-            return false;
-        }
-
         /// <summary>
-        /// Remove a negative sign from either end of a value.
+        /// Determine whether a negative sign appears at one end of a range of a value.
         /// </summary>
-        /// <remarks>
-        /// A value carries at most one sign, and parentheses are a sign, so a sign found once
-        /// <paramref name="isNegative"/> is already set fails the parse.
-        /// </remarks>
-        private static bool TryExtractSign(ref string value, MoneyStyles styles, string negativeSign, ref bool isNegative)
-        {
-            // As for decimal, a hyphen-minus is also read as the sign where the sign is a single dash such as
-            // U+2212 MINUS SIGN, which few keyboards can type.
-            var alternativeSign = AllowsHyphenMinus(negativeSign) ? HyphenMinus : null;
-
-            if (StartsWithSign(value, negativeSign, alternativeSign, out var leadingSignLength))
-            {
-                if ((styles & MoneyStyles.AllowLeadingSign) == 0 || isNegative)
-                {
-                    return false;
-                }
-
-                isNegative = true;
-                value = value.Substring(leadingSignLength);
-                return true;
-            }
-
-            if (EndsWithSign(value, negativeSign, alternativeSign, out var trailingSignLength))
-            {
-                if ((styles & MoneyStyles.AllowTrailingSign) == 0 || isNegative)
-                {
-                    return false;
-                }
-
-                isNegative = true;
-                value = value.Substring(0, value.Length - trailingSignLength);
-                return true;
-            }
-
-            return true;
-        }
-
 #if NETCOREAPP3_0_OR_GREATER
-        private static bool StartsWithSign(string value, string negativeSign, string? alternativeSign, out int signLength)
+        private static bool IsSignAt(string value, int start, int end, bool atStart, string negativeSign, string? alternativeSign, out int signLength)
 #else
-        private static bool StartsWithSign(string value, string negativeSign, string alternativeSign, out int signLength)
+        private static bool IsSignAt(string value, int start, int end, bool atStart, string negativeSign, string alternativeSign, out int signLength)
 #endif
         {
-            signLength = value.StartsWith(negativeSign, StringComparison.Ordinal) ? negativeSign.Length
-                : alternativeSign != null && value.StartsWith(alternativeSign, StringComparison.Ordinal) ? alternativeSign.Length
-                : 0;
-            return signLength != 0;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static bool EndsWithSign(string value, string negativeSign, string? alternativeSign, out int signLength)
-#else
-        private static bool EndsWithSign(string value, string negativeSign, string alternativeSign, out int signLength)
-#endif
-        {
-            signLength = value.EndsWith(negativeSign, StringComparison.Ordinal) ? negativeSign.Length
-                : alternativeSign != null && value.EndsWith(alternativeSign, StringComparison.Ordinal) ? alternativeSign.Length
+            signLength = IsAffixAt(value, start, end, atStart, negativeSign) ? negativeSign.Length
+                : alternativeSign != null && IsAffixAt(value, start, end, atStart, alternativeSign) ? alternativeSign.Length
                 : 0;
             return signLength != 0;
         }
@@ -472,11 +535,11 @@ namespace DataStandardizer.Money
             }
         }
 
-        private static bool TryParseAmount(string value, MoneyStyles styles, NumberFormatInfo numberFormat, out decimal amount)
+        private static bool TryParseAmount(string value, int start, int length, MoneyStyles styles, NumberFormatInfo numberFormat, out decimal amount)
         {
             amount = decimal.Zero;
 
-            if (value.Length == 0)
+            if (length == 0)
             {
                 return false;
             }
@@ -492,7 +555,11 @@ namespace DataStandardizer.Money
                 numberStyles |= NumberStyles.AllowDecimalPoint;
             }
 
-            return decimal.TryParse(value, numberStyles, numberFormat, out amount);
+#if NETCOREAPP2_1_OR_GREATER
+            return decimal.TryParse(value.AsSpan(start, length), numberStyles, numberFormat, out amount);
+#else
+            return decimal.TryParse(value.Substring(start, length), numberStyles, numberFormat, out amount);
+#endif
         }
 
         #endregion

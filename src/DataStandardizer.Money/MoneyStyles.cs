@@ -9,6 +9,16 @@ namespace DataStandardizer.Money
     /// These styles serve the same purpose for <see cref="Money"/> as <see cref="System.Globalization.NumberStyles"/>
     /// does for the intrinsic numeric types: they let a caller accept only the elements they expect, so that
     /// input which happens to be well formed but is not of the expected shape is rejected rather than parsed.
+    /// <para>
+    /// White space is the characters <see cref="System.Globalization.NumberStyles"/> treats as white space,
+    /// U+0009 to U+000D and U+0020, and it is read where <see cref="System.Globalization.NumberStyles"/> reads
+    /// it. Before the amount, <see cref="AllowLeadingWhite"/> permits it among the sign, opening parenthesis and
+    /// currency token, except after a sign or opening parenthesis that no currency token precedes, unless the
+    /// <see cref="System.Globalization.NumberFormatInfo.NumberNegativePattern"/> of the culture is <c>- n</c>.
+    /// After the amount, <see cref="AllowTrailingWhite"/> permits it among the sign, closing parenthesis and
+    /// currency token. So <c>NZD 1234.50</c>, <c>-$ 5.00</c>, <c>$- 5.00</c> and <c>5.00 $-</c> are read under
+    /// <see cref="Currency"/>, and <c>- 5.00</c>, <c>( 5.00)</c> and <c>- $5.00</c> are not.
+    /// </para>
     /// </remarks>
     [Flags]
     public enum MoneyStyles : uint
