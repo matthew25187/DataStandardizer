@@ -1,6 +1,6 @@
 ############################################################################################
 # Title: ISO 4217 Historic Denominations (Currencies & Funds) Source Code Generator        #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.                          #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.                     #
 #                                                                                          #
 # Purpose: Generate source code for implementing the ISO 4217 standard.                    #
 # Source: Historic Denominations (Currencies & Funds) (XML), SIX Group.                    #
@@ -131,12 +131,25 @@ function Out-SourceCode {
         $enumType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
     }
 
+    # ISO 4217 reuses numeric codes across successive denominations, so members can share a value.
+    # Iso4217Extensions returns no data for a shared value; keep this text in step with it.
+    [System.CodeDom.CodeCommentStatement[]]$enumTypeRemarksComments = @()
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new('<remarks>', $true)
     if ($null -ne $ListPublishedDate) {
-        $enumTypeOpenRemarksComment = [System.CodeDom.CodeCommentStatement]::new('<remarks>', $true)
-        $enumTypeRemarksContentComment = [System.CodeDom.CodeCommentStatement]::new("Based on official ISO 4217 currency codes as at $($ListPublishedDate.ToString('yyyy-MM-dd')).", $true)
-        $enumTypeCloseRemarksComment = [System.CodeDom.CodeCommentStatement]::new('</remarks>', $true)
-        $enumType.Comments.AddRange(@($enumTypeOpenRemarksComment, $enumTypeRemarksContentComment, $enumTypeCloseRemarksComment))
+        $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t<para>", $true)
+        $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tBased on official ISO 4217 currency codes as at $($ListPublishedDate.ToString('yyyy-MM-dd')).", $true)
+        $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</para>", $true)
     }
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t<para>", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tEach member's value is its ISO 4217 numeric code, or -1 for a code that has none. ISO 4217 reuses", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tnumeric codes across successive denominations, so several members can share a value, and the", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tcodes that have no numeric code all share -1. Members that share a value are the same value", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tand can't be told apart: they compare equal, <see cref=""System.Enum.ToString()""/> may return", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tthe name of any of them, and the <see cref=""Iso4217Extensions""/> methods return <c>null</c>", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`tfor them.", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</para>", $true)
+    $enumTypeRemarksComments += [System.CodeDom.CodeCommentStatement]::new('</remarks>', $true)
+    $enumType.Comments.AddRange($enumTypeRemarksComments)
 
     [void]$namespace.Types.Add($enumType)
 

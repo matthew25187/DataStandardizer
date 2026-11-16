@@ -209,11 +209,21 @@ function Out-SourceCode {
     $currentCurrencyNames = [System.Enum]::GetNames([DataStandardizer.Money.Iso4217CurrencyCurrent])
     $historicCurrencyNames = [System.Enum]::GetNames([DataStandardizer.Money.Iso4217CurrencyHistoric])
 
+    # ISO 4217 reuses numeric codes, so several historic members can share a value, and the codes with no
+    # numeric code all share -1. Members that share a value can't be told apart, so Iso4217Extensions
+    # returns no symbol for them; emitting one would be dead data, and two for the same value would be a
+    # duplicate dictionary key.
+    $sharedHistoricCurrencyNames = $historicCurrencyNames
+    | Group-Object -Property { [int][DataStandardizer.Money.Iso4217CurrencyHistoric]$_ }
+    | Where-Object -Property Count -GT 1
+    | ForEach-Object { $_.Group }
+
     $currentStandardEntries = @()
     $currentNarrowEntries = @()
     $historicStandardEntries = @()
     $historicNarrowEntries = @()
     $skippedCurrencyCodes = @()
+    $skippedSharedCurrencyCodes = @()
 
     foreach ($listItem in $ListItems | Sort-Object -Property CurrencyCode) {
         $isCurrent = $currentCurrencyNames -contains $listItem.CurrencyCode
@@ -234,7 +244,10 @@ function Out-SourceCode {
             }
         }
 
-        if ($isHistoric) {
+        if ($isHistoric -and $sharedHistoricCurrencyNames -contains $listItem.CurrencyCode) {
+            $skippedSharedCurrencyCodes += $listItem.CurrencyCode
+        }
+        elseif ($isHistoric) {
             $enumMember = "DataStandardizer.Money.Iso4217CurrencyHistoric.$($listItem.CurrencyCode)"
             if (-not [string]::IsNullOrEmpty($listItem.StandardSymbol)) {
                 $historicStandardEntries += [pscustomobject]@{ Key = $enumMember; Value = (ConvertTo-SourceCodeStringLiteral $listItem.StandardSymbol) }
@@ -247,6 +260,10 @@ function Out-SourceCode {
 
     if ($skippedCurrencyCodes.Count -gt 0) {
         Write-Verbose "Skipped $($skippedCurrencyCodes.Count) CLDR currency codes with no matching ISO 4217 enum member: $($skippedCurrencyCodes -join ', ')."
+    }
+
+    if ($skippedSharedCurrencyCodes.Count -gt 0) {
+        Write-Verbose "Skipped $($skippedSharedCurrencyCodes.Count) historic ISO 4217 codes that share a numeric code: $($skippedSharedCurrencyCodes -join ', ')."
     }
 
     Write-Verbose "Current currencies: $($currentStandardEntries.Count) standard symbols, $($currentNarrowEntries.Count) narrow symbols."

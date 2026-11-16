@@ -23,7 +23,24 @@ public enum Iso4217CurrencyHistoric : short
 
 Per-member metadata — currency name and minor-unit digit count — is carried by
 `Iso4217CurrencyCodeAttribute` and read through
-[Iso4217Extensions](Iso4217Extensions.md).
+[Iso4217Extensions](Iso4217Extensions.md), except for members that share a value.
+
+ISO 4217 reuses numeric codes across successive denominations, so several
+members share a value, such as `BGJ`, `BGK` and `BGL` (100). The codes with no
+numeric code (`XFO`, `XFU` and `XRE`) all share -1. Members that share a value
+are the same value at run time and can't be told apart:
+
+- They compare equal: `Iso4217CurrencyHistoric.BGJ == Iso4217CurrencyHistoric.BGL`
+  is `true`.
+- `ToString()` may return the name of any of them.
+- The [Iso4217Extensions](Iso4217Extensions.md#historic-codes-that-share-a-numeric-code)
+  methods return `null` for them, so `BGL.GetCurrencyName()` returns `null`.
+
+The values are the numeric codes from the official ISO 4217 data, so they are
+kept as they are rather than made unique.
+
+The table below gives each member's name from ISO 4217. For a row marked
+*shared*, `GetCurrencyName` returns `null`.
 
 ## Fields
 
@@ -33,12 +50,12 @@ Per-member metadata — currency name and minor-unit digit count — is carried 
 | `AFA` | 4 | Afghani | — |
 | `ALK` | 8 | Old Lek | — |
 | `ANG` | 532 | Netherlands Antillean Guilder | — |
-| `AOK` | 24 | Kwanza | — |
-| `AON` | 24 | New Kwanza | — |
+| `AOK` | 24 (shared) | Kwanza | — |
+| `AON` | 24 (shared) | New Kwanza | — |
 | `AOR` | 982 | Kwanza Reajustado | — |
-| `ARA` | 32 | Austral | — |
-| `ARP` | 32 | Peso Argentino | — |
-| `ARY` | 32 | Peso | — |
+| `ARA` | 32 (shared) | Austral | — |
+| `ARP` | 32 (shared) | Peso Argentino | — |
+| `ARY` | 32 (shared) | Peso | — |
 | `ATS` | 40 | Schilling | — |
 | `AYM` | 945 | Azerbaijan Manat | — |
 | `AZM` | 31 | Azerbaijanian Manat | — |
@@ -46,21 +63,21 @@ Per-member metadata — currency name and minor-unit digit count — is carried 
 | `BEC` | 993 | Convertible Franc | — |
 | `BEF` | 56 | Belgian Franc | — |
 | `BEL` | 992 | Financial Franc | — |
-| `BGJ` | 100 | Lev A/52 | — |
-| `BGK` | 100 | Lev A/62 | — |
-| `BGL` | 100 | Lev | — |
+| `BGJ` | 100 (shared) | Lev A/52 | — |
+| `BGK` | 100 (shared) | Lev A/62 | — |
+| `BGL` | 100 (shared) | Lev | — |
 | `BGN` | 975 | Bulgarian Lev | — |
 | `BOP` | 68 | Peso boliviano | — |
-| `BRB` | 76 | Cruzeiro | — |
-| `BRC` | 76 | Cruzado | — |
-| `BRE` | 76 | Cruzeiro | — |
-| `BRN` | 76 | New Cruzado | — |
+| `BRB` | 76 (shared) | Cruzeiro | — |
+| `BRC` | 76 (shared) | Cruzado | — |
+| `BRE` | 76 (shared) | Cruzeiro | — |
+| `BRN` | 76 (shared) | New Cruzado | — |
 | `BRR` | 987 | Cruzeiro Real | — |
 | `BUK` | 104 | Kyat | — |
 | `BYB` | 112 | Belarusian Ruble | — |
 | `BYR` | 974 | Belarusian Ruble | — |
 | `CHC` | 948 | WIR Franc (for electronic) | — |
-| `CSD` | 891 | Serbian Dinar | — |
+| `CSD` | 891 (shared) | Serbian Dinar | — |
 | `CSJ` | 203 | Krona A/53 | — |
 | `CSK` | 200 | Koruna | — |
 | `CUC` | 931 | Peso Convertible | — |
@@ -79,61 +96,61 @@ Per-member metadata — currency name and minor-unit digit count — is carried 
 | `GEK` | 268 | Georgian Coupon | — |
 | `GHC` | 288 | Cedi | — |
 | `GHP` | 939 | Ghana Cedi | — |
-| `GNE` | 324 | Syli | — |
-| `GNS` | 324 | Syli | — |
+| `GNE` | 324 (shared) | Syli | — |
+| `GNS` | 324 (shared) | Syli | — |
 | `GQE` | 226 | Ekwele | — |
 | `GRD` | 300 | Drachma | — |
-| `GWE` | 624 | Guinea Escudo | — |
-| `GWP` | 624 | Guinea-Bissau Peso | — |
-| `HRD` | 191 | Croatian Dinar | — |
-| `HRK` | 191 | Croatian Kuna | — |
+| `GWE` | 624 (shared) | Guinea Escudo | — |
+| `GWP` | 624 (shared) | Guinea-Bissau Peso | — |
+| `HRD` | 191 (shared) | Croatian Dinar | — |
+| `HRK` | 191 (shared) | Croatian Kuna | — |
 | `IDR` | 360 | Rupiah | — |
 | `IEP` | 372 | Irish Pound | — |
-| `ILP` | 376 | Pound | — |
-| `ILR` | 376 | Old Shekel | — |
+| `ILP` | 376 (shared) | Pound | — |
+| `ILR` | 376 (shared) | Old Shekel | — |
 | `ISJ` | 352 | Old Krona | — |
 | `ITL` | 380 | Italian Lira | — |
 | `LAJ` | 418 | Pathet Lao Kip | — |
 | `LSM` | 426 | Loti | — |
-| `LTL` | 440 | Lithuanian Litas | — |
-| `LTT` | 440 | Talonas | — |
+| `LTL` | 440 (shared) | Lithuanian Litas | — |
+| `LTT` | 440 (shared) | Talonas | — |
 | `LUC` | 989 | Luxembourg Convertible Franc | — |
 | `LUF` | 442 | Luxembourg Franc | — |
 | `LUL` | 988 | Luxembourg Financial Franc | — |
-| `LVL` | 428 | Latvian Lats | — |
-| `LVR` | 428 | Latvian Ruble | — |
+| `LVL` | 428 (shared) | Latvian Lats | — |
+| `LVR` | 428 (shared) | Latvian Ruble | — |
 | `MGF` | 450 | Malagasy Franc | — |
 | `MLF` | 466 | Mali Franc | — |
 | `MRO` | 478 | Ouguiya | — |
-| `MTL` | 470 | Maltese Lira | — |
-| `MTP` | 470 | Maltese Pound | — |
+| `MTL` | 470 (shared) | Maltese Lira | — |
+| `MTP` | 470 (shared) | Maltese Pound | — |
 | `MVQ` | 462 | Maldive Rupee | — |
 | `MWK` | 454 | Kwacha | — |
 | `MXP` | 484 | Mexican Peso | — |
-| `MZE` | 508 | Mozambique Escudo | — |
-| `MZM` | 508 | Mozambique Metical | — |
+| `MZE` | 508 (shared) | Mozambique Escudo | — |
+| `MZM` | 508 (shared) | Mozambique Metical | — |
 | `NIC` | 558 | Cordoba | — |
 | `NLG` | 528 | Netherlands Guilder | — |
-| `PEH` | 604 | Sol | — |
-| `PEI` | 604 | Inti | — |
-| `PEN` | 604 | Nuevo Sol  | — |
-| `PES` | 604 | Sol | — |
+| `PEH` | 604 (shared) | Sol | — |
+| `PEI` | 604 (shared) | Inti | — |
+| `PEN` | 604 (shared) | Nuevo Sol  | — |
+| `PES` | 604 (shared) | Sol | — |
 | `PLZ` | 616 | Zloty | — |
 | `PTE` | 620 | Portuguese Escudo | — |
-| `RHD` | 716 | Rhodesian Dollar | — |
-| `ROK` | 642 | Leu A/52 | — |
-| `ROL` | 642 | Old Leu | — |
+| `RHD` | 716 (shared) | Rhodesian Dollar | — |
+| `ROK` | 642 (shared) | Leu A/52 | — |
+| `ROL` | 642 (shared) | Old Leu | — |
 | `RON` | 946 | New Romanian Leu  | — |
-| `RUR` | 810 | Russian Ruble | — |
-| `SDD` | 736 | Sudanese Dinar | — |
+| `RUR` | 810 (shared) | Russian Ruble | — |
+| `SDD` | 736 (shared) | Sudanese Dinar | — |
 | `SDG` | 938 | Sudanese Pound | — |
-| `SDP` | 736 | Sudanese Pound | — |
+| `SDP` | 736 (shared) | Sudanese Pound | — |
 | `SIT` | 705 | Tolar | — |
 | `SKK` | 703 | Slovak Koruna | — |
 | `SLL` | 694 | Leone | — |
 | `SRG` | 740 | Surinam Guilder | — |
 | `STD` | 678 | Dobra | — |
-| `SUR` | 810 | Rouble | — |
+| `SUR` | 810 (shared) | Rouble | — |
 | `SZL` | 748 | Lilangeni | — |
 | `TJR` | 762 | Tajik Ruble | — |
 | `TMM` | 795 | Turkmenistan Manat | — |
@@ -141,28 +158,31 @@ Per-member metadata — currency name and minor-unit digit count — is carried 
 | `TRL` | 792 | Old Turkish Lira | — |
 | `TRY` | 949 | New Turkish Lira | — |
 | `UAK` | 804 | Karbovanet | — |
-| `UGS` | 800 | Uganda Shilling | — |
-| `UGW` | 800 | Old Shilling | — |
+| `UGS` | 800 (shared) | Uganda Shilling | — |
+| `UGW` | 800 (shared) | Old Shilling | — |
 | `USS` | 998 | US Dollar (Same day) | — |
-| `UYN` | 858 | Old Uruguay Peso | — |
-| `UYP` | 858 | Uruguayan Peso | — |
+| `UYN` | 858 (shared) | Old Uruguay Peso | — |
+| `UYP` | 858 (shared) | Uruguayan Peso | — |
 | `VEB` | 862 | Bolivar | — |
 | `VEF` | 937 | Bolivar Fuerte | — |
 | `VNC` | 704 | Old Dong | — |
 | `XEU` | 954 | European Currency Unit (E.C.U) | — |
 | `YDD` | 720 | Yemeni Dinar | — |
-| `YUD` | 890 | New Yugoslavian Dinar | — |
-| `YUM` | 891 | New Dinar | — |
-| `YUN` | 890 | Yugoslavian Dinar | — |
+| `YUD` | 890 (shared) | New Yugoslavian Dinar | — |
+| `YUM` | 891 (shared) | New Dinar | — |
+| `YUN` | 890 (shared) | Yugoslavian Dinar | — |
 | `ZAL` | 991 | Financial Rand | — |
 | `ZMK` | 894 | Zambian Kwacha | — |
-| `ZRN` | 180 | New Zaire | — |
-| `ZRZ` | 180 | Zaire | — |
-| `ZWC` | 716 | Rhodesian Dollar | — |
-| `ZWD` | 716 | Zimbabwe Dollar (old) | — |
+| `ZRN` | 180 (shared) | New Zaire | — |
+| `ZRZ` | 180 (shared) | Zaire | — |
+| `ZWC` | 716 (shared) | Rhodesian Dollar | — |
+| `ZWD` | 716 (shared) | Zimbabwe Dollar (old) | — |
 | `ZWL` | 932 | Zimbabwe Dollar | — |
 | `ZWN` | 942 | Zimbabwe Dollar (new) | — |
 | `ZWR` | 935 | Zimbabwe Dollar | — |
+| `XFO` | -1 (no numeric code; shared) | Gold-Franc | — |
+| `XFU` | -1 (no numeric code; shared) | UIC-Franc | — |
+| `XRE` | -1 (no numeric code; shared) | RINET Funds Code | — |
 
 ## See also
 

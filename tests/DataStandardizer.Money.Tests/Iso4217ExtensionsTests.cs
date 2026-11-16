@@ -34,8 +34,8 @@ public class Iso4217ExtensionsTests
     private const string SwedishKronaNarrowSymbol = "kr";
     private const string SwissFrancNarrowSymbol = "Fr.";
     private const string SpanishPesetaNarrowSymbol = "\x20A7";
-    private const string CroatianKunaNarrowSymbol = "kn";
-    private const string LithuanianLitasNarrowSymbol = "Lt";
+    private const string IndonesianRupiahNarrowSymbol = "Rp";
+    private const string RomanianLeuNarrowSymbol = "lei";
 
     #region Test: GetCurrencyName_OnIso4217CurrentCurrencyCode
 
@@ -66,6 +66,42 @@ public class Iso4217ExtensionsTests
 
         // assert
         testResult.Should().Be(expectedResult);
+    }
+
+    // One member of each group that shares a value: ISO 4217 List Three reuses numeric codes, and the
+    // codes with no numeric code share -1. The other members of a group are the same value, so a row
+    // for them would duplicate this one.
+    [Theory]
+    [InlineData(Iso4217CurrencyHistoric.AOK)]
+    [InlineData(Iso4217CurrencyHistoric.ARA)]
+    [InlineData(Iso4217CurrencyHistoric.BRB)]
+    [InlineData(Iso4217CurrencyHistoric.BGJ)]
+    [InlineData(Iso4217CurrencyHistoric.ZRN)]
+    [InlineData(Iso4217CurrencyHistoric.HRD)]
+    [InlineData(Iso4217CurrencyHistoric.GNE)]
+    [InlineData(Iso4217CurrencyHistoric.ILP)]
+    [InlineData(Iso4217CurrencyHistoric.LVL)]
+    [InlineData(Iso4217CurrencyHistoric.LTL)]
+    [InlineData(Iso4217CurrencyHistoric.MTL)]
+    [InlineData(Iso4217CurrencyHistoric.MZE)]
+    [InlineData(Iso4217CurrencyHistoric.PEH)]
+    [InlineData(Iso4217CurrencyHistoric.GWE)]
+    [InlineData(Iso4217CurrencyHistoric.ROK)]
+    [InlineData(Iso4217CurrencyHistoric.RHD)]
+    [InlineData(Iso4217CurrencyHistoric.SDD)]
+    [InlineData(Iso4217CurrencyHistoric.UGS)]
+    [InlineData(Iso4217CurrencyHistoric.RUR)]
+    [InlineData(Iso4217CurrencyHistoric.UYN)]
+    [InlineData(Iso4217CurrencyHistoric.YUD)]
+    [InlineData(Iso4217CurrencyHistoric.CSD)]
+    [InlineData(Iso4217CurrencyHistoric.XFO)]
+    public void GetCurrencyName_OnIso4217HistoricCurrencyCodeSharingValue_ReturnsNull(Iso4217CurrencyHistoric testCode)
+    {
+        // act
+        var testResult = testCode.GetCurrencyName();
+
+        // assert
+        testResult.Should().BeNull("members that share a value can't be told apart");
     }
 
     #endregion
@@ -229,8 +265,8 @@ public class Iso4217ExtensionsTests
 
     [Theory]
     [InlineData(Iso4217CurrencyHistoric.ESP, SpanishPesetaNarrowSymbol)]
-    [InlineData(Iso4217CurrencyHistoric.HRK, CroatianKunaNarrowSymbol)]
-    [InlineData(Iso4217CurrencyHistoric.LTL, LithuanianLitasNarrowSymbol)]
+    [InlineData(Iso4217CurrencyHistoric.IDR, IndonesianRupiahNarrowSymbol)]
+    [InlineData(Iso4217CurrencyHistoric.RON, RomanianLeuNarrowSymbol)]
     public void GetCurrencySymbol_OnIso4217HistoricCurrencyCodeRequestingNarrowForm_ReturnsNarrowSymbol(Iso4217CurrencyHistoric testCode, string? expectedResult)
     {
         // act
@@ -250,6 +286,34 @@ public class Iso4217ExtensionsTests
 
         // assert
         testResult.Should().BeNull("no symbol is defined for this currency");
+    }
+
+    // The CLDR data has a narrow symbol for HRK, LTL and LVL, each of which shares its value with an
+    // earlier denomination (HRD, LTT and LVR).
+    [Theory]
+    [InlineData(Iso4217CurrencyHistoric.HRK)]
+    [InlineData(Iso4217CurrencyHistoric.LTL)]
+    [InlineData(Iso4217CurrencyHistoric.LVL)]
+    public void GetCurrencySymbol_OnIso4217HistoricCurrencyCodeSharingValueRequestingNarrowForm_ReturnsNull(Iso4217CurrencyHistoric testCode)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol(CurrencySymbolKind.Narrow);
+
+        // assert
+        testResult.Should().BeNull("members that share a value can't be told apart");
+    }
+
+    [Theory]
+    [InlineData(Iso4217CurrencyHistoric.HRK)]
+    [InlineData(Iso4217CurrencyHistoric.LTL)]
+    [InlineData(Iso4217CurrencyHistoric.LVL)]
+    public void GetCurrencySymbol_OnIso4217HistoricCurrencyCodeSharingValue_ReturnsNull(Iso4217CurrencyHistoric testCode)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol();
+
+        // assert
+        testResult.Should().BeNull("members that share a value can't be told apart");
     }
 
     #endregion

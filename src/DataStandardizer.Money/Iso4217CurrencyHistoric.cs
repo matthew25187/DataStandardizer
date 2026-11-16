@@ -15,7 +15,17 @@ namespace DataStandardizer.Money
     /// ISO 4217, "Codes for the representation of currencies and funds" Table A.3 – List of codes for historic denominations of currencies & funds
     /// </summary>
     /// <remarks>
-    /// Based on official ISO 4217 currency codes as at 2026-01-01.
+    /// 	<para>
+    /// 		Based on official ISO 4217 currency codes as at 2026-01-01.
+    /// 	</para>
+    /// 	<para>
+    /// 		Each member's value is its ISO 4217 numeric code, or -1 for a code that has none. ISO 4217 reuses
+    /// 		numeric codes across successive denominations, so several members can share a value, and the
+    /// 		codes that have no numeric code all share -1. Members that share a value are the same value
+    /// 		and can't be told apart: they compare equal, <see cref="System.Enum.ToString()"/> may return
+    /// 		the name of any of them, and the <see cref="Iso4217Extensions"/> methods return <c>null</c>
+    /// 		for them.
+    /// 	</para>
     /// </remarks>
     public enum Iso4217CurrencyHistoric : short
     {

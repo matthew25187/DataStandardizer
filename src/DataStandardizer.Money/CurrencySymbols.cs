@@ -154,10 +154,7 @@ namespace DataStandardizer.Money
         {
             { DataStandardizer.Money.Iso4217CurrencyHistoric.CUC, "$" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.ESP, "\u20a7" },
-            { DataStandardizer.Money.Iso4217CurrencyHistoric.HRK, "kn" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.IDR, "Rp" },
-            { DataStandardizer.Money.Iso4217CurrencyHistoric.LTL, "Lt" },
-            { DataStandardizer.Money.Iso4217CurrencyHistoric.LVL, "Ls" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.RON, "lei" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.TRY, "\u20ba" },
             { DataStandardizer.Money.Iso4217CurrencyHistoric.VEF, "Bs" },
