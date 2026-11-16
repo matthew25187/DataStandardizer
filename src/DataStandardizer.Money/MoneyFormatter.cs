@@ -160,6 +160,8 @@ namespace DataStandardizer.Money
             {
                 var amountNumberFormat = NumberFormatInfo.GetInstance(formatProvider ?? CultureInfo.CurrentCulture);
                 var currencylessDigits = precision ?? currencyFormat.CurrencyDecimalDigits;
+                // A value with no currency carries no rounding, so its amount is rounded once, here, to the
+                // display precision as decimal rounds it, midpoints away from zero.
                 var currencylessAmount = RoundForDisplay((decimal)moneyValue, currencylessDigits);
                 var currencylessIsNegative = currencylessAmount < decimal.Zero;
 
@@ -180,7 +182,8 @@ namespace DataStandardizer.Money
             // minor units is a property of the currency rather than a presentation preference.
             var currencyDecimalDigits = precision ?? moneyValue.CurrencyMinorUnits ?? currencyFormat.CurrencyDecimalDigits;
 
-            // The rounded value is formatted, so that any rounding the value carries is honoured.
+            // The rounded value is formatted, and rounded again to the display precision as decimal rounds it,
+            // midpoints away from zero; the value's own rounding method doesn't apply to that second step.
             var amount = RoundForDisplay((decimal)moneyValue, currencyDecimalDigits);
             var isNegative = amount < decimal.Zero;
 

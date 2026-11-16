@@ -235,6 +235,74 @@ public class MoneyFormatterTests
 
     #endregion
 
+    #region Test: Format_DisplayRounding
+
+    // 1.0049 rounds to 1.005 at three decimal places, which is a midpoint at two.
+    private const decimal MidpointAfterRoundingToThreeDigitsAmount = 1.0049m;
+    private const int RoundingToThreeDigits = 3;
+
+    // 1.125 is a midpoint at two decimal places, and is unchanged by rounding at four.
+    private const decimal TwoDigitMidpointAmount = 1.125m;
+    private const decimal NegativeTwoDigitMidpointAmount = -1.125m;
+    private const int RoundingToFourDigits = 4;
+
+    private const string TwoDecimalsStandardSymbolFormat = "C2";
+
+    // 1.125 rounded to two decimal places away from zero, as decimal rounds it.
+    private const string TwoDigitMidpointAwayFromZeroResult = "$1.13";
+
+    [Theory]
+    [MemberData(nameof(DisplayRoundingTestCases))]
+    public void Format_ValueRoundedToGreaterPrecisionThanDisplayed_RoundsMidpointAwayFromZeroAsDecimalDoes(Money testSubject, string testFormat, string expectedResult)
+    {
+        // arrange
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "the rounded amount is rounded again to the display precision as decimal rounds it, whatever the value's rounding method");
+    }
+
+    public static TheoryData<Money, string, string> DisplayRoundingTestCases => new()
+    {
+        { Money.Create(MidpointAfterRoundingToThreeDigitsAmount, Iso4217CurrencyCurrent.USD, RoundingToThreeDigits, MidpointRounding.ToEven), StandardSymbolFormat, "$1.01" },
+        { Money.Create(TwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToFourDigits, MidpointRounding.ToEven), StandardSymbolFormat, TwoDigitMidpointAwayFromZeroResult },
+        { Money.Create(TwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToFourDigits, MidpointRounding.ToEven), TwoDecimalsStandardSymbolFormat, TwoDigitMidpointAwayFromZeroResult },
+        { Money.Create(NegativeTwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToFourDigits, MidpointRounding.ToEven), StandardSymbolFormat, "-$1.13" },
+    };
+
+    [Fact]
+    public void Format_ValueWithNoCurrency_RoundsMidpointAwayFromZeroAsDecimalDoes()
+    {
+        // arrange
+        var testSubject = Money.Create(TwoDigitMidpointAmount);
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be("1.13", "an amount with no currency is rounded to the display precision as decimal rounds it");
+    }
+
+    [Fact]
+    public void Format_ValueRoundedToDisplayPrecision_UsesValuesRoundingMethod()
+    {
+        // arrange
+        var testSubject = Money.Create(TwoDigitMidpointAmount, Iso4217CurrencyCurrent.USD, RoundingToCents, MidpointRounding.ToEven);
+        var testProvider = MoneyInfoFor(UnitedStatesCulture);
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be("$1.12", "the value is already rounded to the display precision, by its own rounding method");
+    }
+
+    #endregion
+
     #region Test: Format_CurrencyCodeFormat
 
     [Fact]

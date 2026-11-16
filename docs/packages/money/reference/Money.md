@@ -96,6 +96,13 @@ symbol), `I` (ISO 4217 currency code), `N` (currency name) and `G` (the amount
 alone), each optionally followed by a precision. Where no precision is given the
 number of minor units of the currency is used.
 
+The amount formatted is the rounded amount, `(decimal)money`. Where it has more
+decimal places than `C`, `H`, `I` or `N` display, it's rounded again to the
+display precision as `decimal` rounds it, with midpoints away from zero, whatever
+the value's `RoundingMethod`. `G` rounds to significant digits, as it does for
+`decimal`. See
+[Format money values](../how-to/format-money-values.md#rounding-of-the-displayed-amount).
+
 The culture supplied governs presentation only. The currency denoted, and the
 default precision, come from the value, so formatting a value of one currency
 under the culture of another applies that culture's separators and grouping but
