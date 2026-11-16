@@ -159,6 +159,19 @@ public class MoneyInfoTests
     }
 
     [Fact]
+    public void CurrencyFormat_WhenSetToNull_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testSubject = new MoneyInfo();
+
+        // act
+        Action testAction = () => testSubject.CurrencyFormat = null!;
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>("formatting must never fall back to information the caller did not supply").WithParameterName("value");
+    }
+
+    [Fact]
     public void GetMoneyInfo_ForCulture_ReturnsAReadOnlyInstance()
     {
         // act

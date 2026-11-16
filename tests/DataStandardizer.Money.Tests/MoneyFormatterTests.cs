@@ -15,6 +15,8 @@ public class MoneyFormatterTests
     private const decimal NegativeTestAmount = -1234.5m;
     private const decimal SevenDigitAmount = 1234567.5m;
     private const decimal OneUnitAmount = 1m;
+    private const decimal FiveAmount = 5m;
+    private const decimal NegativeFiveAmount = -5m;
 
     // An amount which rounds to 1.01 at a precision of two decimal places, whatever the midpoint rounding.
     private const decimal UnroundedAmount = 1.006m;
@@ -357,6 +359,68 @@ public class MoneyFormatterTests
         // assert
         testResult.Should().StartWith(MinusSign, "the negative sign of the culture is a minus sign rather than a hyphen");
     }
+
+    [Theory]
+    [MemberData(nameof(NegativePatternTestCases))]
+    public void Format_NegativeValueWithEachNegativePattern_PlacesTheTokenAsNumberFormatInfoDoes(int testPattern, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(NegativeFiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new CurrencyFormatInfo { CurrencyNegativePattern = testPattern };
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "pattern {0} has the layout NumberFormatInfo.CurrencyNegativePattern gives it", testPattern);
+    }
+
+    [Theory]
+    [MemberData(nameof(PositivePatternTestCases))]
+    public void Format_PositiveValueWithEachPositivePattern_PlacesTheTokenAsNumberFormatInfoDoes(int testPattern, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new CurrencyFormatInfo { CurrencyPositivePattern = testPattern };
+
+        // act
+        var testResult = testSubject.ToString(StandardSymbolFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "pattern {0} has the layout NumberFormatInfo.CurrencyPositivePattern gives it", testPattern);
+    }
+
+    // Every index NumberFormatInfo.CurrencyNegativePattern accepts, 0 to 16, with the layout it documents, for
+    // USD 5 under the invariant separators and hyphen-minus sign.
+    public static TheoryData<int, string> NegativePatternTestCases => new()
+    {
+        { 0, "($5.00)" },
+        { 1, "-$5.00" },
+        { 2, "$-5.00" },
+        { 3, "$5.00-" },
+        { 4, "(5.00$)" },
+        { 5, "-5.00$" },
+        { 6, "5.00-$" },
+        { 7, "5.00$-" },
+        { 8, "-5.00 $" },
+        { 9, "-$ 5.00" },
+        { 10, "5.00 $-" },
+        { 11, "$ 5.00-" },
+        { 12, "$ -5.00" },
+        { 13, "5.00- $" },
+        { 14, "($ 5.00)" },
+        { 15, "(5.00 $)" },
+        { 16, "$- 5.00" }
+    };
+
+    // Every index NumberFormatInfo.CurrencyPositivePattern accepts, 0 to 3, with the layout it documents.
+    public static TheoryData<int, string> PositivePatternTestCases => new()
+    {
+        { 0, "$5.00" },
+        { 1, "5.00$" },
+        { 2, "$ 5.00" },
+        { 3, "5.00 $" }
+    };
 
     #endregion
 

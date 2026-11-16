@@ -46,7 +46,7 @@ falls back to the culture-independent information rather than failing.
 
 | Property | Type | Notes |
 | --- | --- | --- |
-| `CurrencyFormat` | `CurrencyFormatInfo` | The currency formatting information. |
+| `CurrencyFormat` | `CurrencyFormatInfo` | The currency formatting information. Setting it to `null` throws `ArgumentNullException`. |
 | `IsReadOnly` | `bool` | `true` when the instance may not be modified. |
 
 ## Static members

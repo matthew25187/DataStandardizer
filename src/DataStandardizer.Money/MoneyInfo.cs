@@ -280,6 +280,9 @@ namespace DataStandardizer.Money
         /// Gets or sets the <see cref="CurrencyFormatInfo"/> object that defines the currency formatting information
         /// for the current <see cref="MoneyInfo"/> instance.
         /// </summary>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the property is set to <see langword="null"/>.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when attempting to set the property while the <see cref="MoneyInfo"/> instance is read-only.
         /// </exception>
@@ -288,6 +291,11 @@ namespace DataStandardizer.Money
             get => _currencyFormat;
             set
             {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(MoneyInfo)} is read only.");

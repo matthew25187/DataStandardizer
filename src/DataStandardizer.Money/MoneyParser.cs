@@ -298,7 +298,7 @@ namespace DataStandardizer.Money
                     return false;
                 }
 
-                if (!Enum.TryParse(currencyFormat.CurrencyCode, false, out Iso4217CurrencyCurrent cultureCurrency))
+                if (!Iso4217Extensions.TryGetCurrentCurrency(currencyFormat.CurrencyCode, out var cultureCurrency))
                 {
                     return false;
                 }

@@ -60,17 +60,22 @@ reads it.
 
 | Property | Type | Notes |
 | --- | --- | --- |
-| `CurrencyCode` | `string` | ISO 4217 code of the culture's own currency. Used when parsing a shared symbol. |
-| `CurrencyDecimalDigits` | `int` | The culture's default precision. Lowest priority when formatting. |
-| `CurrencyDecimalSeparator` | `string` | Separates the integral and fractional parts. |
-| `CurrencyGroupSeparator` | `string` | Separates groups of digits. |
+| `CurrencyCode` | `string` | ISO 4217 code of the culture's own currency. Used when parsing a shared symbol. Exactly the three upper-case letters of an `Iso4217CurrencyCurrent` member. |
+| `CurrencyDecimalDigits` | `int` | The culture's default precision. Lowest priority when formatting. 0 to 99. |
+| `CurrencyDecimalSeparator` | `string` | Separates the integral and fractional parts. Not empty. |
+| `CurrencyGroupSeparator` | `string` | Separates groups of digits. May be empty. |
 | `CurrencyGroupSizes` | `int[]` | Sizes of the digit groups; `{ 3, 2 }` for the Indian numbering system. |
-| `CurrencyNegativePattern` | `int` | Placement pattern for negative values, using the `NumberFormatInfo` indices. |
-| `CurrencyPositivePattern` | `int` | Placement pattern for positive values, using the `NumberFormatInfo` indices. |
-| `NegativeSign` | `string` | The sign denoting a negative value; not always an ASCII hyphen. |
+| `CurrencyNegativePattern` | `int` | Placement pattern for negative values, using the `NumberFormatInfo` indices 0 to 16. |
+| `CurrencyPositivePattern` | `int` | Placement pattern for positive values, using the `NumberFormatInfo` indices 0 to 3. |
+| `NegativeSign` | `string` | The sign denoting a negative value; not always an ASCII hyphen. May be empty. |
 | `IsReadOnly` | `bool` | `true` when the instance may not be modified. |
 
-Setting any property on a read-only instance raises an `InvalidOperationException`.
+Each setter accepts what the `NumberFormatInfo` property of the same name accepts,
+and throws the same exception for anything else: `ArgumentNullException` for `null`
+(no property accepts it), `ArgumentOutOfRangeException` for a number out of range, and
+`ArgumentException` for an empty decimal separator, invalid group sizes or a
+`CurrencyCode` that isn't a defined code. Setting any property on a read-only
+instance raises an `InvalidOperationException`.
 
 ## Static properties
 
