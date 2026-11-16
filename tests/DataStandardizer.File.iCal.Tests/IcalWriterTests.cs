@@ -245,6 +245,20 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().StartWith(VersionRangeStart);
         }
 
+        [Fact]
+        public void WriteCalendar_VersionRangeSetInCode_WritesVersion20InPlace()
+        {
+            // arrange
+            var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
+            calendar.Version = "2.0;2.0";
+
+            // act
+            var testResult = WriteCalendars(new[] { calendar });
+
+            // assert
+            testResult.Should().StartWith(VersionRangeStart);
+        }
+
         [Theory]
         [InlineData("1.0")]
         [InlineData("2")]

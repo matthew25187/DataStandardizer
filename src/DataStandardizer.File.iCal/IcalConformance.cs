@@ -363,6 +363,24 @@ namespace DataStandardizer.File.iCal
                    string.Equals(value, SupportedVersionRange, StringComparison.Ordinal);
         }
 
+        /// <summary>
+        /// Converts unescaped <c>VERSION</c> text to the form of a content line: each of <c>minver</c> and <c>maxver</c> is escaped as TEXT,
+        /// and the semicolon between them is kept.
+        /// </summary>
+        /// <param name="value">The unescaped text, such as <c>2.0</c> or <c>2.0;2.0</c>.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> holds a character that iCalendar cannot hold.</exception>
+        internal static string FormatVersion(string value)
+        {
+            // ref. RFC 5545§3.7.4: in minver ";" maxver the semicolon separates the two versions, so it is not escaped like a TEXT semicolon.
+            var parts = value.Split(';');
+            for (var index = 0; index < parts.Length; index++)
+            {
+                parts[index] = IcalValue.FormatText(parts[index], IcalValueFormat.Text);
+            }
+
+            return string.Join(";", parts);
+        }
+
         internal static string BuildUnsupportedVersionMessage(string value)
         {
             return string.Format(CultureInfo.InvariantCulture,

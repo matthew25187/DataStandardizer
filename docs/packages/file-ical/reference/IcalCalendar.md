@@ -27,7 +27,7 @@ The calendar properties include those that RFC 7986 adds: `NAME`, `DESCRIPTION`,
 and `IMAGE`.
 
 RFC 5545 defines iCalendar 2.0 only. [IcalReader](IcalReader.md) rejects a calendar
-whose `VERSION` does not include 2.0, and [IcalWriter](IcalWriter.md) always writes
+whose `VERSION` is not `2.0` or `2.0;2.0`, and [IcalWriter](IcalWriter.md) always writes
 `VERSION:2.0`.
 
 The typed properties follow the rules described under *Typed accessors* on

@@ -138,7 +138,7 @@ canceled for both on every target, as an async iterator's always is for an
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `ReadCalendar()` | `IcalCalendar?` | Reads the next calendar, or returns `null` at the end of the data. Throws `IcalFileException` if the data isn't valid jCal (not valid JSON, a value that isn't allowed where it is or isn't valid, a `VERSION` that doesn't include 2.0, or no calendar at all), or if the calendar breaks a rule the options don't accept; in that case reading can continue. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another read is in progress or an earlier read failed. |
+| `ReadCalendar()` | `IcalCalendar?` | Reads the next calendar, or returns `null` at the end of the data. Throws `IcalFileException` if the data isn't valid jCal (not valid JSON, a value that isn't allowed where it is or isn't valid, a `VERSION` other than `2.0` or `2.0;2.0`, or no calendar at all), or if the calendar breaks a rule the options don't accept; in that case reading can continue. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another read is in progress or an earlier read failed. |
 | `ReadCalendars()` | `IEnumerable<IcalCalendar>` | Reads the remaining calendars as the sequence is enumerated. Throws `ObjectDisposedException` from this call if the reader has been disposed. During enumeration, throws what `ReadCalendar` throws. |
 
 ### Asynchronous reading

@@ -40,6 +40,31 @@ namespace DataStandardizer.File.iCal.Tests
             "<envelope><other/>" + Example1Xcal.Substring(Example1Xcal.IndexOf("<icalendar", StringComparison.Ordinal)) + "<after/></envelope>";
 
         // Each RFC example, with the content lines of its iCalendar form.
+        // JournalDocument with each VERSION that RFC 5545 §3.7.4 allows: 2.0, the only registered version identifier, alone or as both ends
+        // of a range.
+        public static TheoryData<string, string> ValidVersions()
+        {
+            var data = new TheoryData<string, string>();
+            foreach (var version in new[] { "2.0", "2.0;2.0" })
+            {
+                data.Add(version, JournalDocument(string.Empty).Replace("<version><text>2.0</text></version>", "<version><text>" + version + "</text></version>"));
+            }
+
+            return data;
+        }
+
+        // JournalDocument with a VERSION that RFC 5545 §3.7.4 does not allow: other spellings of 2.0, and ranges with an end that is not 2.0.
+        public static TheoryData<string> InvalidVersions()
+        {
+            var data = new TheoryData<string>();
+            foreach (var version in new[] { "2", "02.000", "1.0;2.0", "0;99" })
+            {
+                data.Add(JournalDocument(string.Empty).Replace("<version><text>2.0</text></version>", "<version><text>" + version + "</text></version>"));
+            }
+
+            return data;
+        }
+
         public static TheoryData<string, string[]> RfcExamples => new TheoryData<string, string[]>()
         {
             { Example1Xcal, FixtureExpectations.XcalRoundTripModels[nameof(Example1Ical)] },
@@ -590,6 +615,29 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 testAction.Should().Throw<IcalFileException>().WithMessage("*no VCALENDAR*");
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidVersions))]
+        public void ReadCalendar_ValidVersion_IsAccepted(string version, string xml)
+        {
+            // act
+            var testResult = ReadXcal(xml).Single();
+
+            // assert
+            testResult.Version.Should().Be(version);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidVersions))]
+        public void ReadCalendar_InvalidVersion_Throws(string xml)
+        {
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Fact]
