@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Xunit;
 
 namespace DataStandardizer.File.iCal.Tests
 {
@@ -35,6 +36,74 @@ namespace DataStandardizer.File.iCal.Tests
                 new[] { new IcalContentLineParameter(IcalParameterNames.Language, language) }, "x"));
             return calendar;
         }
+
+        /// <summary>
+        /// The most levels of components that validation and the writers accept, counting the outermost, as the readers do.  RFC 5545 §3.6
+        /// allows three, so a limit this high refuses nothing the RFC allows.
+        /// </summary>
+        public const int MaxComponentDepth = 64;
+
+        /// <summary>
+        /// One level more than <see cref="MaxComponentDepth"/>.
+        /// </summary>
+        public const int PastMaxComponentDepth = 65;
+
+        /// <summary>
+        /// The name of the components that <see cref="NestedComponents"/> nests: an x-comp, which the check of where each known component may be nested passes over.
+        /// </summary>
+        public const string NestedComponentName = "X-A";
+
+        /// <summary>
+        /// Builds a chain of <see cref="NestedComponentName"/> components, each holding the next, and gets the outermost.
+        /// </summary>
+        /// <param name="levels">The number of components in the chain.</param>
+        public static IcalComponent NestedComponents(int levels)
+        {
+            var outermost = new IcalComponent(NestedComponentName);
+            var current = outermost;
+            for (var level = 1; level < levels; level++)
+            {
+                var child = new IcalComponent(NestedComponentName);
+                current.Components.Add(child);
+                current = child;
+            }
+
+            return outermost;
+        }
+
+        /// <summary>
+        /// Reads a calendar of one event, and adds to it a <see cref="NestedComponentName"/> component that holds itself, so that the only
+        /// problem is the nesting in itself.
+        /// </summary>
+        public static IcalCalendar CalendarWithComponentInItself()
+        {
+            var calendar = ReadCalendar(EventCalendar());
+            var nested = new IcalComponent(NestedComponentName);
+            nested.Components.Add(nested);
+            calendar.Components.Add(nested);
+            return calendar;
+        }
+
+        /// <summary>
+        /// Reads a calendar of one event, and adds to it a chain of <see cref="MaxComponentDepth"/> components, so that with the VCALENDAR the
+        /// components are nested one level more than the limit.
+        /// </summary>
+        public static IcalCalendar CalendarNestedPastLimit()
+        {
+            var calendar = ReadCalendar(EventCalendar());
+            calendar.Components.Add(NestedComponents(MaxComponentDepth));
+            return calendar;
+        }
+
+        /// <summary>
+        /// Gets the factories of the calendars whose components are nested more deeply than a writer accepts: one with a component nested in
+        /// itself, and one nested past <see cref="MaxComponentDepth"/>.
+        /// </summary>
+        public static TheoryData<Func<IcalCalendar>> CalendarsNestedTooDeeply => new TheoryData<Func<IcalCalendar>>
+        {
+            CalendarWithComponentInItself,
+            CalendarNestedPastLimit
+        };
 
         public static IcalReader CreateCalendarReader(string text, IcalOptions options = null, int bufferSize = 16 * 1024)
         {

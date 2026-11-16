@@ -23,7 +23,9 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The most levels of components a calendar may nest, counting the VCALENDAR as the first.  ref. RFC 5545§3.6: the grammar allows three
         /// (VCALENDAR, VEVENT or VTODO, and VALARM), so this refuses nothing the RFC allows.  Every pass over the tree, including each
-        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.
+        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.  <see cref="IcalConformance"/> applies
+        /// the same limit to a model built in code, so that the writers, which check a calendar first, refuse it too, and each writer checks
+        /// it again as it walks the tree.
         /// </summary>
         internal const int MaxComponentDepth = 64;
 
@@ -128,9 +130,7 @@ namespace DataStandardizer.File.iCal
             else
             {
                 if (_frames.Count >= MaxComponentDepth)
-                    throw BuildException(
-                        string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545§3.6 allows three.",
-                            MaxComponentDepth), line, CurrentPath);
+                    throw BuildException(IcalConformance.BuildNestedTooDeeplyMessage(), line, CurrentPath);
 
                 var parent = _frames[_frames.Count - 1];
                 component = CreateComponent(name, parent.Component.Name);

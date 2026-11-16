@@ -870,14 +870,16 @@ namespace DataStandardizer.File.iCal
             var components = element.Add(new XcalElement(XcalNames.Components));
             foreach (var component in calendar.Components)
             {
-                AddComponent(component, components, ref componentCount, ref propertyCount);
+                AddComponent(component, 2, components, ref componentCount, ref propertyCount);
             }
 
             return element;
         }
 
-        private static void AddComponent(IcalComponent component, XcalElement parent, ref int componentCount, ref int propertyCount)
+        // depth is the level of the component, counting the VCALENDAR as the first.
+        private static void AddComponent(IcalComponent component, int depth, XcalElement parent, ref int componentCount, ref int propertyCount)
         {
+            IcalConformance.CheckWriteDepth(depth);
             var element = parent.Add(new XcalElement(XcalConverter.ToElementName(component.Name, component.LineNumber)));
             var properties = element.Add(new XcalElement(XcalNames.Properties));
             foreach (var property in component.Properties)
@@ -891,7 +893,7 @@ namespace DataStandardizer.File.iCal
                 var components = element.Add(new XcalElement(XcalNames.Components));
                 foreach (var child in component.Components)
                 {
-                    AddComponent(child, components, ref componentCount, ref propertyCount);
+                    AddComponent(child, depth + 1, components, ref componentCount, ref propertyCount);
                 }
             }
 

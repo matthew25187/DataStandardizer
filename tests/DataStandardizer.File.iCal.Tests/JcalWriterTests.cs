@@ -436,6 +436,22 @@ namespace DataStandardizer.File.iCal.Tests
                 .Be(IcalDiagnosticKind.MissingRequiredProperty);
         }
 
+        [Theory]
+        [MemberData(nameof(CalendarsNestedTooDeeply), MemberType = typeof(ModelTestData), DisableDiscoveryEnumeration = true)]
+        public void WriteCalendar_ComponentsNestedTooDeeply_Throws(Func<IcalCalendar> createCalendar)
+        {
+            // arrange
+            var calendar = createCalendar();
+            var writer = new JcalWriter(new MemoryStream());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.InvalidComponentNesting);
+        }
+
         [Fact]
         public void Dispose_AfterNonConformantCalendar_HasWrittenNothing()
         {

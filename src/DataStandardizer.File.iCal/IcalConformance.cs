@@ -341,6 +341,32 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets the message for components nested more than <see cref="IcalCalendarBuilder.MaxComponentDepth"/> levels deep.
+        /// </summary>
+        internal static string BuildNestedTooDeeplyMessage()
+        {
+            return string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545§3.6 allows three.",
+                IcalCalendarBuilder.MaxComponentDepth);
+        }
+
+        /// <summary>
+        /// Checks, for a writer walking a calendar it has already validated, that a component is nested no deeper than validation allows.
+        /// </summary>
+        /// <param name="depth">The level of the component, counting the VCALENDAR as the first.</param>
+        /// <exception cref="IcalFileException">The component is nested more than <see cref="IcalCalendarBuilder.MaxComponentDepth"/> levels
+        /// deep, because the calendar was changed after it was validated.</exception>
+        internal static void CheckWriteDepth(int depth)
+        {
+            // Validation refuses a component nested in itself or too deeply, but another thread may change the calendar after it, and an
+            // unbounded recursion would end the process with a stack overflow.
+            if (depth <= IcalCalendarBuilder.MaxComponentDepth) return;
+
+            var exception = new IcalFileException(BuildNestedTooDeeplyMessage());
+            exception.Data.Add(IcalFileException.DataItemName.DiagnosticKind, IcalDiagnosticKind.InvalidComponentNesting);
+            throw exception;
+        }
+
+        /// <summary>
         /// Gets the path of a nested component.
         /// </summary>
         /// <param name="parentPath">The path of the parent.</param>
@@ -416,14 +442,34 @@ namespace DataStandardizer.File.iCal
             }
 
             var indexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            context.Ancestors.Add(component);
             foreach (var child in component.Components)
             {
                 int index;
                 indexes.TryGetValue(child.Name, out index);
                 indexes[child.Name] = ++index;
 
-                ValidateComponent(child, GetChildPath(path, child.Name, index), context);
+                var childPath = GetChildPath(path, child.Name, index);
+                // IcalComponent does not override Equals, so this compares references.
+                if (context.Ancestors.Contains(child))
+                {
+                    // A model built in code can hold a component inside itself; checking it would never end.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture, "A {0} component is nested in itself.", child.Name.ToUpperInvariant()),
+                        childPath, null, child.LineNumber);
+                }
+                else if (context.Ancestors.Count >= IcalCalendarBuilder.MaxComponentDepth)
+                {
+                    // The same limit as the readers, so that a tree built in code cannot end the process with a stack overflow.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting, BuildNestedTooDeeplyMessage(), childPath, null, child.LineNumber);
+                }
+                else
+                {
+                    ValidateComponent(child, childPath, context);
+                }
             }
+
+            context.Ancestors.RemoveAt(context.Ancestors.Count - 1);
         }
 
         private static void ValidateCardinality(IcalComponent component, string path, ComponentRule rule, Context context)
@@ -1398,7 +1444,13 @@ namespace DataStandardizer.File.iCal
             {
                 _diagnostics = diagnostics;
                 TimeZoneIds = new HashSet<string>(StringComparer.Ordinal);
+                Ancestors = new List<IcalComponent>();
             }
+
+            /// <summary>
+            /// Gets the component being checked and the components it is nested in, outermost first.
+            /// </summary>
+            internal List<IcalComponent> Ancestors { get; }
 
             /// <summary>
             /// Gets or sets a flag indicating if the calendar has a <c>METHOD</c> property.

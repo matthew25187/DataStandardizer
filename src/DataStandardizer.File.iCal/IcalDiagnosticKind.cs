@@ -30,7 +30,8 @@
         InvalidValue = 4,
 
         /// <summary>
-        /// A component is inside a component where RFC 5545 does not allow it, such as a VEVENT inside a VTODO.  Never accepted.
+        /// A component is inside a component where RFC 5545 does not allow it, such as a VEVENT inside a VTODO; is nested in itself; or is
+        /// nested more than 64 levels deep.  Never accepted.
         /// </summary>
         InvalidComponentNesting = 5,
 

@@ -63,10 +63,6 @@ namespace DataStandardizer.File.iCal.Tests
             AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true, AllowUndefinedTimeZones = true
         };
 
-        // The most levels of components the reader accepts, counting the VCALENDAR as the first.  RFC 5545 §3.6 allows three, so a limit this
-        // high refuses nothing the RFC allows.
-        private const int MaxComponentDepth = 64;
-
         private const string BeginExtension = "BEGIN:X-A";
         private const string EndExtension = "END:X-A";
 
