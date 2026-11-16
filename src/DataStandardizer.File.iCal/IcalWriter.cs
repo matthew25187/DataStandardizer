@@ -602,7 +602,7 @@ namespace DataStandardizer.File.iCal
                 }
                 else
                 {
-                    lines.Add(property);
+                    lines.Add(PrepareProperty(property));
                 }
             }
 
@@ -625,7 +625,7 @@ namespace DataStandardizer.File.iCal
             lines.Add(new IcalContentLine(IcalCalendarBuilder.BeginName, component.Name));
             foreach (var property in component.Properties)
             {
-                lines.Add(property);
+                lines.Add(PrepareProperty(property));
             }
 
             foreach (var child in component.Components)
@@ -635,6 +635,30 @@ namespace DataStandardizer.File.iCal
 
             lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, component.Name));
             componentCount++;
+        }
+
+        /// <summary>
+        /// Gets the line to write for a property: the property itself, or a copy with its RECUR value's FREQ rule part moved to the front.
+        /// </summary>
+        private static IcalContentLine PrepareProperty(IcalContentLine property)
+        {
+            // ref. RFC 5545§3.3.10: rule parts are read in any order, so one read with FREQ elsewhere is kept as it is, but FREQ MUST be the
+            // first rule part written.  ref. RFC 5545§3.2.20: a VALUE parameter names the type of any property, such as an x-prop.
+            var valueParameter = property.GetParameter(IcalParameterNames.Value);
+            IcalValueType valueType;
+            if (valueParameter is null)
+            {
+                valueType = IcalValueTypeRegistry.GetDefaultValueType(property.Name.AsSpan());
+            }
+            else if (!IcalValueTypeRegistry.TryParseValueTypeName(valueParameter.ValueArray[0].AsSpan(), out valueType))
+            {
+                return property;
+            }
+
+            if (valueType != IcalValueType.Recur) return property;
+
+            var value = IcalRecurrenceRule.MoveFrequencyFirst(property.Value);
+            return ReferenceEquals(value, property.Value) ? property : property.WithValue(value);
         }
 
         private void CountCalendar(int componentCount)

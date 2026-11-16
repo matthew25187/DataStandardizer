@@ -977,6 +977,41 @@ namespace DataStandardizer.File.iCal
             }
         }
 
+        /// <summary>
+        /// Gets a RECUR value in the text form with its FREQ rule part first, keeping the other rule parts in their order, and every name and
+        /// value as it is.
+        /// </summary>
+        /// <param name="value">The value, which need not be a valid rule.</param>
+        /// <returns><paramref name="value"/> with its first FREQ rule part moved to the front; or <paramref name="value"/> itself if FREQ is
+        /// already first, or there is none.</returns>
+        internal static string MoveFrequencyFirst(string value)
+        {
+            // ref. RFC 5545§3.3.10: rule parts are accepted in any order, but FREQ MUST be the first one written, for applications that
+            // pre-date RFC 5545.
+            var start = 0;
+            while (start < value.Length)
+            {
+                var end = value.IndexOf(';', start);
+                if (end < 0)
+                {
+                    end = value.Length;
+                }
+
+                var equalsIndex = value.IndexOf('=', start, end - start);
+                if (equalsIndex > start && GetPartIndex(value.AsSpan(start, equalsIndex - start)) == PartFrequency)
+                {
+                    if (start == 0) return value;
+
+                    // The ';' before FREQ goes, and the one after it, if any, stays with the rest.
+                    return value.Substring(start, end - start) + ";" + value.Substring(0, start - 1) + value.Substring(end);
+                }
+
+                start = end + 1;
+            }
+
+            return value;
+        }
+
         private static int GetPartIndex(ReadOnlySpan<char> name)
         {
             for (var index = 0; index < PartNames.Length; index++)

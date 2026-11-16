@@ -200,6 +200,8 @@ namespace DataStandardizer.File.iCal.Tests
             "X;VALUE=RECUR:FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=1,15,-1;UNTIL=20131001")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"DAILY\", \"until\": \"2013-10-01T07:00:00Z\", \"bysetpos\": [1]}]",
             "X;VALUE=RECUR:FREQ=DAILY;UNTIL=20131001T070000Z;BYSETPOS=1")]
+        [InlineData("[\"x\", {}, \"recur\", {\"count\": 5, \"freq\": \"DAILY\"}]", "X;VALUE=RECUR:FREQ=DAILY;COUNT=5")]
+        [InlineData("[\"x\", {}, \"recur\", {\"count\": 5, \"freq\": \"DAILY\", \"interval\": 2}]", "X;VALUE=RECUR:FREQ=DAILY;COUNT=5;INTERVAL=2")]
         [InlineData("[\"x\", {}, \"text\", \"a,b;c\\\\d\\ne\"]", "X;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
         [InlineData("[\"x\", {}, \"text\", \"one\", \"two\"]", "X;VALUE=TEXT:one,two")]
         [InlineData("[\"x\", {}, \"time\", \"12:30:00Z\"]", "X;VALUE=TIME:123000Z")]

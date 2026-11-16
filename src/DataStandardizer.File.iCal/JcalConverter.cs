@@ -296,7 +296,7 @@ namespace DataStandardizer.File.iCal
         private static string ReadRecur(JcalNode recur, string propertyName)
         {
             // ref. RFC 7265§3.6.10: an object with a member for each rule part, whose value is a string, a number, or an array of them for a
-            // BYxxx rule part.  The parts are written in the order of the members.
+            // BYxxx rule part.  The parts are written in the order of the members, except that FREQ comes first, as RFC 5545§3.3.10 requires.
             if (recur.Items.Count == 0)
                 throw BuildException(recur, propertyName, "A recurrence rule must be an object with a member for each rule part.");
 
@@ -339,7 +339,7 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            return builder.ToString();
+            return IcalRecurrenceRule.MoveFrequencyFirst(builder.ToString());
         }
 
         private static string ReadRulePartValue(JcalNode value, string partName, string propertyName)

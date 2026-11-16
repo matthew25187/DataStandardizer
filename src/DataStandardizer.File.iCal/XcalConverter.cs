@@ -33,6 +33,19 @@ namespace DataStandardizer.File.iCal
             "time", "uri", "utc-offset"
         };
 
+        private const string FrequencyPartName = "freq";
+        private const string ByDayPartName = "byday";
+        private const string WeekStartPartName = "wkst";
+
+        /// <summary>
+        /// The child elements of a <c>recur</c> element, in the order that <c>value-recur</c> in RFC 6321 Appendix A (3.3.10) gives them.
+        /// </summary>
+        private static readonly string[] RecurPartNames =
+        {
+            FrequencyPartName, XcalNames.Until, "count", "interval", "bysecond", "byminute", "byhour", ByDayPartName, "bymonthday", "byyearday",
+            "byweekno", "bymonth", "bysetpos", WeekStartPartName
+        };
+
         /// <summary>
         /// The properties whose value is a list of TEXT values.
         /// </summary>
@@ -294,7 +307,7 @@ namespace DataStandardizer.File.iCal
         private static string ReadRecur(XcalElement recur, string propertyName)
         {
             // ref. RFC 6321§3.6.10: each rule part is an element, and the values of a BYxxx rule part are repeated elements.  The parts are
-            // written in the order of their first elements.
+            // written in the order of their first elements, except that FREQ comes first, as RFC 5545§3.3.10 requires.
             CheckNoText(recur, propertyName);
             if (recur.Children.Count == 0)
                 throw BuildException(recur, propertyName, "A recur element must have a child element for each rule part.");
@@ -321,7 +334,7 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            return string.Join(";", parts.Select(pair => pair.Key + "=" + pair.Value));
+            return IcalRecurrenceRule.MoveFrequencyFirst(string.Join(";", parts.Select(pair => pair.Key + "=" + pair.Value)));
         }
 
         private static string ReadGeo(List<XcalElement> values, string propertyName)
@@ -648,12 +661,14 @@ namespace DataStandardizer.File.iCal
         private static XcalElement TryWriteRecur(string value, IcalContentLine property)
 #endif
         {
-            // ref. RFC 6321§3.6.10: a recur element with an element for each rule part, and one for each value of a BYxxx rule part.  The
-            // rule parts keep their order.
+            // ref. RFC 6321§3.6.10: a recur element with an element for each rule part, and one for each value of a BYxxx rule part.  ref. RFC
+            // 6321 Appendix A (3.3.10): the elements follow the order of value-recur, whatever the order of the rule parts, and the values of
+            // freq and wkst, and the weekday of a byday value, are upper case.
             IcalRecurrenceRule rule;
             if (!IcalRecurrenceRule.TryParse(value.AsSpan(), IcalValueFormat.Text, out rule)) return null;
 
-            var element = new XcalElement(ValueElementNames[(int)IcalValueType.Recur]);
+            // The rule parsed, so each rule part is one of RecurPartNames, and appears once.
+            var partValues = new string[RecurPartNames.Length];
             foreach (var part in value.Split(';'))
             {
                 var equalsIndex = part.IndexOf('=');
@@ -664,18 +679,29 @@ namespace DataStandardizer.File.iCal
                     var until = TryToXml(partValue.Length == IcalDate.TextLength ? IcalValueType.Date : IcalValueType.DateTime, partValue);
                     if (until is null) return null;
 
-                    element.Add(partName, until);
+                    partValue = until;
                 }
-                else if (partName.StartsWith("by", StringComparison.Ordinal))
+
+                partValues[Array.IndexOf(RecurPartNames, partName)] = partValue;
+            }
+
+            var element = new XcalElement(ValueElementNames[(int)IcalValueType.Recur]);
+            for (var index = 0; index < RecurPartNames.Length; index++)
+            {
+                var partName = RecurPartNames[index];
+                var partValue = partValues[index];
+                if (partValue is null) continue;
+
+                if (partName.StartsWith("by", StringComparison.Ordinal))
                 {
                     foreach (var item in partValue.Split(','))
                     {
-                        element.Add(partName, item);
+                        element.Add(partName, partName == ByDayPartName ? item.ToUpperInvariant() : item);
                     }
                 }
                 else
                 {
-                    element.Add(partName, partValue);
+                    element.Add(partName, partName == FrequencyPartName || partName == WeekStartPartName ? partValue.ToUpperInvariant() : partValue);
                 }
             }
 
