@@ -36,6 +36,7 @@ public class MoneyFormatterTests
     private const string NzdCurrencyNameResult = "New Zealand Dollar1,234.50";
     private const string NzdNoDecimalsResult = "NZ$1,235";
     private const string GeneralResult = "1234.5";
+    private const string UsdFiveResult = "$5.00";
 
     private const string ChfResult = "CHF1,234.50";
 
@@ -416,7 +417,7 @@ public class MoneyFormatterTests
     // Every index NumberFormatInfo.CurrencyPositivePattern accepts, 0 to 3, with the layout it documents.
     public static TheoryData<int, string> PositivePatternTestCases => new()
     {
-        { 0, "$5.00" },
+        { 0, UsdFiveResult },
         { 1, "5.00$" },
         { 2, "$ 5.00" },
         { 3, "5.00 $" }
@@ -724,6 +725,56 @@ public class MoneyFormatterTests
 
         // assert
         testResult.Should().Be(GeneralResult, "the general form uses the negative sign of the currency formatting information, as the money forms do");
+    }
+
+    #endregion
+
+    #region Test: Format_ProviderWithCustomFormatterFallingBackToFormattable
+
+    [Theory]
+    [InlineData(StandardSymbolFormat, UsdFiveResult)]
+    [InlineData(CurrencyCodeFormat, "USD5.00")]
+    [InlineData(GeneralFormat, "5")]
+    public void Format_ProviderWithCustomFormatterFallingBackToFormattable_UsesTheMoneyFormatter(string testFormat, string expectedResult)
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = testSubject.ToString(testFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(expectedResult, "a caller's custom formatter is not called back, as decimal never calls it");
+    }
+
+    [Fact]
+    public void Format_GeneralFormatWithProviderWithCustomFormatter_UsesTheSeparatorsOfItsCurrencyFormatInfo()
+    {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(GermanCulture));
+        var testSubject = Money.Create(TestAmount, Iso4217CurrencyCurrent.EUR);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = testSubject.ToString(GeneralFormat, testProvider);
+
+        // assert
+        testResult.Should().Be(GeneralResult, "the provider's currency formatting information, not the current culture, gives the separators");
+    }
+
+    [Fact]
+    public void Format_CompositeFormatWithProviderWithCustomFormatter_CallsTheCustomFormatterOnce()
+    {
+        // arrange
+        var testSubject = Money.Create(FiveAmount, Iso4217CurrencyCurrent.USD);
+        var testProvider = new FallbackCustomFormatProvider(CurrencyFormatInfo.InvariantInfo);
+
+        // act
+        var testResult = string.Format(testProvider, "{0:C}", testSubject);
+
+        // assert
+        testResult.Should().Be(UsdFiveResult, "string.Format calls the custom formatter, which formats the value without being called back");
     }
 
     #endregion

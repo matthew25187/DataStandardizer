@@ -55,6 +55,11 @@ namespace DataStandardizer.Money
             InvalidPrecision
         }
 
+        /// <summary>
+        /// The formatter, which holds no state, so that one instance serves every caller.
+        /// </summary>
+        internal static readonly MoneyFormatter Instance = new MoneyFormatter();
+
         // The standard numeric format of a grouped number, to which a precision may be appended.
         private const string GroupedNumberFormat = "N";
 
@@ -403,7 +408,7 @@ namespace DataStandardizer.Money
 #endif
         {
             // A monetary value is converted before being formatted. Formatting it as IFormattable would call
-            // back into Money.ToString, which resolves this formatter again and would not terminate.
+            // back into Money.ToString, which calls this formatter again and would not terminate.
             if (arg is Money moneyArg)
             {
                 return ((decimal)moneyArg).ToString(format, formatProvider ?? CultureInfo.CurrentCulture);

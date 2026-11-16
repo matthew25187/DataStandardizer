@@ -1496,7 +1496,9 @@ namespace DataStandardizer.Money
         /// format strings are applied to the rounded amount with the number formatting of that provider: of
         /// the culture for a <see cref="CultureInfo"/> or <see cref="MoneyInfo"/>, and of the separators of a
         /// <see cref="CurrencyFormatInfo"/>. Where it is <c>null</c> or supplies neither, the culture of the
-        /// current thread is used.
+        /// current thread is used. An <see cref="ICustomFormatter"/> supplied by <paramref name="formatProvider"/>
+        /// is not called, as for <see cref="decimal"/>; <see cref="string.Format(IFormatProvider, string, object[])"/>
+        /// calls it before this method.
         /// </para>
         /// <para>
         /// A value with no currency has no currency token to emit, so the money formats give it the separators
@@ -1513,19 +1515,20 @@ namespace DataStandardizer.Money
         public string ToString(string format, IFormatProvider formatProvider)
 #endif
         {
-            var useProvider = ResolveMoneyProvider(formatProvider);
-            var formatter = useProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-
-            // The resolved provider always supplies a formatter. Were it not to, the rounded value is formatted,
-            // so that any rounding the value carries is still honoured.
-            return formatter?.Format(format, this, useProvider) ?? ((decimal)this).ToString(format, useProvider);
+            // The money formatter is called directly rather than through the provider, so that a custom
+            // formatter the provider supplies is never called back with this value.
+            return MoneyFormatter.Instance.Format(format, this, ResolveMoneyProvider(formatProvider));
         }
 
         /// <summary>
         /// Resolve the provider of monetary formatting information for a caller-supplied format provider.
         /// </summary>
         /// <param name="formatProvider">Format provider supplied by the caller, which may be <c>null</c>.</param>
-        /// <returns>A provider which supplies both a formatter and currency formatting information.</returns>
+        /// <returns>
+        /// A provider which supplies currency formatting information. Any custom formatter it supplies is not
+        /// used: formatting calls the money formatter directly, so that a caller's formatter is never called
+        /// back with the value it is formatting.
+        /// </returns>
         /// <remarks>
         /// A caller may reasonably pass a <see cref="CultureInfo"/>, a <see cref="NumberFormatInfo"/> or a
         /// <see cref="CurrencyFormatInfo"/> rather than a <see cref="MoneyInfo"/>. Each is resolved to a
@@ -1546,14 +1549,10 @@ namespace DataStandardizer.Money
             var currencyFormat = formatProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo;
             if (currencyFormat != null)
             {
-                // A provider which supplies both currency formatting information and a formatter is used as it
-                // stands. One which supplies only the former, such as a CurrencyFormatInfo, is given the money
-                // formatter, so that a money format string is never handed to the number formatter.
-                if (formatProvider.GetFormat(typeof(ICustomFormatter)) is ICustomFormatter)
-                {
-                    return formatProvider;
-                }
-
+                // Only the formatting information of the provider is kept. A custom formatter it supplies is
+                // never used, as decimal never uses one: the usual custom formatter formats a value it does not
+                // handle by calling its IFormattable.ToString, which for a Money would call the formatter again.
+                // A caller's custom formatter still applies through string.Format, which calls it first.
                 // Number formatting the provider does not supply is taken from its currency formatting
                 // information rather than from the culture of the current thread.
                 var currencyNumberFormat = formatProvider.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo
