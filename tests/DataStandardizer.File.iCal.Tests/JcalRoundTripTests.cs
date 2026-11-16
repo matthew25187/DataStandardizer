@@ -72,7 +72,7 @@ namespace DataStandardizer.File.iCal.Tests
         public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>
         {
             { Example1Ical, Example1Jcal },
-            { Example2Ical, Example2JcalWithPeriodArray },
+            { Example2Ical, Example2Jcal },
         };
 
         [Theory]

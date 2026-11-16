@@ -34,11 +34,13 @@ namespace DataStandardizer.File.iCal
     /// <item><description>The values of a multi-valued property, such as CATEGORIES or EXDATE, are joined into a list (RFC 7265
     /// §3.4).</description></item>
     /// <item><description>A RECUR object keeps the order of its members as the order of the rule parts.</description></item>
-    /// <item><description>A PERIOD value may be an array of two strings, as RFC 7265 §3.6.9 gives it, or one string with the parts joined by a
-    /// solidus, as its Appendix B gives it.</description></item>
-    /// <item><description>A string is accepted as the value of any type, so that a value that does not follow its type is kept.  A number is
-    /// accepted only for INTEGER and FLOAT, <c>true</c> and <c>false</c> only for BOOLEAN, an array only for PERIOD, GEO and REQUEST-STATUS,
-    /// and an object only for RECUR.</description></item>
+    /// <item><description>Each value must have the JSON form its type gives it (RFC 7265 §3.6): a number for INTEGER and FLOAT, <c>true</c> or
+    /// <c>false</c> for BOOLEAN, an array of two strings for PERIOD, an array of two numbers for GEO, an array of two or three strings for
+    /// REQUEST-STATUS, an object for RECUR, and a string for every other type.  In a RECUR object, FREQ, WKST and UNTIL are single strings,
+    /// COUNT and INTERVAL single numbers, BYDAY a string or an array of strings, and the other BYxxx rule parts a number or an array of
+    /// numbers (RFC 7265 §3.6.10), but a BYMONTH leap month, such as <c>5L</c>, a string (RFC 7529 §9).  A PERIOD as one string with its parts joined by a solidus, as RFC 7265
+    /// Appendix B gives it, is not accepted, since §3.6.9 requires the array.  A string or number of the right form whose content does not
+    /// follow its type is kept, so the conformance check reports it.</description></item>
     /// </list>
     /// <para>
     /// A document that is not valid JSON, or does not follow the structure of jCal, throws <see cref="IcalFileException"/>.  Its data holds the

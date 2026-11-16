@@ -345,6 +345,12 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("1.0", 1)]
         [InlineData("1e2", 100)]
         [InlineData("-2147483648", int.MinValue)]
+        [InlineData("2147483647.000", int.MaxValue)]
+        [InlineData("21474836470e-1", int.MaxValue)]
+        [InlineData("100e-2", 1)]
+        [InlineData("0.5e1", 5)]
+        [InlineData("-0", 0)]
+        [InlineData("0.000e99999999999999999999", 0)]
         public void TryParseInteger_WholeJsonNumber_Parses(string json, int expected)
         {
             // act
@@ -362,6 +368,13 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("2147483648")]
         [InlineData("1.")]
         [InlineData(" 1")]
+        [InlineData("1.0000000000000001")]
+        [InlineData("2147483647.00000000001")]
+        [InlineData("-2147483649")]
+        [InlineData("1e-1")]
+        [InlineData("1e10")]
+        [InlineData("1e99999999999999999999")]
+        [InlineData("1e-99999999999999999999")]
         public void TryParseInteger_JsonFormNotValid_Fails(string json)
         {
             // act

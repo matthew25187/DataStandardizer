@@ -56,7 +56,7 @@ namespace DataStandardizer.File.iCal.Tests
         /// RRULE has <c>"byday": "1SU"</c> for <c>BYDAY=-1SU</c>; the second VEVENT has the DTSTART of the first, <c>2006-01-02T14:00:00</c> for
         /// <c>20060104T140000</c>, and the SUMMARY <c>Event #2</c> for <c>Event #2 bis</c>.  It also splits the DESCRIPTION over several lines
         /// with <c>+</c> and comments, which JSON does not allow.  Its RDATE gives the PERIOD as one string, <c>"2006-01-02T15:00:00/PT2H"</c>,
-        /// not the array that RFC 7265 §3.6.9 requires; that is kept, since the reader accepts it.
+        /// not the array that RFC 7265 §3.6.9 requires, which the reader rejects; here it is the array.
         /// </remarks>
         public const string Example2Jcal =
             @"[""vcalendar"",
@@ -122,7 +122,7 @@ namespace DataStandardizer.File.iCal.Tests
         [""rdate"",
           { ""tzid"": ""US/Eastern"" },
           ""period"",
-          ""2006-01-02T15:00:00/PT2H""
+          [""2006-01-02T15:00:00"", ""PT2H""]
         ],
         [""summary"", {}, ""text"", ""Event #2""],
         [""description"",
@@ -155,12 +155,6 @@ namespace DataStandardizer.File.iCal.Tests
     ]
   ]
 ]";
-
-        /// <summary>
-        /// <see cref="Example2Jcal"/> with its RDATE PERIOD as the array that RFC 7265 §3.6.9 requires, as a writer writes it.
-        /// </summary>
-        public static readonly string Example2JcalWithPeriodArray =
-            Example2Jcal.Replace("\"2006-01-02T15:00:00/PT2H\"", "[\"2006-01-02T15:00:00\", \"PT2H\"]");
 
         /// <summary>
         /// Wraps properties and components in the component array of one calendar.

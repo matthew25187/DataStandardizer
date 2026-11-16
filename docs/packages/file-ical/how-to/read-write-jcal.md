@@ -106,15 +106,19 @@ differently but with the same meaning:
 | GEO | An array of two numbers: the latitude and the longitude. |
 | REQUEST-STATUS | An array of two or three strings: the code, the description and, if present, the data. |
 
-When reading, the reader also accepts some forms that other writers produce:
+When reading, each value must have the JSON form in this table. A string where a
+number, `true`, `false`, an array or an object belongs, such as `"5"` for an INTEGER
+or `"count": "5"` in a RECUR, throws `IcalFileException`, and `AllowInvalidValues`
+doesn't change that. A string or
+number of the right form that doesn't follow its type, such as `"2026-02-30"` for a
+DATE or `1.5` for an INTEGER, reaches the conformance check, which `AllowInvalidValues`
+relaxes.
 
 - **PERIOD as one string:** a period as one string with its parts joined by a
-  solidus, such as `"1997-03-08T16:00:00Z/P1D"`. The RFC's own Appendix B example
-  uses this form.
+  solidus, such as `"1997-03-08T16:00:00Z/P1D"`, isn't accepted, even though the
+  RFC's own Appendix B example uses this form. RFC 7265 §3.6.9 requires the array.
 - **A single value in place of an array:** a single value where an array is allowed,
-  such as `"byday": "MO"` or `"delegated-to": "mailto:a@example.com"`.
-- **A string for any type:** a string as the value of any type, so that a value that
-  doesn't follow its type reaches the conformance check rather than failing the read.
+  such as `"byday": "MO"` or `"delegated-to": "mailto:a@example.com"`, is read.
 
 ## Value types in jCal form
 
