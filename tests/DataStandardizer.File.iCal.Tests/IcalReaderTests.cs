@@ -953,6 +953,21 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void Validate_ByHourInObservanceWithDateStart_ReportsTheStartAndTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowInvalidValues = true };
+            var calendar = ReadCalendars(ConformanceCases.ByHourInObservanceWithDateStartText, options).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.InvalidValue);
+            testResult.Select(diagnostic => diagnostic.PropertyName).Should().Equal(IcalPropertyNames.DtStart, IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
         public void Validate_DateUntilInObservanceWithDateStart_ReportsTheStartAndTheRule()
         {
             // arrange

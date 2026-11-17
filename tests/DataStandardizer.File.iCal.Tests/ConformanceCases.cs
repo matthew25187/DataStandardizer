@@ -101,6 +101,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string FloatingUntilYearlyRule = "RRULE:FREQ=YEARLY;UNTIL=20261015T090000";
         private const string DateUntilYearlyRule = "RRULE:FREQ=YEARLY;UNTIL=20261015";
 
+        // ref. RFC 5545 §3.3.10: BYHOUR is not allowed when DTSTART is a DATE.
+        private const string ByHourYearlyRule = "RRULE:FREQ=YEARLY;BYHOUR=2";
+
         // A weekly series from 5 January 2026 and an instance of it on 12 January, which RECURRENCE-ID identifies.
         private const string SeriesUid = "UID:series@example.com";
         private const string WeeklyRule = "RRULE:FREQ=WEEKLY";
@@ -197,6 +200,13 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public static readonly string DateUntilInObservanceWithDateStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
             DateObservanceStart, DateUntilYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
+
+        /// <summary>
+        /// A STANDARD observance whose <c>DTSTART</c> is a DATE and whose rule has BYHOUR: two invalid values, since RFC 5545 §3.3.10 allows
+        /// BYHOUR only with a DATE-TIME <c>DTSTART</c>, in an observance as anywhere else.
+        /// </summary>
+        public static readonly string ByHourInObservanceWithDateStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            DateObservanceStart, ByHourYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
 
         /// <summary>
         /// Gets the default options, each option that accepts a kind of problem on its own, and every option at once: the options under which a requirement that no option waives
@@ -314,7 +324,7 @@ namespace DataStandardizer.File.iCal.Tests
                 ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, RecurrenceRule, StandardPath),
             ["DateUntilInObservance"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, DateUntilYearlyRule,
                 ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, RecurrenceRule, StandardPath),
-            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, ObservanceStart, ZeroOffsetFrom,
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
             // ref. RFC 5545 §3.8.4.4: RECURRENCE-ID has the value type of the recurring component's DTSTART, and is a date with local time
             // if and only if that DTSTART is, whatever the instance's own DTSTART.
@@ -400,7 +410,7 @@ namespace DataStandardizer.File.iCal.Tests
             // Quoted values of parameters whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted-string.
             [QuotedFormatTypeCase] = new Case(EventCalendar("ATTACH;FMTTYPE=\"audio/basic\":http://example.com/a"),
                 IcalDiagnosticKind.QuotedParameterValue, Attachment, EventPath),
-            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, ZeroOffsetFrom,
                     ZeroOffsetTo, EndStandard, EndTimeZone, BeginEvent, OtherEventUid, NewYearStamp, "DTSTART;TZID=\"Zone\":20260101T090000",
                     EndEvent),
                 IcalDiagnosticKind.QuotedParameterValue, DtStart, EventPath),

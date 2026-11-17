@@ -926,17 +926,15 @@ namespace DataStandardizer.File.iCal
 
         /// <summary>
         /// Checks the recurrence rules (RFC 5545 §3.3.10) of a component against its <c>DTSTART</c>.  In a STANDARD or DAYLIGHT observance
-        /// the only rule is that <c>UNTIL</c> is a DATE-TIME in UTC, which holds whatever the observance's <c>DTSTART</c> is, or whether it
-        /// has one; a <c>DTSTART</c> there that isn't a DATE-TIME in local time is reported for itself.
+        /// <c>UNTIL</c> must be a DATE-TIME in UTC whatever the observance's <c>DTSTART</c> is, or whether it has one, so the rules that tie
+        /// <c>UNTIL</c> to <c>DTSTART</c> don't apply there; a <c>DTSTART</c> there that isn't a DATE-TIME in local time is reported for itself.
         /// </summary>
         private static void ValidateRecurrence(IcalComponent component, string path, bool isObservance, Context context)
         {
+            var start = component.GetProperty(IcalPropertyNames.DtStart);
             var startValue = default(IcalDateOrDateTime);
-            if (!isObservance)
-            {
-                var start = component.GetProperty(IcalPropertyNames.DtStart);
-                if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
-            }
+            var hasStart = start != null && TryGetDateOrDateTime(start, out startValue);
+            if (!hasStart && !isObservance) return;
 
             foreach (var property in component.GetProperties(IcalPropertyNames.RecurrenceRule))
             {
@@ -951,6 +949,10 @@ namespace DataStandardizer.File.iCal
                     {
                         problem = "The UNTIL of a recurrence rule in a time zone observance must be a DATE-TIME in UTC.";
                     }
+                    else if (hasStart && startValue.IsDate && HasTimeOfDayParts(rule))
+                    {
+                        problem = "A recurrence rule cannot have BYSECOND, BYMINUTE or BYHOUR when DTSTART is a DATE.";
+                    }
                 }
                 else if (startValue.IsDate)
                 {
@@ -958,7 +960,7 @@ namespace DataStandardizer.File.iCal
                     {
                         problem = "The UNTIL of a recurrence rule must be a DATE when DTSTART is a DATE.";
                     }
-                    else if (rule.GetBySecond().Length != 0 || rule.GetByMinute().Length != 0 || rule.GetByHour().Length != 0)
+                    else if (HasTimeOfDayParts(rule))
                     {
                         problem = "A recurrence rule cannot have BYSECOND, BYMINUTE or BYHOUR when DTSTART is a DATE.";
                     }
@@ -985,6 +987,11 @@ namespace DataStandardizer.File.iCal
                     AddInvalidValue(property, path, problem, context);
                 }
             }
+        }
+
+        private static bool HasTimeOfDayParts(IcalRecurrenceRule rule)
+        {
+            return rule.GetBySecond().Length != 0 || rule.GetByMinute().Length != 0 || rule.GetByHour().Length != 0;
         }
 
         /// <summary>

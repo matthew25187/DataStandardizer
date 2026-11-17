@@ -416,6 +416,7 @@ namespace DataStandardizer.File.iCal.Tests
                 exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(ConformanceCases.ObservancePath);
                 exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(IcalPropertyNames.RecurrenceRule);
                 text.ToString().Should().BeEmpty();
+                writer.CalendarsWritten.Should().Be(0);
             }
         }
 
