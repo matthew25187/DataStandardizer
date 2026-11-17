@@ -427,16 +427,14 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            if (!value.IsAbsoluteUri)
-                throw new ArgumentException("Expected an absolute URI.", nameof(value));
-
+            var text = IcalValue.FormatUriText(value, nameof(value));
             var parameters = KeepParameters(name, IcalParameterNames.Value, IcalParameterNames.Encoding);
             if (isValueParameterRequired)
             {
                 parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value, IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Uri)));
             }
 
-            ReplaceProperties(name, new[] { new IcalContentLine(name, parameters, value.AbsoluteUri) });
+            ReplaceProperties(name, new[] { new IcalContentLine(name, parameters, text) });
         }
 
         internal IcalUtcOffset? GetUtcOffset(string name)

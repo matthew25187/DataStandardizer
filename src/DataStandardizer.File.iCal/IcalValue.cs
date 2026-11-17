@@ -575,26 +575,50 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Formats a URI value (RFC 5545 §3.3.13), as the URI was given.
         /// </summary>
+        /// <remarks>
+        /// The value is written as <see cref="Uri.OriginalString"/>, which must be a URI that <see cref="TryParseUri"/> accepts:
+        /// printable US-ASCII without spaces, starting with a scheme (RFC 3986 §2, §3.1).  Escape any other character before
+        /// creating the <see cref="Uri"/>, for example with <see cref="Uri.EscapeDataString"/>, and write an internationalized
+        /// host name in its ASCII form.
+        /// </remarks>
         /// <param name="value">The URI, which must be absolute.</param>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its <see cref="Uri.OriginalString"/> is not a URI
+        /// that RFC 5545 §3.3.13 allows.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
-            if (value is null)
-                throw new ArgumentNullException(nameof(value));
-            if (!value.IsAbsoluteUri)
-                throw new ArgumentException("The URI must be absolute.", nameof(value));
-
+            var text = FormatUriText(value, nameof(value));
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            writer.Append(value.OriginalString);
+            writer.Append(text);
             return writer.TryComplete(out charsWritten);
+        }
+
+        /// <summary>
+        /// Gets the text of a URI value (RFC 5545 §3.3.13): the URI as it was given, which must be one that <see cref="TryParseUri"/>
+        /// accepts.  Every path that writes a <see cref="Uri"/> uses this, so that the reader accepts whatever is written.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its text is not a URI.</exception>
+        internal static string FormatUriText(Uri value, string paramName)
+        {
+            if (value is null)
+                throw new ArgumentNullException(paramName);
+            if (!value.IsAbsoluteUri)
+                throw new ArgumentException("The URI must be absolute.", paramName);
+
+            // ref. RFC 5545§3.3.13: uri = <As defined in Section 3 of [RFC3986]>.  The text is checked as the reader checks it.
+            var text = value.OriginalString;
+            if (!IsUriText(text.AsSpan()) || !Uri.TryCreate(text, UriKind.Absolute, out _))
+                throw new ArgumentException("The URI must be printable US-ASCII without spaces, starting with a scheme (RFC 5545 §3.3.13, RFC 3986 §2).", paramName);
+
+            return text;
         }
 
         /// <summary>

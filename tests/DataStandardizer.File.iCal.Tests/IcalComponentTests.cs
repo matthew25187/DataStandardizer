@@ -29,6 +29,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string AucklandTimeZoneId = "Pacific/Auckland";
         private const string CalendarSource = "https://example.com/cal.ics";
 
+        // An absolute URI that the setters write as it was given, though System.Uri would normalise the scheme and host and add a path.
+        private const string UpperCaseUri = "HTTP://EXAMPLE.COM";
+
         // Stamp, written as a DATE-TIME value.
         private const string StampValue = "20261015T090000Z";
 
@@ -482,6 +485,47 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Url_SetNotNormalizedUri_WritesItAsGiven()
+        {
+            // arrange
+            var calendar = new IcalCalendar();
+
+            // act
+            calendar.Url = new Uri(UpperCaseUri);
+
+            // assert
+            calendar.Properties.Should().ContainSingle(property => property.Name == "URL").Which.Value.Should().Be(UpperCaseUri);
+        }
+
+        [Fact]
+        public void Url_GetAfterSetNotNormalizedUri_IsTheUri()
+        {
+            // arrange
+            var calendar = new IcalCalendar { Url = new Uri(UpperCaseUri) };
+
+            // act
+            var testResult = calendar.Url;
+
+            // assert
+            testResult.Should().Be(new Uri(UpperCaseUri));
+        }
+
+        [Theory]
+        [MemberData(nameof(IcalValueTests.UriTextsNotAllowed), MemberType = typeof(IcalValueTests))]
+        public void Url_SetUriTextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var testEvent = new IcalEvent();
+            var uri = new Uri(value);
+
+            // act
+            Action testAction = () => testEvent.Url = uri;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
         }
 
         [Fact]

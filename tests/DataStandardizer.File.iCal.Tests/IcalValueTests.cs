@@ -147,6 +147,18 @@ namespace DataStandardizer.File.iCal.Tests
             { "power of two, below 1", () => TwoToTheMinusTwentieth, "0.00000095367431640625" },
         };
 
+        // An absolute URI that is written as it was given, though System.Uri would normalise the scheme and host and add a path.
+        private const string UpperCaseUri = "HTTP://EXAMPLE.COM";
+
+        // ref. RFC 3986 §2: absolute URIs that System.Uri accepts but whose text is not a URI, because it has a space or a
+        // character outside US-ASCII.
+        public static TheoryData<string> UriTextsNotAllowed => new TheoryData<string>
+        {
+            "http://example.com/a b",
+            "http://b\x00FCcher.example/",
+            "http://example.com/caf\x00E9",
+        };
+
         // ref. RFC 5545 §3.3.13, §3.3.3: the examples of URI and CAL-ADDRESS values.
         public static TheoryData<string> Rfc5545Uris => new TheoryData<string>
         {
@@ -694,6 +706,51 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Should().BeFalse();
             uri.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryFormatUri_NotNormalized_WritesItAsGiven()
+        {
+            // arrange
+            var uri = new Uri(UpperCaseUri);
+            var destination = new char[64];
+
+            // act
+            var testResult = IcalValue.TryFormatUri(uri, destination, out var charsWritten, IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().BeTrue();
+            new string(destination, 0, charsWritten).Should().Be(UpperCaseUri);
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTextsNotAllowed))]
+        public void TryFormatUri_TextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var uri = new Uri(value);
+            var destination = new char[64];
+
+            // act
+            Action testAction = () => IcalValue.TryFormatUri(uri, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTextsNotAllowed))]
+        public void TryFormatCalAddress_TextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var uri = new Uri(value);
+            var destination = new char[64];
+
+            // act
+            Action testAction = () => IcalValue.TryFormatCalAddress(uri, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
         }
 
         [Fact]
