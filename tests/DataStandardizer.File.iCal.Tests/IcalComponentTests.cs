@@ -21,6 +21,8 @@ namespace DataStandardizer.File.iCal.Tests
         private const string RecurrenceRule = "RRULE";
         private const string ValueParameter = "VALUE";
         private const string VendorParameter = "X-VENDOR";
+        private const int SharedThreeLevels = 3;
+        private const string SharedMessage = "A X-A component is nested in more than one place; each place needs a component of its own.";
         private const string KeepParameter = "X-KEEP";
         private const string TestComponentName = "X-TEST";
         private const string DisplayAction = "ACTION:DISPLAY";
@@ -1187,6 +1189,70 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
                 "X-A/X-B[1]/X-A[1]: A X-A component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentInTwoParents_ReportsTheSecondPlace()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            var first = new IcalComponent("X-B");
+            var second = new IcalComponent("X-C");
+            var shared = new IcalComponent("X-D");
+            component.Components.Add(first);
+            component.Components.Add(second);
+            first.Components.Add(shared);
+            second.Components.Add(shared);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.ToString())).Should().Equal(
+                (IcalDiagnosticKind.InvalidComponentNesting,
+                    "X-A/X-C[1]/X-D[1]: A X-D component is nested in more than one place; each place needs a component of its own."));
+        }
+
+        [Fact]
+        public void Validate_ComponentTwiceInOneParent_ReportsTheSecondPlace()
+        {
+            // arrange
+            var component = SharedComponents(1);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(("X-A/X-A[2]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_ComponentsSharedAtEachLevel_ReportsEachSecondPlace()
+        {
+            // arrange
+            var component = SharedComponents(SharedThreeLevels);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(
+                ("X-A/X-A[1]/X-A[1]/X-A[2]", SharedMessage),
+                ("X-A/X-A[1]/X-A[2]", SharedMessage),
+                ("X-A/X-A[2]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_ComponentsSharedAtSixtyLevels_ReportsEachLevelOnce()
+        {
+            // arrange
+            var component = SharedComponents(SharedLevels);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().HaveCount(SharedLevels).And.OnlyContain(diagnostic => diagnostic.Message == SharedMessage);
         }
 
         [Fact]

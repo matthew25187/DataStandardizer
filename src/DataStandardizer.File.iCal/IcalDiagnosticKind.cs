@@ -35,8 +35,8 @@
         InvalidValue = 4,
 
         /// <summary>
-        /// A component is inside a component where RFC 5545 does not allow it, such as a VEVENT inside a VTODO; is nested in itself; or is
-        /// nested more than 64 levels deep.  Or a property is named <c>BEGIN</c> or <c>END</c>, which RFC 5545 §3.4 and §3.6 keep for the lines that start and end a component, so
+        /// A component is inside a component where RFC 5545 does not allow it, such as a VEVENT inside a VTODO; is nested in itself, or, being one
+        /// object, in more than one place; or is nested more than 64 levels deep.  Or a property is named <c>BEGIN</c> or <c>END</c>, which RFC 5545 §3.4 and §3.6 keep for the lines that start and end a component, so
         /// writing it would change the nesting.  Never accepted.
         /// </summary>
         InvalidComponentNesting = 5,

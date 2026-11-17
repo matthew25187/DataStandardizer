@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
@@ -308,6 +309,7 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
+            context.Visited.Add(root);
             ValidateComponent(root, root.Name, context);
 
             // A stable sort, so problems on the same line, and in a model built in code, stay in the order they were found.
@@ -516,6 +518,15 @@ namespace DataStandardizer.File.iCal
                     // A model built in code can hold a component inside itself; checking it would never end.
                     context.Add(IcalDiagnosticKind.InvalidComponentNesting,
                         string.Format(CultureInfo.InvariantCulture, "A {0} component is nested in itself.", child.Name.ToUpperInvariant()),
+                        childPath, null, child.LineNumber);
+                }
+                else if (!context.Visited.Add(child))
+                {
+                    // A model built in code can put one component in several places.  Each place would be checked and written again, so
+                    // components that share a child at every level would take time that doubles with each level.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "A {0} component is nested in more than one place; each place needs a component of its own.", child.Name.ToUpperInvariant()),
                         childPath, null, child.LineNumber);
                 }
                 else if (context.Ancestors.Count >= IcalCalendarBuilder.MaxComponentDepth)
@@ -1556,6 +1567,29 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Compares components by reference, so that a derived class that overrides <see cref="object.Equals(object)"/> can't make two
+        /// components look like one.
+        /// </summary>
+        private sealed class ComponentReferenceComparer : IEqualityComparer<IcalComponent>
+        {
+            internal static readonly ComponentReferenceComparer Instance = new ComponentReferenceComparer();
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            public bool Equals(IcalComponent? x, IcalComponent? y)
+#else
+            public bool Equals(IcalComponent x, IcalComponent y)
+#endif
+            {
+                return ReferenceEquals(x, y);
+            }
+
+            public int GetHashCode(IcalComponent obj)
+            {
+                return RuntimeHelpers.GetHashCode(obj);
+            }
+        }
+
+        /// <summary>
         /// What the checks of a component need to know about the calendar it is in, and where they report.
         /// </summary>
         private sealed class Context
@@ -1575,12 +1609,18 @@ namespace DataStandardizer.File.iCal
                 _diagnostics = diagnostics;
                 TimeZoneIds = new HashSet<string>(StringComparer.Ordinal);
                 Ancestors = new List<IcalComponent>();
+                Visited = new HashSet<IcalComponent>(ComponentReferenceComparer.Instance);
             }
 
             /// <summary>
             /// Gets the component being checked and the components it is nested in, outermost first.
             /// </summary>
             internal List<IcalComponent> Ancestors { get; }
+
+            /// <summary>
+            /// Gets the components found so far, compared by reference, so that one found again is reported rather than checked again.
+            /// </summary>
+            internal HashSet<IcalComponent> Visited { get; }
 
             /// <summary>
             /// Gets or sets a flag indicating if the calendar has a <c>METHOD</c> property.
