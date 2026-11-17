@@ -548,17 +548,26 @@ namespace DataStandardizer.File.iCal
             return rules;
         }
 
+        // Sets the recurrence rules of a property, building every property before anything is changed.  When utcUntilSection is given,
+        // RFC 5545 requires, in this component, any UNTIL to be a DATE-TIME in UTC, and a rule whose UNTIL is a DATE or a DATE-TIME of any
+        // other kind is rejected; utcUntilSection names the RFC 5545 section that requires it.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule>? rules)
+        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule>? value, string? utcUntilSection = null)
 #else
-        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule> rules)
+        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule> value, string utcUntilSection = null)
 #endif
         {
             var properties = new List<IcalContentLine>();
-            if (rules != null)
+            if (value != null)
             {
-                foreach (var rule in rules)
+                foreach (var rule in value)
                 {
+                    var untilDateTime = rule.UntilDateTime;
+                    if (utcUntilSection != null &&
+                        (rule.UntilDate.HasValue || (untilDateTime.HasValue && untilDateTime.Value.Kind != IcalDateTimeKind.Utc)))
+                        throw new ArgumentException("The UNTIL of each " + name + " must be a DATE-TIME in UTC (RFC 5545 §" + utcUntilSection + ").",
+                            nameof(value));
+
                     properties.Add(new IcalContentLine(name, rule.ToString(IcalValueFormat.Text)));
                 }
             }

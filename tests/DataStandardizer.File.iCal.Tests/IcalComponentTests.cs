@@ -698,6 +698,88 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void RecurrenceRules_SetNull_RemovesProperties()
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+            observance.RecurrenceRules = CreateTwoRules();
+
+            // act
+            observance.RecurrenceRules = null;
+
+            // assert
+            observance.Properties.Should().NotContain(property => property.Name == RecurrenceRule);
+        }
+
+        // RFC 5545 §3.3.10: in a STANDARD or DAYLIGHT sub-component "the UNTIL rule part MUST always be specified as a date with UTC time".
+        // A rule whose UNTIL is a DATE and one whose UNTIL is a floating DATE-TIME, neither of which it allows.  A zoned UNTIL can't be
+        // represented in a rule.
+        public static TheoryData<IcalRecurrenceRule> NonUtcUntilRules => new TheoryData<IcalRecurrenceRule>
+        {
+            new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(StampDate),
+            new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(StampLocal),
+        };
+
+        [Fact]
+        public void RecurrenceRules_SetUtcUntil_WritesTheRule()
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+
+            // act
+            observance.RecurrenceRules = new[] { new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(Stamp) };
+            var testResult = observance.GetProperty(RecurrenceRule);
+
+            // assert
+            testResult.Value.Should().Be("FREQ=YEARLY;UNTIL=20261015T090000Z");
+        }
+
+        [Fact]
+        public void RecurrenceRules_SetFloatingUntilOnEvent_WritesTheRule()
+        {
+            // arrange
+            var testEvent = new IcalEvent();
+
+            // act
+            testEvent.RecurrenceRules = new[] { new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(StampLocal) };
+            var testResult = testEvent.GetProperty(RecurrenceRule);
+
+            // assert
+            testResult.Value.Should().Be("FREQ=YEARLY;UNTIL=20261015T090000");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonUtcUntilRules))]
+        public void RecurrenceRules_SetNonUtcUntil_ThrowsArgumentException(IcalRecurrenceRule rule)
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+
+            // act
+            Action testAction = () => observance.RecurrenceRules = new[] { rule };
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonUtcUntilRules))]
+        public void RecurrenceRules_SetNonUtcUntilAfterValidRule_LeavesExistingRulesUnchanged(IcalRecurrenceRule rule)
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+            observance.RecurrenceRules = CreateTwoRules();
+
+            // act
+            var exception = Record.Exception(() => observance.RecurrenceRules = new[] { CreateTwoRules()[1], rule });
+            var testResult = observance.RecurrenceRules;
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Equal(CreateTwoRules());
+        }
+
+        [Fact]
         public void TriggerDuration_Set_WritesDuration()
         {
             // arrange
