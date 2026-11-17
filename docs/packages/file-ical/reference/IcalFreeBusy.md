@@ -46,7 +46,7 @@ A VFREEBUSY has no recurrence set, so there is no `GetOccurrences`.
 | Property | Signature | Notes |
 | --- | --- | --- |
 | `Attendees` | `IReadOnlyList<IcalContentLine> Attendees { get; }` | `ATTENDEE` (RFC 5545 §3.8.4.1), as the content lines themselves. Each is a CAL-ADDRESS with parameters such as `CN` and `PARTSTAT`. Change them through `Properties`. |
-| `Contact` | `string? Contact { get; set; }` | `CONTACT` (RFC 5545 §3.8.4.2). TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape. `null` removes it. |
+| `Contact` | `string? Contact { get; set; }` | `CONTACT` (RFC 5545 §3.8.4.2). TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. `null` removes it. |
 | `DtEnd` | `IcalDateOrDateTime? DtEnd { get; set; }` | `DTEND` (RFC 5545 §3.8.2.2), a DATE or a DATE-TIME. The `VALUE` and `TZID` parameters are read and written with the value. Throws `IcalFileException` on get if the value is not valid. `null` removes it. |
 | `DtStamp` | `IcalDateTime? DtStamp { get; set; }` | `DTSTAMP` (RFC 5545 §3.8.7.2). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. Throws `IcalFileException` on get if the value is not a valid DATE-TIME, including a `VALUE=DATE`. `null` removes it. |
 | `DtStart` | `IcalDateOrDateTime? DtStart { get; set; }` | `DTSTART` (RFC 5545 §3.8.2.4), a DATE or a DATE-TIME. The `VALUE` and `TZID` parameters are read and written with the value. Throws `IcalFileException` on get if the value is not valid. `null` removes it. |

@@ -27,7 +27,9 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// <para>
-        /// For a property that holds a list of TEXT values, split the list with <see cref="EnumerateTextList"/> first, then parse each item.
+        /// A comma or semicolon in TEXT must be escaped, since TSAFE-CHAR excludes them.  For a property that holds a list of TEXT values,
+        /// split the list with <see cref="EnumerateTextList"/> first, then parse each item.  For a property whose grammar separates its parts
+        /// with a semicolon, such as <c>REQUEST-STATUS</c> (RFC 5545 §3.8.8.3), split it on the semicolons that are not escaped first.
         /// </para>
         /// <para>
         /// A value in <see cref="IcalValueFormat.Json"/> form is the content of a jCal string, and a value in <see cref="IcalValueFormat.Xml"/>
@@ -38,7 +40,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="destination">Receives the text.  It must be at least as long as <paramref name="value"/>, which is always enough.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if the value is not valid.</param>
-        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape.</returns>
+        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape, or a comma or
+        /// semicolon that is not escaped.</returns>
         /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="value"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, Span<char> destination, out int charsWritten)
@@ -55,7 +58,7 @@ namespace DataStandardizer.File.iCal
             }
 
             int errorIndex;
-            if (!ContentLineEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
+            if (FindUnescapedSeparator(value) >= 0 || !ContentLineEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
             {
                 charsWritten = 0;
                 return false;
@@ -65,13 +68,41 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Finds the first comma or semicolon in a TEXT value that is not escaped.
+        /// </summary>
+        /// <param name="value">The value as it appears in the content line.</param>
+        /// <returns>The index of the character; or -1 if every comma and semicolon is escaped.</returns>
+        internal static int FindUnescapedSeparator(ReadOnlySpan<char> value)
+        {
+            // ref. RFC 5545§3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT has them only in ESCAPED-CHAR.  The character after a backslash is
+            // part of its escape, valid or not.
+            if (value.IndexOfAny(',', ';') < 0) return -1;
+
+            for (var index = 0; index < value.Length; index++)
+            {
+                switch (value[index])
+                {
+                    case '\\':
+                        index++;
+                        break;
+                    case ',':
+                    case ';':
+                        return index;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Parses a TEXT value (RFC 5545 §3.3.11) into a string, removing its escaping: <c>\\</c>, <c>\;</c> and <c>\,</c> become the escaped
         /// character, and <c>\n</c> or <c>\N</c> a line feed.
         /// </summary>
         /// <param name="value">The value as it appears in the content line.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The text, if the value is valid.</param>
-        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape.</returns>
+        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape, or a comma or
+        /// semicolon that is not escaped.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out string? result)

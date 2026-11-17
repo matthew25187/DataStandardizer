@@ -214,26 +214,41 @@ namespace DataStandardizer.File.iCal
         /// <c>\n</c> or <c>\N</c> a line feed.
         /// </summary>
         /// <remarks>
-        /// Use this only for properties whose value type is TEXT.  A list of TEXT values must be split on unescaped commas before unescaping, so
-        /// for a multi-valued property use <see cref="Value"/> instead.
+        /// Use this only for properties whose value type is TEXT.  A comma or semicolon in TEXT must be escaped (RFC 5545 §3.3.11), so for a
+        /// property whose value holds unescaped commas or semicolons as separators, such as a list of TEXT values or <c>REQUEST-STATUS</c>,
+        /// use <see cref="Value"/> and split it before unescaping each part.
         /// </remarks>
-        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence.</exception>
+        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence, or a comma or
+        /// semicolon that is not escaped.</exception>
         public string GetTextValue()
         {
             var value = Value;
-            if (value.IndexOf('\\') < 0) return value;
-
-            var unescaped = new char[value.Length];
-            int unescapedLength, errorIndex;
-            if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), unescaped, out unescapedLength, out errorIndex))
+            var result = value;
+            if (value.IndexOf('\\') >= 0)
             {
-                var physicalLineNumber = PhysicalLineNumber == 0
-                    ? 0
-                    : ContentLineScanner.GetPhysicalLineNumber(PhysicalLineNumber, _foldOffsets, _foldOffsets?.Length ?? 0, _valueOffset + errorIndex);
-                throw IcalContentLineErrorFactory.BuildInvalidTextEscapeException(LineNumber, physicalLineNumber, Name);
+                var unescaped = new char[value.Length];
+                int unescapedLength, errorIndex;
+                if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), unescaped, out unescapedLength, out errorIndex))
+                    throw IcalContentLineErrorFactory.BuildInvalidTextEscapeException(LineNumber, GetValuePhysicalLineNumber(errorIndex), Name);
+
+                result = new string(unescaped, 0, unescapedLength);
             }
 
-            return new string(unescaped, 0, unescapedLength);
+            var separatorIndex = IcalValue.FindUnescapedSeparator(value.AsSpan());
+            if (separatorIndex >= 0)
+                throw IcalContentLineErrorFactory.BuildUnescapedTextSeparatorException(LineNumber, GetValuePhysicalLineNumber(separatorIndex), Name);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the 1-based number of the physical line that holds a character of the value; or 0 if the line was not read from a source.
+        /// </summary>
+        private long GetValuePhysicalLineNumber(int valueIndex)
+        {
+            return PhysicalLineNumber == 0
+                ? 0
+                : ContentLineScanner.GetPhysicalLineNumber(PhysicalLineNumber, _foldOffsets, _foldOffsets?.Length ?? 0, _valueOffset + valueIndex);
         }
 
         /// <summary>

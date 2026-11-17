@@ -775,6 +775,8 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 5545§3.2.20: a VALUE parameter may name the default type, so the structure follows the type, not the parameter.
             if (valueType == IcalValueType.Float && IsName(name, IcalPropertyNames.Geo)) return TryWriteGeo(value, property);
             if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.RequestStatus)) return TryWriteRequestStatus(value, property);
+            // ref. RFC 5545§3.7.4: the semicolon between minver and maxver is a separator, not TEXT.
+            if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.Version)) return TryWriteVersion(value, property);
 
             // ref. RFC 6321§3.4.1.1: each value of a multi-valued property is an element.  The values of a property whose type is not known
             // may be a list too, so they are split as well.
@@ -922,6 +924,23 @@ namespace DataStandardizer.File.iCal
             {
                 CreateTextElement(XcalNames.Latitude, parts[0], property), CreateTextElement(XcalNames.Longitude, parts[1], property)
             };
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static List<XcalElement>? TryWriteVersion(string value, IcalContentLine property)
+#else
+        private static List<XcalElement> TryWriteVersion(string value, IcalContentLine property)
+#endif
+        {
+            // A range is one text element, minver ";" maxver, as XcalReader reads it.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            if (!IcalConformance.TryParseVersion(value, out text)) return null;
+
+            return new List<XcalElement> { CreateTextElement(ValueElementNames[(int)IcalValueType.Text], text, property) };
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

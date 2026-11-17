@@ -56,7 +56,7 @@ back through `IcalEvent.Alarms` or `IcalTodo.Alarms`.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Action` | `string? Action { get; set; }` | `ACTION` (RFC 5545 §3.8.6.1), such as `AUDIO`, `DISPLAY` or `EMAIL`. TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape. `null` removes it. |
+| `Action` | `string? Action { get; set; }` | `ACTION` (RFC 5545 §3.8.6.1), such as `AUDIO`, `DISPLAY` or `EMAIL`. TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. `null` removes it. |
 | `Attachments` | `IReadOnlyList<IcalContentLine> Attachments { get; }` | `ATTACH` (RFC 5545 §3.8.1.1), as the content lines themselves. Change them through `Properties`. |
 | `Attendees` | `IReadOnlyList<IcalContentLine> Attendees { get; }` | `ATTENDEE` (RFC 5545 §3.8.4.1), as the content lines themselves: the recipients of an `EMAIL` alarm. Change them through `Properties`. |
 | `Description` | `string? Description { get; set; }` | `DESCRIPTION` (RFC 5545 §3.8.1.5). TEXT. `null` removes it. |

@@ -113,7 +113,7 @@ Every method throws `ObjectDisposedException` if the reader has been disposed, o
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `GetTextValue()` | `ReadOnlySpan<char>` | The value with RFC 5545 §3.3.11 TEXT escaping removed: `\\`, `\;` and `\,` become the escaped character, and `\n` or `\N` a line feed. Use it only for a single TEXT value; for a list of TEXT values, split `RawValue` on unescaped commas first. Throws `IcalFileException` if a backslash does not start a valid escape sequence. |
+| `GetTextValue()` | `ReadOnlySpan<char>` | The value with RFC 5545 §3.3.11 TEXT escaping removed: `\\`, `\;` and `\,` become the escaped character, and `\n` or `\N` a line feed. Use it only for a single TEXT value; for a list of TEXT values or `REQUEST-STATUS`, split `RawValue` on its unescaped commas or semicolons first. Throws `IcalFileException` if a backslash does not start a valid escape sequence, or a comma or semicolon is not escaped. |
 | `GetTextValueMemory()` | `ReadOnlyMemory<char>` | As `GetTextValue`, as memory. |
 | `ToContentLine()` | `IcalContentLine` | Copies the line into an allocated `IcalContentLine`, which stays valid after the reader moves on. It keeps the parameters exactly as read, so `IcalContentLineWriter` writes them back unchanged. |
 

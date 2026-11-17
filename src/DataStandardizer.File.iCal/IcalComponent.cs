@@ -224,6 +224,29 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets a <c>VERSION</c> value as unescaped text, keeping the semicolon between <c>minver</c> and <c>maxver</c> (RFC 5545 §3.7.4).
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? GetVersionText(string name)
+#else
+        internal string GetVersionText(string name)
+#endif
+        {
+            var property = GetProperty(name);
+            if (property is null) return null;
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            if (!IcalConformance.TryParseVersion(property.Value, out text))
+                throw IcalPropertyValue.BuildInvalidValueException(property, IcalValueType.Text);
+
+            return text;
+        }
+
+        /// <summary>
         /// Sets a <c>VERSION</c> value from unescaped text, keeping the semicolon between <c>minver</c> and <c>maxver</c> (RFC 5545 §3.7.4).
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

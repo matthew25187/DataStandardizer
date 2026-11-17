@@ -58,7 +58,7 @@ and throws `IcalFileException` if any of the three properties is missing.
 | `OffsetFrom` | `IcalUtcOffset? OffsetFrom { get; set; }` | The UTC offset in use before the observance begins (RFC 5545 §3.8.3.3, `TZOFFSETFROM`). The getter throws `IcalFileException` if the value is not valid. |
 | `OffsetTo` | `IcalUtcOffset? OffsetTo { get; set; }` | The UTC offset in use during the observance (RFC 5545 §3.8.3.4, `TZOFFSETTO`). The getter throws `IcalFileException` if the value is not valid. |
 | `RecurrenceRules` | `IReadOnlyList<IcalRecurrenceRule> RecurrenceRules { get; set; }` | The recurrence rules (RFC 5545 §3.8.5.3, `RRULE`). Setting a list replaces every `RRULE` property with one per rule; an empty list removes them. The getter throws `IcalFileException` if a rule is not valid. |
-| `TimeZoneName` | `string? TimeZoneName { get; set; }` | The customary name of the time zone during the observance (RFC 5545 §3.8.3.2, `TZNAME`), such as `EST`. TEXT escaping is removed by the getter and added by the setter. The getter throws `IcalFileException` if the value has a backslash that does not start a valid escape. |
+| `TimeZoneName` | `string? TimeZoneName { get; set; }` | The customary name of the time zone during the observance (RFC 5545 §3.8.3.2, `TZNAME`), such as `EST`. TEXT escaping is removed by the getter and added by the setter. The getter throws `IcalFileException` if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. |
 
 There is no typed property for `RDATE`. Read and write it through
 `GetProperties(IcalPropertyNames.RecurrenceDates)` and `Properties`, as

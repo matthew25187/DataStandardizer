@@ -69,7 +69,7 @@ internal static class ReaderHarnesses
             }
             catch (IcalFileException)
             {
-                // IcalContentLineView.GetTextValue documents this for a value with a bad escape sequence.  It isn't a failed read, so the next read must work.
+                // IcalContentLineView.GetTextValue documents this for a value with a bad escape sequence, or a comma or semicolon that is not escaped.  It isn't a failed read, so the next read must work.
             }
         }
     }

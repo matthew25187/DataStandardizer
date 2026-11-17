@@ -14,6 +14,7 @@ namespace DataStandardizer.File.iCal.Tests
     {
         private const string Trigger = "TRIGGER";
         private const string Summary = "SUMMARY";
+        private const string Version = "VERSION";
         private const string Comment = "COMMENT";
         private const string Categories = "CATEGORIES";
         private const string DtStart = "DTSTART";
@@ -165,6 +166,61 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be("2.0");
+        }
+
+        // ref. RFC 5545 §3.7.4: vervalue = "2.0" / maxver / (minver ";" maxver).  The semicolon of a range separates its ends, so it is kept.
+        [Theory]
+        [InlineData("2.0", "2.0")]
+        [InlineData("2.0;2.0", "2.0;2.0")]
+        [InlineData("2\\,0;2.0", "2,0;2.0")]
+        public void Version_RangeOrSingleVersion_IsUnescapedWithItsSemicolon(string value, string expected)
+        {
+            // arrange
+            var calendar = new IcalCalendar();
+            calendar.SetProperty(new IcalContentLine(Version, value));
+
+            // act
+            var testResult = calendar.Version;
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        // ref. RFC 5545 §3.7.4 and §3.3.11: a VERSION has at most one semicolon that is not escaped, and no such comma.
+        [Theory]
+        [InlineData("2.0;2.0;2.0")]
+        [InlineData("2.0,2.0")]
+        [InlineData("2.0;2,0")]
+        [InlineData("2.0;\\x")]
+        public void Version_InvalidText_Throws(string value)
+        {
+            // arrange
+            var calendar = new IcalCalendar();
+            calendar.SetProperty(new IcalContentLine(Version, value));
+
+            // act
+            Func<string> testAction = () => calendar.Version;
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
+        }
+
+        // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";".  AllowInvalidValues lets the reader keep such a value, but the getter cannot
+        // read it as TEXT.
+        [Theory]
+        [InlineData("SUMMARY:Lunch, then review")]
+        [InlineData("SUMMARY:Lunch; then review")]
+        public void Summary_UnescapedCommaOrSemicolonAllowedByReader_Throws(string line)
+        {
+            // arrange
+            var options = new IcalOptions { AllowInvalidValues = true };
+            var testEvent = ReadCalendar(EventCalendar(line), options).Events.Single();
+
+            // act
+            Func<string> testAction = () => testEvent.Summary;
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
         }
 
         [Fact]
