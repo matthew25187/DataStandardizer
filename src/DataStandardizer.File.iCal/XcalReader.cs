@@ -44,7 +44,9 @@ namespace DataStandardizer.File.iCal
     /// same rules and options as <see cref="IcalReader"/>; the line numbers in its diagnostics are those of the XML document.  The first problem
     /// that the options do not accept throws <see cref="IcalFileException"/>; reading can then continue with the next calendar.  A value that is
     /// not valid in its value element is kept as it is, so the check reports it, and <see cref="IcalOptions.AllowInvalidValues"/> lets it
-    /// through.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies.
+    /// through.  That includes a value in the iCalendar text form, such as a DATE-TIME of <c>20240101T120000Z</c> for
+    /// <c>2024-01-01T12:00:00Z</c>, a UTC-OFFSET of <c>-0500</c> for <c>-05:00</c>, or a BOOLEAN of <c>TRUE</c> for <c>true</c> (RFC 6321
+    /// §3.6), whether in a property, including an extension property, or in a parameter such as RSVP.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies.
     /// </para>
     /// <para>
     /// Any other exception from a read, including a cancellation, leaves the reader unable to continue, and later reads throw

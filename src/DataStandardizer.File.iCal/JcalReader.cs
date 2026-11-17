@@ -40,7 +40,9 @@ namespace DataStandardizer.File.iCal
     /// COUNT and INTERVAL single numbers, BYDAY a string or an array of strings, and the other BYxxx rule parts a number or an array of
     /// numbers (RFC 7265 §3.6.10), but a BYMONTH leap month, such as <c>5L</c>, a string (RFC 7529 §9).  A PERIOD as one string with its parts joined by a solidus, as RFC 7265
     /// Appendix B gives it, is not accepted, since §3.6.9 requires the array.  A string or number of the right form whose content does not
-    /// follow its type is kept, so the conformance check reports it.</description></item>
+    /// follow its type is kept, so the conformance check reports it.  That includes a value in the iCalendar text form, such as a DATE-TIME of
+    /// <c>20240101T120000Z</c> for <c>2024-01-01T12:00:00Z</c>, or a UTC-OFFSET of <c>-0500</c> for <c>-05:00</c> (RFC 7265 §3.6.5,
+    /// §3.6.14).</description></item>
     /// </list>
     /// <para>
     /// A document that is not valid JSON, or does not follow the structure of jCal, throws <see cref="IcalFileException"/>.  Its data holds the
@@ -53,7 +55,8 @@ namespace DataStandardizer.File.iCal
     /// Each calendar is checked once its component array has been read, as <see cref="IcalComponent.Validate"/> does, against the same rules and
     /// options as <see cref="IcalReader"/>.  The diagnostics have no line numbers, since a jCal document has no content lines; their component
     /// path gives the place.  The first problem that the options do not accept throws <see cref="IcalFileException"/>; reading can then continue
-    /// with the next calendar.  A value that does not follow its type is kept as it is, so the check reports it, and
+    /// with the next calendar.  A value that does not follow its jCal type is kept as it is, so the check reports it, even when it would be
+    /// valid in the iCalendar text form, and even in an extension property, since jCal gives its type; and
     /// <see cref="IcalOptions.AllowInvalidValues"/> lets it through.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies, and
     /// it must be UTF-8 if it is set.
     /// </para>
@@ -462,9 +465,9 @@ namespace DataStandardizer.File.iCal
             // The calendar has been read in full, so a problem with it does not stop the reader.
             var diagnostics = new List<IcalDiagnostic>();
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            IcalConformance.Validate(_calendar!, diagnostics);
+            IcalConformance.Validate(_calendar!, false, true, diagnostics);
 #else
-            IcalConformance.Validate(_calendar, diagnostics);
+            IcalConformance.Validate(_calendar, false, true, diagnostics);
 #endif
             foreach (var diagnostic in diagnostics)
             {

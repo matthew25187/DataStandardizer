@@ -109,6 +109,11 @@ namespace DataStandardizer.File.iCal
             var parameters = new List<IcalContentLineParameter>();
             var values = new List<XcalElement>();
             var hasParameters = false;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? parameterProblem = null;
+#else
+            string parameterProblem = null;
+#endif
             foreach (var child in property.Children)
             {
                 if (child.Name == XcalNames.Parameters)
@@ -117,7 +122,7 @@ namespace DataStandardizer.File.iCal
                         throw BuildException(child, name, "A property can have only one parameters element.");
 
                     hasParameters = true;
-                    ReadParameters(child, name, parameters);
+                    parameterProblem = ReadParameters(child, name, parameters);
                 }
                 else
                 {
@@ -148,8 +153,10 @@ namespace DataStandardizer.File.iCal
             else
             {
                 value = ReadValues(values, name, out valueType);
-                conversionProblem = GetDurationProblem(values, valueType, name);
+                conversionProblem = GetConversionProblem(values, valueType, name);
             }
+
+            conversionProblem = conversionProblem ?? parameterProblem;
 
             // ref. RFC 6321§3.5.1: the VALUE parameter MUST be included if the value type is not the property's default, and §5: never for
             // an unknown value.  RFC 7986 properties with no default always need one.
@@ -171,56 +178,56 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the DURATION values of a property, including those in its periods, for lower-case designators, which the text form of a
-        /// content line allows but xCal does not.
+        /// Checks the values of a property, including the parts of its periods and the UNTIL of its recurrence rules, for a value in the text
+        /// form of a content line that xCal does not allow, such as a DATE-TIME of <c>20240101T120000Z</c> or a DURATION with a lower-case
+        /// designator.  The converter keeps such a value as it is, and the conformance check would see a valid value.
         /// </summary>
-        /// <returns>The problem with the first value that has them; or <c>null</c> if none does.  A value that is not valid in either form is
-        /// left to the conformance check, which reports it as not valid for its type.</returns>
+        /// <returns>The problem with the first such value; or <c>null</c> if there is none.  A value that is not valid in either form is left to
+        /// the conformance check, which reports it as not valid for its type.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static string? GetDurationProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
+        private static string? GetConversionProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
 #else
-        private static string GetDurationProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
+        private static string GetConversionProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
 #endif
         {
-            // ref. RFC 6321§3.6.6: the duration pattern is an XML Schema pattern, which is case-sensitive, so its designators are upper case
-            // only.  The text form of RFC 5545§3.3.6 is ABNF, which is not, so a lower-case duration would otherwise pass the check.
-            switch (valueType)
+            // ref. RFC 6321§3.6: each value type has its own XML form.  Its patterns are XML Schema patterns, which are case-sensitive, so the
+            // designators of DATE-TIME, TIME and DURATION are upper case only (§3.6.5, §3.6.6, §3.6.12).
+            foreach (var value in values)
             {
-                case IcalValueType.Duration:
-                    foreach (var value in values)
-                    {
-                        if (HasLowerCaseDesignator(value)) return BuildDurationProblem(propertyName);
-                    }
-
-                    return null;
-                case IcalValueType.Period:
-                    foreach (var value in values)
-                    {
+                switch (valueType)
+                {
+                    case IcalValueType.Period:
                         foreach (var part in value.Children)
                         {
-                            if (part.Name == XcalNames.Duration && HasLowerCaseDesignator(part)) return BuildDurationProblem(propertyName);
+                            var partType = part.Name == XcalNames.Duration ? IcalValueType.Duration : IcalValueType.DateTime;
+                            if (IcalConversionCheck.IsTextFormOnly(part.Text.AsSpan(), partType, IcalValueFormat.Xml))
+                                return IcalConversionCheck.BuildProblem(propertyName, partType, IcalValueFormat.Xml);
                         }
-                    }
 
-                    return null;
-                default:
-                    return null;
+                        break;
+                    case IcalValueType.Recur:
+                        foreach (var part in value.Children)
+                        {
+                            if (part.Name != XcalNames.Until) continue;
+
+                            // ref. RFC 6321§3.6.10: UNTIL is a DATE or a DATE-TIME.
+                            var until = IcalValueFormatting.TrimXmlWhitespace(part.Text.AsSpan());
+                            if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.Date, IcalValueFormat.Xml))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.Date, IcalValueFormat.Xml);
+                            if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.DateTime, IcalValueFormat.Xml))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.DateTime, IcalValueFormat.Xml);
+                        }
+
+                        break;
+                    default:
+                        if (IcalConversionCheck.IsTextFormOnly(value.Text.AsSpan(), valueType, IcalValueFormat.Xml))
+                            return IcalConversionCheck.BuildProblem(propertyName, valueType, IcalValueFormat.Xml);
+
+                        break;
+                }
             }
-        }
 
-        /// <summary>
-        /// Gets whether the text of a duration element is a valid duration only in the text form, so has a lower-case designator.
-        /// </summary>
-        private static bool HasLowerCaseDesignator(XcalElement element)
-        {
-            var text = element.Text.AsSpan();
-            return !IcalDuration.TryParse(text, IcalValueFormat.Xml, out _) && IcalDuration.TryParse(text, IcalValueFormat.Text, out _);
-        }
-
-        private static string BuildDurationProblem(string propertyName)
-        {
-            return string.Format(CultureInfo.InvariantCulture,
-                "The {0} property has a DURATION with a lower-case designator, which xCal does not allow (RFC 6321 §3.6.6).", propertyName);
+            return null;
         }
 
         /// <summary>
@@ -239,9 +246,23 @@ namespace DataStandardizer.File.iCal
             return name;
         }
 
-        private static void ReadParameters(XcalElement parametersElement, string propertyName, List<IcalContentLineParameter> parameters)
+        /// <summary>
+        /// Converts the parameter elements of a property.
+        /// </summary>
+        /// <returns>The problem with the first parameter value in the text form of a content line that xCal does not allow, such as a BOOLEAN of
+        /// <c>TRUE</c>; or <c>null</c> if there is none.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? ReadParameters(XcalElement parametersElement, string propertyName, List<IcalContentLineParameter> parameters)
+#else
+        private static string ReadParameters(XcalElement parametersElement, string propertyName, List<IcalContentLineParameter> parameters)
+#endif
         {
             CheckNoText(parametersElement, propertyName);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? problem = null;
+#else
+            string problem = null;
+#endif
             foreach (var parameter in parametersElement.Children)
             {
                 var name = ToIcalName(parameter);
@@ -269,12 +290,20 @@ namespace DataStandardizer.File.iCal
                     {
                         text = FormatBoolean(flag, IcalValueFormat.Text);
                     }
+                    else if (problem is null && IcalConversionCheck.IsTextFormOnly(text.AsSpan(), valueType, IcalValueFormat.Xml))
+                    {
+                        // ref. RFC 6321§3.6.2: a BOOLEAN is true or false, so the TRUE of the text form, which the conformance check would
+                        // accept, is not allowed.
+                        problem = IcalConversionCheck.BuildParameterProblem(propertyName, name, valueType, IcalValueFormat.Xml);
+                    }
 
                     values[index] = text;
                 }
 
                 parameters.Add(new IcalContentLineParameter(name, values));
             }
+
+            return problem;
         }
 
         /// <summary>
@@ -520,7 +549,7 @@ namespace DataStandardizer.File.iCal
                     IcalUtcOffset offset;
                     return IcalUtcOffset.TryParse(value, IcalValueFormat.Xml, out offset) ? offset.ToString(IcalValueFormat.Text) : xml;
                 default:
-                    // DURATION is the same in both forms but for the case of its designators, which GetDurationProblem checks, and an unknown
+                    // DURATION is the same in both forms but for the case of its designators, which GetConversionProblem checks, and an unknown
                     // value is kept as it is (RFC 6321§5).
                     return xml;
             }
