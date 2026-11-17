@@ -117,11 +117,18 @@ namespace DataStandardizer.File.iCal.Tests
 
         // The smallest normal double, which needs 17 significant digits and has 307 zeros after the decimal point.
         private const double SmallestNormalDouble = 2.2250738585072014E-308;
-        private const string SmallestNormalDoubleText = "0."
-            + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-            + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-            + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-            + "0000000" + "22250738585072014";
+        private const string SmallestNormalDoubleText = "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014";
+
+        // The largest subnormal double, which has 307 zeros after the decimal point.
+        private const double LargestSubnormalDouble = 2.225073858507201E-308;
+        private const string LargestSubnormalDoubleText = "0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002225073858507201";
+
+        // The smallest subnormal double, 2^-1074, which has 323 zeros after the decimal point.
+        private const string SmallestSubnormalDoubleText = "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005";
+
+        // 2^60 and 2^-20, powers of two whose neighbour below is half as far away as the one above.
+        private const double TwoToTheSixtieth = 1152921504606846976.0;
+        private const double TwoToTheMinusTwentieth = 9.5367431640625E-07;
 
         // Doubles in delegates, since xUnit on .NET Framework serializes a double in a theory row with that runtime's "R", which changes some.
         public static TheoryData<string, Func<double>, string> ShortestFloatTexts => new TheoryData<string, Func<double>, string>
@@ -134,6 +141,10 @@ namespace DataStandardizer.File.iCal.Tests
             { "whole number of 18 digits", () => 1E+17, "100000000000000000" },
             { "decimal point four places before the first digit", () => 0.00001, "0.00001" },
             { "smallest normal", () => SmallestNormalDouble, SmallestNormalDoubleText },
+            { "largest subnormal", () => LargestSubnormalDouble, LargestSubnormalDoubleText },
+            { "smallest subnormal", () => double.Epsilon, SmallestSubnormalDoubleText },
+            { "power of two, above 1", () => TwoToTheSixtieth, "1152921504606847000" },
+            { "power of two, below 1", () => TwoToTheMinusTwentieth, "0.00000095367431640625" },
         };
 
         // ref. RFC 5545 §3.3.13, §3.3.3: the examples of URI and CAL-ADDRESS values.
