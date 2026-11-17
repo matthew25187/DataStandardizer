@@ -239,7 +239,9 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// The property needs a <c>VALUE=URI</c> parameter, which the setter writes.  The getter throws <see cref="IcalFileException"/> if
-        /// the value is not a valid absolute URI.  The setter takes an absolute URI.
+        /// the value is not a valid absolute URI.
+        /// The setter takes an absolute URI and writes it as it was given (<see cref="Uri.OriginalString"/>).  It throws
+        /// <see cref="ArgumentException"/> if that text is not a URI that <see cref="IcalValue.TryFormatUri"/> can write.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Source
@@ -273,7 +275,9 @@ namespace DataStandardizer.File.iCal
         /// is none.
         /// </summary>
         /// <remarks>
-        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.  The setter takes an absolute URI.
+        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.
+        /// The setter takes an absolute URI and writes it as it was given (<see cref="Uri.OriginalString"/>).  It throws
+        /// <see cref="ArgumentException"/> if that text is not a URI that <see cref="IcalValue.TryFormatUri"/> can write.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Url

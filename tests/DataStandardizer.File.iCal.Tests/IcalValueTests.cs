@@ -697,6 +697,51 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void TryFormatUri_NotNormalized_WritesItAsGiven()
+        {
+            // arrange
+            var uri = new Uri(UriTestData.UpperCaseUri);
+            var destination = new char[64];
+
+            // act
+            var testResult = IcalValue.TryFormatUri(uri, destination, out var charsWritten, IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().BeTrue();
+            new string(destination, 0, charsWritten).Should().Be(UriTestData.UpperCaseUri);
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
+        public void TryFormatUri_TextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var uri = new Uri(value);
+            var destination = new char[64];
+
+            // act
+            Action testAction = () => IcalValue.TryFormatUri(uri, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
+        public void TryFormatCalAddress_TextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var uri = new Uri(value);
+            var destination = new char[64];
+
+            // act
+            Action testAction = () => IcalValue.TryFormatCalAddress(uri, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
+        }
+
+        [Fact]
         public void TryFormatUri_RelativeUri_Throws()
         {
             // act
