@@ -279,7 +279,7 @@ namespace DataStandardizer.File.iCal
         /// <param name="root">The component.</param>
         /// <param name="isVersionWritten"><c>true</c> if a writer supplies <c>VERSION:2.0</c> itself, so that a missing <c>VERSION</c> is not a
         /// problem.</param>
-        /// <param name="isConversionChecked"><c>true</c> if the reader that converted the lines from another serialization is checking them, so
+        /// <param name="isConversionChecked"><c>true</c> if the reader that converted the lines from jCal or xCal is checking them, so
         /// that a value that was not in that serialization's form (<see cref="IcalContentLine.ConversionProblem"/>) is a problem.  Once read,
         /// the lines are in the text form, where such a value is valid, so no other check reports it.</param>
         /// <param name="diagnostics">Receives the problems found, in the order of the lines they were found on.</param>
@@ -1034,7 +1034,7 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            // A value just read from xCal that was not in its xCal form, though it is valid here.
+            // A value just read from jCal or xCal that was not in the form of its serialization, though it is valid here.
             if (context.IsConversionChecked && property.ConversionProblem != null)
             {
                 AddInvalidValue(property, path, property.ConversionProblem, context);

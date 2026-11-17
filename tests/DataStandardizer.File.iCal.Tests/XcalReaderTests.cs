@@ -35,6 +35,10 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ValueParameter = "VALUE";
         private const string ExampleNotValidDateTime = "2026-02-30T00:00:00";
 
+        // ref. RFC 5545 §3.3.5: a DATE-TIME in the iCalendar text form, which RFC 6321 §3.6.5 writes as 2024-01-01T12:00:00Z in xCal.
+        private const string TextFormDateTime = "20240101T120000Z";
+        private const string TextFormDateTimeProperty = "<dtstart><date-time>" + TextFormDateTime + "</date-time></dtstart>";
+
         // The calendar element of RfcExample1Xcal, twice in one document.
         private static readonly string TwoCalendars = IcalendarStart + Example1Calendar() + Example1Calendar() + IcalendarEnd;
 
@@ -774,6 +778,70 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             JournalProperty(testResult.Single()).Value.Should().Be(ExampleNotValidDateTime);
+        }
+
+        // ref. RFC 6321 §3.6: a value in the iCalendar text form of its type (RFC 5545 §3.3), which xCal does not allow.  Each is valid as a
+        // content line, so only the converter can find it.
+        [Theory]
+        [InlineData("<dtstart><date-time>20240101T120000Z</date-time></dtstart>", "DTSTART")]
+        [InlineData("<dtstart><date>20240101</date></dtstart>", "DTSTART")]
+        [InlineData("<tzoffsetfrom><utc-offset>-0500</utc-offset></tzoffsetfrom>", "TZOFFSETFROM")]
+        [InlineData("<rdate><period><start>20240101T120000Z</start><duration>PT1H</duration></period></rdate>", "RDATE")]
+        [InlineData("<rdate><period><start>2024-01-01T12:00:00Z</start><end>20240101T130000Z</end></period></rdate>", "RDATE")]
+        [InlineData("<rrule><recur><freq>DAILY</freq><until>20240101T120000Z</until></recur></rrule>", "RRULE")]
+        [InlineData("<rrule><recur><freq>DAILY</freq><until>20240101</until></recur></rrule>", "RRULE")]
+        public void ReadCalendar_TextFormValueByDefault_ThrowsInvalidValue(string property, string propertyName)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeByDefault_ThrowsNotInXcalForm()
+        {
+            // arrange
+            var xml = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The DTSTART property has a DATE-TIME value in the iCalendar text form, which xCal does not allow (RFC 6321 §3.6.5).");
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeAllowed_KeepsTheValue()
+        {
+            // arrange
+            var xml = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            var testResult = ReadXcal(xml, new IcalOptions { AllowInvalidValues = true });
+
+            // assert
+            JournalProperty(testResult.Single()).Value.Should().Be(TextFormDateTime);
+        }
+
+        [Fact]
+        public void Validate_TextFormDateTimeReadWithAllowInvalidValues_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadXcal(JournalDocument(TextFormDateTimeProperty), new IcalOptions { AllowInvalidValues = true }).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         // ref. RFC 6321 §3.6.5, §3.6.6 and §3.6.9: the patterns of DATE-TIME and DURATION are XML Schema patterns, which are case-sensitive, so

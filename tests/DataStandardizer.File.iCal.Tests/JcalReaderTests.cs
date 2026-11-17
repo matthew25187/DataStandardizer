@@ -28,6 +28,10 @@ namespace DataStandardizer.File.iCal.Tests
 
         private const string ExampleNotValidDateTime = "2026-02-30T00:00:00";
 
+        // ref. RFC 5545 §3.3.5: a DATE-TIME in the iCalendar text form, which RFC 7265 §3.6.5 writes as 2024-01-01T12:00:00Z in jCal.
+        private const string TextFormDateTime = "20240101T120000Z";
+        private const string TextFormDateTimeProperty = "[\"dtstart\",{},\"date-time\",\"" + TextFormDateTime + "\"]";
+
         private static readonly string UnsupportedVersionDocument = Document("[\"version\",{},\"text\",\"1.0\"]");
 
         // ref. RFC 7265 §3.2: a document that is an array of the two example calendars.
@@ -737,6 +741,83 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             JournalProperty(testResult.Single()).Value.Should().Be(ExampleNotValidDateTime);
+        }
+
+        // ref. RFC 7265 §3.6: a value in the iCalendar text form of its type (RFC 5545 §3.3), which jCal does not allow.  Each is valid as a
+        // content line, so only the converter can find it.
+        [Theory]
+        [InlineData("[\"dtstart\",{},\"date-time\",\"20240101T120000Z\"]", "DTSTART")]
+        [InlineData("[\"dtstart\",{},\"date\",\"20240101\"]", "DTSTART")]
+        [InlineData("[\"tzoffsetfrom\",{},\"utc-offset\",\"-0500\"]", "TZOFFSETFROM")]
+        [InlineData("[\"rdate\",{},\"period\",[\"20240101T120000Z\",\"PT1H\"]]", "RDATE")]
+        [InlineData("[\"rdate\",{},\"period\",[\"2024-01-01T12:00:00Z\",\"20240101T130000Z\"]]", "RDATE")]
+        [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"20240101T120000Z\"}]", "RRULE")]
+        [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"20240101\"}]", "RRULE")]
+        public void ReadCalendar_TextFormValueByDefault_ThrowsInvalidValue(string property, string propertyName)
+        {
+            // arrange
+            var json = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadJcal(json);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeByDefault_ThrowsNotInJcalForm()
+        {
+            // arrange
+            var json = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            Action testAction = () => ReadJcal(json);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The DTSTART property has a DATE-TIME value in the iCalendar text form, which jCal does not allow (RFC 7265 §3.6.5).");
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeAllowed_KeepsTheValue()
+        {
+            // arrange
+            var json = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            var testResult = ReadJcal(json, AllowInvalidValues);
+
+            // assert
+            JournalProperty(testResult.Single()).Value.Should().Be(TextFormDateTime);
+        }
+
+        [Fact]
+        public void Validate_TextFormDateTimeReadWithAllowInvalidValues_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadJcal(JournalDocument(TextFormDateTimeProperty), AllowInvalidValues).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadCalendar_DateTimeNotValidInEitherForm_ThrowsNotValidDateTime()
+        {
+            // arrange
+            var json = JournalDocument("[\"dtstart\",{},\"date-time\",\"noon\"]");
+
+            // act
+            Action testAction = () => ReadJcal(json);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("The value of the DTSTART property is not a valid DATE-TIME.");
         }
 
         [Fact]

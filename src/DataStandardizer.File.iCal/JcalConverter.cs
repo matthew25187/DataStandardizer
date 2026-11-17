@@ -128,6 +128,11 @@ namespace DataStandardizer.File.iCal
             }
 
             string value;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? conversionProblem = null;
+#else
+            string conversionProblem = null;
+#endif
             if (IsName(name, IcalPropertyNames.Geo) && valueType == IcalValueType.Float && values.Count == 1 && values[0].Kind == JcalNodeKind.Array)
             {
                 value = ReadGeo(values[0], name);
@@ -140,6 +145,7 @@ namespace DataStandardizer.File.iCal
             else
             {
                 value = ReadValues(values, name, valueType);
+                conversionProblem = GetConversionProblem(values, valueType, name);
             }
 
             // ref. RFC 7265§3.5.1 and §4: a VALUE parameter is added if the type is not the property's default, but never for an unknown value.
@@ -164,7 +170,61 @@ namespace DataStandardizer.File.iCal
                 parameters.Add(new IcalContentLineParameter(IcalParameterNames.Encoding, "BASE64"));
             }
 
-            return IcalContentLine.FromConversion(name, parameters.ToArray(), value, 0);
+            return IcalContentLine.FromConversion(name, parameters.ToArray(), value, 0, conversionProblem);
+        }
+
+        /// <summary>
+        /// Checks the values of a property, including the parts of its periods and the UNTIL of its recurrence rules, for a value in the text
+        /// form of a content line that jCal does not allow, such as a DATE-TIME of <c>20240101T120000Z</c> or a UTC-OFFSET of <c>-0500</c>.  The
+        /// converter keeps such a value as it is, and the conformance check would see a valid value.
+        /// </summary>
+        /// <returns>The problem with the first such value; or <c>null</c> if there is none.  A value that is not valid in either form is left to
+        /// the conformance check, which reports it as not valid for its type.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? GetConversionProblem(List<JcalNode> values, IcalValueType valueType, string propertyName)
+#else
+        private static string GetConversionProblem(List<JcalNode> values, IcalValueType valueType, string propertyName)
+#endif
+        {
+            // ref. RFC 7265§3.6: each value type has its own JSON form.  ReadValues has already checked the JSON kind of each value.
+            foreach (var value in values)
+            {
+                switch (value.Kind)
+                {
+                    case JcalNodeKind.Array:
+                        // ref. RFC 7265§3.6.9: the start is a DATE-TIME, and the end a DATE-TIME or a DURATION, which has the same form in both.
+                        foreach (var part in value.Items)
+                        {
+                            if (IcalConversionCheck.IsTextFormOnly(part.Text.AsSpan(), IcalValueType.DateTime, IcalValueFormat.Json))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.DateTime, IcalValueFormat.Json);
+                        }
+
+                        break;
+                    case JcalNodeKind.Object:
+                        for (var index = 0; index < value.Items.Count; index++)
+                        {
+                            var part = value.Items[index];
+                            if (part.Kind != JcalNodeKind.String ||
+                                !string.Equals(value.Names[index], UntilPartName, StringComparison.OrdinalIgnoreCase)) continue;
+
+                            // ref. RFC 7265§3.6.10: UNTIL is a DATE or a DATE-TIME.
+                            var until = part.Text.AsSpan();
+                            if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.Date, IcalValueFormat.Json))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.Date, IcalValueFormat.Json);
+                            if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.DateTime, IcalValueFormat.Json))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.DateTime, IcalValueFormat.Json);
+                        }
+
+                        break;
+                    case JcalNodeKind.String:
+                        if (IcalConversionCheck.IsTextFormOnly(value.Text.AsSpan(), valueType, IcalValueFormat.Json))
+                            return IcalConversionCheck.BuildProblem(propertyName, valueType, IcalValueFormat.Json);
+
+                        break;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

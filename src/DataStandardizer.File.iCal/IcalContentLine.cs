@@ -249,7 +249,7 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Creates a content line converted from another serialization, such as xCal, whose value was not in the form that serialization
+        /// Creates a content line converted from another serialization, jCal or xCal, whose value was not in the form that serialization
         /// requires, though it is valid in the text form; taking ownership of the parameter array.
         /// </summary>
         /// <param name="name">The property name.</param>
