@@ -124,6 +124,9 @@ its property:
 - A `DTEND` or `DUE` that isn't in local time with no time zone when `DTSTART` is, or
   the other way round, or that isn't later in time than `DTSTART` (RFC 5545 §3.8.2.2
   and §3.8.2.3).
+- A `RECURRENCE-ID` whose value type, or whether it is in local time with no time
+  zone, differs from the `DTSTART` of the recurring component with the same `UID`
+  in the calendar (RFC 5545 §3.8.4.4).
 - A value outside a closed set: `STATUS` in a VEVENT, VTODO or VJOURNAL (RFC 5545
   §3.8.1.11, with the values for that kind of component), `TRANSP` in a VEVENT
   (§3.8.2.7) and `CALSCALE` in a VCALENDAR (§3.7.1).
