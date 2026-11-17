@@ -32,8 +32,7 @@ internal static class FuzzOptions
         AllowCardinalityViolations = true,
         AllowInvalidValues = true,
         AllowMissingRequiredProperties = true,
-        AllowUnknownCharsetAsLatin1 = true,
-        AllowVersionNotFirst = true
+        AllowUnknownCharsetAsLatin1 = true
     };
 
     public static readonly VcardOptions Conformance = new()

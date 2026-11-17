@@ -60,16 +60,16 @@ components of `calendar`. The overloads without `options` use a default
 | `Categories` | `IReadOnlyList<string> Categories { get; set; }` | `CATEGORIES` (RFC 5545 §3.8.1.2), the items of every `CATEGORIES` property. Setting writes one property holding the whole list; an empty list or `null` removes them. Throws `ArgumentException` on set if an item is `null`. |
 | `Classification` | `string? Classification { get; set; }` | `CLASS` (RFC 5545 §3.8.1.3), such as `PUBLIC`. TEXT. `null` removes it. |
 | `Color` | `string? Color { get; set; }` | `COLOR` (RFC 7986 §5.9), a CSS3 color name such as `turquoise`. TEXT. `null` removes it. |
-| `Completed` | `IcalDateTime? Completed { get; set; }` | `COMPLETED` (RFC 5545 §3.8.2.1). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `Completed` | `IcalDateTime? Completed { get; set; }` | `COMPLETED` (RFC 5545 §3.8.2.1). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `Conferences` | `IReadOnlyList<IcalContentLine> Conferences { get; }` | `CONFERENCE` (RFC 7986 §5.11), as the content lines themselves. Each is a URI with parameters such as `FEATURE` and `LABEL`. Change them through `Properties`. |
-| `Created` | `IcalDateTime? Created { get; set; }` | `CREATED` (RFC 5545 §3.8.7.1). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `Created` | `IcalDateTime? Created { get; set; }` | `CREATED` (RFC 5545 §3.8.7.1). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `Description` | `string? Description { get; set; }` | `DESCRIPTION` (RFC 5545 §3.8.1.5). TEXT. `null` removes it. |
-| `DtStamp` | `IcalDateTime? DtStamp { get; set; }` | `DTSTAMP` (RFC 5545 §3.8.7.2). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `DtStamp` | `IcalDateTime? DtStamp { get; set; }` | `DTSTAMP` (RFC 5545 §3.8.7.2). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `DtStart` | `IcalDateOrDateTime? DtStart { get; set; }` | `DTSTART` (RFC 5545 §3.8.2.4), a DATE or a DATE-TIME. The `VALUE` and `TZID` parameters are read and written with the value. `null` removes it. |
 | `Due` | `IcalDateOrDateTime? Due { get; set; }` | `DUE` (RFC 5545 §3.8.2.3), a DATE or a DATE-TIME. The `VALUE` and `TZID` parameters are read and written with the value. `null` removes it. |
 | `Duration` | `IcalDuration? Duration { get; set; }` | `DURATION` (RFC 5545 §3.8.2.5). `null` removes it. |
 | `Images` | `IReadOnlyList<IcalContentLine> Images { get; }` | `IMAGE` (RFC 7986 §5.10), as the content lines themselves. Each is a URI or inline BINARY data, with parameters such as `DISPLAY` and `FMTTYPE`. Change them through `Properties`. |
-| `LastModified` | `IcalDateTime? LastModified { get; set; }` | `LAST-MODIFIED` (RFC 5545 §3.8.7.3). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `LastModified` | `IcalDateTime? LastModified { get; set; }` | `LAST-MODIFIED` (RFC 5545 §3.8.7.3). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `Location` | `string? Location { get; set; }` | `LOCATION` (RFC 5545 §3.8.1.7). TEXT. `null` removes it. |
 | `Organizer` | `Uri? Organizer { get; set; }` | `ORGANIZER` (RFC 5545 §3.8.4.3), a CAL-ADDRESS such as `mailto:a@example.com`. Throws `ArgumentException` on set for a relative URI. `null` removes it. |
 | `PercentComplete` | `int? PercentComplete { get; set; }` | `PERCENT-COMPLETE` (RFC 5545 §3.8.1.8), from 0 to 100. The setter does not check the range. `null` removes it. |
@@ -85,9 +85,9 @@ components of `calendar`. The overloads without `options` use a default
 
 Every getter throws `IcalFileException` if the stored value is not valid for its
 type: a TEXT value or list item with a backslash that does not start a valid
-escape, a DATE-TIME property with `VALUE=DATE`, a value that does not parse, or a
-URI that is not absolute. TEXT properties remove TEXT escaping on get and add it on
-set.
+escape or with a comma or semicolon that is not escaped (RFC 5545 §3.3.11), a
+DATE-TIME property with `VALUE=DATE`, a value that does not parse, or a URI that is
+not absolute. TEXT properties remove TEXT escaping on get and add it on set.
 
 ## Methods
 

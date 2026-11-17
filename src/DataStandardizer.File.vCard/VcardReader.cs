@@ -32,8 +32,10 @@ namespace DataStandardizer.File.vCard
     /// <para>
     /// Each card is checked once its <c>END:VCARD</c> has been read, as <see cref="VcardCard.Validate"/> does, and for the structure of its <c>BEGIN</c>, <c>VERSION</c> and
     /// <c>END</c> lines.  The first problem that the options do not accept throws <see cref="VcardFileException"/>, carrying the card index and the property in its data; reading can
-    /// then continue with the next card.  The accommodations are <see cref="VcardOptions.AllowVersionNotFirst"/>, <see cref="VcardOptions.AllowMissingRequiredProperties"/>,
-    /// <see cref="VcardOptions.AllowCardinalityViolations"/>, <see cref="VcardOptions.AllowInvalidValues"/> and <see cref="VcardOptions.AcceptLegacySyntax"/>, all off by default.
+    /// then continue with the next card.  The accommodations are <see cref="VcardOptions.AllowMissingRequiredProperties"/>,
+    /// <see cref="VcardOptions.AllowCardinalityViolations"/>, <see cref="VcardOptions.AllowInvalidValues"/> and <see cref="VcardOptions.AcceptLegacySyntax"/>, all off by default.  No option
+    /// accepts a card with no <c>VERSION</c> or with two, or a vCard 4.0 card whose <c>VERSION</c> isn't immediately after <c>BEGIN:VCARD</c>, since the version says how the card's lines
+    /// are read (RFC 6350 §3.3 and §6.7.9, RFC 2426 §5); the exception's <see cref="VcardDiagnosticKind"/> is then <see cref="VcardDiagnosticKind.InvalidStructure"/>.
     /// </para>
     /// <para>
     /// Any other exception from a read, including a cancellation, leaves the reader unable to continue, and later reads throw <see cref="InvalidOperationException"/>.

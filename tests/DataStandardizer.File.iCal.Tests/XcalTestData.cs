@@ -293,6 +293,40 @@ namespace DataStandardizer.File.iCal.Tests
                 journalProperties + "</properties></vjournal></components>");
         }
 
+        /// <summary>
+        /// Builds an xCal document holding one calendar with the required properties and one VEVENT, starting at 09:00 UTC on 1 January 2026,
+        /// holding the given property elements.
+        /// </summary>
+        public static string EventDocument(string eventProperties)
+        {
+            return Document(
+                "<properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version></properties>" +
+                "<components><vevent><properties><uid><text>e@example.com</text></uid><dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp>" +
+                "<dtstart><date-time>2026-01-01T09:00:00Z</date-time></dtstart>" + eventProperties + "</properties></vevent></components>");
+        }
+
+        /// <summary>
+        /// Gets the content line of the one property of the VEVENT in a calendar built by <see cref="EventDocument"/>, after the UID, DTSTAMP
+        /// and DTSTART.
+        /// </summary>
+        public static IcalContentLine EventProperty(IcalCalendar calendar)
+        {
+            return calendar.Events.Single().Properties[3];
+        }
+
+        /// <summary>
+        /// Reads an xCal document through an XML reader that gives no line information, as <see cref="XmlNodeReader"/> does not.
+        /// </summary>
+        public static List<IcalCalendar> ReadXcalWithoutLineInfo(string xml, IcalOptions options = null)
+        {
+            var document = new XmlDocument();
+            document.LoadXml(xml);
+            using (var reader = new XcalReader(new XmlNodeReader(document), options ?? new IcalOptions()))
+            {
+                return reader.ReadCalendars().ToList();
+            }
+        }
+
         public static List<IcalCalendar> ReadXcal(string xml, IcalOptions options = null)
         {
             using (var reader = new XcalReader(new StringReader(xml), options ?? new IcalOptions()))

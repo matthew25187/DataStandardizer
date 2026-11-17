@@ -24,6 +24,8 @@ namespace DataStandardizer.File.iCal
         /// allows only on a relative trigger.  Setting <c>null</c> removes the trigger, whichever kind it is.  A getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.6.3 requires an absolute trigger
+        /// to be in UTC.</exception>
         public IcalDateTime? TriggerDateTime
         {
             get
@@ -37,6 +39,9 @@ namespace DataStandardizer.File.iCal
             {
                 if (value.HasValue)
                 {
+                    if (value.Value.Kind != IcalDateTimeKind.Utc)
+                        throw new ArgumentException("An absolute TRIGGER must be in UTC (RFC 5545 §3.8.6.3).", nameof(value));
+
                     var parameters = KeepParameters(IcalPropertyNames.Trigger, IcalParameterNames.Value, IcalParameterNames.Related,
                         IcalParameterNames.TimeZoneId);
                     parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value,
@@ -81,7 +86,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Action
@@ -121,7 +126,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Description
@@ -163,7 +168,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Summary

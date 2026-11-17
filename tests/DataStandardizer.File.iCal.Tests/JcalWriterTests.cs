@@ -29,6 +29,16 @@ namespace DataStandardizer.File.iCal.Tests
 
         private const string WriteFailedMessage = "*write to the stream or a flush of it failed*";
 
+        // ref. RFC 5545 §3.8.1.6: the example GEO value, and the jCal array RFC 7265 §3.4.1.1 gives it.
+        private const string GeoValue = "37.386013;-122.082932";
+        private const string GeoName = "geo";
+        private const string GeoJcal = "[\"geo\",{},\"float\",[37.386013,-122.082932]]";
+
+        // ref. RFC 5545 §3.8.8.3: the example REQUEST-STATUS value 2.0;Success, and the jCal array RFC 7265 §3.4.1.2 gives it.
+        private const string SuccessStatusValue = "2.0;Success";
+        private const string RequestStatusName = "request-status";
+        private const string SuccessStatusJcal = "[\"request-status\",{},\"text\",[\"2.0\",\"Success\"]]";
+
         // The start of the array of calendars, ref. RFC 7265 §3.2.
         private static readonly byte[] ArrayStartOnly = { (byte)'[' };
 
@@ -71,11 +81,11 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void WriteCalendars_RfcExample2_MatchesJcalFormWithPeriodArray()
+        public void WriteCalendars_RfcExample2_MatchesJcalForm()
         {
             // arrange: RFC 7265 §3.6.9 gives a PERIOD as an array, which Appendix B.2 does not follow.
             var calendars = ReadCalendars(Example2Ical);
-            var expected = JsonNode.Parse(Example2JcalWithPeriodArray);
+            var expected = JsonNode.Parse(Example2Jcal);
 
             // act
             var testResult = WriteJcal(calendars);
@@ -229,7 +239,7 @@ namespace DataStandardizer.File.iCal.Tests
                 "X-TEXT;VALUE=TEXT:one\\, two,three\\nfour",
                 "X-RAW:a\\,b;c",
                 "X-OTHER;VALUE=X-NAME:anything",
-                "GEO:37.386013;-122.082932",
+                "GEO:" + GeoValue,
                 "REQUEST-STATUS:3.7;Invalid calendar user;ATTENDEE:\\;mailto:jsmith@example.com",
                 "ATTENDEE;DELEGATED-TO=\"mailto:a@example.com\",\"mailto:b@example.com\";RSVP=TRUE:mailto:c@example.com"));
 
@@ -251,10 +261,34 @@ namespace DataStandardizer.File.iCal.Tests
             testResult["x-text"].Should().Be("[\"x-text\",{},\"text\",\"one, two\",\"three\\nfour\"]");
             testResult["x-raw"].Should().Be("[\"x-raw\",{},\"unknown\",\"a\\\\,b;c\"]");
             testResult["x-other"].Should().Be("[\"x-other\",{},\"x-name\",\"anything\"]");
-            testResult["geo"].Should().Be("[\"geo\",{},\"float\",[37.386013,-122.082932]]");
-            testResult["request-status"].Should().Be("[\"request-status\",{},\"text\",[\"3.7\",\"Invalid calendar user\",\"ATTENDEE:;mailto:jsmith@example.com\"]]");
+            testResult[GeoName].Should().Be(GeoJcal);
+            testResult[RequestStatusName].Should().Be("[\"request-status\",{},\"text\",[\"3.7\",\"Invalid calendar user\",\"ATTENDEE:;mailto:jsmith@example.com\"]]");
             testResult["attendee"].Should().Be(
                 "[\"attendee\",{\"delegated-to\":[\"mailto:a@example.com\",\"mailto:b@example.com\"],\"rsvp\":\"TRUE\"},\"cal-address\",\"mailto:c@example.com\"]");
+        }
+
+        // ref. RFC 5545 §3.2.20: a VALUE parameter may name the default value type.  ref. RFC 7265 §3.4.1.1 and §3.4.1.2: GEO and
+        // REQUEST-STATUS are arrays whatever the parameters.
+        public static TheoryData<string, string, string> ExplicitDefaultValueTypeCases => new TheoryData<string, string, string>
+        {
+            { "GEO;VALUE=FLOAT:" + GeoValue, GeoName, GeoJcal },
+            { "REQUEST-STATUS;VALUE=TEXT:" + SuccessStatusValue, RequestStatusName, SuccessStatusJcal },
+            { "REQUEST-STATUS;VALUE=text:" + SuccessStatusValue, RequestStatusName, SuccessStatusJcal },
+        };
+
+        [Theory]
+        [MemberData(nameof(ExplicitDefaultValueTypeCases))]
+        public void WriteCalendar_StructuredPropertyWithExplicitDefaultValueType_WritesStructuredValue(string line, string propertyName,
+            string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = EventProperties(WriteJcal(new[] { calendar }));
+
+            // assert
+            testResult[propertyName].Should().Be(expected);
         }
 
         [Fact]
@@ -322,11 +356,28 @@ namespace DataStandardizer.File.iCal.Tests
                 .Equal(LanguageThatNeedsQuotes);
         }
 
+        // ref. RFC 5545 §3.7.4: the range 2.0;2.0, whose semicolon separates minver and maxver, and so is not escaped.  The calendar's own
+        // VERSION is always written as 2.0, so the range is in a component, where RFC 5545 §3.6.1 allows an iana-prop.  JcalReader reads it
+        // from one string.
+        [Fact]
+        public void WriteCalendar_VersionRangeInComponent_WritesOneStringWithTheSemicolon()
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar("VERSION:2.0;2.0"));
+
+            // act
+            var testResult = EventProperties(WriteJcal(new[] { calendar }));
+
+            // assert
+            testResult["version"].Should().Be("[\"version\",{},\"text\",\"2.0;2.0\"]");
+        }
+
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingVersionCase].Text, MissingRequiredProperties);
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
 
             // act
             var testResult = JsonNode.Parse(WriteJcal(new[] { calendar }, MissingRequiredProperties)).AsArray();
@@ -356,6 +407,37 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendar_TextSeparatorTheGrammarAllows_DoesNotThrow(string property)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(property));
+
+            // act
+            Action testAction = () => WriteJcal(new[] { calendar });
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.UnescapedTextSeparatorCases), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendar_UnescapedTextSeparatorWithDefaults_ThrowsForTheProperty(string caseName)
+        {
+            // arrange
+            var testCase = ConformanceCases.All[caseName];
+            var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
+
+            // act
+            Action testAction = () => WriteJcal(new[] { calendar });
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName);
+        }
+
         [Fact]
         public void WriteCalendar_NonConformant_Throws()
         {
@@ -369,6 +451,22 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
                 .Be(IcalDiagnosticKind.MissingRequiredProperty);
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarsNestedInvalidly), MemberType = typeof(ModelTestData), DisableDiscoveryEnumeration = true)]
+        public void WriteCalendar_ComponentsNestedInvalidly_Throws(Func<IcalCalendar> createCalendar)
+        {
+            // arrange
+            var calendar = createCalendar();
+            var writer = new JcalWriter(new MemoryStream());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.InvalidComponentNesting);
         }
 
         [Fact]

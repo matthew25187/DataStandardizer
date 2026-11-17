@@ -102,7 +102,7 @@ namespace DataStandardizer.File.iCal
                     IsRootEnded = true;
                     return null;
                 case FrameKind.Component:
-                    return AddLine(new IcalContentLine(IcalCalendarBuilder.EndName, frame.ComponentName), lineNumber, linePosition);
+                    return AddLine(CreateComponentLine(IcalCalendarBuilder.EndName, frame.ComponentName, lineNumber), lineNumber, linePosition);
                 case FrameKind.Property:
                     // Only the property element itself, a child of properties, becomes a line.
                     if (_frames[_frames.Count - 1].Kind != FrameKind.Properties) return null;
@@ -178,8 +178,8 @@ namespace DataStandardizer.File.iCal
 
                     return StartComponent(localName, lineNumber, linePosition);
                 case FrameKind.Component:
-                    // ref. RFC 6321§3.2: a component holds a properties element and a components element.
-                    if (localName == XcalNames.Properties && !parent.HasProperties)
+                    // ref. RFC 6321§3.2 and Appendix A (3.6): a component holds a properties element, then a components element.
+                    if (localName == XcalNames.Properties && !parent.HasProperties && !parent.HasComponents)
                     {
                         parent.HasProperties = true;
                         return new Frame(FrameKind.Properties, localName);
@@ -191,7 +191,7 @@ namespace DataStandardizer.File.iCal
                         return new Frame(FrameKind.Components, localName);
                     }
 
-                    throw BuildUnexpectedElementException(localName, parent, "one properties element and one components element", lineNumber,
+                    throw BuildUnexpectedElementException(localName, parent, "one properties element, then one components element", lineNumber,
                         linePosition);
                 case FrameKind.Components:
                     return StartComponent(localName, lineNumber, linePosition);
@@ -211,7 +211,7 @@ namespace DataStandardizer.File.iCal
         {
             // ref. RFC 6321§4: names are converted to upper case.
             var name = XcalConverter.ToIcalName(new XcalElement(localName, lineNumber, linePosition));
-            AddLine(new IcalContentLine(IcalCalendarBuilder.BeginName, name), lineNumber, linePosition);
+            AddLine(CreateComponentLine(IcalCalendarBuilder.BeginName, name, lineNumber), lineNumber, linePosition);
             return new Frame(FrameKind.Component, localName, name);
         }
 
@@ -221,11 +221,6 @@ namespace DataStandardizer.File.iCal
         private IcalCalendar AddLine(IcalContentLine line, long lineNumber, long linePosition)
 #endif
         {
-            if (line.LineNumber == 0)
-            {
-                line = IcalContentLine.FromConversion(line.Name, new IcalContentLineParameter[0], line.Value, lineNumber);
-            }
-
             try
             {
                 return _builder.Add(line);
@@ -238,6 +233,14 @@ namespace DataStandardizer.File.iCal
                 XcalConverter.AddLocation(exception, lineNumber, linePosition);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Creates the BEGIN or END line of a component, on the line of its element.
+        /// </summary>
+        private static IcalContentLine CreateComponentLine(string name, string componentName, long lineNumber)
+        {
+            return IcalContentLine.FromConversion(name, new IcalContentLineParameter[0], componentName, lineNumber);
         }
 
         private static IcalFileException BuildUnexpectedElementException(string localName, Frame parent, string expected, long lineNumber,

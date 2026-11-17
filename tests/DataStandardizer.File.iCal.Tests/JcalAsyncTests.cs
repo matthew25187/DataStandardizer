@@ -33,8 +33,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly string Example1ThenExample2 = "[" + Example1Jcal + "," + Example2Jcal + "]";
 
-        // The same two calendars as Example1ThenExample2, as a writer writes them, and in iCalendar form.
-        private static readonly string Example1ThenExample2WithPeriodArray = "[" + Example1Jcal + "," + Example2JcalWithPeriodArray + "]";
+        // The same two calendars as Example1ThenExample2, in iCalendar form.
         private static readonly string Example1ThenExample2Ical = Example1Ical + Example2Ical;
 
         // A document of RFC 7265 Appendix B.1 twice.
@@ -378,7 +377,7 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task WriteCalendarAsync_Stream_WritesWithoutSynchronousIo()
         {
             // arrange
-            var expected = JsonNode.Parse(Example1ThenExample2WithPeriodArray);
+            var expected = JsonNode.Parse(Example1ThenExample2);
             var stream = new AsyncOnlyWriteStream();
             var writer = new JcalWriter(stream);
             await writer.WriteCalendarAsync(ReadCalendar(Example1Ical));
@@ -418,7 +417,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendars = ReadCalendars(Example1ThenExample2Ical);
-            var expected = JsonNode.Parse(Example1ThenExample2WithPeriodArray);
+            var expected = JsonNode.Parse(Example1ThenExample2);
             var stream = new MemoryStream();
             var writer = new JcalWriter(stream);
             await AsyncDisposal.UsingAsync(writer, async () =>

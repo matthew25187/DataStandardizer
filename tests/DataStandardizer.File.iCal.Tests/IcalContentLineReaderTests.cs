@@ -14,6 +14,9 @@ namespace DataStandardizer.File.iCal.Tests
     public class IcalContentLineReaderTests
     {
         private const string Summary = "SUMMARY";
+        private const string Description = "DESCRIPTION";
+        private const string FirstLineBeforeFoldedValue = "X-A:a";
+        private const string EmptyStartOfFoldedDescription = "DESCRIPTION:";
         private const string TimeZoneIdParameter = "TZID";
         private const string NewlineInText = "a\nb";
         private const string Rfc6868Geo = "40.446816;-80.00679";
@@ -717,6 +720,75 @@ namespace DataStandardizer.File.iCal.Tests
                 exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
                 exception.Data[IcalFileException.DataItemName.PhysicalLineNumber].Should().Be(3L);
                 exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("DESCRIPTION");
+            }
+        }
+
+        // The value is folded so the comma or semicolon that is not escaped (RFC 5545 §3.3.11) is on the third physical line.  The last
+        // follows an escaped backslash.
+        public static TheoryData<string> UnescapedSeparatorContinuations => new TheoryData<string>
+        {
+            " a,b",
+            " a;b",
+            " a\\\\;b",
+        };
+
+        [Theory]
+        [MemberData(nameof(UnescapedSeparatorContinuations))]
+        public void GetTextValue_UnescapedSeparatorInView_ThrowsWithLocation(string continuation)
+        {
+            // arrange
+            using (var reader = CreateReader(Crlf(FirstLineBeforeFoldedValue, EmptyStartOfFoldedDescription, continuation)))
+            {
+                reader.ReadLine();
+                reader.ReadContentLine();
+                var view = reader.CurrentLine;
+
+                // act
+                Action testAction = () => view.GetTextValue().ToString();
+
+                // assert
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
+                exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
+                exception.Data[IcalFileException.DataItemName.PhysicalLineNumber].Should().Be(3L);
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(Description);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UnescapedSeparatorContinuations))]
+        public void GetTextValue_UnescapedSeparatorInLine_ThrowsWithLocation(string continuation)
+        {
+            // arrange
+            using (var reader = CreateReader(Crlf(FirstLineBeforeFoldedValue, EmptyStartOfFoldedDescription, continuation)))
+            {
+                reader.ReadLine();
+                var line = reader.ReadLine();
+
+                // act
+                Action testAction = () => line.GetTextValue();
+
+                // assert
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
+                exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
+                exception.Data[IcalFileException.DataItemName.PhysicalLineNumber].Should().Be(3L);
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(Description);
+            }
+        }
+
+        [Fact]
+        public void GetTextValueMemory_UnescapedComma_Throws()
+        {
+            // arrange
+            using (var reader = CreateReader(Crlf("DESCRIPTION:a,b")))
+            {
+                reader.ReadContentLine();
+                var view = reader.CurrentLine;
+
+                // act
+                Action testAction = () => view.GetTextValueMemory();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
             }
         }
 

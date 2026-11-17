@@ -32,8 +32,7 @@ namespace DataStandardizer.File.vCard
             AcceptMissingFinalLineBreak = true,
             AllowCardinalityViolations = true,
             AllowInvalidValues = true,
-            AllowMissingRequiredProperties = true,
-            AllowVersionNotFirst = true
+            AllowMissingRequiredProperties = true
         };
 
         /// <summary>
@@ -67,8 +66,7 @@ namespace DataStandardizer.File.vCard
                 AcceptMissingFinalLineBreak = options.AcceptMissingFinalLineBreak,
                 AllowCardinalityViolations = options.AllowCardinalityViolations,
                 AllowInvalidValues = options.AllowInvalidValues,
-                AllowMissingRequiredProperties = options.AllowMissingRequiredProperties,
-                AllowVersionNotFirst = options.AllowVersionNotFirst
+                AllowMissingRequiredProperties = options.AllowMissingRequiredProperties
             };
 
             return TryReadCore(text, nestedOptions, VcardVersionMapping.Version30, depth, out card);

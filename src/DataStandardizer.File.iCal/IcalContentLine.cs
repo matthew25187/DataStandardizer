@@ -214,26 +214,41 @@ namespace DataStandardizer.File.iCal
         /// <c>\n</c> or <c>\N</c> a line feed.
         /// </summary>
         /// <remarks>
-        /// Use this only for properties whose value type is TEXT.  A list of TEXT values must be split on unescaped commas before unescaping, so
-        /// for a multi-valued property use <see cref="Value"/> instead.
+        /// Use this only for properties whose value type is TEXT.  A comma or semicolon in TEXT must be escaped (RFC 5545 §3.3.11), so for a
+        /// property whose value holds unescaped commas or semicolons as separators, such as a list of TEXT values or <c>REQUEST-STATUS</c>,
+        /// use <see cref="Value"/> and split it before unescaping each part.
         /// </remarks>
-        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence.</exception>
+        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence, or a comma or
+        /// semicolon that is not escaped.</exception>
         public string GetTextValue()
         {
             var value = Value;
-            if (value.IndexOf('\\') < 0) return value;
-
-            var unescaped = new char[value.Length];
-            int unescapedLength, errorIndex;
-            if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), unescaped, out unescapedLength, out errorIndex))
+            var result = value;
+            if (value.IndexOf('\\') >= 0)
             {
-                var physicalLineNumber = PhysicalLineNumber == 0
-                    ? 0
-                    : ContentLineScanner.GetPhysicalLineNumber(PhysicalLineNumber, _foldOffsets, _foldOffsets?.Length ?? 0, _valueOffset + errorIndex);
-                throw IcalContentLineErrorFactory.BuildInvalidTextEscapeException(LineNumber, physicalLineNumber, Name);
+                var unescaped = new char[value.Length];
+                int unescapedLength, errorIndex;
+                if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), unescaped, out unescapedLength, out errorIndex))
+                    throw IcalContentLineErrorFactory.BuildInvalidTextEscapeException(LineNumber, GetValuePhysicalLineNumber(errorIndex), Name);
+
+                result = new string(unescaped, 0, unescapedLength);
             }
 
-            return new string(unescaped, 0, unescapedLength);
+            var separatorIndex = IcalValue.FindUnescapedSeparator(value.AsSpan());
+            if (separatorIndex >= 0)
+                throw IcalContentLineErrorFactory.BuildUnescapedTextSeparatorException(LineNumber, GetValuePhysicalLineNumber(separatorIndex), Name);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the 1-based number of the physical line that holds a character of the value; or 0 if the line was not read from a source.
+        /// </summary>
+        private long GetValuePhysicalLineNumber(int valueIndex)
+        {
+            return PhysicalLineNumber == 0
+                ? 0
+                : ContentLineScanner.GetPhysicalLineNumber(PhysicalLineNumber, _foldOffsets, _foldOffsets?.Length ?? 0, _valueOffset + valueIndex);
         }
 
         /// <summary>
@@ -246,6 +261,50 @@ namespace DataStandardizer.File.iCal
         internal static IcalContentLine FromConversion(string name, IcalContentLineParameter[] parameters, string value, long lineNumber)
         {
             return new IcalContentLine(name, parameters.Length == 0 ? NoParameters : parameters, null, value, lineNumber, 0, null, 0);
+        }
+
+        /// <summary>
+        /// Creates a content line converted from another serialization, jCal or xCal, whose value was not in the form that serialization
+        /// requires, though it is valid in the text form; taking ownership of the parameter array.
+        /// </summary>
+        /// <param name="name">The property name.</param>
+        /// <param name="parameters">The parameters, in order.</param>
+        /// <param name="value">The value, in the form of a content line.</param>
+        /// <param name="lineNumber">The 1-based number of the line in the source on which the property starts; or 0 if not known.</param>
+        /// <param name="conversionProblem">The problem with the value in its source, which the conformance check reports; or <c>null</c> if
+        /// there is none.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static IcalContentLine FromConversion(string name, IcalContentLineParameter[] parameters, string value, long lineNumber,
+            string? conversionProblem)
+#else
+        internal static IcalContentLine FromConversion(string name, IcalContentLineParameter[] parameters, string value, long lineNumber,
+            string conversionProblem)
+#endif
+        {
+            var line = FromConversion(name, parameters, value, lineNumber);
+            line.ConversionProblem = conversionProblem;
+            return line;
+        }
+
+        /// <summary>
+        /// Gets the problem with the value in the serialization it was converted from, which the reader of that serialization reports as an
+        /// invalid value; or <c>null</c> if there is none, or the line was not converted.  Other checks, such as those of the writers, don't
+        /// report it, since the value is valid in the text form the line holds.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? ConversionProblem { get; private set; }
+#else
+        internal string ConversionProblem { get; private set; }
+#endif
+
+        /// <summary>
+        /// Creates a copy of the line with another value, keeping the name, the parameters and the line number it was read from.
+        /// </summary>
+        /// <param name="value">The value, in the form of a content line.</param>
+        internal IcalContentLine WithValue(string value)
+        {
+            // The fold offsets locate positions in the old value, so they are not kept.
+            return new IcalContentLine(Name, _parameters, RawParameters, value, LineNumber, PhysicalLineNumber, null, 0);
         }
 
         /// <summary>

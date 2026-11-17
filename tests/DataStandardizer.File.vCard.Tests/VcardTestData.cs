@@ -32,6 +32,42 @@ namespace DataStandardizer.File.vCard.Tests
             Encoding.GetEncoding(28591);
 #endif
 
+        /// <summary>
+        /// Gets the default options, each option that accepts a kind of problem on its own, and every option that accepts something at once: the options under which a requirement that
+        /// no option waives must still be enforced.
+        /// </summary>
+        public static IEnumerable<VcardOptions> EveryAccommodation()
+        {
+            yield return new VcardOptions { MaxLineLength = null };
+            yield return new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
+            yield return new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true };
+            yield return new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+            yield return new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true };
+            yield return new VcardOptions { MaxLineLength = null, AcceptCaretEncodingInAllVersions = true };
+#pragma warning disable CS0618 // The option is obsolete, and has no effect, which is what this shows.
+            yield return new VcardOptions { MaxLineLength = null, AllowVersionNotFirst = true };
+            yield return new VcardOptions
+            {
+                MaxLineLength = null,
+                AcceptBareLineFeed = true,
+                AcceptByteOrderMark = true,
+                AcceptCaretEncodingInAllVersions = true,
+                AcceptEightBitWithoutEncoding = true,
+                AcceptLegacySyntax = true,
+                AcceptMissingFinalLineBreak = true,
+                AcceptOrgUriProperty = true,
+                AcceptRfc6350FoldsInVersion21 = true,
+                AcceptUnescapedCommasInUris = true,
+                AllowCardinalityViolations = true,
+                AllowInvalidValues = true,
+                AllowLossyVersionConversion = true,
+                AllowMissingRequiredProperties = true,
+                AllowUnknownCharsetAsLatin1 = true,
+                AllowVersionNotFirst = true
+            };
+#pragma warning restore CS0618
+        }
+
         public static TheoryData<int> BufferSizeData()
         {
             var data = new TheoryData<int>();

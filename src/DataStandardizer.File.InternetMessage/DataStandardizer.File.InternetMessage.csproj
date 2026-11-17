@@ -32,6 +32,8 @@ Provides types supporting the reading and writing of Internet messages, includin
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
+  <Import Project="..\DataStandardizer.FloatingPoint.Shared\DataStandardizer.FloatingPoint.Shared.projitems" Label="Shared" />
+
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
     <ProjectReference Include="..\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />

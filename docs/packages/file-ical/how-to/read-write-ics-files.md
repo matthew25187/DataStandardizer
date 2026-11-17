@@ -65,8 +65,8 @@ When the data comes from a file or stream as UTF-8, a fold that splits a multi-b
 character is repaired before decoding. A `TextReader` has already decoded the data,
 so it can't be repaired there.
 
-Only iCalendar 2.0 is read. A calendar whose `VERSION` doesn't include 2.0, such as
-the `VERSION:1.0` of vCalendar 1.0, throws `IcalFileException` as soon as the
+Only iCalendar 2.0 is read. A calendar whose `VERSION` is anything other than `2.0`
+or `2.0;2.0`, such as the `VERSION:1.0` of vCalendar 1.0, throws `IcalFileException` as soon as the
 `VERSION` line is read.
 
 ## The model at a glance

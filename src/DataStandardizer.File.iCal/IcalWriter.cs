@@ -602,7 +602,7 @@ namespace DataStandardizer.File.iCal
                 }
                 else
                 {
-                    lines.Add(property);
+                    lines.Add(PrepareProperty(property));
                 }
             }
 
@@ -613,28 +613,47 @@ namespace DataStandardizer.File.iCal
 
             foreach (var component in calendar.Components)
             {
-                AddComponent(component, lines, ref componentCount);
+                AddComponent(component, 2, lines, ref componentCount);
             }
 
             lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, calendar.Name));
             return lines;
         }
 
-        private static void AddComponent(IcalComponent component, List<IcalContentLine> lines, ref int componentCount)
+        // depth is the level of the component, counting the VCALENDAR as the first.
+        private static void AddComponent(IcalComponent component, int depth, List<IcalContentLine> lines, ref int componentCount)
         {
+            IcalConformance.CheckWriteDepth(depth);
             lines.Add(new IcalContentLine(IcalCalendarBuilder.BeginName, component.Name));
             foreach (var property in component.Properties)
             {
-                lines.Add(property);
+                lines.Add(PrepareProperty(property));
             }
 
             foreach (var child in component.Components)
             {
-                AddComponent(child, lines, ref componentCount);
+                AddComponent(child, depth + 1, lines, ref componentCount);
             }
 
             lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, component.Name));
             componentCount++;
+        }
+
+        /// <summary>
+        /// Gets the line to write for a property: the property itself, or a copy with its RECUR value's FREQ rule part moved to the front.
+        /// </summary>
+        private static IcalContentLine PrepareProperty(IcalContentLine property)
+        {
+            // ref. RFC 5545§3.3.10: rule parts are read in any order, so one read with FREQ elsewhere is kept as it is, but FREQ MUST be the
+            // first rule part written.  ref. RFC 5545§3.2.20: a VALUE parameter names the type of any property, such as an x-prop.  Without
+            // one, only RRULE has a RECUR value, so other properties are passed over without a search of the registry.
+            var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
+            if (valueParameter is null && !IcalComponent.IsNamed(property, IcalPropertyNames.RecurrenceRule)) return property;
+
+            if (IcalValueTypeRegistry.GetValueTypeOfAnyProperty(property.Name, valueParameter) != IcalValueType.Recur) return property;
+
+            var value = IcalRecurrenceRule.MoveFrequencyFirst(property.Value);
+            return ReferenceEquals(value, property.Value) ? property : property.WithValue(value);
         }
 
         private void CountCalendar(int componentCount)

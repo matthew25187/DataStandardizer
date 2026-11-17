@@ -61,7 +61,7 @@
         ["rdate",
           { "tzid": "US/Eastern" },
           "period",
-          "2006-01-02T15:00:00/PT2H"
+          ["2006-01-02T15:00:00", "PT2H"]
         ],
         ["summary", {}, "text", "Event #2"],
         ["description",

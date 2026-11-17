@@ -119,28 +119,33 @@ namespace DataStandardizer.File.iCal
             _isByDayOrdinalInMonth = _frequency == IcalRecurrenceFrequency.Monthly ||
                                      (_frequency == IcalRecurrenceFrequency.Yearly && parts.ByMonth != 0);
 
-            // ref. RFC 5545§3.8.5.3 and §3.3.10: where no BYxxx part gives the day, it is taken from DTSTART.
+            // ref. RFC 5545§3.8.5.3 and §3.3.10: where no BYYEARDAY, BYMONTHDAY or BYDAY part gives the day, it is taken from DTSTART.
+            // WEEKLY, and BYWEEKNO, which gives only the week, take the day of the week from it.
             var startDay = (int)(startStamp / SecondsPerDay);
-            if ((_byWeekNoPositive | _byWeekNoNegative) == 0 && !_hasByYearDay && _byMonthDay == 0 && !_hasByDay)
+            if (!_hasByYearDay && _byMonthDay == 0 && !_hasByDay)
             {
-                var startDate = IcalDate.FromDayNumber(startDay).ToDateTime();
-                switch (_frequency)
+                if ((_byWeekNoPositive | _byWeekNoNegative) != 0 || _frequency == IcalRecurrenceFrequency.Weekly)
                 {
-                    case IcalRecurrenceFrequency.Yearly:
-                        if (_byMonth == 0)
-                        {
-                            _byMonth = 1UL << startDate.Month;
-                        }
+                    _byDay.Set((int)GetDayOfWeek(startDay) * ByDayStride);
+                    _hasByDay = true;
+                }
+                else
+                {
+                    var startDate = IcalDate.FromDayNumber(startDay).ToDateTime();
+                    switch (_frequency)
+                    {
+                        case IcalRecurrenceFrequency.Yearly:
+                            if (_byMonth == 0)
+                            {
+                                _byMonth = 1UL << startDate.Month;
+                            }
 
-                        _byMonthDay = 1UL << startDate.Day;
-                        break;
-                    case IcalRecurrenceFrequency.Monthly:
-                        _byMonthDay = 1UL << startDate.Day;
-                        break;
-                    case IcalRecurrenceFrequency.Weekly:
-                        _byDay.Set((int)GetDayOfWeek(startDay) * ByDayStride);
-                        _hasByDay = true;
-                        break;
+                            _byMonthDay = 1UL << startDate.Day;
+                            break;
+                        case IcalRecurrenceFrequency.Monthly:
+                            _byMonthDay = 1UL << startDate.Day;
+                            break;
+                    }
                 }
             }
 

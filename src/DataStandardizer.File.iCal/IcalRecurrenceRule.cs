@@ -302,8 +302,9 @@ namespace DataStandardizer.File.iCal
         /// Gets a copy of the rule that ends at a date-time (UNTIL), and so has no COUNT.
         /// </summary>
         /// <param name="until">The last date-time.  RFC 5545 §3.3.10 requires it to be floating if DTSTART is floating, and otherwise in UTC.
-        /// This method refuses only a value in a named time zone, since it does not know DTSTART; <see cref="IcalComponent.Validate"/> and the
-        /// writers check the rest.</param>
+        /// In a STANDARD or DAYLIGHT observance it must always be in UTC, and <see cref="IcalTimeZoneObservance.RecurrenceRules"/> refuses a
+        /// rule whose UNTIL isn't.  This method refuses only a value in a named time zone, since it does not know the component;
+        /// <see cref="IcalComponent.Validate"/> and the writers check the rest.</param>
         /// <exception cref="ArgumentException"><paramref name="until"/> is in a named time zone.</exception>
         public IcalRecurrenceRule WithUntil(IcalDateTime until)
         {
@@ -975,6 +976,41 @@ namespace DataStandardizer.File.iCal
                 default:
                     return TryParseListPart(value, (ListPart)(partIndex - FirstListPart), ref parts);
             }
+        }
+
+        /// <summary>
+        /// Gets a RECUR value in the text form with its FREQ rule part first, keeping the other rule parts in their order, and every name and
+        /// value as it is.
+        /// </summary>
+        /// <param name="value">The value, which need not be a valid rule.</param>
+        /// <returns><paramref name="value"/> with its first FREQ rule part moved to the front; or <paramref name="value"/> itself if FREQ is
+        /// already first, or there is none.</returns>
+        internal static string MoveFrequencyFirst(string value)
+        {
+            // ref. RFC 5545§3.3.10: rule parts are accepted in any order, but FREQ MUST be the first one written, for applications that
+            // pre-date RFC 5545.
+            var start = 0;
+            while (start < value.Length)
+            {
+                var end = value.IndexOf(';', start);
+                if (end < 0)
+                {
+                    end = value.Length;
+                }
+
+                var equalsIndex = value.IndexOf('=', start, end - start);
+                if (equalsIndex > start && GetPartIndex(value.AsSpan(start, equalsIndex - start)) == PartFrequency)
+                {
+                    if (start == 0) return value;
+
+                    // The ';' before FREQ goes, and the one after it, if any, stays with the rest.
+                    return value.Substring(start, end - start) + ";" + value.Substring(0, start - 1) + value.Substring(end);
+                }
+
+                start = end + 1;
+            }
+
+            return value;
         }
 
         private static int GetPartIndex(ReadOnlySpan<char> name)

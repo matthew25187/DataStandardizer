@@ -148,7 +148,9 @@ namespace DataStandardizer.File.iCal
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return format != IcalValueFormat.Text ? TryParseXml(value, null, out result) : TryParseText(value, null, out result);
+            return format != IcalValueFormat.Text
+                ? TryParseXml(value, null, format == IcalValueFormat.Xml, out result)
+                : TryParseText(value, null, out result);
         }
 
         /// <summary>
@@ -172,7 +174,9 @@ namespace DataStandardizer.File.iCal
             CheckTimeZoneId(timeZoneId);
             IcalValueFormatting.CheckFormat(format);
 
-            return format != IcalValueFormat.Text ? TryParseXml(value, timeZoneId, out result) : TryParseText(value, timeZoneId, out result);
+            return format != IcalValueFormat.Text
+                ? TryParseXml(value, timeZoneId, format == IcalValueFormat.Xml, out result)
+                : TryParseText(value, timeZoneId, out result);
         }
 
         /// <summary>
@@ -357,21 +361,28 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Parses the <c>YYYY-MM-DDTHH:MM:SS[Z]</c> xCal form, which must be exactly the length of <paramref name="value"/>.
+        /// Parses the <c>YYYY-MM-DDTHH:MM:SS[Z]</c> form of xCal and jCal, which must be exactly the length of <paramref name="value"/>.
         /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="timeZoneId">The identifier from the value's <c>TZID</c> parameter; or <c>null</c> if it has none.</param>
+        /// <param name="isUpperCaseOnly"><c>true</c> for xCal, whose pattern is case-sensitive, so the designators must be <c>T</c> and
+        /// <c>Z</c>; <c>false</c> for jCal, whose ABNF also allows <c>t</c> and <c>z</c>.</param>
+        /// <param name="result">The date-time, if the value is valid.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParseXml(ReadOnlySpan<char> value, string? timeZoneId, out IcalDateTime result)
+        internal static bool TryParseXml(ReadOnlySpan<char> value, string? timeZoneId, bool isUpperCaseOnly, out IcalDateTime result)
 #else
-        internal static bool TryParseXml(ReadOnlySpan<char> value, string timeZoneId, out IcalDateTime result)
+        internal static bool TryParseXml(ReadOnlySpan<char> value, string timeZoneId, bool isUpperCaseOnly, out IcalDateTime result)
 #endif
         {
-            // ref. RFC 6321§3.6.5: pattern-date-time = "\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?".
+            // ref. RFC 6321§3.6.5: pattern-date-time = "\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?", which, as an XML Schema pattern, is
+            // case-sensitive.  ref. RFC 7265§3.6.5: datetime = date-complete "T" time-complete, in ABNF, whose strings are case-insensitive
+            // (RFC 5234§2.3).
             result = default(IcalDateTime);
             IcalDate date;
             IcalTime time;
-            if (value.Length <= IcalDate.XmlLength || !IcalValueFormatting.IsLetter(value[IcalDate.XmlLength], 'T') ||
+            if (value.Length <= IcalDate.XmlLength || !IcalValueFormatting.IsLetter(value[IcalDate.XmlLength], 'T', isUpperCaseOnly) ||
                 !IcalDate.TryParseXml(value.Slice(0, IcalDate.XmlLength), out date) ||
-                !IcalTime.TryParseXml(value.Slice(IcalDate.XmlLength + 1), out time))
+                !IcalTime.TryParseXml(value.Slice(IcalDate.XmlLength + 1), isUpperCaseOnly, out time))
             {
                 return false;
             }

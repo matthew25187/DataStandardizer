@@ -41,7 +41,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// Setting a list replaces every <c>CATEGORIES</c> property with one holding the whole list; an empty list removes them.  The
-        /// getter throws <see cref="IcalFileException"/> if an item has a backslash that does not start a valid escape.
+        /// getter throws <see cref="IcalFileException"/> if an item has a backslash that does not start a valid escape, or a semicolon that is not escaped.
         /// </remarks>
         public IReadOnlyList<string> Categories
         {
@@ -55,7 +55,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Classification
@@ -73,7 +73,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Color
@@ -102,13 +102,15 @@ namespace DataStandardizer.File.iCal
         /// <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.1 requires CREATED to be in
+        /// UTC.</exception>
         public IcalDateTime? Created
         {
             get { return GetDateTime(IcalPropertyNames.Created); }
-            set { SetDateTime(IcalPropertyNames.Created, value); }
+            set { SetUtcDateTime(IcalPropertyNames.Created, value, "3.8.7.1"); }
         }
 
         /// <summary>
@@ -116,7 +118,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Description
@@ -146,13 +148,15 @@ namespace DataStandardizer.File.iCal
         /// information last revised; or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.2 requires DTSTAMP to be in
+        /// UTC.</exception>
         public IcalDateTime? DtStamp
         {
             get { return GetDateTime(IcalPropertyNames.DtStamp); }
-            set { SetDateTime(IcalPropertyNames.DtStamp, value); }
+            set { SetUtcDateTime(IcalPropertyNames.DtStamp, value, "3.8.7.2"); }
         }
 
         /// <summary>
@@ -197,13 +201,15 @@ namespace DataStandardizer.File.iCal
         /// <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.3 requires LAST-MODIFIED to be in
+        /// UTC.</exception>
         public IcalDateTime? LastModified
         {
             get { return GetDateTime(IcalPropertyNames.LastModified); }
-            set { SetDateTime(IcalPropertyNames.LastModified, value); }
+            set { SetUtcDateTime(IcalPropertyNames.LastModified, value, "3.8.7.3"); }
         }
 
         /// <summary>
@@ -211,7 +217,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Location
@@ -227,7 +233,9 @@ namespace DataStandardizer.File.iCal
         /// Gets or sets the calendar address of the organizer (RFC 5545 §3.8.4.3, <c>ORGANIZER</c>); or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.  The setter takes an absolute URI.
+        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.
+        /// The setter takes an absolute URI and writes it as it was given (<see cref="Uri.OriginalString"/>).  It throws
+        /// <see cref="ArgumentException"/> if that text is not a URI that <see cref="IcalValue.TryFormatUri"/> can write.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Organizer
@@ -285,7 +293,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// Setting a list replaces every <c>RESOURCES</c> property with one holding the whole list; an empty list removes them.  The getter
-        /// throws <see cref="IcalFileException"/> if an item has a backslash that does not start a valid escape.
+        /// throws <see cref="IcalFileException"/> if an item has a backslash that does not start a valid escape, or a semicolon that is not escaped.
         /// </remarks>
         public IReadOnlyList<string> Resources
         {
@@ -310,7 +318,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Status
@@ -327,7 +335,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Summary
@@ -345,7 +353,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Transparency
@@ -362,7 +370,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Uid
@@ -379,7 +387,9 @@ namespace DataStandardizer.File.iCal
         /// is none.
         /// </summary>
         /// <remarks>
-        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.  The setter takes an absolute URI.
+        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.
+        /// The setter takes an absolute URI and writes it as it was given (<see cref="Uri.OriginalString"/>).  It throws
+        /// <see cref="ArgumentException"/> if that text is not a URI that <see cref="IcalValue.TryFormatUri"/> can write.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Url

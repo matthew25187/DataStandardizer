@@ -27,7 +27,7 @@ The calendar properties include those that RFC 7986 adds: `NAME`, `DESCRIPTION`,
 and `IMAGE`.
 
 RFC 5545 defines iCalendar 2.0 only. [IcalReader](IcalReader.md) rejects a calendar
-whose `VERSION` does not include 2.0, and [IcalWriter](IcalWriter.md) always writes
+whose `VERSION` is not `2.0` or `2.0;2.0`, and [IcalWriter](IcalWriter.md) always writes
 `VERSION:2.0`.
 
 The typed properties follow the rules described under *Typed accessors* on
@@ -65,24 +65,24 @@ The constructor adds `VERSION:2.0`. A calendar built in code also needs a `PRODI
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `CalendarName` | `string? CalendarName { get; set; }` | `NAME` (RFC 7986 §5.1). TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape. `null` removes it. |
+| `CalendarName` | `string? CalendarName { get; set; }` | `NAME` (RFC 7986 §5.1). TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. `null` removes it. |
 | `CalendarScale` | `string? CalendarScale { get; set; }` | `CALSCALE` (RFC 5545 §3.7.1), such as `GREGORIAN`. TEXT, as for `CalendarName`. `null` removes it. |
-| `Categories` | `IReadOnlyList<string> Categories { get; set; }` | `CATEGORIES` (RFC 5545 §3.8.1.2; RFC 7986 §5.6), the items of every `CATEGORIES` property. Setting writes one property holding the whole list; an empty list or `null` removes them. Throws `ArgumentException` on set if an item is `null`, or `IcalFileException` on get if an item has an invalid escape. |
+| `Categories` | `IReadOnlyList<string> Categories { get; set; }` | `CATEGORIES` (RFC 5545 §3.8.1.2; RFC 7986 §5.6), the items of every `CATEGORIES` property. Setting writes one property holding the whole list; an empty list or `null` removes them. Throws `ArgumentException` on set if an item is `null`, or `IcalFileException` on get if an item has an invalid escape or a semicolon that is not escaped. |
 | `Color` | `string? Color { get; set; }` | `COLOR` (RFC 7986 §5.9), a CSS3 color name such as `turquoise`. TEXT. `null` removes it. |
 | `Description` | `string? Description { get; set; }` | `DESCRIPTION` (RFC 5545 §3.8.1.5; RFC 7986 §5.2). TEXT. `null` removes it. |
 | `Images` | `IReadOnlyList<IcalContentLine> Images { get; }` | `IMAGE` (RFC 7986 §5.10), as the content lines themselves. Each is a URI or inline BINARY data, with parameters such as `DISPLAY` and `FMTTYPE`. Change them through `Properties`. |
-| `LastModified` | `IcalDateTime? LastModified { get; set; }` | `LAST-MODIFIED` (RFC 5545 §3.8.7.3; RFC 7986 §5.4). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. Throws `IcalFileException` on get if the value is not a valid DATE-TIME, including a `VALUE=DATE`. `null` removes it. |
+| `LastModified` | `IcalDateTime? LastModified { get; set; }` | `LAST-MODIFIED` (RFC 5545 §3.8.7.3; RFC 7986 §5.4). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. Throws `IcalFileException` on get if the value is not a valid DATE-TIME, including a `VALUE=DATE`. `null` removes it. |
 | `Method` | `string? Method { get; set; }` | `METHOD` (RFC 5545 §3.7.2), the iTIP method, such as `PUBLISH`. TEXT. `null` removes it. |
 | `ProductId` | `string? ProductId { get; set; }` | `PRODID` (RFC 5545 §3.7.3), the identifier of the product that created the calendar. TEXT. `null` removes it. |
 | `RefreshInterval` | `IcalDuration? RefreshInterval { get; set; }` | `REFRESH-INTERVAL` (RFC 7986 §5.7), the suggested minimum interval between polls. The setter writes the `VALUE=DURATION` parameter the property needs. Throws `IcalFileException` on get if the value is not a valid DURATION. `null` removes it. |
 | `Source` | `Uri? Source { get; set; }` | `SOURCE` (RFC 7986 §5.8), where the calendar can be refreshed from. The setter writes the `VALUE=URI` parameter the property needs. Throws `ArgumentException` on set for a relative URI, or `IcalFileException` on get if the value is not a valid absolute URI. `null` removes it. |
 | `Uid` | `string? Uid { get; set; }` | `UID` (RFC 5545 §3.8.4.7; RFC 7986 §5.3), a persistent, globally unique identifier. TEXT. `null` removes it. |
 | `Url` | `Uri? Url { get; set; }` | `URL` (RFC 5545 §3.8.4.6; RFC 7986 §5.5). Throws `ArgumentException` on set for a relative URI, or `IcalFileException` on get if the value is not a valid absolute URI. `null` removes it. |
-| `Version` | `string? Version { get; set; }` | `VERSION` (RFC 5545 §3.7.4), as written: `2.0`, or a range such as `1.0;2.0`. TEXT. `null` removes it, but the writer writes `VERSION:2.0` regardless. |
+| `Version` | `string? Version { get; set; }` | `VERSION` (RFC 5545 §3.7.4), as written: `2.0`, or the range `2.0;2.0`. TEXT, except that the semicolon of a range is not escaped, so the getter throws `IcalFileException` only for a second semicolon that is not escaped. `null` removes it, but the writer writes `VERSION:2.0` regardless. |
 
 Every TEXT property removes TEXT escaping on get and adds it on set, and throws
 `IcalFileException` on get if the value has a backslash that does not start a
-valid escape.
+valid escape, or a comma or semicolon that is not escaped (RFC 5545 §3.3.11).
 
 Inherited members `Components`, `LineNumber`, `Name`, `Properties`, `GetProperty`,
 `GetProperties`, `SetProperty`, `RemoveProperties`, `Validate` and `ToString` are

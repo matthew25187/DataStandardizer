@@ -126,10 +126,11 @@ namespace DataStandardizer.File.iCal
             if (slashIndex < 0 || !TryParseDateTime(value.Slice(0, slashIndex), timeZoneId, format, out start)) return false;
 
             var rest = value.Slice(slashIndex + 1);
-            if (rest.Length > 0 && (rest[0] == '+' || rest[0] == '-' || IcalValueFormatting.IsLetter(rest[0], 'P')))
+            var isUpperCaseOnly = format == IcalValueFormat.Xml;
+            if (rest.Length > 0 && (rest[0] == '+' || rest[0] == '-' || IcalValueFormatting.IsLetter(rest[0], 'P', isUpperCaseOnly)))
             {
                 IcalDuration duration;
-                if (!IcalDuration.TryParseText(rest, out duration) || !IsPositive(duration)) return false;
+                if (!IcalDuration.TryParseText(rest, isUpperCaseOnly, out duration) || !IsPositive(duration)) return false;
 
                 result = new IcalPeriod(start, duration);
                 return true;
@@ -288,7 +289,7 @@ namespace DataStandardizer.File.iCal
 #endif
         {
             return format != IcalValueFormat.Text
-                ? IcalDateTime.TryParseXml(value, timeZoneId, out result)
+                ? IcalDateTime.TryParseXml(value, timeZoneId, format == IcalValueFormat.Xml, out result)
                 : IcalDateTime.TryParseText(value, timeZoneId, out result);
         }
 

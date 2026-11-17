@@ -3,6 +3,7 @@
     "path": "DataStandardizer.sln",
     "projects": [
       "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
+      "src\\DataStandardizer.FloatingPoint.Shared\\DataStandardizer.FloatingPoint.Shared.shproj",
       "src\\DataStandardizer.File.ContentLine.Shared\\DataStandardizer.File.ContentLine.Shared.shproj",
       "benchmarks\\DataStandardizer.File.vCard.Benchmarks\\DataStandardizer.File.vCard.Benchmarks.csproj",
       "fuzz\\DataStandardizer.File.vCard.Fuzz\\DataStandardizer.File.vCard.Fuzz.csproj",

@@ -118,7 +118,9 @@ namespace DataStandardizer.File.iCal
         /// Parses a duration.
         /// </summary>
         /// <param name="value">The value, such as <c>P15DT5H0M20S</c>, <c>-PT15M</c> or <c>P7W</c>, which is the same in
-        /// <see cref="IcalValueFormat.Text"/>, <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// <see cref="IcalValueFormat.Text"/>, <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form, except that the
+        /// designators may be lower case in <see cref="IcalValueFormat.Text"/> and <see cref="IcalValueFormat.Json"/> form but not in
+        /// <see cref="IcalValueFormat.Xml"/> form (RFC 6321 §3.6.6).</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The duration, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid duration; otherwise <c>false</c>.</returns>
@@ -127,14 +129,16 @@ namespace DataStandardizer.File.iCal
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return TryParseText(value, out result);
+            return TryParseText(value, format == IcalValueFormat.Xml, out result);
         }
 
         /// <summary>
         /// Parses a duration.
         /// </summary>
         /// <param name="value">The value, such as <c>P15DT5H0M20S</c>, <c>-PT15M</c> or <c>P7W</c>, which is the same in
-        /// <see cref="IcalValueFormat.Text"/>, <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// <see cref="IcalValueFormat.Text"/>, <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form, except that the
+        /// designators may be lower case in <see cref="IcalValueFormat.Text"/> and <see cref="IcalValueFormat.Json"/> form but not in
+        /// <see cref="IcalValueFormat.Xml"/> form (RFC 6321 §3.6.6).</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The duration.</returns>
         /// <exception cref="FormatException">The value is not a valid duration.</exception>
@@ -248,7 +252,11 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Parses the text form, which must be exactly the length of <paramref name="value"/>.
         /// </summary>
-        internal static bool TryParseText(ReadOnlySpan<char> value, out IcalDuration result)
+        /// <param name="value">The value.</param>
+        /// <param name="isUpperCaseOnly"><c>true</c> for xCal, whose pattern is case-sensitive, so the designators must be upper case;
+        /// <c>false</c> for the text form and jCal, whose ABNF also allows lower case.</param>
+        /// <param name="result">The duration, if the value is valid.</param>
+        internal static bool TryParseText(ReadOnlySpan<char> value, bool isUpperCaseOnly, out IcalDuration result)
         {
             // ref. RFC 5545§3.3.6:
             //   dur-value  = (["+"] / "-") "P" (dur-date / dur-time / dur-week)
@@ -259,6 +267,8 @@ namespace DataStandardizer.File.iCal
             //   dur-minute = 1*DIGIT "M" [dur-second]
             //   dur-second = 1*DIGIT "S"
             //   dur-day    = 1*DIGIT "D"
+            // ABNF strings are case-insensitive (RFC 5234§2.3).  ref. RFC 6321§3.6.6: the xCal pattern, an XML Schema pattern, is
+            // case-sensitive, so its designators are upper case only.
             result = default(IcalDuration);
             var index = 0;
             var isNegative = false;
@@ -268,7 +278,7 @@ namespace DataStandardizer.File.iCal
                 index++;
             }
 
-            if (index >= value.Length || !IcalValueFormatting.IsLetter(value[index], 'P')) return false;
+            if (index >= value.Length || !IcalValueFormatting.IsLetter(value[index], 'P', isUpperCaseOnly)) return false;
 
             index++;
             long number;
@@ -277,7 +287,7 @@ namespace DataStandardizer.File.iCal
             {
                 if (!IcalValueFormatting.TryParseNumber(value, ref index, int.MaxValue, out number) || index >= value.Length) return false;
 
-                if (IcalValueFormatting.IsLetter(value[index], 'W'))
+                if (IcalValueFormatting.IsLetter(value[index], 'W', isUpperCaseOnly))
                 {
                     if (index + 1 != value.Length) return false;
 
@@ -285,7 +295,7 @@ namespace DataStandardizer.File.iCal
                     return true;
                 }
 
-                if (!IcalValueFormatting.IsLetter(value[index], 'D')) return false;
+                if (!IcalValueFormatting.IsLetter(value[index], 'D', isUpperCaseOnly)) return false;
 
                 days = number;
                 index++;
@@ -296,11 +306,11 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            if (index >= value.Length || !IcalValueFormatting.IsLetter(value[index], 'T')) return false;
+            if (index >= value.Length || !IcalValueFormatting.IsLetter(value[index], 'T', isUpperCaseOnly)) return false;
 
             index++;
             long seconds;
-            if (!TryParseTime(value, index, out seconds)) return false;
+            if (!TryParseTime(value, index, isUpperCaseOnly, out seconds)) return false;
 
             result = new IcalDuration(isNegative, false, 0, (int)days, seconds);
             return true;
@@ -356,7 +366,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Parses the part of a duration after the "T", to the end of the value.
         /// </summary>
-        private static bool TryParseTime(ReadOnlySpan<char> value, int index, out long totalSeconds)
+        private static bool TryParseTime(ReadOnlySpan<char> value, int index, bool isUpperCaseOnly, out long totalSeconds)
         {
             totalSeconds = 0;
 
@@ -371,7 +381,7 @@ namespace DataStandardizer.File.iCal
                 var designator = -1;
                 for (var candidate = nextDesignator; candidate < designators.Length; candidate++)
                 {
-                    if (IcalValueFormatting.IsLetter(value[index], designators[candidate]))
+                    if (IcalValueFormatting.IsLetter(value[index], designators[candidate], isUpperCaseOnly))
                     {
                         designator = candidate;
                         break;

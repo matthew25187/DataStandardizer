@@ -16,12 +16,21 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         private const string JournalPropertyPath = "$[2][0][1][2]";
 
+        /// <summary>
+        /// The JSONPath of the first value of the property at <see cref="JournalPropertyPath"/>.
+        /// </summary>
+        private const string JournalPropertyFirstValuePath = "$[2][0][1][2][3]";
+
         // The byte position of "[x]" in NotValidJsonDocument, and of the VERSION property in UnsupportedVersionDocument.
         private const string NotValidJsonDocument = "[\"vcalendar\",\n  [x],[]]";
         private const long NotValidJsonBytePosition = 17;
         private const long UnsupportedVersionBytePosition = 14;
 
         private const string ExampleNotValidDateTime = "2026-02-30T00:00:00";
+
+        // ref. RFC 5545 §3.3.5: a DATE-TIME in the iCalendar text form, which RFC 7265 §3.6.5 writes as 2024-01-01T12:00:00Z in jCal.
+        private const string TextFormDateTime = "20240101T120000Z";
+        private const string TextFormDateTimeProperty = "[\"dtstart\",{},\"date-time\",\"" + TextFormDateTime + "\"]";
 
         private static readonly string UnsupportedVersionDocument = Document("[\"version\",{},\"text\",\"1.0\"]");
 
@@ -43,6 +52,31 @@ namespace DataStandardizer.File.iCal.Tests
         private static readonly IcalOptions AllowInvalidValues = new IcalOptions { AllowInvalidValues = true };
 
         // Each RFC example, with the content lines of its iCalendar form.
+        // JournalDocument with each VERSION that RFC 5545 §3.7.4 allows: 2.0, the only registered version identifier, alone or as both ends
+        // of a range.
+        public static TheoryData<string, string> ValidVersions()
+        {
+            var data = new TheoryData<string, string>();
+            foreach (var version in new[] { "2.0", "2.0;2.0" })
+            {
+                data.Add(version, JournalDocument(string.Empty).Replace("[\"version\",{},\"text\",\"2.0\"]", "[\"version\",{},\"text\",\"" + version + "\"]"));
+            }
+
+            return data;
+        }
+
+        // JournalDocument with a VERSION that RFC 5545 §3.7.4 does not allow: other spellings of 2.0, and ranges with an end that is not 2.0.
+        public static TheoryData<string> InvalidVersions()
+        {
+            var data = new TheoryData<string>();
+            foreach (var version in new[] { "2", "02.000", "1.0;2.0", "0;99" })
+            {
+                data.Add(JournalDocument(string.Empty).Replace("[\"version\",{},\"text\",\"2.0\"]", "[\"version\",{},\"text\",\"" + version + "\"]"));
+            }
+
+            return data;
+        }
+
         public static TheoryData<string, string[]> RfcExamples => new TheoryData<string, string[]>()
         {
             { Example1Jcal, FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)] },
@@ -69,8 +103,20 @@ namespace DataStandardizer.File.iCal.Tests
                 ("ParametersNotObject", JournalDocument("[\"summary\",[],\"text\",\"a\"]"), JournalPropertyPath + "[1]", "[],\"text\""),
                 ("ParameterValueNotString", JournalDocument("[\"summary\",{\"language\":5},\"text\",\"a\"]"), JournalPropertyPath + "[1]['language']", "5}"),
                 ("ParameterValueEmptyArray", JournalDocument("[\"summary\",{\"language\":[]},\"text\",\"a\"]"), JournalPropertyPath + "[1]['language']", "[]}"),
-                ("ParameterRepeated", JournalDocument("[\"summary\",{\"language\":\"en\",\"LANGUAGE\":\"fr\"},\"text\",\"a\"]"),
-                    JournalPropertyPath + "[1]['LANGUAGE']", "\"fr\""),
+                ("ParameterRepeated", JournalDocument("[\"summary\",{\"language\":\"en\",\"language\":\"fr\"},\"text\",\"a\"]"),
+                    JournalPropertyPath + "[1]['language']", "\"fr\""),
+                // ref. RFC 7265 §3.3 to §3.5 and §3.6.10: names, type identifiers and rule part keys are in lower case.
+                ("TopNameNotLowerCase", "[\"VCALENDAR\",[],[]]", "$[0]", "\"VCALENDAR\""),
+                ("ComponentNameNotLowerCase", Document("", "[\"VJOURNAL\",[],[]]"), "$[2][0][0]", "\"VJOURNAL\""),
+                ("PropertyNameNotLowerCase", JournalDocument("[\"SUMMARY\",{},\"text\",\"a\"]"), JournalPropertyPath + "[0]", "\"SUMMARY\""),
+                ("PropertyNameMixedCase", JournalDocument("[\"Summary\",{},\"text\",\"a\"]"), JournalPropertyPath + "[0]", "\"Summary\""),
+                ("ParameterNameNotLowerCase", JournalDocument("[\"summary\",{\"LANGUAGE\":\"en\"},\"text\",\"a\"]"),
+                    JournalPropertyPath + "[1]['LANGUAGE']", "\"en\""),
+                ("TypeNotLowerCase", JournalDocument("[\"summary\",{},\"TEXT\",\"a\"]"), JournalPropertyPath + "[2]", "\"TEXT\""),
+                ("UnknownTypeNotLowerCase", JournalDocument("[\"x-prop\",{},\"UNKNOWN\",\"a\"]"), JournalPropertyPath + "[2]", "\"UNKNOWN\""),
+                ("ExtensionTypeNotLowerCase", JournalDocument("[\"x-prop\",{},\"X-MYTYPE\",\"a\"]"), JournalPropertyPath + "[2]", "\"X-MYTYPE\""),
+                ("RulePartNotLowerCase", JournalDocument("[\"rrule\",{},\"recur\",{\"FREQ\":\"DAILY\"}]"), JournalPropertyPath + "[3]['FREQ']",
+                    "\"DAILY\""),
                 ("TypeNotString", JournalDocument("[\"summary\",{},1,\"a\"]"), JournalPropertyPath + "[2]", "1,\"a\""),
                 ("TextNotString", JournalDocument("[\"summary\",{},\"text\",5]"), JournalPropertyPath + "[3]", "5]"),
                 ("BooleanAsNumber", JournalDocument("[\"x-flag\",{},\"boolean\",1]"), JournalPropertyPath + "[3]", "1]"),
@@ -81,6 +127,28 @@ namespace DataStandardizer.File.iCal.Tests
                 ("RulePartNotValid", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":true}]"), JournalPropertyPath + "[3]['freq']", "true"),
                 ("RuleEmpty", JournalDocument("[\"rrule\",{},\"recur\",{}]"), JournalPropertyPath + "[3]", "{}]"),
                 ("GeoNotTwoNumbers", JournalDocument("[\"geo\",{},\"float\",[1.5]]"), JournalPropertyPath + "[3]", "[1.5]"),
+                // ref. RFC 7265 §3.4.1.1 and §3.6.7: GEO is two JSON numbers, not strings.
+                ("GeoItemsStrings", JournalDocument("[\"geo\",{},\"float\",[\"37.5\",\"-122.1\"]]"), JournalPropertyPath + "[3]", "[\"37.5\""),
+                // ref. RFC 7265 §3.6: these types are never JSON strings.
+                ("IntegerAsString", JournalDocument("[\"priority\",{},\"integer\",\"5\"]"), JournalPropertyPath + "[3]", "\"5\""),
+                ("FloatAsString", JournalDocument("[\"x-ratio\",{},\"float\",\"1.5\"]"), JournalPropertyPath + "[3]", "\"1.5\""),
+                ("BooleanAsString", JournalDocument("[\"x-flag\",{},\"boolean\",\"true\"]"), JournalPropertyPath + "[3]", "\"true\""),
+                ("PeriodAsString", JournalDocument("[\"rdate\",{},\"period\",\"2020-01-02T18:00:00Z/PT1H\"]"), JournalPropertyPath + "[3]",
+                    "\"2020-01-02T18"),
+                ("RuleAsString", JournalDocument("[\"rrule\",{},\"recur\",\"FREQ=DAILY;COUNT=2\"]"), JournalPropertyPath + "[3]", "\"FREQ"),
+                // ref. RFC 7265 §3.6.10: the JSON form of each rule part.
+                ("RuleCountAsString", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"count\":\"2\"}]"),
+                    JournalPropertyPath + "[3]['count']", "\"2\"}"),
+                ("RuleCountAsArray", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"count\":[5]}]"),
+                    JournalPropertyPath + "[3]['count']", "[5]"),
+                ("RuleFreqAsArray", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":[\"DAILY\"]}]"), JournalPropertyPath + "[3]['freq']",
+                    "[\"DAILY\"]"),
+                ("RuleUntilAsNumber", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":20260101}]"),
+                    JournalPropertyPath + "[3]['until']", "20260101}"),
+                ("RuleByMonthAsString", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"YEARLY\",\"bymonth\":\"10\"}]"),
+                    JournalPropertyPath + "[3]['bymonth']", "\"10\""),
+                ("RuleByDayAsNumber", JournalDocument("[\"rrule\",{},\"recur\",{\"freq\":\"WEEKLY\",\"byday\":[1]}]"),
+                    JournalPropertyPath + "[3]['byday'][0]", "1]}"),
                 ("RequestStatusTooShort", JournalDocument("[\"request-status\",{},\"text\",[\"2.0\"]]"), JournalPropertyPath + "[3]", "[\"2.0\"]"),
             };
             var data = new TheoryData<string, string, string, long>();
@@ -129,6 +197,54 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Equal(expected);
+        }
+
+        // ref. RFC 7265 §3.3: the component array takes the place of BEGIN and END, so neither can be a property.
+        private const string BeginProperty = "[\"begin\",{},\"text\",\"vevent\"]";
+        private const string EndProperty = "[\"end\",{},\"text\",\"vcalendar\"]";
+
+        public static TheoryData<string, IcalOptions> StructuralPropertyData()
+        {
+            var data = new TheoryData<string, IcalOptions>();
+            foreach (var property in new[] { BeginProperty, EndProperty })
+            {
+                foreach (var options in ConformanceCases.EveryAccommodation())
+                {
+                    data.Add(property, options);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(StructuralPropertyData))]
+        public void ReadCalendar_PropertyNamedBeginOrEnd_ThrowsWhateverTheOptions(string property, IcalOptions options)
+        {
+            // arrange
+            var json = Document(property);
+
+            // act
+            Action testAction = () => ReadJcal(json, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("*RFC 7265 §3.3*");
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // arrange
+            // ref. RFC 5545 §3.6 and §3.7.4, which RFC 7265 §3 maps to jCal: a calendar requires a VERSION.
+            var json = Document("[\"prodid\",{},\"text\",\"-//Test//Test//EN\"]",
+                "[\"vjournal\",[[\"uid\",{},\"text\",\"j@example.com\"],[\"dtstamp\",{},\"date-time\",\"2026-01-01T00:00:00Z\"]],[]]");
+
+            // act
+            Action testAction = () => ReadJcal(json, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Fact]
@@ -193,13 +309,13 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("[\"x\", {}, \"integer\", 1e2]", "X;VALUE=INTEGER:100")]
         [InlineData("[\"x\", {}, \"period\", [\"2011-05-17T12:00:00Z\", \"2011-05-17T13:00:00Z\"]]", "X;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
         [InlineData("[\"x\", {}, \"period\", [\"1997-03-08T16:00:00Z\", \"P1D\"]]", "X;VALUE=PERIOD:19970308T160000Z/P1D")]
-        [InlineData("[\"x\", {}, \"period\", \"1997-03-08T16:00:00Z/P1D\"]", "X;VALUE=PERIOD:19970308T160000Z/P1D")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"YEARLY\", \"count\": 5, \"byday\": [\"-1SU\", \"2MO\"], \"bymonth\": 10}]",
             "X;VALUE=RECUR:FREQ=YEARLY;COUNT=5;BYDAY=-1SU,2MO;BYMONTH=10")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"MONTHLY\", \"interval\": 2, \"bymonthday\": [1, 15, -1], \"until\": \"2013-10-01\"}]",
             "X;VALUE=RECUR:FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=1,15,-1;UNTIL=20131001")]
         [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"DAILY\", \"until\": \"2013-10-01T07:00:00Z\", \"bysetpos\": [1]}]",
             "X;VALUE=RECUR:FREQ=DAILY;UNTIL=20131001T070000Z;BYSETPOS=1")]
+        [InlineData("[\"x\", {}, \"recur\", {\"freq\": \"YEARLY\", \"bymonth\": [\"5L\", 6]}]", "X;VALUE=RECUR:FREQ=YEARLY;BYMONTH=5L,6")]
         [InlineData("[\"x\", {}, \"text\", \"a,b;c\\\\d\\ne\"]", "X;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
         [InlineData("[\"x\", {}, \"text\", \"one\", \"two\"]", "X;VALUE=TEXT:one,two")]
         [InlineData("[\"x\", {}, \"time\", \"12:30:00Z\"]", "X;VALUE=TIME:123000Z")]
@@ -524,6 +640,29 @@ namespace DataStandardizer.File.iCal.Tests
             testAction.Should().Throw<IcalFileException>();
         }
 
+        [Theory]
+        [MemberData(nameof(ValidVersions))]
+        public void ReadCalendar_ValidVersion_IsAccepted(string version, string jcal)
+        {
+            // act
+            var testResult = ReadJcal(jcal).Single();
+
+            // assert
+            testResult.Version.Should().Be(version);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidVersions))]
+        public void ReadCalendar_InvalidVersion_Throws(string jcal)
+        {
+            // act
+            Action testAction = () => ReadJcal(jcal);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.UnsupportedVersion);
+        }
+
         [Fact]
         public void ReadCalendar_UnsupportedVersion_ThrowsWithLocation()
         {
@@ -616,11 +755,122 @@ namespace DataStandardizer.File.iCal.Tests
             JournalProperty(testResult.Single()).Value.Should().Be(ExampleNotValidDateTime);
         }
 
-        [Fact]
-        public void ReadCalendar_ValueAsStringOfOtherTypeByDefault_Throws()
+        // ref. RFC 7265 §3.6: a value in the iCalendar text form of its type (RFC 5545 §3.3), which jCal does not allow.  Each is valid as a
+        // content line, so only the converter can find it.
+        [Theory]
+        [InlineData(TextFormDateTimeProperty, "DTSTART")]
+        [InlineData("[\"x-start\",{},\"date-time\",\"" + TextFormDateTime + "\"]", "X-START")]
+        [InlineData("[\"x-time\",{},\"time\",\"120000\"]", "X-TIME")]
+        [InlineData("[\"dtstart\",{},\"date\",\"20240101\"]", "DTSTART")]
+        [InlineData("[\"tzoffsetfrom\",{},\"utc-offset\",\"-0500\"]", "TZOFFSETFROM")]
+        [InlineData("[\"rdate\",{},\"period\",[\"" + TextFormDateTime + "\",\"PT1H\"]]", "RDATE")]
+        [InlineData("[\"rdate\",{},\"period\",[\"2024-01-01T12:00:00Z\",\"20240101T130000Z\"]]", "RDATE")]
+        [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"" + TextFormDateTime + "\"}]", "RRULE")]
+        [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"20240101\"}]", "RRULE")]
+        public void ReadCalendar_TextFormValueByDefault_ThrowsInvalidValue(string property, string propertyName)
         {
-            // arrange: a string is taken for any type, so a value that does not follow its type reaches the conformance check.
-            var json = JournalDocument("[\"percent-complete\",{},\"integer\",\"lots\"]");
+            // arrange
+            var json = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadJcal(json);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        // ref. RFC 7265 §3.6.5 and §3.6.12: values in the jCal form of their types, which an extension property may hold too.
+        [Theory]
+        [InlineData("[\"x-start\",{},\"date-time\",\"2024-01-01T12:00:00Z\"]", "X-START;VALUE=DATE-TIME:20240101T120000Z")]
+        [InlineData("[\"x-time\",{},\"time\",\"12:00:00\"]", "X-TIME;VALUE=TIME:120000")]
+        public void ReadCalendar_JcalFormValueByDefault_ConvertsToTextForm(string property, string expected)
+        {
+            // arrange
+            var json = JournalDocument(property);
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadJcal(json).Single()));
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeByDefault_ThrowsNotInJcalForm()
+        {
+            // arrange
+            var json = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            Action testAction = () => ReadJcal(json);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The DTSTART property has a DATE-TIME value in the iCalendar text form, which jCal does not allow (RFC 7265 §3.6.5).");
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeAllowed_KeepsTheValue()
+        {
+            // arrange
+            var json = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            var testResult = ReadJcal(json, AllowInvalidValues);
+
+            // assert
+            JournalProperty(testResult.Single()).Value.Should().Be(TextFormDateTime);
+        }
+
+        [Fact]
+        public void Validate_TextFormDateTimeReadWithAllowInvalidValues_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadJcal(JournalDocument(TextFormDateTimeProperty), AllowInvalidValues).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadCalendar_DateTimeNotValidInEitherForm_ThrowsNotValidDateTime()
+        {
+            // arrange
+            var json = JournalDocument("[\"dtstart\",{},\"date-time\",\"noon\"]");
+
+            // act
+            Action testAction = () => ReadJcal(json);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("The value of the DTSTART property is not a valid DATE-TIME.");
+        }
+
+        [Fact]
+        public void ReadCalendar_IntegerAsStringInvalidValuesAllowed_Throws()
+        {
+            // arrange: ref. RFC 7265 §3.6.8, an INTEGER is a JSON number, so a string is not a value that AllowInvalidValues can keep.
+            var json = JournalDocument("[\"percent-complete\",{},\"integer\",\"5\"]");
+
+            // act
+            Action testAction = () => ReadJcal(json, AllowInvalidValues);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.JsonPath].Should()
+                .Be(JournalPropertyFirstValuePath);
+        }
+
+        [Theory]
+        [InlineData("[\"sequence\",{},\"integer\",1.0000000000000001]")]
+        [InlineData("[\"sequence\",{},\"integer\",2147483647.00000000001]")]
+        public void ReadCalendar_IntegerNotWholeByDefault_Throws(string property)
+        {
+            // arrange: ref. RFC 7265 §3.6.8, a number that a double would round to an integer is still not one.
+            var json = JournalDocument(property);
 
             // act
             Action testAction = () => ReadJcal(json);
@@ -628,19 +878,6 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
                 .Be(IcalDiagnosticKind.InvalidValue);
-        }
-
-        [Fact]
-        public void ReadCalendar_ValueAsStringOfOtherTypeAllowed_KeepsTheString()
-        {
-            // arrange
-            var json = JournalDocument("[\"percent-complete\",{},\"integer\",\"lots\"]");
-
-            // act
-            var testResult = ReadJcal(json, AllowInvalidValues);
-
-            // assert
-            JournalProperty(testResult.Single()).Value.Should().Be("lots");
         }
 
         [Fact]

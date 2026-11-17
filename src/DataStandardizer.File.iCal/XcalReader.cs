@@ -25,6 +25,9 @@ namespace DataStandardizer.File.iCal
     /// those <see cref="IcalReader"/> reads from the same data in <c>.ics</c> form, and can be written in either form.  In particular:
     /// </para>
     /// <list type="bullet">
+    /// <item><description>Component, property and parameter elements, and the rule part elements of a <c>recur</c> element, are named in lower
+    /// case (RFC 6321 §3.3 to §3.5 and Appendix A).  An element named in any other case, such as <c>SUMMARY</c>, does not follow the structure
+    /// of xCal.</description></item>
     /// <item><description>A value element whose type is not the property's default adds a <c>VALUE</c> parameter, after the other parameters
     /// (RFC 6321 §3.5.1).</description></item>
     /// <item><description>An <c>unknown</c> value element is kept as raw text, with no <c>VALUE</c> parameter (RFC 6321 §5).</description></item>
@@ -44,7 +47,9 @@ namespace DataStandardizer.File.iCal
     /// same rules and options as <see cref="IcalReader"/>; the line numbers in its diagnostics are those of the XML document.  The first problem
     /// that the options do not accept throws <see cref="IcalFileException"/>; reading can then continue with the next calendar.  A value that is
     /// not valid in its value element is kept as it is, so the check reports it, and <see cref="IcalOptions.AllowInvalidValues"/> lets it
-    /// through.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies.
+    /// through.  That includes a value in the iCalendar text form, such as a DATE-TIME of <c>20240101T120000Z</c> for
+    /// <c>2024-01-01T12:00:00Z</c>, a UTC-OFFSET of <c>-0500</c> for <c>-05:00</c>, or a BOOLEAN of <c>TRUE</c> for <c>true</c> (RFC 6321
+    /// §3.6), whether in a property, including an extension property, or in a parameter such as RSVP.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies.
     /// </para>
     /// <para>
     /// Any other exception from a read, including a cancellation, leaves the reader unable to continue, and later reads throw
@@ -289,7 +294,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns>The calendar; or <c>null</c> if the end of the <c>icalendar</c> element has been reached.</returns>
         /// <exception cref="IcalFileException">The data is not valid xCal: it is not well-formed XML, an element is not allowed where it is or
-        /// is not valid, the <c>VERSION</c> does not include 2.0, or the data holds no calendar.
+        /// is not valid, the <c>VERSION</c> is not <c>2.0</c> or <c>2.0;2.0</c>, or the data holds no calendar.
         /// -or-
         /// The calendar breaks a rule of RFC 5545 that the options do not accept.  The calendar has been read, and reading can continue.</exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
@@ -647,7 +652,7 @@ namespace DataStandardizer.File.iCal
 
             // The calendar has been read in full, so a problem with it does not stop the reader.
             var diagnostics = new List<IcalDiagnostic>();
-            IcalConformance.Validate(_calendar, diagnostics);
+            IcalConformance.Validate(_calendar, false, true, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
                 // xCal has no quoting, so a value is never quoted where it was read.

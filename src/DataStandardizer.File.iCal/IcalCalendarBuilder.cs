@@ -23,7 +23,9 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The most levels of components a calendar may nest, counting the VCALENDAR as the first.  ref. RFC 5545§3.6: the grammar allows three
         /// (VCALENDAR, VEVENT or VTODO, and VALARM), so this refuses nothing the RFC allows.  Every pass over the tree, including each
-        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.
+        /// writer, is recursive, so an unbounded depth would end the process with a stack overflow.  <see cref="IcalConformance"/> applies
+        /// the same limit to a model built in code, so that the writers, which check a calendar first, refuse it too, and each writer checks
+        /// it again as it walks the tree.
         /// </summary>
         internal const int MaxComponentDepth = 64;
 
@@ -48,7 +50,7 @@ namespace DataStandardizer.File.iCal
         /// <param name="line">The line.</param>
         /// <returns>The calendar, if the line ends it; otherwise <c>null</c>.  The calendar has not been checked for conformance.</returns>
         /// <exception cref="IcalFileException">The line is not where it may be: a property outside a calendar, an <c>END</c> that does not match
-        /// the open <c>BEGIN</c>, or a <c>VERSION</c> that does not include 2.0.</exception>
+        /// the open <c>BEGIN</c>, or a <c>VERSION</c> other than <c>2.0</c> or <c>2.0;2.0</c>.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal IcalCalendar? Add(IcalContentLine line)
 #else
@@ -128,9 +130,7 @@ namespace DataStandardizer.File.iCal
             else
             {
                 if (_frames.Count >= MaxComponentDepth)
-                    throw BuildException(
-                        string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545§3.6 allows three.",
-                            MaxComponentDepth), line, CurrentPath);
+                    throw BuildException(IcalConformance.BuildNestedTooDeeplyMessage(), line, CurrentPath);
 
                 var parent = _frames[_frames.Count - 1];
                 component = CreateComponent(name, parent.Component.Name);

@@ -19,6 +19,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string InvalidName = "A B";
         private const string MalformedTextValue = "A:\\x\r\n";
 
+        // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes ",", so TEXT has it only escaped.
+        private const string UnescapedCommaTextValue = "A:a,b\r\n";
+
         private const int MaxLineLength = 1;
         private const long FirstLine = 1L;
 
@@ -26,6 +29,8 @@ namespace DataStandardizer.File.iCal.Tests
         private const string InvalidParameterValueCharacterMessage = "Found an invalid character U+0001 in a parameter value.";
         private const string MissingValueMessage = "Expected ':' and a property value.";
         private const string InvalidTextEscapeMessage = "Found a backslash that does not start a valid TEXT escape sequence.";
+        private const string UnescapedTextSeparatorMessage =
+            "Found a comma or semicolon that is not escaped, which a TEXT value cannot hold (RFC 5545 §3.3.11).";
         private const string InvalidValueCharacterMessage = "Found an invalid character U+0001 in the property value.";
 
         public static TheoryData<string, string, Hashtable> MalformedLineData()
@@ -143,6 +148,43 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 var exception = testAction.Should().Throw<IcalFileException>().Which;
                 exception.Message.Should().Be(InvalidTextEscapeMessage);
+                exception.Data.Should().BeEquivalentTo(ReadData(PropertyName));
+            }
+        }
+
+        [Fact]
+        public void GetTextValue_UnescapedCommaInView_ThrowsWithMessageAndData()
+        {
+            // arrange
+            using (var reader = new IcalContentLineReader(new StringReader(UnescapedCommaTextValue)))
+            {
+                reader.ReadContentLine();
+                var view = reader.CurrentLine;
+
+                // act
+                Action testAction = () => view.GetTextValue().ToString();
+
+                // assert
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
+                exception.Message.Should().Be(UnescapedTextSeparatorMessage);
+                exception.Data.Should().BeEquivalentTo(ReadData(PropertyName));
+            }
+        }
+
+        [Fact]
+        public void GetTextValue_UnescapedCommaInLine_ThrowsWithMessageAndData()
+        {
+            // arrange
+            using (var reader = new IcalContentLineReader(new StringReader(UnescapedCommaTextValue)))
+            {
+                var line = reader.ReadLine();
+
+                // act
+                Action testAction = () => line.GetTextValue();
+
+                // assert
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
+                exception.Message.Should().Be(UnescapedTextSeparatorMessage);
                 exception.Data.Should().BeEquivalentTo(ReadData(PropertyName));
             }
         }

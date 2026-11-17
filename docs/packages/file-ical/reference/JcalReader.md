@@ -41,12 +41,18 @@ mapping.
 - The values of a multi-valued property, such as CATEGORIES or EXDATE, are joined
   into a list (RFC 7265 §3.4).
 - A RECUR object keeps the order of its members as the order of the rule parts.
-- A PERIOD may be an array of two strings, as RFC 7265 §3.6.9 gives it, or one string
-  with the parts joined by a solidus, as its Appendix B gives it.
-- A string is accepted as the value of any type, so that a value that doesn't follow
-  its type is kept for the conformance check. A number is accepted only for INTEGER
-  and FLOAT, `true` and `false` only for BOOLEAN, an array only for PERIOD, GEO and
-  REQUEST-STATUS, and an object only for RECUR.
+- Each value must have the JSON form its type gives it (RFC 7265 §3.6): a number for
+  INTEGER and FLOAT, `true` or `false` for BOOLEAN, an array of two strings for
+  PERIOD, an array of two numbers for GEO, an array of two or three strings for
+  REQUEST-STATUS, an object for RECUR, and a string for every other type. In a RECUR
+  object, FREQ, WKST and UNTIL are single strings, COUNT and INTERVAL single numbers,
+  BYDAY a string or an array of strings, and the other BYxxx rule parts a number or
+  an array of numbers, but a BYMONTH leap month, such as `"5L"`, is a string (RFC 7529
+  §9). Any other form throws
+  `IcalFileException`. A PERIOD as one string with its parts joined by a solidus, as
+  RFC 7265 Appendix B gives it, isn't accepted, since §3.6.9 requires the array.
+- A string or number of the right form whose content doesn't follow its type is kept
+  for the conformance check.
 
 **Encoding.** jCal is always UTF-8, so the reader takes a file path or a `Stream`,
 not a `TextReader`. `IcalOptions.Encoding` must be `null` or UTF-8. Of the other
@@ -132,7 +138,7 @@ canceled for both on every target, as an async iterator's always is for an
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `ReadCalendar()` | `IcalCalendar?` | Reads the next calendar, or returns `null` at the end of the data. Throws `IcalFileException` if the data isn't valid jCal (not valid JSON, a value that isn't allowed where it is or isn't valid, a `VERSION` that doesn't include 2.0, or no calendar at all), or if the calendar breaks a rule the options don't accept; in that case reading can continue. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another read is in progress or an earlier read failed. |
+| `ReadCalendar()` | `IcalCalendar?` | Reads the next calendar, or returns `null` at the end of the data. Throws `IcalFileException` if the data isn't valid jCal (not valid JSON, a value that isn't allowed where it is or isn't valid, a `VERSION` other than `2.0` or `2.0;2.0`, or no calendar at all), or if the calendar breaks a rule the options don't accept; in that case reading can continue. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another read is in progress or an earlier read failed. |
 | `ReadCalendars()` | `IEnumerable<IcalCalendar>` | Reads the remaining calendars as the sequence is enumerated. Throws `ObjectDisposedException` from this call if the reader has been disposed. During enumeration, throws what `ReadCalendar` throws. |
 
 ### Asynchronous reading

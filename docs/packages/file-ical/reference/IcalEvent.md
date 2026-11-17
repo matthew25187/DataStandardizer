@@ -97,14 +97,14 @@ The overloads without `options` use a default [IcalOptions](IcalOptions.md), who
 | `Classification` | `string? Classification { get; set; }` | `CLASS` (RFC 5545 §3.8.1.3), such as `PUBLIC`. TEXT. `null` removes it. |
 | `Color` | `string? Color { get; set; }` | `COLOR` (RFC 7986 §5.9), a CSS3 color name such as `turquoise`. TEXT. `null` removes it. |
 | `Conferences` | `IReadOnlyList<IcalContentLine> Conferences { get; }` | `CONFERENCE` (RFC 7986 §5.11), as the content lines themselves. Each is a URI with parameters such as `FEATURE` and `LABEL`. Change them through `Properties`. |
-| `Created` | `IcalDateTime? Created { get; set; }` | `CREATED` (RFC 5545 §3.8.7.1). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `Created` | `IcalDateTime? Created { get; set; }` | `CREATED` (RFC 5545 §3.8.7.1). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `Description` | `string? Description { get; set; }` | `DESCRIPTION` (RFC 5545 §3.8.1.5). TEXT. `null` removes it. |
 | `DtEnd` | `IcalDateOrDateTime? DtEnd { get; set; }` | `DTEND` (RFC 5545 §3.8.2.2), a DATE or a DATE-TIME. The `VALUE` and `TZID` parameters are read and written with the value. `null` removes it. |
-| `DtStamp` | `IcalDateTime? DtStamp { get; set; }` | `DTSTAMP` (RFC 5545 §3.8.7.2). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `DtStamp` | `IcalDateTime? DtStamp { get; set; }` | `DTSTAMP` (RFC 5545 §3.8.7.2). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `DtStart` | `IcalDateOrDateTime? DtStart { get; set; }` | `DTSTART` (RFC 5545 §3.8.2.4), a DATE or a DATE-TIME. The `VALUE` and `TZID` parameters are read and written with the value. `null` removes it. |
 | `Duration` | `IcalDuration? Duration { get; set; }` | `DURATION` (RFC 5545 §3.8.2.5). `null` removes it. |
 | `Images` | `IReadOnlyList<IcalContentLine> Images { get; }` | `IMAGE` (RFC 7986 §5.10), as the content lines themselves. Each is a URI or inline BINARY data, with parameters such as `DISPLAY` and `FMTTYPE`. Change them through `Properties`. |
-| `LastModified` | `IcalDateTime? LastModified { get; set; }` | `LAST-MODIFIED` (RFC 5545 §3.8.7.3). A DATE-TIME, which RFC 5545 requires to be in UTC; the accessor does not enforce this. `null` removes it. |
+| `LastModified` | `IcalDateTime? LastModified { get; set; }` | `LAST-MODIFIED` (RFC 5545 §3.8.7.3). A DATE-TIME, which RFC 5545 requires to be in UTC; setting a floating or zoned value throws `ArgumentException`. `null` removes it. |
 | `Location` | `string? Location { get; set; }` | `LOCATION` (RFC 5545 §3.8.1.7). TEXT. `null` removes it. |
 | `Organizer` | `Uri? Organizer { get; set; }` | `ORGANIZER` (RFC 5545 §3.8.4.3), a CAL-ADDRESS such as `mailto:a@example.com`. Throws `ArgumentException` on set for a relative URI. `null` removes it. |
 | `Priority` | `int? Priority { get; set; }` | `PRIORITY` (RFC 5545 §3.8.1.9), from 0 (undefined) and 1 (highest) to 9 (lowest). The setter does not check the range; `Validate` does. `null` removes it. |
@@ -120,9 +120,9 @@ The overloads without `options` use a default [IcalOptions](IcalOptions.md), who
 
 Every getter throws `IcalFileException` if the stored value is not valid for its
 type: a TEXT value or list item with a backslash that does not start a valid
-escape, a DATE-TIME property with `VALUE=DATE`, a value that does not parse, or a
-URI that is not absolute. TEXT properties remove TEXT escaping on get and add it on
-set.
+escape or with a comma or semicolon that is not escaped (RFC 5545 §3.3.11), a
+DATE-TIME property with `VALUE=DATE`, a value that does not parse, or a URI that is
+not absolute. TEXT properties remove TEXT escaping on get and add it on set.
 
 ## Methods
 

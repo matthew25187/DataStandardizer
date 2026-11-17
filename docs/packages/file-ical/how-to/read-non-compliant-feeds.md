@@ -119,8 +119,17 @@ The check covers the value types of RFC 5545 §3.3, and the rules that tie a val
 its property:
 
 - A `VALUE` parameter that the property doesn't allow, or one it requires.
-- A DATE-TIME that must be in UTC.
+- A DATE-TIME that must be in UTC, including the `DTSTART` and `DTEND` of a VFREEBUSY.
 - Date-times that must have the same value type as the component's `DTSTART`.
+- A `DTEND` or `DUE` that isn't in local time with no time zone when `DTSTART` is, or
+  the other way round, or that isn't later in time than `DTSTART` (RFC 5545 §3.8.2.2
+  and §3.8.2.3).
+- A `RECURRENCE-ID` whose value type, or whether it is in local time with no time
+  zone, differs from the `DTSTART` of the recurring component with the same `UID`
+  in the calendar (RFC 5545 §3.8.4.4).
+- A value outside a closed set: `STATUS` in a VEVENT, VTODO or VJOURNAL (RFC 5545
+  §3.8.1.11, with the values for that kind of component), `TRANSP` in a VEVENT
+  (§3.8.2.7) and `CALSCALE` in a VCALENDAR (§3.7.1).
 - A `FMTTYPE` parameter that appears twice, has two values, or isn't a type and
   subtype, such as `FMTTYPE="text/html; charset=utf-8"` (RFC 5545 §3.2.8). Its quotes
   are a second problem, which needs `AllowQuotedParameterValues`.
@@ -223,8 +232,9 @@ IcalFileException: The VEVENT component has no DTSTAMP property, which it requir
 
 The `LineNumber` of a missing property is the line of the component's `BEGIN`.
 
-A missing `VERSION` is covered too. The writer always writes `VERSION:2.0`, so it
-never refuses a calendar for lacking one.
+A missing `VERSION` isn't covered: it says how the calendar is read, so no option
+accepts a calendar without one (see below). The writer always writes `VERSION:2.0`,
+so it never refuses a calendar for lacking one.
 
 ### AllowUndefinedTimeZones
 
@@ -302,10 +312,14 @@ this error.
 ## Problems no option accepts
 
 - **`InvalidComponentNesting`:** a component inside one where RFC 5545 doesn't allow
-  it, such as a VTODO inside a VEVENT.
-- **`UnsupportedVersion`:** a `VERSION` that doesn't include 2.0, such as the
-  `VERSION:1.0` of vCalendar 1.0. This is reported as soon as the `VERSION` line is
-  read.
+  it, such as a VTODO inside a VEVENT; or, when writing, a property named `BEGIN` or
+  `END`, which would start or end a component. The jCal and xCal readers reject a
+  `begin` or `end` property as they read it (RFC 7265 §3.3, RFC 6321 §3.3).
+- **`UnsupportedVersion`:** a `VERSION` other than `2.0` or `2.0;2.0`, such as the
+  `VERSION:1.0` of vCalendar 1.0, or `VERSION:2`. This is reported as soon as the `VERSION` line is
+  read. A calendar with no `VERSION` (RFC 5545 §3.6 and §3.7.4) is reported too,
+  since nothing else says how it is read. That is found once the calendar has been
+  read, so reading can go on to the next calendar.
 - **Broken structure:** a `BEGIN` without a matching `END`, or a line that doesn't
   follow the content-line syntax.
 

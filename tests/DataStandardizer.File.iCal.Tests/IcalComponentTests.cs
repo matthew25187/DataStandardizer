@@ -14,12 +14,21 @@ namespace DataStandardizer.File.iCal.Tests
     {
         private const string Trigger = "TRIGGER";
         private const string Summary = "SUMMARY";
+        private const string Version = "VERSION";
         private const string Comment = "COMMENT";
         private const string Categories = "CATEGORIES";
         private const string DtStart = "DTSTART";
+        private const string DtEndProperty = "DTEND";
+        private const string CreatedProperty = "CREATED";
+        private const string DtStampProperty = "DTSTAMP";
+        private const string LastModifiedProperty = "LAST-MODIFIED";
+        private const string CompletedProperty = "COMPLETED";
         private const string RecurrenceRule = "RRULE";
         private const string ValueParameter = "VALUE";
+        private const string TimeZoneIdParameter = "TZID";
         private const string VendorParameter = "X-VENDOR";
+        private const int SharedThreeLevels = 3;
+        private const string SharedMessage = "A X-A component is nested in more than one place; each place needs a component of its own.";
         private const string KeepParameter = "X-KEEP";
         private const string TestComponentName = "X-TEST";
         private const string DisplayAction = "ACTION:DISPLAY";
@@ -29,8 +38,14 @@ namespace DataStandardizer.File.iCal.Tests
         private const string AucklandTimeZoneId = "Pacific/Auckland";
         private const string CalendarSource = "https://example.com/cal.ics";
 
+        // ref. RFC 5545 §3.8.4.6: the URL property.
+        private const string UrlProperty = "URL";
+
         // Stamp, written as a DATE-TIME value.
         private const string StampValue = "20261015T090000Z";
+
+        // Stamp's wall-clock time, written as a DATE-TIME value without the UTC designator.
+        private const string StampLocalValue = "20261015T090000";
 
         // The text that the SUMMARY test sets, with each character that TEXT escapes, and the value it is written as.
         private const string SummaryText = "Line one\nTwo; three, four\\";
@@ -39,7 +54,14 @@ namespace DataStandardizer.File.iCal.Tests
         // The line numbers in EventCalendar of the properties after the DTSTART that it adds.
         private const long FirstEventLineNumber = 8;
 
-        private static readonly IcalDateTime Stamp = new IcalDateTime(new IcalDate(2026, 10, 15), new IcalTime(9, 0, 0, true));
+        private static readonly IcalDate StampDate = new IcalDate(2026, 10, 15);
+        private static readonly IcalDateTime Stamp = new IcalDateTime(StampDate, new IcalTime(9, 0, 0, true));
+
+        // Stamp's wall-clock time, without the UTC designator.
+        private static readonly IcalTime StampLocalTime = new IcalTime(9, 0, 0);
+
+        // Stamp's date and wall-clock time, as a floating DATE-TIME.
+        private static readonly IcalDateTime StampLocal = new IcalDateTime(StampDate, StampLocalTime);
 
         public static TheoryData<Action> NullListItemCalls()
         {
@@ -158,6 +180,61 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be("2.0");
+        }
+
+        // ref. RFC 5545 §3.7.4: vervalue = "2.0" / maxver / (minver ";" maxver).  The semicolon of a range separates its ends, so it is kept.
+        [Theory]
+        [InlineData("2.0", "2.0")]
+        [InlineData("2.0;2.0", "2.0;2.0")]
+        [InlineData("2\\,0;2.0", "2,0;2.0")]
+        public void Version_RangeOrSingleVersion_IsUnescapedWithItsSemicolon(string value, string expected)
+        {
+            // arrange
+            var calendar = new IcalCalendar();
+            calendar.SetProperty(new IcalContentLine(Version, value));
+
+            // act
+            var testResult = calendar.Version;
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        // ref. RFC 5545 §3.7.4 and §3.3.11: a VERSION has at most one semicolon that is not escaped, and no such comma.
+        [Theory]
+        [InlineData("2.0;2.0;2.0")]
+        [InlineData("2.0,2.0")]
+        [InlineData("2.0;2,0")]
+        [InlineData("2.0;\\x")]
+        public void Version_InvalidText_Throws(string value)
+        {
+            // arrange
+            var calendar = new IcalCalendar();
+            calendar.SetProperty(new IcalContentLine(Version, value));
+
+            // act
+            Func<string> testAction = () => calendar.Version;
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
+        }
+
+        // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";".  AllowInvalidValues lets the reader keep such a value, but the getter cannot
+        // read it as TEXT.
+        [Theory]
+        [InlineData("SUMMARY:Lunch, then review")]
+        [InlineData("SUMMARY:Lunch; then review")]
+        public void Summary_UnescapedCommaOrSemicolonAllowedByReader_Throws(string line)
+        {
+            // arrange
+            var options = new IcalOptions { AllowInvalidValues = true };
+            var testEvent = ReadCalendar(EventCalendar(line), options).Events.Single();
+
+            // act
+            Func<string> testAction = () => testEvent.Summary;
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
         }
 
         [Fact]
@@ -468,7 +545,7 @@ namespace DataStandardizer.File.iCal.Tests
             calendar.Url = new Uri("https://example.com/");
 
             // assert
-            calendar.Properties.Should().ContainSingle(property => property.Name == "URL").Which.Parameters.Should().BeEmpty();
+            calendar.Properties.Should().ContainSingle(property => property.Name == UrlProperty).Which.Parameters.Should().BeEmpty();
         }
 
         [Fact]
@@ -482,6 +559,47 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Url_SetNotNormalizedUri_WritesItAsGiven()
+        {
+            // arrange
+            var calendar = new IcalCalendar();
+
+            // act
+            calendar.Url = new Uri(UriTestData.UpperCaseUri);
+
+            // assert
+            calendar.Properties.Should().ContainSingle(property => property.Name == UrlProperty).Which.Value.Should().Be(UriTestData.UpperCaseUri);
+        }
+
+        [Fact]
+        public void Url_GetAfterSetNotNormalizedUri_HasTheTextAsGiven()
+        {
+            // arrange
+            var calendar = new IcalCalendar { Url = new Uri(UriTestData.UpperCaseUri) };
+
+            // act
+            var testResult = calendar.Url;
+
+            // assert
+            testResult.OriginalString.Should().Be(UriTestData.UpperCaseUri);
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
+        public void Url_SetUriTextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var testEvent = new IcalEvent();
+            var uri = new Uri(value);
+
+            // act
+            Action testAction = () => testEvent.Url = uri;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
         }
 
         [Fact]
@@ -580,6 +698,88 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void RecurrenceRules_SetNull_RemovesProperties()
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+            observance.RecurrenceRules = CreateTwoRules();
+
+            // act
+            observance.RecurrenceRules = null;
+
+            // assert
+            observance.Properties.Should().NotContain(property => property.Name == RecurrenceRule);
+        }
+
+        // RFC 5545 §3.3.10: in a STANDARD or DAYLIGHT sub-component "the UNTIL rule part MUST always be specified as a date with UTC time".
+        // A rule whose UNTIL is a DATE and one whose UNTIL is a floating DATE-TIME, neither of which it allows.  A zoned UNTIL can't be
+        // represented in a rule.
+        public static TheoryData<IcalRecurrenceRule> NonUtcUntilRules => new TheoryData<IcalRecurrenceRule>
+        {
+            new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(StampDate),
+            new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(StampLocal),
+        };
+
+        [Fact]
+        public void RecurrenceRules_SetUtcUntil_WritesTheRule()
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+
+            // act
+            observance.RecurrenceRules = new[] { new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(Stamp) };
+            var testResult = observance.GetProperty(RecurrenceRule);
+
+            // assert
+            testResult.Value.Should().Be("FREQ=YEARLY;UNTIL=20261015T090000Z");
+        }
+
+        [Fact]
+        public void RecurrenceRules_SetFloatingUntilOnEvent_WritesTheRule()
+        {
+            // arrange
+            var testEvent = new IcalEvent();
+
+            // act
+            testEvent.RecurrenceRules = new[] { new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithUntil(StampLocal) };
+            var testResult = testEvent.GetProperty(RecurrenceRule);
+
+            // assert
+            testResult.Value.Should().Be("FREQ=YEARLY;UNTIL=20261015T090000");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonUtcUntilRules))]
+        public void RecurrenceRules_SetNonUtcUntil_ThrowsArgumentException(IcalRecurrenceRule rule)
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+
+            // act
+            Action testAction = () => observance.RecurrenceRules = new[] { rule };
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonUtcUntilRules))]
+        public void RecurrenceRules_SetNonUtcUntilAfterValidRule_LeavesExistingRulesUnchanged(IcalRecurrenceRule rule)
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+            observance.RecurrenceRules = CreateTwoRules();
+
+            // act
+            var exception = Record.Exception(() => observance.RecurrenceRules = new[] { CreateTwoRules()[1], rule });
+            var testResult = observance.RecurrenceRules;
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Equal(CreateTwoRules());
+        }
+
+        [Fact]
         public void TriggerDuration_Set_WritesDuration()
         {
             // arrange
@@ -657,6 +857,464 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             alarm.Properties.Should().NotContain(property => property.Name == Trigger);
+        }
+
+        // A floating date-time and a zoned one, neither of them in UTC, which RFC 5545 requires of an absolute TRIGGER (§3.8.6.3) and of
+        // every property in UtcDateTimeAccessors.
+        public static TheoryData<IcalDateTime> NonUtcDateTimes => new TheoryData<IcalDateTime>
+        {
+            new IcalDateTime(StampDate, StampLocalTime),
+            new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId),
+        };
+
+        [Theory]
+        [MemberData(nameof(NonUtcDateTimes))]
+        public void TriggerDateTime_SetNotUtc_ThrowsArgumentException(IcalDateTime value)
+        {
+            // arrange
+            var alarm = new IcalAlarm { Action = "AUDIO" };
+
+            // act
+            Action testAction = () => alarm.TriggerDateTime = value;
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonUtcDateTimes))]
+        public void TriggerDateTime_SetNotUtc_LeavesExistingTriggerUnchanged(IcalDateTime value)
+        {
+            // arrange
+            var alarm = ReadAlarm("TRIGGER;X-VENDOR=keep;RELATED=END:-PT15M", DisplayAction, ReminderDescription);
+
+            // act
+            var exception = Record.Exception(() => alarm.TriggerDateTime = value);
+            var testResult = alarm.Properties[0];
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Name.Should().Be(Trigger);
+            testResult.Parameters.Select(parameter => parameter.Name).Should().Equal(VendorParameter, "RELATED");
+            testResult.Value.Should().Be("-PT15M");
+        }
+
+        /// <summary>
+        /// A typed accessor for a property that RFC 5545 requires to be in UTC, with the component it belongs to.
+        /// </summary>
+        public sealed class UtcDateTimeAccessor
+        {
+            public UtcDateTimeAccessor(string name, string propertyName, Func<IcalComponent> createComponent,
+                Action<IcalComponent, IcalDateTime?> setValue, Func<IcalComponent, IcalDateTime?> getValue)
+            {
+                Name = name;
+                PropertyName = propertyName;
+                CreateComponent = createComponent;
+                SetValue = setValue;
+                GetValue = getValue;
+            }
+
+            public string Name { get; }
+
+            public string PropertyName { get; }
+
+            public Func<IcalComponent> CreateComponent { get; }
+
+            public Action<IcalComponent, IcalDateTime?> SetValue { get; }
+
+            public Func<IcalComponent, IcalDateTime?> GetValue { get; }
+
+            public override string ToString() => Name;
+        }
+
+        // RFC 5545 §3.8.2.1 (COMPLETED), §3.8.7.1 (CREATED), §3.8.7.2 (DTSTAMP) and §3.8.7.3 (LAST-MODIFIED): each value "MUST be specified
+        // in the UTC time format".  RFC 7986 §5.4 gives VCALENDAR the same LAST-MODIFIED property.
+        private static readonly UtcDateTimeAccessor[] UtcDateTimeAccessors =
+        {
+            new UtcDateTimeAccessor("IcalCalendar.LastModified", LastModifiedProperty, () => new IcalCalendar(),
+                (component, value) => ((IcalCalendar)component).LastModified = value, component => ((IcalCalendar)component).LastModified),
+            new UtcDateTimeAccessor("IcalEvent.Created", CreatedProperty, () => new IcalEvent(),
+                (component, value) => ((IcalEvent)component).Created = value, component => ((IcalEvent)component).Created),
+            new UtcDateTimeAccessor("IcalEvent.DtStamp", DtStampProperty, () => new IcalEvent(),
+                (component, value) => ((IcalEvent)component).DtStamp = value, component => ((IcalEvent)component).DtStamp),
+            new UtcDateTimeAccessor("IcalEvent.LastModified", LastModifiedProperty, () => new IcalEvent(),
+                (component, value) => ((IcalEvent)component).LastModified = value, component => ((IcalEvent)component).LastModified),
+            new UtcDateTimeAccessor("IcalFreeBusy.DtStamp", DtStampProperty, () => new IcalFreeBusy(),
+                (component, value) => ((IcalFreeBusy)component).DtStamp = value, component => ((IcalFreeBusy)component).DtStamp),
+            new UtcDateTimeAccessor("IcalJournal.Created", CreatedProperty, () => new IcalJournal(),
+                (component, value) => ((IcalJournal)component).Created = value, component => ((IcalJournal)component).Created),
+            new UtcDateTimeAccessor("IcalJournal.DtStamp", DtStampProperty, () => new IcalJournal(),
+                (component, value) => ((IcalJournal)component).DtStamp = value, component => ((IcalJournal)component).DtStamp),
+            new UtcDateTimeAccessor("IcalJournal.LastModified", LastModifiedProperty, () => new IcalJournal(),
+                (component, value) => ((IcalJournal)component).LastModified = value, component => ((IcalJournal)component).LastModified),
+            new UtcDateTimeAccessor("IcalTimeZone.LastModified", LastModifiedProperty, () => new IcalTimeZone(),
+                (component, value) => ((IcalTimeZone)component).LastModified = value, component => ((IcalTimeZone)component).LastModified),
+            new UtcDateTimeAccessor("IcalTodo.Completed", CompletedProperty, () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).Completed = value, component => ((IcalTodo)component).Completed),
+            new UtcDateTimeAccessor("IcalTodo.Created", CreatedProperty, () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).Created = value, component => ((IcalTodo)component).Created),
+            new UtcDateTimeAccessor("IcalTodo.DtStamp", DtStampProperty, () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).DtStamp = value, component => ((IcalTodo)component).DtStamp),
+            new UtcDateTimeAccessor("IcalTodo.LastModified", LastModifiedProperty, () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).LastModified = value, component => ((IcalTodo)component).LastModified),
+        };
+
+        public static TheoryData<UtcDateTimeAccessor> UtcDateTimeProperties
+        {
+            get
+            {
+                var data = new TheoryData<UtcDateTimeAccessor>();
+                foreach (var accessor in UtcDateTimeAccessors)
+                    data.Add(accessor);
+                return data;
+            }
+        }
+
+        public static TheoryData<UtcDateTimeAccessor, IcalDateTime> UtcDateTimePropertiesWithNonUtcValues
+        {
+            get
+            {
+                var data = new TheoryData<UtcDateTimeAccessor, IcalDateTime>();
+                foreach (var accessor in UtcDateTimeAccessors)
+                {
+                    foreach (var value in NonUtcDateTimes)
+                        data.Add(accessor, value);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimeProperties))]
+        public void UtcDateTimeProperty_GetAfterSetUtc_IsTheDateTime(UtcDateTimeAccessor accessor)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+            accessor.SetValue(component, Stamp);
+
+            // act
+            var testResult = accessor.GetValue(component);
+
+            // assert
+            testResult.Should().Be(Stamp);
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimeProperties))]
+        public void UtcDateTimeProperty_SetNull_RemovesTheProperty(UtcDateTimeAccessor accessor)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+            accessor.SetValue(component, Stamp);
+
+            // act
+            accessor.SetValue(component, null);
+            var testResult = component.Properties;
+
+            // assert
+            testResult.Should().NotContain(property => property.Name == accessor.PropertyName);
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimePropertiesWithNonUtcValues))]
+        public void UtcDateTimeProperty_SetNotUtc_ThrowsArgumentException(UtcDateTimeAccessor accessor, IcalDateTime value)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+
+            // act
+            Action testAction = () => accessor.SetValue(component, value);
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimePropertiesWithNonUtcValues))]
+        public void UtcDateTimeProperty_SetNotUtc_LeavesExistingValueUnchanged(UtcDateTimeAccessor accessor, IcalDateTime value)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+            accessor.SetValue(component, Stamp);
+
+            // act
+            var exception = Record.Exception(() => accessor.SetValue(component, value));
+            var testResult = accessor.GetValue(component);
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Be(Stamp);
+        }
+
+        /// <summary>
+        /// A typed accessor of <see cref="IcalFreeBusy"/> for a DATE or DATE-TIME property that RFC 5545 requires, in a VFREEBUSY, to be a
+        /// DATE-TIME in UTC.
+        /// </summary>
+        public sealed class FreeBusyUtcAccessor
+        {
+            public FreeBusyUtcAccessor(string name, string propertyName, Action<IcalFreeBusy, IcalDateOrDateTime?> setValue,
+                Func<IcalFreeBusy, IcalDateOrDateTime?> getValue)
+            {
+                Name = name;
+                PropertyName = propertyName;
+                SetValue = setValue;
+                GetValue = getValue;
+            }
+
+            public string Name { get; }
+
+            public string PropertyName { get; }
+
+            public Action<IcalFreeBusy, IcalDateOrDateTime?> SetValue { get; }
+
+            public Func<IcalFreeBusy, IcalDateOrDateTime?> GetValue { get; }
+
+            public override string ToString() => Name;
+        }
+
+        // RFC 5545 §3.8.2.4 (DTSTART) and §3.8.2.2 (DTEND): within VFREEBUSY, the value "MUST be specified as a date with UTC time".
+        private static readonly FreeBusyUtcAccessor[] FreeBusyUtcAccessors =
+        {
+            new FreeBusyUtcAccessor("IcalFreeBusy.DtStart", DtStart, (freeBusy, value) => freeBusy.DtStart = value,
+                freeBusy => freeBusy.DtStart),
+            new FreeBusyUtcAccessor("IcalFreeBusy.DtEnd", DtEndProperty, (freeBusy, value) => freeBusy.DtEnd = value,
+                freeBusy => freeBusy.DtEnd),
+        };
+
+        // A DATE, a floating DATE-TIME and a zoned one, none of which RFC 5545 allows for DTSTART or DTEND in a VFREEBUSY.
+        private static readonly IcalDateOrDateTime[] NonUtcDateOrDateTimes =
+        {
+            new IcalDateOrDateTime(StampDate),
+            new IcalDateOrDateTime(new IcalDateTime(StampDate, StampLocalTime)),
+            new IcalDateOrDateTime(new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId)),
+        };
+
+        public static TheoryData<FreeBusyUtcAccessor> FreeBusyUtcProperties
+        {
+            get
+            {
+                var data = new TheoryData<FreeBusyUtcAccessor>();
+                foreach (var accessor in FreeBusyUtcAccessors)
+                    data.Add(accessor);
+                return data;
+            }
+        }
+
+        public static TheoryData<FreeBusyUtcAccessor, IcalDateOrDateTime> FreeBusyUtcPropertiesWithNonUtcValues
+        {
+            get
+            {
+                var data = new TheoryData<FreeBusyUtcAccessor, IcalDateOrDateTime>();
+                foreach (var accessor in FreeBusyUtcAccessors)
+                {
+                    foreach (var value in NonUtcDateOrDateTimes)
+                        data.Add(accessor, value);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_GetAfterSetUtc_IsTheDateTime(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            accessor.SetValue(freeBusy, Stamp);
+
+            // act
+            var testResult = accessor.GetValue(freeBusy);
+
+            // assert
+            testResult.Should().Be(new IcalDateOrDateTime(Stamp));
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_SetUtc_WritesTheValueWithoutParameters(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+
+            // act
+            accessor.SetValue(freeBusy, Stamp);
+            var testResult = freeBusy.GetProperty(accessor.PropertyName);
+
+            // assert
+            testResult.Value.Should().Be(StampValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_SetUtcOverZonedValue_DropsTheTimeZoneParameter(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            freeBusy.Properties.Add(new IcalContentLine(accessor.PropertyName,
+                new[] { new IcalContentLineParameter(TimeZoneIdParameter, AucklandTimeZoneId) }, StampLocalValue));
+
+            // act
+            accessor.SetValue(freeBusy, Stamp);
+            var testResult = freeBusy.GetProperty(accessor.PropertyName);
+
+            // assert
+            testResult.Value.Should().Be(StampValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_SetNull_RemovesTheProperty(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            accessor.SetValue(freeBusy, Stamp);
+
+            // act
+            accessor.SetValue(freeBusy, null);
+            var testResult = freeBusy.Properties;
+
+            // assert
+            testResult.Should().NotContain(property => property.Name == accessor.PropertyName);
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcPropertiesWithNonUtcValues))]
+        public void FreeBusyUtcProperty_SetDateOrNotUtc_ThrowsArgumentException(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+
+            // act
+            Action testAction = () => accessor.SetValue(freeBusy, value);
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcPropertiesWithNonUtcValues))]
+        public void FreeBusyUtcProperty_SetDateOrNotUtc_LeavesExistingValueUnchanged(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            accessor.SetValue(freeBusy, Stamp);
+
+            // act
+            var exception = Record.Exception(() => accessor.SetValue(freeBusy, value));
+            var testResult = accessor.GetValue(freeBusy);
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Be(new IcalDateOrDateTime(Stamp));
+        }
+
+        // RFC 5545 §3.6.5: the DTSTART of an observance "MUST be specified as a date with local time value".  A UTC DATE-TIME and a zoned
+        // one, neither of which it allows.
+        public static TheoryData<IcalDateTime> NonLocalDateTimes => new TheoryData<IcalDateTime>
+        {
+            Stamp,
+            new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId),
+        };
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_GetAfterSetLocal_IsTheDateTime()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart = StampLocal;
+
+            // act
+            var testResult = observance.DtStart;
+
+            // assert
+            testResult.Should().Be(StampLocal);
+        }
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_SetLocal_WritesTheValueWithoutParameters()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+
+            // act
+            observance.DtStart = StampLocal;
+            var testResult = observance.GetProperty(DtStart);
+
+            // assert
+            testResult.Value.Should().Be(StampLocalValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_SetLocalOverZonedValue_DropsValueAndTimeZoneParametersKeepingOthers()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.Properties.Add(new IcalContentLine(DtStart,
+                new[]
+                {
+                    new IcalContentLineParameter(VendorParameter, "keep"),
+                    new IcalContentLineParameter(ValueParameter, "DATE-TIME"),
+                    new IcalContentLineParameter(TimeZoneIdParameter, AucklandTimeZoneId),
+                }, StampLocalValue));
+
+            // act
+            observance.DtStart = StampLocal;
+            var testResult = observance.GetProperty(DtStart);
+
+            // assert
+            testResult.Value.Should().Be(StampLocalValue);
+            testResult.Parameters.Select(parameter => parameter.Name).Should().Equal(VendorParameter);
+        }
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_SetNull_RemovesTheProperty()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart = StampLocal;
+
+            // act
+            observance.DtStart = null;
+            var testResult = observance.Properties;
+
+            // assert
+            testResult.Should().NotContain(property => property.Name == DtStart);
+        }
+
+        [Theory]
+        [MemberData(nameof(NonLocalDateTimes))]
+        public void TimeZoneObservanceDtStart_SetUtcOrZoned_ThrowsArgumentException(IcalDateTime value)
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+
+            // act
+            Action testAction = () => observance.DtStart = value;
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonLocalDateTimes))]
+        public void TimeZoneObservanceDtStart_SetUtcOrZoned_LeavesExistingValueUnchanged(IcalDateTime value)
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart = StampLocal;
+
+            // act
+            var exception = Record.Exception(() => observance.DtStart = value);
+            var testResult = observance.DtStart;
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Be(StampLocal);
         }
 
         [Fact]
@@ -942,6 +1600,29 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeEmpty();
         }
 
+        // ref. RFC 5545 §3.3.11: the TZID escapes its first comma but not its second, so it is not valid TEXT.  The time zone it defines is
+        // still the one the event's TZID parameter names, so the problems are the value and the quotes the parameter needs for its comma
+        // (RFC 5545 §3.2.19), and the time zone is defined.
+        [Fact]
+        public void Validate_TimeZoneIdWithUnescapedComma_IsStillDefined()
+        {
+            // arrange
+            var lines = IcalTestData.Lines(
+                new[]
+                {
+                    IcalLines.BeginTimeZone, "TZID:Foo\\, Bar, Baz", IcalLines.BeginStandard, "DTSTART:19700101T000000", "TZOFFSETFROM:+0100",
+                    "TZOFFSETTO:+0100", IcalLines.EndStandard, IcalLines.EndTimeZone
+                },
+                new[] { IcalLines.BeginEvent, IcalLines.EventUid, IcalLines.NewYearStamp, "DTSTART;TZID=\"Foo, Bar, Baz\":20260101T090000", IcalLines.EndEvent });
+            var calendar = ReadCalendar(Calendar(lines), new IcalOptions { AllowInvalidValues = true, AllowQuotedParameterValues = true });
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.QuotedParameterValue);
+        }
+
         [Fact]
         public void Validate_ManyProblems_ReturnsEachKind()
         {
@@ -971,6 +1652,164 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Validate_EventInItself_ReportsTheNesting()
+        {
+            // arrange
+            var testEvent = new IcalEvent { Uid = "1", DtStamp = Stamp };
+            testEvent.Components.Add(testEvent);
+
+            // act
+            var testResult = testEvent.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
+                "VEVENT/VEVENT[1]: A VEVENT component cannot be nested in a VEVENT component.",
+                "VEVENT/VEVENT[1]: A VEVENT component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentInItselfTwice_ReportsEachNesting()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            component.Components.Add(component);
+            component.Components.Add(component);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
+                "X-A/X-A[1]: A X-A component is nested in itself.",
+                "X-A/X-A[2]: A X-A component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentInItsChild_ReportsTheNesting()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            var child = new IcalComponent("X-B");
+            component.Components.Add(child);
+            child.Components.Add(component);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.ToString()).Should().Equal(
+                "X-A/X-B[1]/X-A[1]: A X-A component is nested in itself.");
+        }
+
+        [Fact]
+        public void Validate_ComponentInTwoParents_ReportsTheSecondPlace()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            var first = new IcalComponent(NestedComponentName);
+            var second = new IcalComponent(NestedComponentName);
+            var shared = new IcalComponent(NestedComponentName);
+            component.Components.Add(first);
+            component.Components.Add(second);
+            first.Components.Add(shared);
+            second.Components.Add(shared);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(
+                (IcalDiagnosticKind.InvalidComponentNesting, "X-A/X-A[2]/X-A[1]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_DistinctComponentsThatAreEqual_ReturnsNothing()
+        {
+            // arrange
+            var component = new EqualToEveryComponent();
+            var first = new EqualToEveryComponent();
+            var second = new EqualToEveryComponent();
+            component.Components.Add(first);
+            component.Components.Add(second);
+            first.Components.Add(new EqualToEveryComponent());
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Validate_ComponentTwiceInOneParent_ReportsTheSecondPlace()
+        {
+            // arrange
+            var component = SharedComponents(1);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(("X-A/X-A[2]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_ComponentsSharedAtEachLevel_ReportsEachSecondPlace()
+        {
+            // arrange
+            var component = SharedComponents(SharedThreeLevels);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(
+                ("X-A/X-A[1]/X-A[1]/X-A[2]", SharedMessage),
+                ("X-A/X-A[1]/X-A[2]", SharedMessage),
+                ("X-A/X-A[2]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_ComponentsSharedAtSixtyLevels_ReportsEachLevelOnce()
+        {
+            // arrange
+            var component = SharedComponents(SharedLevels);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().HaveCount(SharedLevels).And.OnlyContain(diagnostic => diagnostic.Message == SharedMessage);
+        }
+
+        [Fact]
+        public void Validate_ComponentsNestedToTheLimit_ReturnsNothing()
+        {
+            // arrange
+            var component = NestedComponents(MaxComponentDepth);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Validate_ComponentsNestedPastTheLimit_ReportsTheNesting()
+        {
+            // arrange
+            var component = NestedComponents(PastMaxComponentDepth);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.Message)).Should().Equal(
+                (IcalDiagnosticKind.InvalidComponentNesting, "Components are nested more than 64 levels deep; RFC 5545§3.6 allows three."));
         }
 
         [Fact]
@@ -1073,6 +1912,27 @@ namespace DataStandardizer.File.iCal.Tests
                 "COLOR:b");
             var options = new IcalOptions { AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true };
             return ReadCalendar(text, options);
+        }
+
+        /// <summary>
+        /// A <see cref="NestedComponentName"/> component that is equal to every other, so that a check comparing components with
+        /// <see cref="object.Equals(object)"/> instead of by reference would find each one nested in itself or in more than one place.
+        /// </summary>
+        private sealed class EqualToEveryComponent : IcalComponent
+        {
+            public EqualToEveryComponent() : base(NestedComponentName)
+            {
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is IcalComponent;
+            }
+
+            public override int GetHashCode()
+            {
+                return 0;
+            }
         }
     }
 }

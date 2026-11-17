@@ -85,7 +85,9 @@ namespace DataStandardizer.File.vCard.Tests
                 { Crlf(BeginCard, Version40, EndCard, CaretLine) },
                 { Crlf(BeginCard, Version40, EndCard, BeginCard, CaretLine) },
                 { Crlf(BeginCard, Version40, EndCard, BeginCard, Version30, CaretLine) },
-                { Crlf(BeginCard, Version40, Version30, CaretLine) }
+
+                // ref. RFC 6350 §6.7.9 and RFC 2426 §5: a card has one VERSION, so a second doesn't change how its lines are read.
+                { Crlf(BeginCard, Version30, Version40, CaretLine) }
             };
         }
 
@@ -99,7 +101,9 @@ namespace DataStandardizer.File.vCard.Tests
                 { Crlf("a.BEGIN:VCARD", "a.VERSION:4.0", CaretLine) },
                 { Crlf("BEGIN:VCARD", "VERSION;VALUE=text:4.0", CaretLine) },
                 { Crlf(BeginCard, Version30, EndCard, BeginCard, Version40, CaretLine) },
-                { Crlf(BeginCard, Version30, Version40, CaretLine) }
+
+                // ref. RFC 6350 §6.7.9 and RFC 2426 §5: a card has one VERSION, so a second doesn't change how its lines are read.
+                { Crlf(BeginCard, Version40, Version30, CaretLine) }
             };
         }
 

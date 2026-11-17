@@ -51,9 +51,20 @@ namespace DataStandardizer.File.iCal
         private static readonly string[] StringListPartNames = { "BYDAY" };
 
         /// <summary>
-        /// The properties whose value is a list of TEXT values.
+        /// The rule parts of a RECUR value whose value is a single JSON string (RFC 7265 §3.6.10).
         /// </summary>
-        private static readonly string[] TextListProperties = { IcalPropertyNames.Categories, IcalPropertyNames.Resources };
+        private static readonly string[] SingleStringPartNames = { "FREQ", "WKST", UntilPartName };
+
+        /// <summary>
+        /// The BYxxx rule parts of a RECUR value whose values are JSON numbers (RFC 7265 §3.6.10).
+        /// </summary>
+        private static readonly string[] NumberListPartNames =
+            { "BYSECOND", "BYMINUTE", "BYHOUR", "BYMONTHDAY", "BYYEARDAY", "BYWEEKNO", ByMonthPartName, "BYSETPOS" };
+
+        /// <summary>
+        /// The rule part of a RECUR value whose values are numbers, or strings for a leap month (RFC 7529 §9).
+        /// </summary>
+        private const string ByMonthPartName = "BYMONTH";
 
         #region jCal to iCalendar
 
@@ -69,6 +80,13 @@ namespace DataStandardizer.File.iCal
                 throw BuildException(property, null, "A property must be an array whose first element is the name of the property, as a string.");
 
             var name = ToIcalName(items[0], null, "property");
+
+            // ref. RFC 7265 §3.3: the component array takes the place of the BEGIN and END lines that delimit a component, so a property with either name would start or end one.
+            if (IsName(name, IcalCalendarBuilder.BeginName) || IsName(name, IcalCalendarBuilder.EndName))
+                throw BuildException(items[0], name,
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The {0} property can't be in jCal, whose component array takes the place of BEGIN and END: RFC 7265 §3.3.", name));
+
             if (items.Count < 4)
                 throw BuildException(property, name,
                     string.Format(CultureInfo.InvariantCulture,
@@ -86,6 +104,13 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 7265§5.2: an unknown value is taken over without processing, and has no VALUE parameter.  A type identifier that is not
             // one of RFC 5545's is an extension value type, whose value is kept as it is.
             var typeName = items[2].Text;
+            // ref. RFC 7265 §3.4: the type identifier is "in lowercase".
+            if (!IcalComponent.IsLowerCaseName(typeName))
+                throw BuildException(items[2], name,
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The type identifier \"{0}\" of the {1} property is not a jCal name, which is one or more lower-case letters, digits and hyphens: " +
+                        "RFC 7265 §3.4.", typeName, name));
+
             IcalValueType valueType;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? extensionTypeName = null;
@@ -93,14 +118,9 @@ namespace DataStandardizer.File.iCal
             string extensionTypeName = null;
 #endif
             if (!IcalValueTypeRegistry.TryParseValueTypeName(typeName.AsSpan(), out valueType) &&
-                !IcalValueFormatting.EqualsKeyword(typeName.AsSpan(), "UNKNOWN"))
+                typeName != UnknownTypeName)
             {
                 extensionTypeName = typeName.ToUpperInvariant();
-                if (!IcalComponent.IsValidName(extensionTypeName))
-                    throw BuildException(items[2], name,
-                        string.Format(CultureInfo.InvariantCulture,
-                            "The type identifier {0} of the {1} property is not a valid value type name, which is one or more letters, digits and hyphens.",
-                            typeName, name));
             }
 
             var values = new List<JcalNode>();
@@ -110,6 +130,11 @@ namespace DataStandardizer.File.iCal
             }
 
             string value;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? conversionProblem = null;
+#else
+            string conversionProblem = null;
+#endif
             if (IsName(name, IcalPropertyNames.Geo) && valueType == IcalValueType.Float && values.Count == 1 && values[0].Kind == JcalNodeKind.Array)
             {
                 value = ReadGeo(values[0], name);
@@ -122,6 +147,7 @@ namespace DataStandardizer.File.iCal
             else
             {
                 value = ReadValues(values, name, valueType);
+                conversionProblem = GetConversionProblem(values, valueType, name);
             }
 
             // ref. RFC 7265§3.5.1 and §4: a VALUE parameter is added if the type is not the property's default, but never for an unknown value.
@@ -146,13 +172,68 @@ namespace DataStandardizer.File.iCal
                 parameters.Add(new IcalContentLineParameter(IcalParameterNames.Encoding, "BASE64"));
             }
 
-            return IcalContentLine.FromConversion(name, parameters.ToArray(), value, 0);
+            return IcalContentLine.FromConversion(name, parameters.ToArray(), value, 0, conversionProblem);
         }
 
         /// <summary>
-        /// Gets the iCalendar name for the name of a component or property: the name in upper case (RFC 7265 §4).
+        /// Checks the values of a property, including the parts of its periods and the UNTIL of its recurrence rules, for a value in the text
+        /// form of a content line that jCal does not allow, such as a DATE-TIME of <c>20240101T120000Z</c> or a UTC-OFFSET of <c>-0500</c>.  The
+        /// converter keeps such a value as it is, and the conformance check would see a valid value.
         /// </summary>
-        /// <exception cref="IcalFileException">The name is not a valid iCalendar name.</exception>
+        /// <returns>The problem with the first such value; or <c>null</c> if there is none.  A value that is not valid in either form is left to
+        /// the conformance check, which reports it as not valid for its type.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? GetConversionProblem(List<JcalNode> values, IcalValueType valueType, string propertyName)
+#else
+        private static string GetConversionProblem(List<JcalNode> values, IcalValueType valueType, string propertyName)
+#endif
+        {
+            // ref. RFC 7265§3.6: each value type has its own JSON form.  ReadValues has already checked the JSON kind of each value.
+            foreach (var value in values)
+            {
+                switch (value.Kind)
+                {
+                    case JcalNodeKind.Array:
+                        // ref. RFC 7265§3.6.9: the start is a DATE-TIME, and the end a DATE-TIME or a DURATION, which has the same form in both.
+                        foreach (var part in value.Items)
+                        {
+                            if (IcalConversionCheck.IsTextFormOnly(part.Text.AsSpan(), IcalValueType.DateTime, IcalValueFormat.Json))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.DateTime, IcalValueFormat.Json);
+                        }
+
+                        break;
+                    case JcalNodeKind.Object:
+                        for (var index = 0; index < value.Items.Count; index++)
+                        {
+                            var part = value.Items[index];
+                            if (part.Kind != JcalNodeKind.String ||
+                                !string.Equals(value.Names[index], UntilPartName, StringComparison.OrdinalIgnoreCase)) continue;
+
+                            // ref. RFC 7265§3.6.10: UNTIL is a DATE or a DATE-TIME.
+                            var until = part.Text.AsSpan();
+                            if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.Date, IcalValueFormat.Json))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.Date, IcalValueFormat.Json);
+                            if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.DateTime, IcalValueFormat.Json))
+                                return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.DateTime, IcalValueFormat.Json);
+                        }
+
+                        break;
+                    case JcalNodeKind.String:
+                        if (IcalConversionCheck.IsTextFormOnly(value.Text.AsSpan(), valueType, IcalValueFormat.Json))
+                            return IcalConversionCheck.BuildProblem(propertyName, valueType, IcalValueFormat.Json);
+
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the iCalendar name for the name of a component, property or parameter, or the key of a RECUR rule part: the name in upper
+        /// case (RFC 7265 §4).
+        /// </summary>
+        /// <exception cref="IcalFileException">The name is not an iCalendar name in lower case.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal static string ToIcalName(JcalNode node, string? propertyName, string kind)
 #else
@@ -168,13 +249,15 @@ namespace DataStandardizer.File.iCal
         private static string ToIcalName(string text, JcalNode node, string propertyName, string kind)
 #endif
         {
-            var name = text.ToUpperInvariant();
-            if (!IcalComponent.IsValidName(name))
+            // ref. RFC 7265 §3.3, §3.4 and §3.5: component, property and parameter names are in lower case.  ref. §3.6.10: the key of a rule part
+            // "MUST be converted to lowercase".
+            if (!IcalComponent.IsLowerCaseName(text))
                 throw BuildException(node, propertyName,
                     string.Format(CultureInfo.InvariantCulture,
-                        "The {0} name \"{1}\" is not a valid iCalendar name, which is one or more letters, digits and hyphens.", kind, text));
+                        "The {0} name \"{1}\" is not a jCal name, which is one or more lower-case letters, digits and hyphens: RFC 7265 §3.3 to §3.6.",
+                        kind, text));
 
-            return name;
+            return text.ToUpperInvariant();
         }
 
         private static List<IcalContentLineParameter> ReadParameters(JcalNode parametersNode, string propertyName)
@@ -242,25 +325,46 @@ namespace DataStandardizer.File.iCal
 
         private static string ReadValue(JcalNode value, IcalValueType valueType, string propertyName)
         {
+            if (!IsJsonFormOf(valueType, value.Kind))
+                throw BuildException(value, propertyName,
+                    string.Format(CultureInfo.InvariantCulture, "A value of the {0} property with the type {1} cannot be {2}.", propertyName,
+                        GetTypeIdentifier(valueType), DescribeKind(value.Kind)));
+
             switch (value.Kind)
             {
-                case JcalNodeKind.Array when valueType == IcalValueType.Period:
+                case JcalNodeKind.Array:
                     return ReadPeriod(value, propertyName);
-                case JcalNodeKind.Object when valueType == IcalValueType.Recur:
+                case JcalNodeKind.Object:
                     return ReadRecur(value, propertyName);
-                case JcalNodeKind.String:
-                    // A string is taken for any type, so that a value that does not follow its type is kept, and the conformance check
-                    // reports it.  A RECUR value as a string is kept in the text form.
-                    return valueType == IcalValueType.Recur ? value.Text : ToText(valueType, value.Text, value, propertyName);
-                case JcalNodeKind.Number when valueType == IcalValueType.Integer || valueType == IcalValueType.Float:
-                    return ToText(valueType, value.Text, value, propertyName);
-                case JcalNodeKind.True when valueType == IcalValueType.Boolean:
-                case JcalNodeKind.False when valueType == IcalValueType.Boolean:
+                case JcalNodeKind.True:
+                case JcalNodeKind.False:
                     return FormatBoolean(value.Kind == JcalNodeKind.True, IcalValueFormat.Text);
                 default:
-                    throw BuildException(value, propertyName,
-                        string.Format(CultureInfo.InvariantCulture, "A value of the {0} property with the type {1} cannot be {2}.", propertyName,
-                            GetTypeIdentifier(valueType), DescribeKind(value.Kind)));
+                    // A string or number that does not follow its type is kept, and the conformance check reports it.
+                    return ToText(valueType, value.Text, value, propertyName);
+            }
+        }
+
+        /// <summary>
+        /// Determines whether a JSON value is of the form that a value type takes (RFC 7265 §3.6): a number for INTEGER and FLOAT (§3.6.7,
+        /// §3.6.8), <c>true</c> or <c>false</c> for BOOLEAN (§3.6.2), an array for PERIOD (§3.6.9), an object for RECUR (§3.6.10), and a
+        /// string for every other type, including an unknown one (§5).
+        /// </summary>
+        private static bool IsJsonFormOf(IcalValueType valueType, JcalNodeKind kind)
+        {
+            switch (valueType)
+            {
+                case IcalValueType.Integer:
+                case IcalValueType.Float:
+                    return kind == JcalNodeKind.Number;
+                case IcalValueType.Boolean:
+                    return kind == JcalNodeKind.True || kind == JcalNodeKind.False;
+                case IcalValueType.Period:
+                    return kind == JcalNodeKind.Array;
+                case IcalValueType.Recur:
+                    return kind == JcalNodeKind.Object;
+                default:
+                    return kind == JcalNodeKind.String;
             }
         }
 
@@ -296,7 +400,8 @@ namespace DataStandardizer.File.iCal
         private static string ReadRecur(JcalNode recur, string propertyName)
         {
             // ref. RFC 7265§3.6.10: an object with a member for each rule part, whose value is a string, a number, or an array of them for a
-            // BYxxx rule part.  The parts are written in the order of the members.
+            // BYxxx rule part.  The parts are written in the order of the members.  A rule part that RFC 5545 does not define may hold any of
+            // them, so that the conformance check reports it.
             if (recur.Items.Count == 0)
                 throw BuildException(recur, propertyName, "A recurrence rule must be an object with a member for each rule part.");
 
@@ -319,6 +424,11 @@ namespace DataStandardizer.File.iCal
                 builder.Append(name).Append('=');
                 if (value.Kind == JcalNodeKind.Array)
                 {
+                    // ref. RFC 7265§3.6.10: only a BYxxx rule part can have more than one value.
+                    if (SingleStringPartNames.Contains(name) || NumberPartNames.Contains(name))
+                        throw BuildException(value, propertyName,
+                            string.Format(CultureInfo.InvariantCulture, "The {0} rule part cannot be an array, since it has a single value.", name));
+
                     if (value.Items.Count == 0)
                         throw BuildException(value, propertyName,
                             string.Format(CultureInfo.InvariantCulture, "The {0} rule part cannot be an empty array.", name));
@@ -346,26 +456,38 @@ namespace DataStandardizer.File.iCal
         {
             switch (value.Kind)
             {
-                case JcalNodeKind.String:
+                case JcalNodeKind.String when IsStringRulePartValue(partName, value.Text):
                     if (partName != UntilPartName) return value.Text;
 
                     // ref. RFC 7265§3.6.10: UNTIL is a date or date-time in the jCal form.
                     var valueType = value.Text.Length == IcalDate.XmlLength ? IcalValueType.Date : IcalValueType.DateTime;
                     return ToText(valueType, value.Text, value, propertyName);
-                case JcalNodeKind.Number:
+                case JcalNodeKind.Number when !SingleStringPartNames.Contains(partName) && !StringListPartNames.Contains(partName):
                     int number;
                     return IcalValue.TryParseInteger(value.Text.AsSpan(), IcalValueFormat.Json, out number) ? IcalPropertyValue.FormatInteger(number) : value.Text;
                 default:
                     throw BuildException(value, propertyName,
-                        string.Format(CultureInfo.InvariantCulture, "The value of the {0} rule part must be a string or a number, not {1}.", partName,
+                        string.Format(CultureInfo.InvariantCulture, "The value of the {0} rule part cannot be {1}.", partName,
                             DescribeKind(value.Kind)));
             }
+        }
+
+        /// <summary>
+        /// Determines whether a rule part can hold a string (RFC 7265 §3.6.10): any rule part but COUNT, INTERVAL and the numeric BYxxx rule
+        /// parts, and BYMONTH for a leap month, such as <c>5L</c>, which RFC 7529 §9 gives as a string.
+        /// </summary>
+        private static bool IsStringRulePartValue(string partName, string text)
+        {
+            if (partName == ByMonthPartName) return text.EndsWith("L", StringComparison.OrdinalIgnoreCase);
+
+            return !NumberPartNames.Contains(partName) && !NumberListPartNames.Contains(partName);
         }
 
         private static string ReadGeo(JcalNode geo, string propertyName)
         {
             // ref. RFC 7265§3.4.1.1: an array of two FLOAT values, the latitude and the longitude.
-            if (geo.Items.Count != 2 || geo.Items.Any(item => item.Kind != JcalNodeKind.Number && item.Kind != JcalNodeKind.String))
+            // ref. RFC 7265§3.6.7: a FLOAT is a JSON number.
+            if (geo.Items.Count != 2 || geo.Items.Any(item => item.Kind != JcalNodeKind.Number))
                 throw BuildException(geo, propertyName, "The value of the GEO property must be an array of two numbers: the latitude and the longitude.");
 
             return ToText(IcalValueType.Float, geo.Items[0].Text, geo.Items[0], propertyName) + ";" +
@@ -391,10 +513,12 @@ namespace DataStandardizer.File.iCal
             switch (valueType)
             {
                 case IcalValueType.Text:
-                    // ref. RFC 7265§4: iCalendar escaping MUST be applied.
+                    // ref. RFC 7265§4: iCalendar escaping MUST be applied, except to the semicolon of a VERSION range (RFC 5545§3.7.4).
                     try
                     {
-                        return IcalValue.FormatText(json, IcalValueFormat.Text);
+                        return IsName(propertyName, IcalPropertyNames.Version)
+                            ? IcalConformance.FormatVersion(json)
+                            : IcalValue.FormatText(json, IcalValueFormat.Text);
                     }
                     catch (ArgumentException)
                     {
@@ -402,9 +526,6 @@ namespace DataStandardizer.File.iCal
                             string.Format(CultureInfo.InvariantCulture, "The text of the {0} property holds a character that iCalendar cannot hold.",
                                 propertyName));
                     }
-                case IcalValueType.Boolean:
-                    bool flag;
-                    return IcalValue.TryParseBoolean(value, IcalValueFormat.Json, out flag) ? FormatBoolean(flag, IcalValueFormat.Text) : json;
                 case IcalValueType.Integer:
                     int integer;
                     if (IcalValue.TryParseInteger(value, IcalValueFormat.Text, out integer)) return json;
@@ -427,10 +548,6 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.UtcOffset:
                     IcalUtcOffset offset;
                     return IcalUtcOffset.TryParse(value, IcalValueFormat.Json, out offset) ? offset.ToString(IcalValueFormat.Text) : json;
-                case IcalValueType.Period:
-                    // A period as one string, with its parts joined by a solidus, as some writers give it.
-                    var solidusIndex = json.IndexOf('/');
-                    return solidusIndex < 0 ? json : ToPeriodText(json.Substring(0, solidusIndex), json.Substring(solidusIndex + 1));
                 default:
                     // DURATION, BINARY, URI and CAL-ADDRESS are the same in both forms, and an unknown value is kept as it is (RFC 7265§5.2).
                     return json;
@@ -456,18 +573,14 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 7265§3.5.1: the type identifier gives the value type, so the VALUE parameter is not written.  ref. RFC 7265§5.1: a
             // property whose value type is not known has the unknown type.
             var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
-            IcalValueType valueType;
+            var valueType = IcalValueTypeRegistry.GetValueTypeOfAnyProperty(name, valueParameter);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? extensionTypeName = null;
 #else
             string extensionTypeName = null;
 #endif
-            if (valueParameter is null)
-            {
-                valueType = IcalValueTypeRegistry.GetDefaultValueType(name.AsSpan());
-            }
-            else if (!IcalValueTypeRegistry.TryParseValueTypeName(valueParameter.AsSpan(), out valueType) &&
-                     IcalComponent.IsValidName(valueParameter) && !IcalValueFormatting.EqualsKeyword(valueParameter.AsSpan(), "UNKNOWN"))
+            if (valueParameter != null && valueType == IcalValueType.Unknown && IcalComponent.IsValidName(valueParameter) &&
+                !IcalValueFormatting.EqualsKeyword(valueParameter.AsSpan(), "UNKNOWN"))
             {
                 extensionTypeName = valueParameter;
             }
@@ -479,7 +592,7 @@ namespace DataStandardizer.File.iCal
 #endif
             if (valueType != IcalValueType.Unknown)
             {
-                values = TryConvertValues(property, valueType, valueParameter is null);
+                values = TryConvertValues(property, valueType);
             }
 
             // A value that cannot be converted is kept with the unknown type, with its VALUE parameter; and an extension value type is kept as
@@ -622,15 +735,19 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns>The values; or <c>null</c> if the value is not a valid value of its type.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static List<JcalNode>? TryConvertValues(IcalContentLine property, IcalValueType valueType, bool isDefaultValueType)
+        private static List<JcalNode>? TryConvertValues(IcalContentLine property, IcalValueType valueType)
 #else
-        private static List<JcalNode> TryConvertValues(IcalContentLine property, IcalValueType valueType, bool isDefaultValueType)
+        private static List<JcalNode> TryConvertValues(IcalContentLine property, IcalValueType valueType)
 #endif
         {
             var name = property.Name;
             var value = property.Value;
-            if (isDefaultValueType && IsName(name, IcalPropertyNames.Geo)) return ToList(TryConvertGeo(value));
-            if (isDefaultValueType && IsName(name, IcalPropertyNames.RequestStatus)) return ToList(TryConvertRequestStatus(value));
+
+            // ref. RFC 5545§3.2.20: a VALUE parameter may name the default type, so the structure follows the type, not the parameter.
+            if (valueType == IcalValueType.Float && IsName(name, IcalPropertyNames.Geo)) return ToList(TryConvertGeo(value));
+            if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.RequestStatus)) return ToList(TryConvertRequestStatus(value));
+            // ref. RFC 5545§3.7.4: the semicolon between minver and maxver is a separator, not TEXT.
+            if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.Version)) return ToList(TryConvertVersion(value));
 
             // ref. RFC 7265§3.4: each value of a multi-valued property is an element of the array.  The values of a property whose type is
             // not known may be a list too, so they are split as well.
@@ -862,6 +979,21 @@ namespace DataStandardizer.File.iCal
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static JcalNode? TryConvertVersion(string value)
+#else
+        private static JcalNode TryConvertVersion(string value)
+#endif
+        {
+            // A range is one string, minver ";" maxver, as JcalReader reads it.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            return IcalConformance.TryParseVersion(value, out text) ? new JcalNode(JcalNodeKind.String, text) : null;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static JcalNode? TryConvertRequestStatus(string value)
 #else
         private static JcalNode TryConvertRequestStatus(string value)
@@ -956,7 +1088,7 @@ namespace DataStandardizer.File.iCal
         private static bool IsListProperty(string name)
         {
             return IcalConformance.ListProperties.Contains(name, StringComparer.OrdinalIgnoreCase) ||
-                   TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
+                   IcalConformance.TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
         }
 
         private static string FormatBoolean(bool value, IcalValueFormat format)

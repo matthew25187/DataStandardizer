@@ -98,6 +98,120 @@ namespace DataStandardizer.File.iCal.Tests
             { Rfc5545NegativeFloatValue, Rfc5545NegativeFloat },
         };
 
+        /// <summary>
+        /// A double that needs 16 significant digits to read back as the same value, which .NET Framework's <c>"R"</c> writes with 15
+        /// (<c>901.742658997766</c>), a different double.
+        /// </summary>
+        private const double SixteenDigitDouble = 901.7426589977661;
+
+        /// <summary>
+        /// The sum of 0.1 and 0.7, which needs 16 significant digits, and which .NET Framework's <c>"R"</c> writes with 17
+        /// (<c>0.79999999999999993</c>).
+        /// </summary>
+        private const double SumOfOneTenthAndSevenTenths = 0.7999999999999999;
+
+        /// <summary>
+        /// A GEO coordinate that x64 .NET Framework's <c>"R"</c> writes as <c>0.84551240822557</c>, a different double.
+        /// </summary>
+        private const double GeoCoordinateWithSixteenDigits = 0.8455124082255701;
+
+        // The smallest normal double, which needs 17 significant digits and has 307 zeros after the decimal point.
+        private const double SmallestNormalDouble = 2.2250738585072014E-308;
+        private const string SmallestNormalDoubleText = "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014";
+
+        // The largest subnormal double, which has 307 zeros after the decimal point.
+        private const double LargestSubnormalDouble = 2.225073858507201E-308;
+        private const string LargestSubnormalDoubleText = "0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002225073858507201";
+
+        // The smallest subnormal double, 2^-1074, which has 323 zeros after the decimal point.
+        private const string SmallestSubnormalDoubleText = "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005";
+
+        // 2^60 and 2^-20, powers of two whose neighbour below is half as far away as the one above.
+        private const double TwoToTheSixtieth = 1152921504606846976.0;
+        private const double TwoToTheMinusTwentieth = 9.5367431640625E-07;
+
+        // Doubles in delegates, since xUnit on .NET Framework serializes a double in a theory row with that runtime's "R", which changes some.
+        public static TheoryData<string, Func<double>, string> ShortestFloatTexts => new TheoryData<string, Func<double>, string>
+        {
+            { "needs 16 digits", () => SixteenDigitDouble, "901.7426589977661" },
+            { "needs 16 digits, below 1", () => SumOfOneTenthAndSevenTenths, "0.7999999999999999" },
+            { "GEO coordinate", () => GeoCoordinateWithSixteenDigits, "0.8455124082255701" },
+            { "negative zero", () => -0.0, "-0" },
+            { "whole number of 17 digits", () => 1E+16, "10000000000000000" },
+            { "whole number of 18 digits", () => 1E+17, "100000000000000000" },
+            { "decimal point four places before the first digit", () => 0.00001, "0.00001" },
+            { "smallest normal", () => SmallestNormalDouble, SmallestNormalDoubleText },
+            { "largest subnormal", () => LargestSubnormalDouble, LargestSubnormalDoubleText },
+            { "smallest subnormal", () => double.Epsilon, SmallestSubnormalDoubleText },
+            { "power of two, above 1", () => TwoToTheSixtieth, "1152921504606847000" },
+            { "power of two, below 1", () => TwoToTheMinusTwentieth, "0.00000095367431640625" },
+        };
+
+        /// <summary>
+        /// The double nearest to <c>5.882948112288285E-204</c>.  .NET Framework reads that text as the double above it,
+        /// <c>5.8829481122882854E-204</c>.
+        /// </summary>
+        private const double SixteenDigitExponentDouble = 5.8829481122882847E-204;
+
+        /// <summary>
+        /// 2^53, the double below 2^53 + 1, which lies halfway between it and <see cref="TwoToThe53PlusTwo"/>.
+        /// </summary>
+        private const double TwoToThe53 = 9007199254740992d;
+
+        /// <summary>
+        /// 2^53 + 2, the double above 2^53 + 1.
+        /// </summary>
+        private const double TwoToThe53PlusTwo = 9007199254740994d;
+
+        /// <summary>
+        /// 2^53 + 1, with a last digit beyond the 17 significant digits a double needs, which puts it just above halfway between
+        /// <see cref="TwoToThe53"/> and <see cref="TwoToThe53PlusTwo"/>.  .NET Framework ignores the last digit and reads <see cref="TwoToThe53"/>.
+        /// </summary>
+        private const string JustAboveHalfwayText = "9007199254740993.0000000000000001";
+
+        /// <summary>
+        /// Just above half the smallest subnormal double, so that its nearest double is <see cref="double.Epsilon"/>, not zero.
+        /// </summary>
+        private const string JustAboveHalfTheSmallestSubnormalText = "2.4703282292062327208828439643411068618252990130716238221279284125033775364E-324";
+
+        /// <summary>
+        /// Just below halfway between <see cref="double.MaxValue"/> and 2^1024, so that its nearest double is <see cref="double.MaxValue"/>.
+        /// </summary>
+        private const string JustBelowHalfwayAboveTheLargestText = "1.797693134862315807937289714053E+308";
+
+        /// <summary>
+        /// Just above halfway between <see cref="double.MaxValue"/> and 2^1024, so that it rounds to infinity, which a FLOAT value can't hold.
+        /// </summary>
+        private const string JustAboveHalfwayAboveTheLargestText = "1.797693134862315808E+308";
+
+        // The expected doubles are their bits, so that negative zero differs from positive zero, and so that xUnit on .NET Framework doesn't
+        // serialize a double in a theory row with that runtime's "R".
+        public static TheoryData<string, string, IcalValueFormat, long> NearestDoubleCases => new TheoryData<string, string, IcalValueFormat, long>
+        {
+            { "negative zero", "-0", IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(-0.0) },
+            { "negative zero, JSON", "-0", IcalValueFormat.Json, BitConverter.DoubleToInt64Bits(-0.0) },
+            { "negative zero with a fraction, xCal", "-0.0E0", IcalValueFormat.Xml, BitConverter.DoubleToInt64Bits(-0.0) },
+            { "needs 16 digits", "901.7426589977661", IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(SixteenDigitDouble) },
+            { "16 digits and an exponent", "5.882948112288285E-204", IcalValueFormat.Json, BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
+            { "smallest normal", SmallestNormalDoubleText, IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "smallest normal, rounded up", "2.2250738585072012E-308", IcalValueFormat.Xml, BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "smallest subnormal", SmallestSubnormalDoubleText, IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(double.Epsilon) },
+            { "just above halfway", JustAboveHalfwayText, IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "exactly halfway, odd neighbour above", "9007199254740993", IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53) },
+            { "just above halfway, in more digits than a halfway value can have", "9007199254740993." + new string('0', 1000) + "1", IcalValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just below half the smallest subnormal", "2.4703282292062327E-324", IcalValueFormat.Json, BitConverter.DoubleToInt64Bits(0.0) },
+            { "just above half the smallest subnormal", JustAboveHalfTheSmallestSubnormalText, IcalValueFormat.Json, BitConverter.DoubleToInt64Bits(double.Epsilon) },
+            { "far below the smallest subnormal", "1E-99999999999", IcalValueFormat.Xml, BitConverter.DoubleToInt64Bits(0.0) },
+            { "just below halfway above the largest", JustBelowHalfwayAboveTheLargestText, IcalValueFormat.Xml, BitConverter.DoubleToInt64Bits(double.MaxValue) },
+        };
+
+        // Whole numbers larger than the largest double, about 1.8E+308.
+        public static TheoryData<string, string> TooLargeFloatTexts => new TheoryData<string, string>
+        {
+            { "400 nines", new string('9', 400) },
+            { "more digits than are kept, 900 nines", new string('9', 900) },
+        };
+
         // ref. RFC 5545 §3.3.13, §3.3.3: the examples of URI and CAL-ADDRESS values.
         public static TheoryData<string> Rfc5545Uris => new TheoryData<string>
         {
@@ -138,6 +252,51 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Should().BeFalse();
             text.Should().BeNull();
+        }
+
+        // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT has them only escaped.  The last value has an escaped backslash
+        // followed by a comma that is not escaped.
+        [Theory]
+        [InlineData("Lunch, then review")]
+        [InlineData("Lunch; then review")]
+        [InlineData("a\\\\,b")]
+        public void TryParseText_UnescapedCommaOrSemicolon_Fails(string value)
+        {
+            // act
+            var testResult = IcalValue.TryParseText(value.AsSpan(), IcalValueFormat.Text, out var text);
+
+            // assert
+            testResult.Should().BeFalse();
+            text.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryParseText_UnescapedCommaIntoSpan_FailsAndWritesNothing()
+        {
+            // arrange
+            var destination = new char[10];
+
+            // act
+            var testResult = IcalValue.TryParseText(UnescapedComma.AsSpan(), IcalValueFormat.Text, destination, out var charsWritten);
+
+            // assert
+            testResult.Should().BeFalse();
+            charsWritten.Should().Be(0);
+        }
+
+        // ref. RFC 7265 §3.6.11 and RFC 6321 §3.6.11: a jCal string and the content of an xCal text element have no escaping, so a comma or
+        // semicolon is plain text.
+        [Theory]
+        [InlineData(IcalValueFormat.Json)]
+        [InlineData(IcalValueFormat.Xml)]
+        public void TryParseText_SpecialCharactersInJsonOrXmlForm_AreKept(IcalValueFormat format)
+        {
+            // act
+            var testResult = IcalValue.TryParseText(SpecialCharacters.AsSpan(), format, out var text);
+
+            // assert
+            testResult.Should().BeTrue();
+            text.Should().Be(SpecialCharacters);
         }
 
         [Fact]
@@ -386,11 +545,12 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeFalse();
         }
 
-        [Fact]
-        public void TryParseFloat_TooLarge_Fails()
+        [Theory]
+        [MemberData(nameof(TooLargeFloatTexts))]
+        public void TryParseFloat_TooLarge_Fails(string scenario, string value)
         {
-            // arrange: four hundred nines, which is larger than the largest double.
-            var value = new string('9', 400);
+            // arrange
+            _ = scenario;
 
             // act
             var testResult = IcalValue.TryParseFloat(value.AsSpan(), IcalValueFormat.Text, out _);
@@ -399,12 +559,52 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeFalse();
         }
 
+        [Fact]
+        public void TryParseFloat_JustAboveHalfwayAboveTheLargest_Fails()
+        {
+            // act
+            var testResult = IcalValue.TryParseFloat(JustAboveHalfwayAboveTheLargestText.AsSpan(), IcalValueFormat.Json, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(NearestDoubleCases))]
+        public void TryParseFloat_Value_GivesTheNearestDoubleOnEveryTarget(string scenario, string value, IcalValueFormat format, long expectedBits)
+        {
+            // arrange
+            _ = scenario;
+
+            // act
+            var testResult = IcalValue.TryParseFloat(value.AsSpan(), format, out var result);
+
+            // assert
+            testResult.Should().BeTrue();
+            BitConverter.DoubleToInt64Bits(result).Should().Be(expectedBits);
+        }
+
         [Theory]
         [MemberData(nameof(FloatsWithoutExponents))]
         public void FormatFloat_Value_IsWrittenWithoutExponent(double value, string expected)
         {
             // act
             var testResult = IcalValue.FormatFloat(value, IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(ShortestFloatTexts))]
+        public void FormatFloat_Value_IsWrittenWithTheFewestDigitsThatReadBack(string scenario, Func<double> value, string expected)
+        {
+            // arrange
+            _ = scenario;
+            var number = value();
+
+            // act
+            var testResult = IcalValue.FormatFloat(number, IcalValueFormat.Text);
 
             // assert
             testResult.Should().Be(expected);
@@ -630,6 +830,51 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Should().BeFalse();
             uri.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryFormatUri_NotNormalized_WritesItAsGiven()
+        {
+            // arrange
+            var uri = new Uri(UriTestData.UpperCaseUri);
+            var destination = new char[64];
+
+            // act
+            var testResult = IcalValue.TryFormatUri(uri, destination, out var charsWritten, IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().BeTrue();
+            new string(destination, 0, charsWritten).Should().Be(UriTestData.UpperCaseUri);
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
+        public void TryFormatUri_TextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var uri = new Uri(value);
+            var destination = new char[64];
+
+            // act
+            Action testAction = () => IcalValue.TryFormatUri(uri, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
+        public void TryFormatCalAddress_TextNotAllowed_ThrowsArgumentException(string value)
+        {
+            // arrange
+            var uri = new Uri(value);
+            var destination = new char[64];
+
+            // act
+            Action testAction = () => IcalValue.TryFormatCalAddress(uri, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("value");
         }
 
         [Fact]

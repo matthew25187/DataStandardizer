@@ -60,7 +60,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Contact
@@ -73,16 +73,21 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets or sets the end (RFC 5545 §3.8.2.2, <c>DTEND</c>), a DATE or a DATE-TIME; or <c>null</c> if there is none.
+        /// Gets or sets the end (RFC 5545 §3.8.2.2, <c>DTEND</c>), which in a VFREEBUSY is a DATE-TIME in UTC; or <c>null</c> if there is
+        /// none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// returns a DATE, floating or zoned value as it is, which a reader keeps and a writer accepts only with
+        /// <see cref="IcalOptions.AllowInvalidValues"/>.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is a DATE, or a DATE-TIME that is floating or has a time zone; RFC 5545
+        /// §3.8.2.2 requires DTEND in a VFREEBUSY to be a DATE-TIME in UTC.</exception>
         public IcalDateOrDateTime? DtEnd
         {
             get { return GetDateOrDateTime(IcalPropertyNames.DtEnd); }
-            set { SetDateOrDateTime(IcalPropertyNames.DtEnd, value); }
+            set { SetUtcDateOrDateTime(IcalPropertyNames.DtEnd, value, "3.8.2.2"); }
         }
 
         /// <summary>
@@ -90,33 +95,42 @@ namespace DataStandardizer.File.iCal
         /// information last revised; or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.2 requires DTSTAMP to be in
+        /// UTC.</exception>
         public IcalDateTime? DtStamp
         {
             get { return GetDateTime(IcalPropertyNames.DtStamp); }
-            set { SetDateTime(IcalPropertyNames.DtStamp, value); }
+            set { SetUtcDateTime(IcalPropertyNames.DtStamp, value, "3.8.7.2"); }
         }
 
         /// <summary>
-        /// Gets or sets the start (RFC 5545 §3.8.2.4, <c>DTSTART</c>), a DATE or a DATE-TIME; or <c>null</c> if there is none.
+        /// Gets or sets the start (RFC 5545 §3.8.2.4, <c>DTSTART</c>), which in a VFREEBUSY is a DATE-TIME in UTC; or <c>null</c> if there is
+        /// none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// returns a DATE, floating or zoned value as it is, which a reader keeps and a writer accepts only with
+        /// <see cref="IcalOptions.AllowInvalidValues"/>.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is a DATE, or a DATE-TIME that is floating or has a time zone; RFC 5545
+        /// §3.8.2.4 requires DTSTART in a VFREEBUSY to be a DATE-TIME in UTC.</exception>
         public IcalDateOrDateTime? DtStart
         {
             get { return GetDateOrDateTime(IcalPropertyNames.DtStart); }
-            set { SetDateOrDateTime(IcalPropertyNames.DtStart, value); }
+            set { SetUtcDateOrDateTime(IcalPropertyNames.DtStart, value, "3.8.2.4"); }
         }
 
         /// <summary>
         /// Gets or sets the calendar address of the organizer (RFC 5545 §3.8.4.3, <c>ORGANIZER</c>); or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.  The setter takes an absolute URI.
+        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.
+        /// The setter takes an absolute URI and writes it as it was given (<see cref="Uri.OriginalString"/>).  It throws
+        /// <see cref="ArgumentException"/> if that text is not a URI that <see cref="IcalValue.TryFormatUri"/> can write.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Organizer
@@ -133,7 +147,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? Uid
@@ -150,7 +164,9 @@ namespace DataStandardizer.File.iCal
         /// is none.
         /// </summary>
         /// <remarks>
-        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.  The setter takes an absolute URI.
+        /// The getter throws <see cref="IcalFileException"/> if the value is not a valid absolute URI.
+        /// The setter takes an absolute URI and writes it as it was given (<see cref="Uri.OriginalString"/>).  It throws
+        /// <see cref="ArgumentException"/> if that text is not a URI that <see cref="IcalValue.TryFormatUri"/> can write.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Url

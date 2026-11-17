@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
@@ -16,7 +18,10 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         internal const string SupportedVersion = "2.0";
 
-        private const decimal SupportedVersionNumber = 2.0m;
+        /// <summary>
+        /// The <c>minver;maxver</c> form of <see cref="SupportedVersion"/>: the only range whose ends are both registered identifiers.
+        /// </summary>
+        private const string SupportedVersionRange = SupportedVersion + ";" + SupportedVersion;
 
         /// <summary>
         /// The names of the components RFC 5545 defines.  A component with one of these names may be nested only where its parent's rule allows.
@@ -37,6 +42,11 @@ namespace DataStandardizer.File.iCal
         };
 
         /// <summary>
+        /// The properties whose value is a comma-separated list of TEXT values (RFC 5545 §3.8.1.2 and §3.8.1.10).
+        /// </summary>
+        internal static readonly string[] TextListProperties ={ IcalPropertyNames.Categories, IcalPropertyNames.Resources };
+
+        /// <summary>
         /// The properties RFC 7986 §5 gives no default value type, so that they need a <c>VALUE</c> parameter.
         /// </summary>
         internal static readonly string[] ValueParameterRequiredProperties =
@@ -52,6 +62,25 @@ namespace DataStandardizer.File.iCal
             IcalPropertyNames.Completed, IcalPropertyNames.Created, IcalPropertyNames.DtStamp, IcalPropertyNames.LastModified,
             IcalPropertyNames.Trigger
         };
+
+        // ref. RFC 5545§3.8.1.11: statvalue-event, statvalue-todo and statvalue-jour, which have no iana-token or x-name.
+        private static readonly string[] EventStatuses = { "TENTATIVE", "CONFIRMED", "CANCELLED" };
+        private static readonly string[] TodoStatuses = { "NEEDS-ACTION", "COMPLETED", "IN-PROCESS", "CANCELLED" };
+        private static readonly string[] JournalStatuses = { "DRAFT", "FINAL", "CANCELLED" };
+
+        // ref. RFC 5545§3.8.2.7: transvalue = "OPAQUE" / "TRANSPARENT".
+        private static readonly string[] TransparencyValues = { "OPAQUE", "TRANSPARENT" };
+
+        // ref. RFC 5545§3.7.1: calvalue = "GREGORIAN".
+        private static readonly string[] CalendarScaleValues = { "GREGORIAN" };
+
+        private const long SecondsPerDay = 86400;
+
+        /// <summary>
+        /// The largest size of a UTC offset, in seconds: <c>utc-offset = time-numzone</c> (RFC 5545 §3.3.14), whose hour is at most 23, minute
+        /// at most 59 and second at most 60.
+        /// </summary>
+        private const long MaxOffsetSeconds = 23 * 3600 + 59 * 60 + 60;
 
         /// <summary>
         /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with one value.  <c>FMTTYPE</c> is left out, as it has a check of its own.
@@ -243,24 +272,44 @@ namespace DataStandardizer.File.iCal
         /// <param name="diagnostics">Receives the problems found, in the order of the lines they were found on.</param>
         internal static void Validate(IcalComponent root, bool isVersionWritten, List<IcalDiagnostic> diagnostics)
         {
+            Validate(root, isVersionWritten, false, diagnostics);
+        }
+
+        /// <summary>
+        /// Checks a component and the components nested in it.
+        /// </summary>
+        /// <param name="root">The component.</param>
+        /// <param name="isVersionWritten"><c>true</c> if a writer supplies <c>VERSION:2.0</c> itself, so that a missing <c>VERSION</c> is not a
+        /// problem.</param>
+        /// <param name="isConversionChecked"><c>true</c> if the reader that converted the lines from jCal or xCal is checking them, so
+        /// that a value that was not in that serialization's form (<see cref="IcalContentLine.ConversionProblem"/>) is a problem.  Once read,
+        /// the lines are in the text form, where such a value is valid, so no other check reports it.</param>
+        /// <param name="diagnostics">Receives the problems found, in the order of the lines they were found on.</param>
+        internal static void Validate(IcalComponent root, bool isVersionWritten, bool isConversionChecked, List<IcalDiagnostic> diagnostics)
+        {
             var found = new List<IcalDiagnostic>();
-            var context = new Context(found);
+            var context = new Context(found) { IsConversionChecked = isConversionChecked };
             if (IsName(root.Name, IcalComponentNames.Calendar))
             {
                 context.IsCalendar = true;
                 context.HasMethod = root.GetProperty(IcalPropertyNames.Method) != null;
                 context.IsVersionWritten = isVersionWritten;
+                context.Calendar = root;
                 foreach (var timeZone in root.Components)
                 {
                     if (!IsName(timeZone.Name, IcalComponentNames.TimeZone)) continue;
 
+                    var offsets = GetOffsetRange(timeZone);
                     foreach (var timeZoneId in timeZone.GetProperties(IcalPropertyNames.TimeZoneId))
                     {
-                        context.TimeZoneIds.Add(GetTextOrRaw(timeZoneId));
+                        var id = GetTextOrRaw(timeZoneId);
+                        context.TimeZoneIds.Add(id);
+                        context.AddOffsetRange(id, offsets);
                     }
                 }
             }
 
+            context.Visited.Add(root);
             ValidateComponent(root, root.Name, context);
 
             // A stable sort, so problems on the same line, and in a model built in code, stay in the order they were found.
@@ -311,6 +360,32 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets the message for components nested more than <see cref="IcalCalendarBuilder.MaxComponentDepth"/> levels deep.
+        /// </summary>
+        internal static string BuildNestedTooDeeplyMessage()
+        {
+            return string.Format(CultureInfo.InvariantCulture, "Components are nested more than {0} levels deep; RFC 5545§3.6 allows three.",
+                IcalCalendarBuilder.MaxComponentDepth);
+        }
+
+        /// <summary>
+        /// Checks, for a writer walking a calendar it has already validated, that a component is nested no deeper than validation allows.
+        /// </summary>
+        /// <param name="depth">The level of the component, counting the VCALENDAR as the first.</param>
+        /// <exception cref="IcalFileException">The component is nested more than <see cref="IcalCalendarBuilder.MaxComponentDepth"/> levels
+        /// deep, because the calendar was changed after it was validated.</exception>
+        internal static void CheckWriteDepth(int depth)
+        {
+            // Validation refuses a component nested in itself or too deeply, but another thread may change the calendar after it, and an
+            // unbounded recursion would end the process with a stack overflow.
+            if (depth <= IcalCalendarBuilder.MaxComponentDepth) return;
+
+            var exception = new IcalFileException(BuildNestedTooDeeplyMessage());
+            exception.Data.Add(IcalFileException.DataItemName.DiagnosticKind, IcalDiagnosticKind.InvalidComponentNesting);
+            throw exception;
+        }
+
+        /// <summary>
         /// Gets the path of a nested component.
         /// </summary>
         /// <param name="parentPath">The path of the parent.</param>
@@ -322,44 +397,72 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Indicates whether a <c>VERSION</c> value (RFC 5545 §3.7.4) is or includes iCalendar 2.0: <c>maxver</c> or <c>minver;maxver</c>.
+        /// Indicates whether a <c>VERSION</c> value (RFC 5545 §3.7.4) is one RFC 5545 allows: <c>2.0</c>, or the range <c>2.0;2.0</c>.
         /// </summary>
         internal static bool IsSupportedVersion(string value)
         {
+            // ref. RFC 5545§3.7.4: vervalue = "2.0" / maxver / (minver ";" maxver), where minver and maxver are IANA-registered iCalendar
+            // version identifiers.  The only one is the 2.0 that RFC 5545 itself defines, so other spellings of the number, such as 2 or
+            // 02.000, and ranges reaching another version, such as 1.0;2.0, are not allowed.
+            return string.Equals(value, SupportedVersion, StringComparison.Ordinal) ||
+                   string.Equals(value, SupportedVersionRange, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Converts unescaped <c>VERSION</c> text to the form of a content line: each of <c>minver</c> and <c>maxver</c> is escaped as TEXT,
+        /// and the semicolon between them is kept.
+        /// </summary>
+        /// <param name="value">The unescaped text, such as <c>2.0</c> or <c>2.0;2.0</c>.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> holds a character that iCalendar cannot hold.</exception>
+        internal static string FormatVersion(string value)
+        {
+            // ref. RFC 5545§3.7.4: in minver ";" maxver the semicolon separates the two versions, so it is not escaped like a TEXT semicolon.
             var parts = value.Split(';');
-            decimal minimum, maximum;
-            switch (parts.Length)
+            for (var index = 0; index < parts.Length; index++)
             {
-                case 1:
-                    return TryParseVersion(parts[0], out maximum) && maximum == SupportedVersionNumber;
-                case 2:
-                    return TryParseVersion(parts[0], out minimum) && TryParseVersion(parts[1], out maximum) && minimum <= SupportedVersionNumber &&
-                           SupportedVersionNumber <= maximum;
-                default:
-                    return false;
+                parts[index] = IcalValue.FormatText(parts[index], IcalValueFormat.Text);
             }
+
+            return string.Join(";", parts);
+        }
+
+        /// <summary>
+        /// Removes the TEXT escaping from a <c>VERSION</c> value, keeping the semicolon between <c>minver</c> and <c>maxver</c>; the reverse of
+        /// <see cref="FormatVersion"/>.
+        /// </summary>
+        /// <returns><c>true</c> if each part is valid TEXT and there is at most one semicolon that is not escaped; otherwise <c>false</c>.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryParseVersion(string value, [NotNullWhen(true)] out string? result)
+#else
+        internal static bool TryParseVersion(string value, [MaybeNullWhen(false)] out string result)
+#endif
+        {
+            // ref. RFC 5545§3.7.4: vervalue = "2.0" / maxver / (minver ";" maxver), and minver and maxver are TEXT.
+            var span = value.AsSpan();
+            var separatorIndex = IcalValue.FindUnescapedSeparator(span);
+            if (separatorIndex < 0 || span[separatorIndex] != ';') return IcalValue.TryParseText(span, IcalValueFormat.Text, out result);
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? minimum, maximum;
+#else
+            string minimum, maximum;
+#endif
+            if (!IcalValue.TryParseText(span.Slice(0, separatorIndex), IcalValueFormat.Text, out minimum) ||
+                !IcalValue.TryParseText(span.Slice(separatorIndex + 1), IcalValueFormat.Text, out maximum))
+            {
+                result = null;
+                return false;
+            }
+
+            result = minimum + ";" + maximum;
+            return true;
         }
 
         internal static string BuildUnsupportedVersionMessage(string value)
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "The calendar has VERSION:{0}, which does not include iCalendar 2.0, the only version RFC 5545 defines.  vCalendar 1.0 " +
-                "(VERSION:1.0) is not supported.", value);
-        }
-
-        private static bool TryParseVersion(string text, out decimal version)
-        {
-            // ref. RFC 5545§3.7.4: the versions are text, but the only ones registered are numbers such as 2.0.
-            foreach (var character in text)
-            {
-                if (!(character >= '0' && character <= '9' || character == '.'))
-                {
-                    version = 0;
-                    return false;
-                }
-            }
-
-            return decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out version);
+                "The calendar has VERSION:{0}, but RFC 5545 allows only VERSION:2.0 (or the range 2.0;2.0), since 2.0 is the only iCalendar " +
+                "version it defines.  vCalendar 1.0 (VERSION:1.0) is not supported.", value);
         }
 
         private static void ValidateComponent(IcalComponent component, string path, Context context)
@@ -379,7 +482,18 @@ namespace DataStandardizer.File.iCal
 
             foreach (var property in component.Properties)
             {
-                ValidateValue(property, path, context);
+                // ref. RFC 5545§3.4 and §3.6: the BEGIN and END lines start and end a component, so a property with either name would change the structure when written.
+                if (IsName(property.Name, IcalCalendarBuilder.BeginName) || IsName(property.Name, IcalCalendarBuilder.EndName))
+                {
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "A property can't be named {0}: RFC 5545 §3.4 and §3.6 keep BEGIN and END for the lines that start and end a component.  No option accepts it.",
+                            property.Name.ToUpperInvariant()),
+                        path, property.Name, property.LineNumber);
+                    continue;
+                }
+
+                ValidateValue(property, component.Name, path, context);
                 ValidateFormatType(property, path, context);
                 ValidateParameters(property, path, context);
                 ValidateParameterQuoting(property, path, context);
@@ -390,14 +504,42 @@ namespace DataStandardizer.File.iCal
             }
 
             var indexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            context.Ancestors.Add(component);
             foreach (var child in component.Components)
             {
                 int index;
                 indexes.TryGetValue(child.Name, out index);
                 indexes[child.Name] = ++index;
 
-                ValidateComponent(child, GetChildPath(path, child.Name, index), context);
+                var childPath = GetChildPath(path, child.Name, index);
+                if (context.Ancestors.Contains(child, ComponentReferenceComparer.Instance))
+                {
+                    // A model built in code can hold a component inside itself; checking it would never end.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture, "A {0} component is nested in itself.", child.Name.ToUpperInvariant()),
+                        childPath, null, child.LineNumber);
+                }
+                else if (!context.Visited.Add(child))
+                {
+                    // A model built in code can put one component in several places.  Each place would be checked and written again, so
+                    // components that share a child at every level would take time that doubles with each level.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "A {0} component is nested in more than one place; each place needs a component of its own.", child.Name.ToUpperInvariant()),
+                        childPath, null, child.LineNumber);
+                }
+                else if (context.Ancestors.Count >= IcalCalendarBuilder.MaxComponentDepth)
+                {
+                    // The same limit as the readers, so that a tree built in code cannot end the process with a stack overflow.
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting, BuildNestedTooDeeplyMessage(), childPath, null, child.LineNumber);
+                }
+                else
+                {
+                    ValidateComponent(child, childPath, context);
+                }
             }
+
+            context.Ancestors.RemoveAt(context.Ancestors.Count - 1);
         }
 
         private static void ValidateCardinality(IcalComponent component, string path, ComponentRule rule, Context context)
@@ -407,7 +549,20 @@ namespace DataStandardizer.File.iCal
                 var properties = component.GetProperties(name);
                 if (properties.Count == 0)
                 {
-                    if (context.IsVersionWritten && IsName(name, IcalPropertyNames.Version)) continue;
+                    if (IsName(name, IcalPropertyNames.Version))
+                    {
+                        if (context.IsVersionWritten) continue;
+
+                        // ref. RFC 5545§3.6 and §3.7.4: the VERSION is required, and says which specification the calendar is read by, so no option lets a reader
+                        // accept a calendar without one.  A writer adds it, so for one it is no problem.
+                        context.Add(IcalDiagnosticKind.UnsupportedVersion,
+                            string.Format(CultureInfo.InvariantCulture,
+                                "The {0} component has no VERSION property, which says how the calendar is read: RFC 5545 §3.6 and §3.7.4.  No option lets a reader accept a " +
+                                "calendar without one; a writer adds VERSION:2.0.",
+                                component.Name),
+                            path, name, component.LineNumber);
+                        continue;
+                    }
 
                     context.Add(IcalDiagnosticKind.MissingRequiredProperty,
                         string.Format(CultureInfo.InvariantCulture, "The {0} component has no {1} property, which it requires.", component.Name, name),
@@ -502,6 +657,7 @@ namespace DataStandardizer.File.iCal
 
                 ValidateEnd(component, path, IcalPropertyNames.DtEnd, context);
                 ValidateRecurrence(component, path, false, context);
+                ValidateRecurrenceId(component, path, context);
             }
             else if (IsName(name, IcalComponentNames.Todo))
             {
@@ -516,10 +672,16 @@ namespace DataStandardizer.File.iCal
 
                 ValidateEnd(component, path, IcalPropertyNames.Due, context);
                 ValidateRecurrence(component, path, false, context);
+                ValidateRecurrenceId(component, path, context);
             }
             else if (IsName(name, IcalComponentNames.Journal))
             {
                 ValidateRecurrence(component, path, false, context);
+                ValidateRecurrenceId(component, path, context);
+            }
+            else if (IsName(name, IcalComponentNames.FreeBusy))
+            {
+                ValidateFreeBusyPeriod(component, path, context);
             }
             else if (IsName(name, IcalComponentNames.TimeZone))
             {
@@ -563,8 +725,8 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks that the end of an event, or the due date of a to-do, has the value type of its start, and that a duration from a DATE is in
-        /// days or weeks.
+        /// Checks that the end of an event, or the due date of a to-do, has the value type of its start, is in local time if and only if its
+        /// start is, and is later than its start, and that a duration from a DATE is in days or weeks.
         /// </summary>
         private static void ValidateEnd(IcalComponent component, string path, string endName, Context context)
         {
@@ -572,14 +734,30 @@ namespace DataStandardizer.File.iCal
             IcalDateOrDateTime startValue;
             if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
 
-            // ref. RFC 5545§3.8.2.2 and §3.8.2.3: the value type MUST be the same as DTSTART.
             var end = component.GetProperty(endName);
             IcalDateOrDateTime endValue;
-            if (end != null && TryGetDateOrDateTime(end, out endValue) && endValue.IsDate != startValue.IsDate)
+            if (end != null && TryGetDateOrDateTime(end, out endValue))
             {
-                AddInvalidValue(end, path,
-                    string.Format(CultureInfo.InvariantCulture, "The {0} property must have the same value type as the DTSTART property, {1}.",
-                        endName, IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+                if (endValue.IsDate != startValue.IsDate)
+                {
+                    // ref. RFC 5545§3.8.2.2 and §3.8.2.3: the value type MUST be the same as DTSTART.
+                    AddInvalidValue(end, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} property must have the same value type as the DTSTART property, {1}.",
+                            endName, IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+                }
+                else if (!startValue.IsDate && IsFloating(endValue) != IsFloating(startValue))
+                {
+                    // ref. RFC 5545§3.8.2.2 and §3.8.2.3: it MUST be a date with local time if and only if DTSTART is.
+                    AddInvalidValue(end, path,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "The {0} property must be a date with local time, with no time zone, if and only if the DTSTART property is one.", endName),
+                        context);
+                }
+                else
+                {
+                    // ref. RFC 5545§3.8.2.2 and §3.8.2.3: its value MUST be later in time than the value of DTSTART.
+                    ValidateLater(start, startValue, end, endValue, path, context);
+                }
             }
 
             // ref. RFC 5545§3.6.1: when DTSTART is a DATE, the duration MUST be specified as a dur-day or dur-week value.
@@ -593,13 +771,170 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the recurrence rules (RFC 5545 §3.3.10) and recurrence identifier of a component against its <c>DTSTART</c>.
+        /// Checks that the <c>DTSTART</c> and <c>DTEND</c> of a VFREEBUSY are in UTC, and that <c>DTEND</c> is later than <c>DTSTART</c>
+        /// (RFC 5545 §3.8.2.2 and §3.8.2.4).
+        /// </summary>
+        private static void ValidateFreeBusyPeriod(IcalComponent component, string path, Context context)
+        {
+            IcalDateOrDateTime startValue, endValue;
+            var start = component.GetProperty(IcalPropertyNames.DtStart);
+            var end = component.GetProperty(IcalPropertyNames.DtEnd);
+            var isStartUtc = IsFreeBusyUtc(start, path, out startValue, context);
+            var isEndUtc = IsFreeBusyUtc(end, path, out endValue, context);
+            if (start != null && end != null && isStartUtc && isEndUtc)
+            {
+                ValidateLater(start, startValue, end, endValue, path, context);
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether the <c>DTSTART</c> or <c>DTEND</c> of a VFREEBUSY is a DATE-TIME in UTC, and reports it when it is another valid
+        /// value.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static bool IsFreeBusyUtc(IcalContentLine? property, string path, out IcalDateOrDateTime value, Context context)
+#else
+        private static bool IsFreeBusyUtc(IcalContentLine property, string path, out IcalDateOrDateTime value, Context context)
+#endif
+        {
+            value = default(IcalDateOrDateTime);
+            if (property is null || !TryGetDateOrDateTime(property, out value)) return false;
+
+            // ref. RFC 5545§3.8.2.4 and §3.8.2.2: within VFREEBUSY, the time MUST be specified in UTC.
+            if (!value.IsDate && value.DateTime.Kind == IcalDateTimeKind.Utc) return true;
+
+            AddInvalidValue(property, path,
+                string.Format(CultureInfo.InvariantCulture, "The {0} property of a VFREEBUSY component must be a DATE-TIME in UTC.",
+                    property.Name.ToUpperInvariant()), context);
+            return false;
+        }
+
+        /// <summary>
+        /// Reports an end that is not later in time than its start.  The two have the same value type, and are both floating or both not.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Two dates, two floating date-times, and two date-times in UTC are compared exactly.  A date-time with a time zone is not converted to
+        /// UTC with its VTIMEZONE, as that expands the recurrence rules of the time zone's observances, whose cost a calendar sets.  Instead, the
+        /// UTC offsets that the VTIMEZONE's observances name bound the instant of the wall-clock time: an end is reported when it falls at or
+        /// before its start whatever offsets are in use.  So is an end with the same time zone and wall-clock time as its start, which RFC 5545
+        /// §3.3.5 resolves to the same instant.
+        /// </para>
+        /// <para>
+        /// No end later than its start is reported.  An end with a time zone that is earlier than its start by less than the spread of the
+        /// offsets is not reported either, as it can fall in a gap, such as when clocks go forward, where RFC 5545 §3.3.5 reads it with the
+        /// offset before the gap.
+        /// </para>
+        /// </remarks>
+        private static void ValidateLater(IcalContentLine start, IcalDateOrDateTime startValue, IcalContentLine end, IcalDateOrDateTime endValue,
+            string path, Context context)
+        {
+            bool isNotLater;
+            if (startValue.IsDate)
+            {
+                isNotLater = endValue.Date.DayNumber <= startValue.Date.DayNumber;
+            }
+            else
+            {
+                var startTime = startValue.DateTime;
+                var endTime = endValue.DateTime;
+
+                // How far the end's wall-clock time is before the start's, in half-seconds.
+                var difference = GetClockHalfSeconds(startTime) - GetClockHalfSeconds(endTime);
+                if (startTime.Kind == IcalDateTimeKind.Zoned && endTime.Kind == IcalDateTimeKind.Zoned &&
+                    string.Equals(startTime.TimeZoneId, endTime.TimeZoneId, StringComparison.Ordinal) && difference == 0)
+                {
+                    isNotLater = true;
+                }
+                else
+                {
+                    // The end's instant, its wall-clock time less its offset, is at or before the start's unless the start's offset exceeds the
+                    // end's by more than the difference.
+                    isNotLater = difference >= 2 * (GetOffsetBound(startTime, true, context) - GetOffsetBound(endTime, false, context));
+                }
+            }
+
+            if (!isNotLater) return;
+
+            AddInvalidValue(end, path,
+                string.Format(CultureInfo.InvariantCulture, "The {0} property must be later in time than the {1} property.",
+                    end.Name.ToUpperInvariant(), start.Name.ToUpperInvariant()), context);
+        }
+
+        /// <summary>
+        /// Gets the wall-clock time of a date-time, in half-seconds from the start of 0001-01-01.  A leap second (RFC 5545 §3.3.12) falls
+        /// between second 59 and the next minute, so that it orders after the one and before the other.
+        /// </summary>
+        private static long GetClockHalfSeconds(IcalDateTime value)
+        {
+            var time = value.Time;
+            var isLeapSecond = time.Second == 60;
+            var seconds = value.Date.DayNumber * SecondsPerDay + time.Hour * 3600L + time.Minute * 60L + (isLeapSecond ? 59 : time.Second);
+            return seconds * 2 + (isLeapSecond ? 1 : 0);
+        }
+
+        /// <summary>
+        /// Gets the largest or smallest UTC offset, in seconds, that a date-time can be in: none for a floating one or one in UTC, the range of
+        /// the offsets its VTIMEZONE names for one with a time zone, and any offset at all for a time zone the calendar does not define.
+        /// </summary>
+        private static long GetOffsetBound(IcalDateTime value, bool isMaximum, Context context)
+        {
+            if (value.Kind != IcalDateTimeKind.Zoned) return 0;
+
+            OffsetRange range;
+            if (!context.TryGetOffsetRange(value.TimeZoneId ?? string.Empty, out range))
+            {
+                range = OffsetRange.Any;
+            }
+
+            return isMaximum ? range.Maximum : range.Minimum;
+        }
+
+        /// <summary>
+        /// Gets the range of the <c>TZOFFSETFROM</c> and <c>TZOFFSETTO</c> values of a VTIMEZONE's observances: every offset that a local time
+        /// in the time zone can be read with, including one in a gap (RFC 5545 §3.3.5) and one before the first onset.
+        /// </summary>
+        private static OffsetRange GetOffsetRange(IcalComponent timeZone)
+        {
+            var minimum = long.MaxValue;
+            var maximum = long.MinValue;
+            foreach (var observance in timeZone.Components)
+            {
+                if (!IsName(observance.Name, IcalComponentNames.Standard) && !IsName(observance.Name, IcalComponentNames.Daylight)) continue;
+
+                foreach (var property in observance.Properties)
+                {
+                    if (!IsName(property.Name, IcalPropertyNames.TimeZoneOffsetFrom) && !IsName(property.Name, IcalPropertyNames.TimeZoneOffsetTo))
+                        continue;
+
+                    IcalUtcOffset offset;
+                    if (!IcalUtcOffset.TryParse(property.Value.AsSpan(), IcalValueFormat.Text, out offset)) return OffsetRange.Any;
+
+                    var seconds = (long)offset.Offset.TotalSeconds;
+                    minimum = Math.Min(minimum, seconds);
+                    maximum = Math.Max(maximum, seconds);
+                }
+            }
+
+            return minimum > maximum ? OffsetRange.Any : new OffsetRange(minimum, maximum);
+        }
+
+        private static bool IsFloating(IcalDateOrDateTime value)
+        {
+            return value.DateTime.Kind == IcalDateTimeKind.Floating;
+        }
+
+        /// <summary>
+        /// Checks the recurrence rules (RFC 5545 §3.3.10) of a component against its <c>DTSTART</c>.  In a STANDARD or DAYLIGHT observance
+        /// <c>UNTIL</c> must be a DATE-TIME in UTC whatever the observance's <c>DTSTART</c> is, or whether it has one, so the rules that tie
+        /// <c>UNTIL</c> to <c>DTSTART</c> don't apply there; a <c>DTSTART</c> there that isn't a DATE-TIME in local time is reported for itself.
         /// </summary>
         private static void ValidateRecurrence(IcalComponent component, string path, bool isObservance, Context context)
         {
             var start = component.GetProperty(IcalPropertyNames.DtStart);
-            IcalDateOrDateTime startValue;
-            if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
+            var startValue = default(IcalDateOrDateTime);
+            var hasStart = start != null && TryGetDateOrDateTime(start, out startValue);
+            if (!hasStart && !isObservance) return;
 
             foreach (var property in component.GetProperties(IcalPropertyNames.RecurrenceRule))
             {
@@ -607,13 +942,25 @@ namespace DataStandardizer.File.iCal
                 if (!IcalRecurrenceRule.TryParse(property.Value.AsSpan(), IcalValueFormat.Text, out rule)) continue;
 
                 var problem = string.Empty;
-                if (startValue.IsDate)
+                if (isObservance)
+                {
+                    // ref. RFC 5545§3.3.10: in a VTIMEZONE, UNTIL MUST always be a date with UTC time.
+                    if (rule.UntilDate.HasValue || (rule.UntilDateTime.HasValue && rule.UntilDateTime.Value.Kind != IcalDateTimeKind.Utc))
+                    {
+                        problem = "The UNTIL of a recurrence rule in a time zone observance must be a DATE-TIME in UTC.";
+                    }
+                    else if (hasStart && startValue.IsDate && HasTimeOfDayParts(rule))
+                    {
+                        problem = "A recurrence rule cannot have BYSECOND, BYMINUTE or BYHOUR when DTSTART is a DATE.";
+                    }
+                }
+                else if (startValue.IsDate)
                 {
                     if (rule.UntilDateTime.HasValue)
                     {
                         problem = "The UNTIL of a recurrence rule must be a DATE when DTSTART is a DATE.";
                     }
-                    else if (rule.GetBySecond().Length != 0 || rule.GetByMinute().Length != 0 || rule.GetByHour().Length != 0)
+                    else if (HasTimeOfDayParts(rule))
                     {
                         problem = "A recurrence rule cannot have BYSECOND, BYMINUTE or BYHOUR when DTSTART is a DATE.";
                     }
@@ -625,15 +972,7 @@ namespace DataStandardizer.File.iCal
                 else if (rule.UntilDateTime.HasValue)
                 {
                     var untilKind = rule.UntilDateTime.Value.Kind;
-                    if (isObservance)
-                    {
-                        // ref. RFC 5545§3.3.10: in a VTIMEZONE, UNTIL MUST always be in UTC.
-                        if (untilKind != IcalDateTimeKind.Utc)
-                        {
-                            problem = "The UNTIL of a recurrence rule in a time zone observance must be in UTC.";
-                        }
-                    }
-                    else if (startValue.DateTime.Kind == IcalDateTimeKind.Floating && untilKind != IcalDateTimeKind.Floating)
+                    if (startValue.DateTime.Kind == IcalDateTimeKind.Floating && untilKind != IcalDateTimeKind.Floating)
                     {
                         problem = "The UNTIL of a recurrence rule must be in local time when DTSTART is in local time.";
                     }
@@ -648,16 +987,49 @@ namespace DataStandardizer.File.iCal
                     AddInvalidValue(property, path, problem, context);
                 }
             }
+        }
 
-            // ref. RFC 5545§3.8.4.4: the value type of RECURRENCE-ID MUST be the same as DTSTART.
+        private static bool HasTimeOfDayParts(IcalRecurrenceRule rule)
+        {
+            return rule.GetBySecond().Length != 0 || rule.GetByMinute().Length != 0 || rule.GetByHour().Length != 0;
+        }
+
+        /// <summary>
+        /// Checks the <c>RECURRENCE-ID</c> of a component against the <c>DTSTART</c> of the recurring component it identifies an instance of:
+        /// the component of the calendar with the same name and <c>UID</c> and no <c>RECURRENCE-ID</c>.  The instance's own <c>DTSTART</c> may
+        /// move it to another time, of another value type.  With no recurring component in the calendar, as in an iTIP message that holds only
+        /// the instance, there is nothing to check against.
+        /// </summary>
+        private static void ValidateRecurrenceId(IcalComponent component, string path, Context context)
+        {
             var recurrenceId = component.GetProperty(IcalPropertyNames.RecurrenceId);
             IcalDateOrDateTime recurrenceIdValue;
-            if (!isObservance && recurrenceId != null && TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue) &&
-                recurrenceIdValue.IsDate != startValue.IsDate)
+            if (recurrenceId is null || !TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue)) return;
+
+            // Matched as the occurrence expander matches them, so that both find the same recurring component.
+            var uid = component.GetTextForMatching(IcalPropertyNames.Uid);
+            if (uid is null) return;
+
+            var masterStart = context.GetRecurringStart(component.Name, uid);
+            IcalDateOrDateTime masterStartValue;
+            if (masterStart is null || !TryGetDateOrDateTime(masterStart, out masterStartValue)) return;
+
+            // ref. RFC 5545§3.8.4.4: RECURRENCE-ID MUST have the same value type as the DTSTART of the recurring component, and MUST be a date
+            // with local time if and only if that DTSTART is.
+            if (recurrenceIdValue.IsDate != masterStartValue.IsDate)
             {
                 AddInvalidValue(recurrenceId, path,
-                    string.Format(CultureInfo.InvariantCulture, "The RECURRENCE-ID property must have the same value type as the DTSTART property, {0}.",
-                        IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The RECURRENCE-ID property must have the same value type as the DTSTART property of the recurring component, {0}.",
+                        IcalValueTypeRegistry.GetValueTypeName(masterStartValue.ValueType)), context);
+            }
+            else if (!recurrenceIdValue.IsDate && IsFloating(recurrenceIdValue) != IsFloating(masterStartValue))
+            {
+                AddInvalidValue(recurrenceId, path,
+                    IsFloating(masterStartValue)
+                        ? "The RECURRENCE-ID property must be in local time, since the DTSTART property of the recurring component is."
+                        : "The RECURRENCE-ID property must not be in local time, since the DTSTART property of the recurring component is not.",
+                    context);
             }
         }
 
@@ -706,12 +1078,23 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the value of a property RFC 5545 or RFC 7986 defines against its value type.
+        /// Checks the value of a property RFC 5545 or RFC 7986 defines against its value type; and, for any property read by the reader of
+        /// another serialization, whether its value was in the form of that serialization.
         /// </summary>
-        private static void ValidateValue(IcalContentLine property, string path, Context context)
+        private static void ValidateValue(IcalContentLine property, string componentName, string path, Context context)
         {
             var name = property.Name;
-            if (!IcalValueTypeRegistry.IsKnownProperty(name.AsSpan())) return;
+            if (!IcalValueTypeRegistry.IsKnownProperty(name.AsSpan()))
+            {
+                // A property RFC 5545 and RFC 7986 don't define may have any value, but jCal and xCal give the type of each value, so one that
+                // was not in the form of its type is still a problem.
+                if (context.IsConversionChecked && property.ConversionProblem != null)
+                {
+                    AddInvalidValue(property, path, property.ConversionProblem, context);
+                }
+
+                return;
+            }
 
             // ref. RFC 5545§3.2.20: the VALUE parameter names one of the value types the property allows.
             var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
@@ -749,6 +1132,13 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
+            // A value just read from jCal or xCal that was not in the form of its serialization, though it is valid here.
+            if (context.IsConversionChecked && property.ConversionProblem != null)
+            {
+                AddInvalidValue(property, path, property.ConversionProblem, context);
+                return;
+            }
+
             if (!IsValidValue(property, valueType))
             {
                 AddInvalidValue(property, path,
@@ -758,7 +1148,7 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            ValidateValueRules(property, path, valueType, context);
+            ValidateValueRules(property, componentName, path, valueType, context);
         }
 
         private static bool IsValidValue(IcalContentLine property, IcalValueType valueType)
@@ -811,7 +1201,7 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.Recur:
                     return IcalRecurrenceRule.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Text:
-                    return ContentLineEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
+                    return IsValidText(property.Name, span);
                 case IcalValueType.Time:
                     return IcalTime.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Uri:
@@ -824,9 +1214,82 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Checks a TEXT value: every backslash starts a valid escape, and every comma and semicolon is escaped, except where the property's
+        /// grammar uses one to separate the parts of its value.
+        /// </summary>
+        private static bool IsValidText(string name, ReadOnlySpan<char> value)
+        {
+            // ref. RFC 5545§3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT escapes them.  An unescaped comma separates the items of a
+            // CATEGORIES or RESOURCES list (RFC 5545§3.8.1.2 and §3.8.1.10), an unescaped semicolon the minver and maxver of VERSION
+            // (RFC 5545§3.7.4), and one or two the statcode, statdesc and extdata of REQUEST-STATUS (RFC 5545§3.8.8.3).
+            var isRequestStatus = IsName(name, IcalPropertyNames.RequestStatus);
+            if (isRequestStatus && !StartsWithStatusCode(value)) return false;
+
+            var allowsComma = TextListProperties.Contains(name, StringComparer.OrdinalIgnoreCase);
+            var allowedSemicolons = isRequestStatus ? 2 : IsName(name, IcalPropertyNames.Version) ? 1 : 0;
+            var semicolons = 0;
+            for (var index = 0; index < value.Length; index++)
+            {
+                switch (value[index])
+                {
+                    case '\\':
+                        // ref. RFC 5545§3.3.11: ESCAPED-CHAR = ("\\" / "\;" / "\," / "\N" / "\n").
+                        if (++index == value.Length || !IsEscapedCharacter(value[index])) return false;
+                        break;
+                    case ',':
+                        if (!allowsComma) return false;
+                        break;
+                    case ';':
+                        if (++semicolons > allowedSemicolons) return false;
+                        break;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsEscapedCharacter(char character)
+        {
+            return character == '\\' || character == ';' || character == ',' || character == 'N' || character == 'n';
+        }
+
+        /// <summary>
+        /// Checks that a REQUEST-STATUS value starts with its statcode and the semicolon after it.
+        /// </summary>
+        private static bool StartsWithStatusCode(ReadOnlySpan<char> value)
+        {
+            // ref. RFC 5545§3.8.8.3: rstatus = statcode ";" statdesc [";" extdata], statcode = 1*DIGIT 1*2("." 1*DIGIT).
+            var index = SkipDigits(value, 0);
+            if (index == 0) return false;
+
+            var levels = 0;
+            while (index < value.Length && value[index] == '.' && levels < 2)
+            {
+                var end = SkipDigits(value, index + 1);
+                if (end == index + 1) return false;
+
+                index = end;
+                levels++;
+            }
+
+            return levels > 0 && index < value.Length && value[index] == ';';
+        }
+
+        private static int SkipDigits(ReadOnlySpan<char> value, int index)
+        {
+            while (index < value.Length && value[index] >= '0' && value[index] <= '9')
+            {
+                index++;
+            }
+
+            return index;
+        }
+
+        /// <summary>
         /// Checks the rules for a valid value that RFC 5545 sets on particular properties.
         /// </summary>
-        private static void ValidateValueRules(IcalContentLine property, string path, IcalValueType valueType, Context context)
+        private static void ValidateValueRules(IcalContentLine property, string componentName, string path, IcalValueType valueType,
+            Context context)
         {
             var name = property.Name;
             if (valueType == IcalValueType.DateTime && UtcProperties.Contains(name, StringComparer.OrdinalIgnoreCase))
@@ -860,6 +1323,47 @@ namespace DataStandardizer.File.iCal
             {
                 ValidateRange(property, path, 0, 100, context);
             }
+            else if (IsName(name, IcalPropertyNames.Status))
+            {
+                // ref. RFC 5545§3.8.1.11: the values of each component that defines STATUS.  RFC 5545 defines it in no other component, such
+                // as an x-comp, whose lines are any contentline, so its value is not checked there.
+                if (IsName(componentName, IcalComponentNames.Event))
+                {
+                    ValidateValueSet(property, path, EventStatuses, context);
+                }
+                else if (IsName(componentName, IcalComponentNames.Todo))
+                {
+                    ValidateValueSet(property, path, TodoStatuses, context);
+                }
+                else if (IsName(componentName, IcalComponentNames.Journal))
+                {
+                    ValidateValueSet(property, path, JournalStatuses, context);
+                }
+            }
+            else if (IsName(name, IcalPropertyNames.Transparency) && IsName(componentName, IcalComponentNames.Event))
+            {
+                // ref. RFC 5545§3.8.2.7: TRANSP is defined in VEVENT only.
+                ValidateValueSet(property, path, TransparencyValues, context);
+            }
+            else if (IsName(name, IcalPropertyNames.CalendarScale) && IsName(componentName, IcalComponentNames.Calendar))
+            {
+                // ref. RFC 5545§3.7.1: CALSCALE is defined in VCALENDAR only.
+                ValidateValueSet(property, path, CalendarScaleValues, context);
+            }
+        }
+
+        /// <summary>
+        /// Checks that a property whose grammar has a closed set of values, with no <c>iana-token</c> or <c>x-name</c>, has one of them.  Like
+        /// every enumerated value, they are case-insensitive (RFC 5545 §2).
+        /// </summary>
+        private static void ValidateValueSet(IcalContentLine property, string path, string[] values, Context context)
+        {
+            if (values.Contains(property.Value, StringComparer.OrdinalIgnoreCase)) return;
+
+            AddInvalidValue(property, path,
+                string.Format(CultureInfo.InvariantCulture, "The value of the {0} property must be {1}.", property.Name.ToUpperInvariant(),
+                    values.Length == 1 ? values[0] : string.Join(", ", values, 0, values.Length - 1) + " or " + values[values.Length - 1]),
+                context);
         }
 
         private static void ValidateRange(IcalContentLine property, string path, int minimum, int maximum, Context context)
@@ -1004,7 +1508,7 @@ namespace DataStandardizer.File.iCal
 #else
             string text;
 #endif
-            return IcalValue.TryParseText(property.Value.AsSpan(), IcalValueFormat.Text, out text) ? text : property.Value;
+            return IcalValue.TryUnescapeIgnoringSeparators(property.Value, out text) ? text : property.Value;
         }
 
         private static bool IsKnownComponent(string name)
@@ -1052,17 +1556,81 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// The smallest and largest UTC offsets, in seconds, that a local time in a time zone can be read with.
+        /// </summary>
+        private readonly struct OffsetRange
+        {
+            /// <summary>
+            /// Every offset <c>utc-offset</c> can express, for a time zone whose offsets are not known.
+            /// </summary>
+            internal static readonly OffsetRange Any = new OffsetRange(-MaxOffsetSeconds, MaxOffsetSeconds);
+
+            internal OffsetRange(long minimum, long maximum)
+            {
+                Minimum = minimum;
+                Maximum = maximum;
+            }
+
+            internal long Minimum { get; }
+
+            internal long Maximum { get; }
+        }
+
+        /// <summary>
+        /// Compares components by reference, so that a derived class that overrides <see cref="object.Equals(object)"/> can't make two
+        /// components look like one.
+        /// </summary>
+        private sealed class ComponentReferenceComparer : IEqualityComparer<IcalComponent>
+        {
+            internal static readonly ComponentReferenceComparer Instance = new ComponentReferenceComparer();
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            public bool Equals(IcalComponent? x, IcalComponent? y)
+#else
+            public bool Equals(IcalComponent x, IcalComponent y)
+#endif
+            {
+                return ReferenceEquals(x, y);
+            }
+
+            public int GetHashCode(IcalComponent obj)
+            {
+                return RuntimeHelpers.GetHashCode(obj);
+            }
+        }
+
+        /// <summary>
         /// What the checks of a component need to know about the calendar it is in, and where they report.
         /// </summary>
         private sealed class Context
         {
             private readonly List<IcalDiagnostic> _diagnostics;
+            private readonly Dictionary<string, OffsetRange> _offsetRanges = new Dictionary<string, OffsetRange>(StringComparer.Ordinal);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            private readonly Dictionary<string, IcalComponent?> _recurringComponents = new Dictionary<string, IcalComponent?>(StringComparer.Ordinal);
+#else
+            private readonly Dictionary<string, IcalComponent> _recurringComponents = new Dictionary<string, IcalComponent>(StringComparer.Ordinal);
+#endif
+
+            private bool _isRecurringRead;
 
             internal Context(List<IcalDiagnostic> diagnostics)
             {
                 _diagnostics = diagnostics;
                 TimeZoneIds = new HashSet<string>(StringComparer.Ordinal);
+                Ancestors = new List<IcalComponent>();
+                Visited = new HashSet<IcalComponent>(ComponentReferenceComparer.Instance);
             }
+
+            /// <summary>
+            /// Gets the component being checked and the components it is nested in, outermost first.
+            /// </summary>
+            internal List<IcalComponent> Ancestors { get; }
+
+            /// <summary>
+            /// Gets the components found so far, compared by reference, so that one found again is reported rather than checked again.
+            /// </summary>
+            internal HashSet<IcalComponent> Visited { get; }
 
             /// <summary>
             /// Gets or sets a flag indicating if the calendar has a <c>METHOD</c> property.
@@ -1075,6 +1643,12 @@ namespace DataStandardizer.File.iCal
             internal bool IsCalendar { get; set; }
 
             /// <summary>
+            /// Gets or sets a flag indicating if the reader that converted the lines is checking them, so that their conversion problems are
+            /// reported.
+            /// </summary>
+            internal bool IsConversionChecked { get; set; }
+
+            /// <summary>
             /// Gets or sets a flag indicating if a writer supplies the <c>VERSION</c>.
             /// </summary>
             internal bool IsVersionWritten { get; set; }
@@ -1083,6 +1657,76 @@ namespace DataStandardizer.File.iCal
             /// Gets the identifiers of the calendar's VTIMEZONE components.
             /// </summary>
             internal HashSet<string> TimeZoneIds { get; }
+
+            /// <summary>
+            /// Gets or sets the calendar checked, or <c>null</c> if the component checked is not a calendar.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal IcalComponent? Calendar { get; set; }
+#else
+            internal IcalComponent Calendar { get; set; }
+#endif
+
+            /// <summary>
+            /// Gets the <c>DTSTART</c> of the one component of the calendar with a name and <c>UID</c> and no <c>RECURRENCE-ID</c>, or
+            /// <c>null</c> if there is no such component, more than one, or it has no <c>DTSTART</c>.  When the calendar has more than one
+            /// such component, it is not known which of them an instance belongs to, so none of them is used.  The components are read when
+            /// first needed, so a calendar with no <c>RECURRENCE-ID</c> does not pay for them.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal IcalContentLine? GetRecurringStart(string componentName, string uid)
+            {
+                IcalComponent? component;
+#else
+            internal IcalContentLine GetRecurringStart(string componentName, string uid)
+            {
+                IcalComponent component;
+#endif
+                if (!_isRecurringRead)
+                {
+                    _isRecurringRead = true;
+                    if (Calendar != null)
+                    {
+                        foreach (var candidate in Calendar.Components)
+                        {
+                            var candidateUid = candidate.GetTextForMatching(IcalPropertyNames.Uid);
+                            if (candidateUid is null || candidate.GetProperty(IcalPropertyNames.RecurrenceId) != null) continue;
+
+                            var key = GetRecurringKey(candidate.Name, candidateUid);
+                            _recurringComponents[key] = _recurringComponents.ContainsKey(key) ? null : candidate;
+                        }
+                    }
+                }
+
+                return _recurringComponents.TryGetValue(GetRecurringKey(componentName, uid), out component) && component != null
+                    ? component.GetProperty(IcalPropertyNames.DtStart)
+                    : null;
+            }
+
+            private static string GetRecurringKey(string componentName, string uid)
+            {
+                // A component name has no colon (RFC 5545 §3.1: name = iana-token / x-name), so the key is unambiguous.
+                return componentName.ToUpperInvariant() + ":" + uid;
+            }
+
+            /// <summary>
+            /// Adds the UTC offsets of a VTIMEZONE to those of any other with the same identifier.
+            /// </summary>
+            internal void AddOffsetRange(string timeZoneId, OffsetRange range)
+            {
+                OffsetRange existing;
+                _offsetRanges[timeZoneId] = _offsetRanges.TryGetValue(timeZoneId, out existing)
+                    ? new OffsetRange(Math.Min(existing.Minimum, range.Minimum), Math.Max(existing.Maximum, range.Maximum))
+                    : range;
+            }
+
+            /// <summary>
+            /// Gets the range of the UTC offsets of the calendar's VTIMEZONE components with an identifier.
+            /// </summary>
+            internal bool TryGetOffsetRange(string timeZoneId, out OffsetRange range)
+            {
+                return _offsetRanges.TryGetValue(timeZoneId, out range);
+            }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal void Add(IcalDiagnosticKind kind, string message, string path, string? propertyName, long lineNumber)

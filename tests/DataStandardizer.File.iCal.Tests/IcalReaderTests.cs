@@ -63,11 +63,6 @@ namespace DataStandardizer.File.iCal.Tests
             AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true, AllowUndefinedTimeZones = true
         };
 
-        // RfcFixtures.Rfc5545Event with a VERSION that includes 2.0.
-        // The most levels of components the reader accepts, counting the VCALENDAR as the first.  RFC 5545 §3.6 allows three, so a limit this
-        // high refuses nothing the RFC allows.
-        private const int MaxComponentDepth = 64;
-
         private const string BeginExtension = "BEGIN:X-A";
         private const string EndExtension = "END:X-A";
 
@@ -78,10 +73,12 @@ namespace DataStandardizer.File.iCal.Tests
         private static string NestedCalendar(int nestedComponents) =>
             Calendar(Enumerable.Repeat(BeginExtension, nestedComponents).Concat(Enumerable.Repeat(EndExtension, nestedComponents)).ToArray());
 
-        public static TheoryData<string, string> VersionsIncluding2()
+        // RfcFixtures.Rfc5545Event with each VERSION that RFC 5545 §3.7.4 allows: 2.0, the only registered version identifier, alone or as
+        // both ends of a range.
+        public static TheoryData<string, string> ValidVersions()
         {
             var data = new TheoryData<string, string>();
-            foreach (var version in new[] { "2.0", "1.0;2.0", "2.0;3.0" })
+            foreach (var version in new[] { "2.0", "2.0;2.0" })
             {
                 data.Add(version, RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:" + version));
             }
@@ -89,11 +86,16 @@ namespace DataStandardizer.File.iCal.Tests
             return data;
         }
 
-        // RfcFixtures.Rfc5545Event with a VERSION that excludes 2.0, and its VERSION line.
-        public static TheoryData<string, string> VersionsExcluding2()
+        // RfcFixtures.Rfc5545Event with a VERSION that RFC 5545 §3.7.4 does not allow, and its VERSION line: other versions, other spellings
+        // of 2.0, and ranges with an end that is not 2.0.
+        public static TheoryData<string, string> InvalidVersions()
         {
             var data = new TheoryData<string, string>();
-            foreach (var version in new[] { "1.0", "3.0", "1.0;1.5", "2.1;3.0", "2.0;2.0;2.0", "two" })
+            foreach (var version in new[]
+                     {
+                         "1.0", "3.0", "1.0;1.5", "2.1;3.0", "2.0;2.0;2.0", "two", "2", "2.", "02.000", "2.00", "0;99", "1.0;2.0", "2.0;3.0", ";2.0",
+                         "2.0;"
+                     })
             {
                 data.Add("VERSION:" + version, RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:" + version));
             }
@@ -683,8 +685,8 @@ namespace DataStandardizer.File.iCal.Tests
         #region VERSION
 
         [Theory]
-        [MemberData(nameof(VersionsIncluding2))]
-        public void ReadCalendar_VersionIncluding2_IsAccepted(string version, string text)
+        [MemberData(nameof(ValidVersions))]
+        public void ReadCalendar_ValidVersion_IsAccepted(string version, string text)
         {
             // act
             var testResult = ReadCalendar(text);
@@ -694,8 +696,8 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(VersionsIncluding2))]
-        public void Validate_CalendarWithVersionIncluding2_ReturnsNothing(string version, string text)
+        [MemberData(nameof(ValidVersions))]
+        public void Validate_CalendarWithValidVersion_ReturnsNothing(string version, string text)
         {
             // arrange
             _ = version;
@@ -709,8 +711,19 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(VersionsExcluding2))]
-        public void ReadCalendar_VersionExcluding2_ThrowsAtVersionLine(string versionLine, string text)
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // act
+            Action testAction = () => ReadCalendars(ConformanceCases.MissingVersionText, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidVersions))]
+        public void ReadCalendar_InvalidVersion_ThrowsAtVersionLine(string versionLine, string text)
         {
             // act
             Action testAction = () => ReadCalendars(text, new IcalOptions { AllowInvalidValues = true });
@@ -855,6 +868,33 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
+        [MemberData(nameof(ConformanceCases.OrderingsAndValuesTheStandardAllows), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendars_OrderingOrValueTheStandardAllows_IsRead(string text)
+        {
+            // arrange
+
+            // act
+            var testResult = ReadCalendars(text);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendars_TextSeparatorTheGrammarAllows_IsRead(string property)
+        {
+            // arrange
+            var text = EventCalendar(property);
+
+            // act
+            var testResult = ReadCalendars(text);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
+        [Theory]
         [MemberData(nameof(ConformanceCases.Accommodated), MemberType = typeof(ConformanceCases))]
         public void ReadCalendar_NonConformantWithOtherOptions_Throws(string caseName)
         {
@@ -866,6 +906,80 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind);
+        }
+
+        [Fact]
+        public void ReadCalendars_NonUtcObservanceUntilWithoutStart_ThrowsForTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true };
+
+            // act
+            Action testAction = () => ReadCalendars(ConformanceCases.FloatingUntilInObservanceWithoutStartText, options);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(ConformanceCases.ObservancePath);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
+        public void ReadCalendars_NonUtcObservanceUntilWithoutStartAllowingInvalidValues_IsRead()
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true };
+
+            // act
+            var testResult = ReadCalendars(ConformanceCases.FloatingUntilInObservanceWithoutStartText, options);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void Validate_NonUtcObservanceUntilWithoutStart_ReportsTheMissingStartAndTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true };
+            var calendar = ReadCalendars(ConformanceCases.FloatingUntilInObservanceWithoutStartText, options).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.MissingRequiredProperty, IcalDiagnosticKind.InvalidValue);
+            testResult.Select(diagnostic => diagnostic.PropertyName).Should().Equal(IcalPropertyNames.DtStart, IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
+        public void Validate_ByHourInObservanceWithDateStart_ReportsTheStartAndTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowInvalidValues = true };
+            var calendar = ReadCalendars(ConformanceCases.ByHourInObservanceWithDateStartText, options).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.InvalidValue);
+            testResult.Select(diagnostic => diagnostic.PropertyName).Should().Equal(IcalPropertyNames.DtStart, IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
+        public void Validate_DateUntilInObservanceWithDateStart_ReportsTheStartAndTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowInvalidValues = true };
+            var calendar = ReadCalendars(ConformanceCases.DateUntilInObservanceWithDateStartText, options).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.InvalidValue);
+            testResult.Select(diagnostic => diagnostic.PropertyName).Should().Equal(IcalPropertyNames.DtStart, IcalPropertyNames.RecurrenceRule);
         }
 
         [Fact]

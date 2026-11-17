@@ -769,7 +769,7 @@ namespace DataStandardizer.File.iCal
                 }
 
                 _jsonWriter.WriteEndArray();
-                WriteComponents(calendar, ref componentCount, ref propertyCount);
+                WriteComponents(calendar, 1, ref componentCount, ref propertyCount);
                 _jsonWriter.WriteEndArray();
                 _jsonWriter.Flush();
             }
@@ -785,8 +785,11 @@ namespace DataStandardizer.File.iCal
             }
         }
 
-        private void WriteComponent(IcalComponent component, ref int componentCount, ref int propertyCount)
+        // depth is the level of the component, counting the VCALENDAR as the first.
+        private void WriteComponent(IcalComponent component, int depth, ref int componentCount, ref int propertyCount)
         {
+            IcalConformance.CheckWriteDepth(depth);
+
             // ref. RFC 7265§3.3: an array of the name in lower case, the properties and the sub-components, which is there even if empty.
             _jsonWriter.WriteStartArray();
             _jsonWriter.WriteStringValue(JcalConverter.ToJcalComponentName(component));
@@ -798,17 +801,18 @@ namespace DataStandardizer.File.iCal
             }
 
             _jsonWriter.WriteEndArray();
-            WriteComponents(component, ref componentCount, ref propertyCount);
+            WriteComponents(component, depth, ref componentCount, ref propertyCount);
             _jsonWriter.WriteEndArray();
             componentCount++;
         }
 
-        private void WriteComponents(IcalComponent component, ref int componentCount, ref int propertyCount)
+        // depth is the level of the component whose components these are, counting the VCALENDAR as the first.
+        private void WriteComponents(IcalComponent component, int depth, ref int componentCount, ref int propertyCount)
         {
             _jsonWriter.WriteStartArray();
             foreach (var child in component.Components)
             {
-                WriteComponent(child, ref componentCount, ref propertyCount);
+                WriteComponent(child, depth + 1, ref componentCount, ref propertyCount);
             }
 
             _jsonWriter.WriteEndArray();

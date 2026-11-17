@@ -11,7 +11,6 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     internal static class ConformanceCases
     {
-        public const string MissingVersionCase = "MissingVersion";
         public const string MissingUidCase = "MissingUid";
         public const string TwoSummariesCase = "TwoSummaries";
         public const string RefreshIntervalWithoutValueCase = "RefreshIntervalWithoutValue";
@@ -25,10 +24,60 @@ namespace DataStandardizer.File.iCal.Tests
         public const string QuotedTimeZoneIdCase = "QuotedTimeZoneId";
         public const string QuotedLanguageOnExtensionPropertyCase = "QuotedLanguageOnExtensionProperty";
         public const string QuotedSecondFeatureCase = "QuotedSecondFeature";
+        public const string UnescapedCommaInTextCase = "UnescapedCommaInText";
+        public const string UnescapedSemicolonInTextCase = "UnescapedSemicolonInText";
+        public const string UnescapedSemicolonInCategoriesCase = "UnescapedSemicolonInCategories";
+        public const string UnescapedCommaInRequestStatusCase = "UnescapedCommaInRequestStatus";
+        public const string UnescapedSemicolonInRequestStatusDataCase = "UnescapedSemicolonInRequestStatusData";
 
+        // ref. RFC 5545 §3.3.11: a TEXT value with its comma and semicolon escaped.
+        private const string EscapedTextSeparators = "SUMMARY:Lunch\\, then review\\; bring notes";
+
+        // ref. RFC 5545 §3.8.1.2, example.
+        private const string Rfc5545Categories = "CATEGORIES:APPOINTMENT,EDUCATION";
+
+        // ref. RFC 5545 §3.8.1.10, example.
+        private const string Rfc5545Resources = "RESOURCES:EASEL,PROJECTOR,VCR";
+
+        // ref. RFC 5545 §3.8.8.3, examples: a statcode and statdesc, with extdata, and with escaped separators in the statdesc and extdata.
+        private const string Rfc5545RequestStatusSuccess = "REQUEST-STATUS:2.0;Success";
+        private const string Rfc5545RequestStatusWithData = "REQUEST-STATUS:3.1;Invalid property value;DTSTART:96-Apr-01";
+        private const string Rfc5545RequestStatusWithEscapes =
+            "REQUEST-STATUS:2.8; Success\\, repeating event ignored. Scheduled as a single event.;RRULE:FREQ=WEEKLY\\;INTERVAL=2";
+
+        // ref. RFC 5545 §3.6.5, example: the time zone rules for New York City from 2007, an offset of -0500 in winter and -0400 in summer.
+        private static readonly string[] Rfc5545NewYorkTimeZone =
+        {
+            BeginTimeZone, "TZID:America/New_York", "LAST-MODIFIED:20050809T050000Z", BeginDaylight, "DTSTART:20070311T020000",
+            "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", EndDaylight, BeginStandard,
+            "DTSTART:20071104T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST",
+            EndStandard, EndTimeZone
+        };
+
+        // 09:00 in New York on 1 January 2026, which is 14:00 UTC.
+        private const string NewYorkNewYearStart = "DTSTART;TZID=America/New_York:20260101T090000";
+
+        // 02:30 in New York on 8 March 2026, in the hour skipped when clocks go forward, which RFC 5545 §3.3.5 reads as 03:30 EDT.
+        private const string NewYorkGapStart = "DTSTART;TZID=America/New_York:20260308T023000";
+        private const string NewYorkGapEnd = "DTEND;TZID=America/New_York:20260308T023000";
+
+        private const string UtcEndBeforeStart = "DTEND:20260101T080000Z";
+        private const string UtcEndAfterStart = "DTEND:20260101T100000Z";
+        private const string FloatingStart = "DTSTART:20260101T090000";
+        private const string FloatingEndAfterStart = "DTEND:20260101T100000";
+
+        // ref. RFC 5545 §3.8.1.11: a status a VJOURNAL allows and a VEVENT does not.
+        private const string DraftStatus = "STATUS:DRAFT";
+        private const string TodoUid = "UID:t@example.com";
+        private const string FreeBusyUid = "UID:f@example.com";
+        private const string FreeBusyPath = "VCALENDAR/VFREEBUSY[1]";
+        private const string DtEnd = "DTEND";
+        private const string Due = "DUE";
+        private const string Status = "STATUS";
         private const string Attachment = "ATTACH";
         private const string DtStart = "DTSTART";
         private const string Duration = "DURATION";
+        private const string RequestStatus = "REQUEST-STATUS";
         private const string RecurrenceRule = "RRULE";
         private const string AlarmPath = "VCALENDAR/VEVENT[1]/VALARM[1]";
         private const string TodoPath = "VCALENDAR/VTODO[1]";
@@ -41,6 +90,40 @@ namespace DataStandardizer.File.iCal.Tests
         private const string TimeZoneId = "TZID:Zone";
         private const string ZeroOffsetFrom = "TZOFFSETFROM:+0000";
         private const string ZeroOffsetTo = "TZOFFSETTO:+0000";
+        private const string StandardPath = "VCALENDAR/VTIMEZONE[1]/STANDARD[1]";
+        private const string ObservanceStart = "DTSTART:19700101T000000";
+
+        // ref. RFC 5545 §3.6.5: the DTSTART of an observance is a DATE-TIME in local time, so a DATE breaks that rule on its own.
+        private const string DateObservanceStart = "DTSTART;VALUE=DATE:19700101";
+
+        // ref. RFC 5545 §3.3.10: the UNTIL of a rule in a STANDARD or DAYLIGHT observance MUST be a date with UTC time.  These are in local
+        // time, and a DATE.
+        private const string FloatingUntilYearlyRule = "RRULE:FREQ=YEARLY;UNTIL=20261015T090000";
+        private const string DateUntilYearlyRule = "RRULE:FREQ=YEARLY;UNTIL=20261015";
+
+        // ref. RFC 5545 §3.3.10: BYHOUR is not allowed when DTSTART is a DATE.
+        private const string ByHourYearlyRule = "RRULE:FREQ=YEARLY;BYHOUR=2";
+
+        // A weekly series from 5 January 2026 and an instance of it on 12 January, which RECURRENCE-ID identifies.
+        private const string SeriesUid = "UID:series@example.com";
+        private const string WeeklyRule = "RRULE:FREQ=WEEKLY";
+        private const string SeriesDateStart = "DTSTART;VALUE=DATE:20260105";
+        private const string SeriesUtcStart = "DTSTART:20260105T090000Z";
+        private const string SeriesFloatingStart = "DTSTART:20260105T090000";
+        private const string InstanceDateRecurrenceId = "RECURRENCE-ID;VALUE=DATE:20260112";
+        private const string InstanceUtcRecurrenceId = "RECURRENCE-ID:20260112T090000Z";
+        private const string InstanceFloatingRecurrenceId = "RECURRENCE-ID:20260112T090000";
+        private const string InstanceUtcStart = "DTSTART:20260112T090000Z";
+        private const string InstanceFloatingStart = "DTSTART:20260112T090000";
+        private const string InstanceDateStart = "DTSTART;VALUE=DATE:20260112";
+        private const string InstancePath = "VCALENDAR/VEVENT[2]";
+        private const string TodoInstancePath = "VCALENDAR/VTODO[2]";
+        private const string JournalInstancePath = "VCALENDAR/VJOURNAL[2]";
+
+        // 09:00 in New York on 5 January 2026, and the instance of 12 January named in UTC: 09:00 EST is 14:00 UTC.
+        private const string SeriesNewYorkStart = "DTSTART;TZID=America/New_York:20260105T090000";
+        private const string InstanceNewYorkUtcRecurrenceId = "RECURRENCE-ID:20260112T140000Z";
+        private const string RecurrenceId = "RECURRENCE-ID";
 
         public sealed class Case
         {
@@ -87,6 +170,80 @@ namespace DataStandardizer.File.iCal.Tests
             public IcalOptions AcceptingAllButOptions { get; }
         }
 
+        /// <summary>
+        /// A calendar with no <c>VERSION</c>, which no option lets a reader read (RFC 5545 §3.6 and §3.7.4).
+        /// </summary>
+        public static readonly string MissingVersionText = IcalTestData.Crlf(BeginCalendar, TestProductId, BeginJournal, JournalUid, NewYearStamp, EndJournal, EndCalendar);
+
+        /// <summary>
+        /// <see cref="MissingVersionText"/> with a <c>VERSION</c> after its <c>PRODID</c>, for a test to remove in code.
+        /// </summary>
+        public static readonly string VersionAfterProductIdText =
+            IcalTestData.Crlf(BeginCalendar, TestProductId, Version20, BeginJournal, JournalUid, NewYearStamp, EndJournal, EndCalendar);
+
+        /// <summary>
+        /// The path of the STANDARD observance in <see cref="FloatingUntilInObservanceWithoutStartText"/> and
+        /// <see cref="DateUntilInObservanceWithDateStartText"/>.
+        /// </summary>
+        public const string ObservancePath = StandardPath;
+
+        /// <summary>
+        /// A STANDARD observance with no <c>DTSTART</c> whose rule has an <c>UNTIL</c> in local time: a missing required property (RFC 5545
+        /// §3.6.5), and a value that breaks RFC 5545 §3.3.10, which holds whether or not the observance has a <c>DTSTART</c>.
+        /// </summary>
+        public static readonly string FloatingUntilInObservanceWithoutStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            FloatingUntilYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
+
+        /// <summary>
+        /// A STANDARD observance whose <c>DTSTART</c> is a DATE and whose rule's <c>UNTIL</c> is a DATE: two invalid values, since RFC 5545
+        /// §3.3.10 requires a date with UTC time in an observance, whatever its <c>DTSTART</c> is.
+        /// </summary>
+        public static readonly string DateUntilInObservanceWithDateStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            DateObservanceStart, DateUntilYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
+
+        /// <summary>
+        /// A STANDARD observance whose <c>DTSTART</c> is a DATE and whose rule has BYHOUR: two invalid values, since RFC 5545 §3.3.10 allows
+        /// BYHOUR only with a DATE-TIME <c>DTSTART</c>, in an observance as anywhere else.
+        /// </summary>
+        public static readonly string ByHourInObservanceWithDateStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            DateObservanceStart, ByHourYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
+
+        /// <summary>
+        /// Gets the default options, each option that accepts a kind of problem on its own, and every option at once: the options under which a requirement that no option waives
+        /// must still be enforced.
+        /// </summary>
+        public static IEnumerable<IcalOptions> EveryAccommodation()
+        {
+            yield return new IcalOptions();
+            yield return new IcalOptions { AllowMissingRequiredProperties = true };
+            yield return new IcalOptions { AllowCardinalityViolations = true };
+            yield return new IcalOptions { AllowInvalidValues = true };
+            yield return new IcalOptions { AllowQuotedParameterValues = true };
+            yield return new IcalOptions { AllowUndefinedTimeZones = true };
+            yield return new IcalOptions
+            {
+                AcceptBareLineFeed = true,
+                AcceptByteOrderMark = true,
+                AcceptMissingFinalLineBreak = true,
+                AllowCardinalityViolations = true,
+                AllowInvalidValues = true,
+                AllowMissingRequiredProperties = true,
+                AllowQuotedParameterValues = true,
+                AllowUndefinedTimeZones = true
+            };
+        }
+
+        public static TheoryData<IcalOptions> EveryAccommodationData()
+        {
+            var data = new TheoryData<IcalOptions>();
+            foreach (var options in EveryAccommodation())
+            {
+                data.Add(options);
+            }
+
+            return data;
+        }
+
         public static readonly IReadOnlyDictionary<string, Case> All = new Dictionary<string, Case>
         {
             // Missing required properties and components.
@@ -96,8 +253,6 @@ namespace DataStandardizer.File.iCal.Tests
                 IcalDiagnosticKind.MissingRequiredProperty, "DTSTAMP", TodoPath),
             ["MissingProdId"] = new Case(IcalTestData.Crlf(BeginCalendar, Version20, BeginJournal, JournalUid, NewYearStamp,
                 EndJournal, EndCalendar), IcalDiagnosticKind.MissingRequiredProperty, "PRODID", CalendarPath),
-            [MissingVersionCase] = new Case(IcalTestData.Crlf(BeginCalendar, TestProductId, BeginJournal, JournalUid,
-                NewYearStamp, EndJournal, EndCalendar), IcalDiagnosticKind.MissingRequiredProperty, "VERSION", CalendarPath),
             ["MissingEventStart"] = new Case(Calendar(BeginEvent, OtherEventUid, NewYearStamp, EndEvent),
                 IcalDiagnosticKind.MissingRequiredProperty, DtStart, EventPath),
             ["NoCalendarComponent"] = new Case(Calendar(), IcalDiagnosticKind.MissingRequiredProperty, null, CalendarPath),
@@ -139,13 +294,93 @@ namespace DataStandardizer.File.iCal.Tests
             [BinaryWithoutEncodingCase] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
             ["PriorityOutOfRange"] = new Case(EventCalendar("PRIORITY:10"), IcalDiagnosticKind.InvalidValue, "PRIORITY", EventPath),
             ["InvalidTextEscape"] = new Case(EventCalendar("SUMMARY:Back\\slash"), IcalDiagnosticKind.InvalidValue, "SUMMARY", EventPath),
+
+            // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT escapes them except where the property's grammar separates with them.
+            [UnescapedCommaInTextCase] = new Case(EventCalendar("SUMMARY:Lunch, then review"), IcalDiagnosticKind.InvalidValue, "SUMMARY",
+                EventPath),
+            [UnescapedSemicolonInTextCase] = new Case(EventCalendar("SUMMARY:Lunch; review"), IcalDiagnosticKind.InvalidValue, "SUMMARY",
+                EventPath),
+            [UnescapedSemicolonInCategoriesCase] = new Case(EventCalendar("CATEGORIES:APPOINTMENT;EDUCATION"), IcalDiagnosticKind.InvalidValue,
+                "CATEGORIES", EventPath),
+            [UnescapedCommaInRequestStatusCase] = new Case(EventCalendar("REQUEST-STATUS:2.0;Success, mostly"), IcalDiagnosticKind.InvalidValue,
+                RequestStatus, EventPath),
+            [UnescapedSemicolonInRequestStatusDataCase] = new Case(EventCalendar("REQUEST-STATUS:3.1;Invalid property value;DTSTART;VALUE=DATE"),
+                IcalDiagnosticKind.InvalidValue, RequestStatus, EventPath),
+
+            // ref. RFC 5545 §3.8.8.3: rstatus = statcode ";" statdesc [";" extdata], statcode = 1*DIGIT 1*2("." 1*DIGIT).
+            ["RequestStatusWithoutDescription"] = new Case(EventCalendar("REQUEST-STATUS:2.0"), IcalDiagnosticKind.InvalidValue, RequestStatus,
+                EventPath),
+            ["RequestStatusWithoutCode"] = new Case(EventCalendar("REQUEST-STATUS:Success;Done"), IcalDiagnosticKind.InvalidValue, RequestStatus,
+                EventPath),
+            ["RequestStatusCodeWithOneLevel"] = new Case(EventCalendar("REQUEST-STATUS:2;Success"), IcalDiagnosticKind.InvalidValue, RequestStatus,
+                EventPath),
+            ["RequestStatusCodeWithFourLevels"] = new Case(EventCalendar("REQUEST-STATUS:2.0.1.1;Success"), IcalDiagnosticKind.InvalidValue,
+                RequestStatus, EventPath),
             ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", EventPath),
             ["RelativeUrl"] = new Case(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", EventPath),
             ["UtcObservanceStart"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000Z", ZeroOffsetFrom,
-                ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
-            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+                ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, StandardPath),
+            ["FloatingUntilInObservance"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, FloatingUntilYearlyRule,
+                ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, RecurrenceRule, StandardPath),
+            ["DateUntilInObservance"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, DateUntilYearlyRule,
+                ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, RecurrenceRule, StandardPath),
+            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, ObservanceStart, ZeroOffsetFrom,
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
+            // ref. RFC 5545 §3.8.4.4: RECURRENCE-ID has the value type of the recurring component's DTSTART, and is a date with local time
+            // if and only if that DTSTART is, whatever the instance's own DTSTART.
+            ["DateTimeRecurrenceIdForDateSeries"] = new Case(SeriesCalendar(SeriesDateStart, InstanceUtcRecurrenceId, InstanceUtcStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["DateRecurrenceIdForDateTimeSeries"] = new Case(SeriesCalendar(SeriesUtcStart, InstanceDateRecurrenceId, InstanceDateStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["FloatingRecurrenceIdForUtcSeries"] = new Case(SeriesCalendar(SeriesUtcStart, InstanceFloatingRecurrenceId, InstanceUtcStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["UtcRecurrenceIdForFloatingSeries"] = new Case(SeriesCalendar(SeriesFloatingStart, InstanceUtcRecurrenceId, InstanceFloatingStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["DateTimeRecurrenceIdForDateTodoSeries"] = new Case(ComponentSeriesCalendar(BeginTodo, EndTodo, SeriesDateStart, InstanceUtcRecurrenceId),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, TodoInstancePath),
+            ["DateTimeRecurrenceIdForDateJournalSeries"] = new Case(ComponentSeriesCalendar(BeginJournal, EndJournal, SeriesDateStart,
+                InstanceUtcRecurrenceId), IcalDiagnosticKind.InvalidValue, RecurrenceId, JournalInstancePath),
+
             ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath),
+
+            // ref. RFC 5545 §3.8.2.2 and §3.8.2.3: DTEND and DUE MUST be later in time than DTSTART.
+            ["EndBeforeStart"] = new Case(EventCalendar(UtcEndBeforeStart), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["EndAtStart"] = new Case(EventCalendar("DTEND:20260101T090000Z"), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["DateEndAtDateStart"] = new Case(EventCalendar(DateStart, "DTEND;VALUE=DATE:20260101"), IcalDiagnosticKind.InvalidValue, DtEnd,
+                EventPath),
+            ["FloatingEndBeforeFloatingStart"] = new Case(EventCalendar(FloatingStart, "DTEND:20260101T080000"), IcalDiagnosticKind.InvalidValue,
+                DtEnd, EventPath),
+            ["ZonedEndAtZonedStartInGap"] = new Case(NewYorkEventCalendar(NewYorkGapStart, NewYorkGapEnd), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["ZonedEndHourBeforeZonedStart"] = new Case(NewYorkEventCalendar(NewYorkNewYearStart, "DTEND;TZID=America/New_York:20260101T080000"),
+                IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["UtcEndBeforeZonedStart"] = new Case(NewYorkEventCalendar(NewYorkNewYearStart, "DTEND:20260101T120000Z"),
+                IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["DueBeforeStart"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T080000Z", EndTodo),
+                IcalDiagnosticKind.InvalidValue, Due, TodoPath),
+
+            // ref. RFC 5545 §3.8.2.2 and §3.8.2.3: a date with local time if and only if DTSTART is one.
+            ["UtcEndForFloatingStart"] = new Case(EventCalendar(FloatingStart, UtcEndAfterStart), IcalDiagnosticKind.InvalidValue, DtEnd, EventPath),
+            ["FloatingDueForUtcStart"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T100000", EndTodo),
+                IcalDiagnosticKind.InvalidValue, Due, TodoPath),
+
+            // ref. RFC 5545 §3.8.2.4 and §3.8.2.2: in a VFREEBUSY, DTSTART and DTEND MUST be in UTC, and DTEND later than DTSTART.
+            ["FloatingFreeBusyStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, FloatingStart, UtcEndAfterStart, EndFreeBusy),
+                IcalDiagnosticKind.InvalidValue, DtStart, FreeBusyPath),
+            ["DateFreeBusyStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, DateStart, UtcEndAfterStart, EndFreeBusy),
+                IcalDiagnosticKind.InvalidValue, DtStart, FreeBusyPath),
+            ["FloatingFreeBusyEnd"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, FloatingEndAfterStart,
+                EndFreeBusy), IcalDiagnosticKind.InvalidValue, DtEnd, FreeBusyPath),
+            ["FreeBusyEndBeforeStart"] = new Case(Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, UtcEndBeforeStart, EndFreeBusy),
+                IcalDiagnosticKind.InvalidValue, DtEnd, FreeBusyPath),
+
+            // ref. RFC 5545 §3.8.1.11, §3.8.2.7 and §3.7.1: closed sets of values, with no iana-token or x-name.
+            ["UnknownStatus"] = new Case(EventCalendar("STATUS:BANANA"), IcalDiagnosticKind.InvalidValue, Status, EventPath),
+            ["JournalStatusInEvent"] = new Case(EventCalendar(DraftStatus), IcalDiagnosticKind.InvalidValue, Status, EventPath),
+            ["EventStatusInTodo"] = new Case(Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:TENTATIVE", EndTodo), IcalDiagnosticKind.InvalidValue,
+                Status, TodoPath),
+            ["UnknownTransparency"] = new Case(EventCalendar("TRANSP:MAYBE"), IcalDiagnosticKind.InvalidValue, "TRANSP", EventPath),
+            ["UnknownCalendarScale"] = new Case(Calendar("CALSCALE:JULIAN", BeginJournal, JournalUid, NewYearStamp, EndJournal),
+                IcalDiagnosticKind.InvalidValue, "CALSCALE", CalendarPath),
 
             // The FMTTYPE parameter, ref. RFC 5545 §3.2.8.
             ["FormatTypeWithoutSubtype"] = new Case(EventCalendar("ATTACH;FMTTYPE=audio:http://example.com/a"), IcalDiagnosticKind.InvalidValue,
@@ -175,7 +410,7 @@ namespace DataStandardizer.File.iCal.Tests
             // Quoted values of parameters whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted-string.
             [QuotedFormatTypeCase] = new Case(EventCalendar("ATTACH;FMTTYPE=\"audio/basic\":http://example.com/a"),
                 IcalDiagnosticKind.QuotedParameterValue, Attachment, EventPath),
-            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, ZeroOffsetFrom,
                     ZeroOffsetTo, EndStandard, EndTimeZone, BeginEvent, OtherEventUid, NewYearStamp, "DTSTART;TZID=\"Zone\":20260101T090000",
                     EndEvent),
                 IcalDiagnosticKind.QuotedParameterValue, DtStart, EventPath),
@@ -234,18 +469,19 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
-        /// The cases that xCal can hold.  Five cannot be written in it: the writer always writes VERSION, the value element of REFRESH-INTERVAL
+        /// The cases that xCal can hold.  Four cannot be written in it: the value element of REFRESH-INTERVAL
         /// gives it the VALUE parameter it lacked, a binary value gives its property the ENCODING parameter it lacked, and the value element of
         /// a property takes the place of its VALUE parameters, however many there are or however many values they have.  Nor can a quoted
-        /// parameter value, since xCal has no quoting.
+        /// parameter value, since xCal has no quoting, or an unescaped comma or semicolon in a TEXT value, since xCal text has no escaping.
         /// </summary>
         public static TheoryData<string> XcalCases()
         {
             var data = new TheoryData<string>();
             foreach (var name in All.Keys)
             {
-                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
-                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name))
+                if (name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
+                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name) &&
+                    !IsUnescapedTextSeparatorCase(name))
                 {
                     data.Add(name);
                 }
@@ -263,9 +499,9 @@ namespace DataStandardizer.File.iCal.Tests
             var data = new TheoryData<string>();
             foreach (var name in All.Keys)
             {
-                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
+                if (name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
                     name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && name != TwoFormatTypesCase &&
-                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name))
+                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name) && !IsUnescapedTextSeparatorCase(name))
                 {
                     data.Add(name);
                 }
@@ -278,6 +514,112 @@ namespace DataStandardizer.File.iCal.Tests
         {
             return name == QuotedFormatTypeCase || name == QuotedTimeZoneIdCase || name == QuotedLanguageOnExtensionPropertyCase ||
                    name == QuotedSecondFeatureCase;
+        }
+
+        /// <summary>
+        /// The cases with an unescaped comma or semicolon in a TEXT value, which jCal and xCal cannot hold, since their text has no escaping.
+        /// </summary>
+        public static TheoryData<string> UnescapedTextSeparatorCases()
+        {
+            return new TheoryData<string>
+            {
+                UnescapedCommaInTextCase, UnescapedSemicolonInTextCase, UnescapedSemicolonInCategoriesCase, UnescapedCommaInRequestStatusCase,
+                UnescapedSemicolonInRequestStatusDataCase
+            };
+        }
+
+        /// <summary>
+        /// Properties whose TEXT value has a comma or semicolon that is either escaped or one that the property's grammar uses as a separator.
+        /// </summary>
+        public static TheoryData<string> TextSeparatorsTheGrammarAllows()
+        {
+            return new TheoryData<string>
+            {
+                EscapedTextSeparators, Rfc5545Categories, Rfc5545Resources, Rfc5545RequestStatusSuccess, Rfc5545RequestStatusWithData,
+                Rfc5545RequestStatusWithEscapes
+            };
+        }
+
+        /// <summary>
+        /// Calendars whose end and due times, local times and enumerated values RFC 5545 allows, close to ones it does not.
+        /// </summary>
+        public static TheoryData<string> OrderingsAndValuesTheStandardAllows()
+        {
+            return new TheoryData<string>
+            {
+                EventCalendar(UtcEndAfterStart),
+                EventCalendar(DateStart, "DTEND;VALUE=DATE:20260102"),
+                EventCalendar(FloatingStart, FloatingEndAfterStart),
+
+                // ref. RFC 5545 §3.3.12: the leap second 23:59:60 falls before midnight UTC.
+                EventCalendar("DTSTART:20161231T235960Z", "DTEND:20170101T000000Z"),
+                Calendar(BeginTodo, TodoUid, NewYearStamp, NewYearStart, "DUE:20260101T100000Z", EndTodo),
+
+                // ref. RFC 5545 §3.3.5: an end in the hour skipped when clocks go forward is read with the offset before it, so 02:30 is 03:30 EDT.
+                NewYorkEventCalendar("DTSTART;TZID=America/New_York:20260308T030000", NewYorkGapEnd),
+
+                // 09:00 in New York is 14:00 UTC, and a date with UTC time may end a date with local time and a time zone reference.
+                NewYorkEventCalendar(NewYorkNewYearStart, "DTEND:20260101T150000Z"),
+                Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, UtcEndAfterStart, EndFreeBusy),
+
+                // ref. RFC 5545 §3.8.4.4: RECURRENCE-ID follows the DTSTART of the recurring component, not the instance's own DTSTART, which
+                // may move the instance to a time of another value type.
+                SeriesCalendar(SeriesDateStart, InstanceDateRecurrenceId, InstanceUtcStart, "DTEND:20260112T100000Z"),
+                SeriesCalendar(SeriesUtcStart, InstanceUtcRecurrenceId, InstanceDateStart),
+                SeriesCalendar(SeriesFloatingStart, InstanceFloatingRecurrenceId, InstanceUtcStart),
+
+                // ref. RFC 5545 §3.8.4.4: a date with UTC time and a date with local time and a time zone reference are both not "a date with
+                // local time", so either may name an instance of a series in the other form.
+                Calendar(IcalTestData.Lines(Rfc5545NewYorkTimeZone, new[] { BeginEvent, SeriesUid, NewYearStamp, SeriesNewYorkStart, WeeklyRule,
+                    EndEvent, BeginEvent, SeriesUid, NewYearStamp, InstanceNewYorkUtcRecurrenceId, "DTSTART:20260112T150000Z", EndEvent })),
+
+                // An instance with no recurring component in the calendar, as in an iTIP message, has nothing to be checked against.
+                Calendar(BeginEvent, SeriesUid, NewYearStamp, InstanceDateRecurrenceId, InstanceUtcStart, EndEvent),
+
+                // ref. RFC 5545 §2: enumerated property values are case-insensitive.
+                EventCalendar("STATUS:confirmed"),
+                Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:IN-PROCESS", EndTodo),
+                Calendar(BeginJournal, JournalUid, NewYearStamp, DraftStatus, EndJournal),
+                EventCalendar("TRANSP:TRANSPARENT"),
+                Calendar("CALSCALE:GREGORIAN", BeginJournal, JournalUid, NewYearStamp, EndJournal),
+
+                // ref. RFC 5545 §3.6: an x-comp holds any contentline, and §3.8.1.11, §3.8.2.7 and §3.7.1 define STATUS, TRANSP and CALSCALE
+                // in other components only.
+                Calendar(BeginJournal, JournalUid, NewYearStamp, EndJournal, "BEGIN:X-ABC-ITEM", "STATUS:ARCHIVED", "TRANSP:MAYBE",
+                    "CALSCALE:JULIAN", "END:X-ABC-ITEM")
+            };
+        }
+
+        /// <summary>
+        /// Builds a calendar holding a weekly VEVENT series with this DTSTART, and an instance of it with these lines.
+        /// </summary>
+        private static string SeriesCalendar(string seriesStart, params string[] instanceLines)
+        {
+            return ComponentSeriesCalendar(BeginEvent, EndEvent, seriesStart, instanceLines);
+        }
+
+        /// <summary>
+        /// Builds a calendar holding a weekly series of components with this DTSTART, and an instance of it with these lines.
+        /// </summary>
+        private static string ComponentSeriesCalendar(string begin, string end, string seriesStart, params string[] instanceLines)
+        {
+            return Calendar(IcalTestData.Lines(new[] { begin, SeriesUid, NewYearStamp, seriesStart, WeeklyRule, end, begin, SeriesUid, NewYearStamp },
+                instanceLines, new[] { end }));
+        }
+
+        /// <summary>
+        /// Builds a calendar holding the New York time zone of RFC 5545 §3.6.5 and one VEVENT with these lines.
+        /// </summary>
+        private static string NewYorkEventCalendar(params string[] eventLines)
+        {
+            return Calendar(IcalTestData.Lines(Rfc5545NewYorkTimeZone, new[] { BeginEvent, OtherEventUid, NewYearStamp }, eventLines,
+                new[] { EndEvent }));
+        }
+
+        private static bool IsUnescapedTextSeparatorCase(string name)
+        {
+            return name == UnescapedCommaInTextCase || name == UnescapedSemicolonInTextCase || name == UnescapedSemicolonInCategoriesCase ||
+                   name == UnescapedCommaInRequestStatusCase || name == UnescapedSemicolonInRequestStatusDataCase;
         }
     }
 }

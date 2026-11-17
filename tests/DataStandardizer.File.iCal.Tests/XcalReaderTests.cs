@@ -19,6 +19,18 @@ namespace DataStandardizer.File.iCal.Tests
         private const string IcalendarEnd = "</icalendar>";
         private const string VcalendarStart = "<vcalendar>";
 
+        // ref. RFC 6321 §3.6.6: a DURATION with lower-case designators, which the iCalendar text form allows (RFC 5545 §3.3.6) but xCal does not.
+        private const string LowerCaseDurationProperty = "<duration><duration>pt1h</duration></duration>";
+
+        // ref. RFC 6321 Appendix A (3.3.10): a recur element with a child for every rule part but UNTIL, in the order of value-recur.
+        private const string EveryRecurPartInOrderProperty =
+            "<x-property><recur><freq>YEARLY</freq><count>5</count><interval>2</interval><bysecond>1</bysecond><byminute>2</byminute>" +
+            "<byhour>3</byhour><byday>SU</byday><bymonthday>4</bymonthday><byyearday>5</byyearday><byweekno>6</byweekno><bymonth>7</bymonth>" +
+            "<bysetpos>1</bysetpos><wkst>MO</wkst></recur></x-property>";
+
+        // ref. RFC 6321 Appendix A (3.3.10): a FREQ in lower case, which the iCalendar text form allows (RFC 5545 §3.1) but type-freq does not.
+        private const string LowerCaseFrequencyProperty = "<rrule><recur><freq>daily</freq></recur></rrule>";
+
         private const string CafeSummary = "<summary><text>Caf\xE9</text></summary>";
 
         // A journal document with CafeSummary that declares UTF-8, and one with a document type definition that declares an entity.
@@ -32,6 +44,14 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ValueParameter = "VALUE";
         private const string ExampleNotValidDateTime = "2026-02-30T00:00:00";
 
+        // ref. RFC 5545 §3.3.5: a DATE-TIME in the iCalendar text form, which RFC 6321 §3.6.5 writes as 2024-01-01T12:00:00Z in xCal.
+        private const string TextFormDateTime = "20240101T120000Z";
+        private const string TextFormDateTimeProperty = "<dtstart><date-time>" + TextFormDateTime + "</date-time></dtstart>";
+        private const string AttendeeAddress = "mailto:a@example.com";
+        // ref. RFC 6321 §3.6.2: an RSVP parameter with the TRUE of the iCalendar text form, where xCal requires true.
+        private const string TextFormRsvpProperty =
+            "<attendee><parameters><rsvp><boolean>TRUE</boolean></rsvp></parameters><cal-address>" + AttendeeAddress + "</cal-address></attendee>";
+
         // The calendar element of RfcExample1Xcal, twice in one document.
         private static readonly string TwoCalendars = IcalendarStart + Example1Calendar() + Example1Calendar() + IcalendarEnd;
 
@@ -40,6 +60,31 @@ namespace DataStandardizer.File.iCal.Tests
             "<envelope><other/>" + Example1Xcal.Substring(Example1Xcal.IndexOf("<icalendar", StringComparison.Ordinal)) + "<after/></envelope>";
 
         // Each RFC example, with the content lines of its iCalendar form.
+        // JournalDocument with each VERSION that RFC 5545 §3.7.4 allows: 2.0, the only registered version identifier, alone or as both ends
+        // of a range.
+        public static TheoryData<string, string> ValidVersions()
+        {
+            var data = new TheoryData<string, string>();
+            foreach (var version in new[] { "2.0", "2.0;2.0" })
+            {
+                data.Add(version, JournalDocument(string.Empty).Replace("<version><text>2.0</text></version>", "<version><text>" + version + "</text></version>"));
+            }
+
+            return data;
+        }
+
+        // JournalDocument with a VERSION that RFC 5545 §3.7.4 does not allow: other spellings of 2.0, and ranges with an end that is not 2.0.
+        public static TheoryData<string> InvalidVersions()
+        {
+            var data = new TheoryData<string>();
+            foreach (var version in new[] { "2", "02.000", "1.0;2.0", "0;99" })
+            {
+                data.Add(JournalDocument(string.Empty).Replace("<version><text>2.0</text></version>", "<version><text>" + version + "</text></version>"));
+            }
+
+            return data;
+        }
+
         public static TheoryData<string, string[]> RfcExamples => new TheoryData<string, string[]>()
         {
             { Example1Xcal, FixtureExpectations.XcalRoundTripModels[nameof(Example1Ical)] },
@@ -81,9 +126,35 @@ namespace DataStandardizer.File.iCal.Tests
                 ("Text in property", JournalDocument("<^summary>Hi</summary>")),
                 ("Period without end", JournalDocument("<rdate><^period><start>2026-01-01T00:00:00Z</start></period></rdate>")),
                 ("Empty recur", JournalDocument("<rrule><^recur/></rrule>")),
+                // ref. RFC 6321 Appendix A (3.3.9, 3.3.10, 3.6, 3.8.1.6, 3.8.8.3): the children of these elements are sequences, in order.
+                ("Recur count before freq", JournalDocument("<x-property><recur><count>5</count><^freq>DAILY</freq></recur></x-property>")),
+                ("Recur until after interval", JournalDocument("<rrule><recur><freq>DAILY</freq><interval>2</interval><^until>2026-01-01</until></recur></rrule>")),
+                ("Recur byday after bymonth", JournalDocument("<rrule><recur><freq>YEARLY</freq><bymonth>1</bymonth><^byday>MO</byday></recur></rrule>")),
+                ("Recur byday after wkst", JournalDocument("<rrule><recur><freq>WEEKLY</freq><wkst>SU</wkst><^byday>MO</byday></recur></rrule>")),
+                ("Recur freq repeated", JournalDocument("<rrule><recur><freq>DAILY</freq><^freq>WEEKLY</freq></recur></rrule>")),
+                ("Recur until and count", JournalDocument("<rrule><recur><freq>DAILY</freq><until>2026-01-01</until><^count>5</count></recur></rrule>")),
+                ("Recur interval repeated", JournalDocument("<rrule><recur><freq>DAILY</freq><interval>2</interval><^interval>3</interval></recur></rrule>")),
+                ("Recur wkst repeated", JournalDocument("<rrule><recur><freq>WEEKLY</freq><wkst>SU</wkst><^wkst>MO</wkst></recur></rrule>")),
+                ("Period end before start", JournalDocument("<rdate><period><^end>2026-01-01T01:00:00Z</end><start>2026-01-01T00:00:00Z</start></period></rdate>")),
+                ("Period duration before start", JournalDocument("<rdate><period><^duration>PT1H</duration><start>2026-01-01T00:00:00Z</start></period></rdate>")),
                 ("Geo without longitude", JournalDocument("<geo><^latitude>1.5</latitude></geo>")),
+                ("Geo longitude before latitude", JournalDocument("<geo><longitude>1.5</longitude><^latitude>2.5</latitude></geo>")),
+                ("Request status description before code",
+                    JournalDocument("<request-status><description>Success</description><^code>2.0</code></request-status>")),
+                ("Request status data before description",
+                    JournalDocument("<request-status><code>2.0</code><data>a</data><^description>Success</description></request-status>")),
+                ("Parameters after value", JournalDocument("<summary><text>Hi</text><^parameters><language><text>en</text></language></parameters></summary>")),
+                ("Components before properties", Document("<components/><^properties/>")),
                 ("Parameter without value", JournalDocument("<summary><parameters><^language/></parameters><text>Hi</text></summary>")),
                 ("Name not valid in iCalendar", JournalDocument("<^x_prop><unknown>a</unknown></x_prop>")),
+                // ref. RFC 6321 §3.3 to §3.5: components, properties and parameters are named in lower case; and recur parts (Appendix A).
+                ("Component name not in lower case", Document("<properties/><components><^VJOURNAL/></components>")),
+                ("Property name not in lower case", JournalDocument("<^SUMMARY><text>Hi</text></SUMMARY>")),
+                ("Property name in mixed case", JournalDocument("<^Summary><text>Hi</text></Summary>")),
+                ("Extension property name not in lower case", JournalDocument("<^X-PROP><unknown>a</unknown></X-PROP>")),
+                ("Parameter name not in lower case",
+                    JournalDocument("<summary><parameters><^LANGUAGE><text>en</text></LANGUAGE></parameters><text>Hi</text></summary>")),
+                ("Recur part name not in lower case", JournalDocument("<rrule><recur><^FREQ>DAILY</FREQ></recur></rrule>")),
                 ("Not well-formed", IcalendarStart + "\n<vcalendar></^icalendar>"),
             };
             var data = new TheoryData<string, string, long, long>();
@@ -128,6 +199,58 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Equal(expected);
+        }
+
+        // ref. RFC 5545 §3.6 and §3.7.4, which RFC 6321 §3 maps to xCal: a calendar requires a VERSION.
+        private const string NoVersionCalendarContent =
+            "<properties><prodid><text>-//Test//Test//EN</text></prodid></properties><components><vjournal><properties><uid><text>j@example.com</text></uid><dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal></components>";
+
+        // ref. RFC 6321 §3.3: the component element takes the place of BEGIN and END, so neither can be a property.
+        private const string BeginPropertyCalendarContent =
+            "<properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version><begin><text>VEVENT</text></begin></properties>";
+        private const string EndPropertyCalendarContent =
+            "<properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version><end><text>VCALENDAR</text></end></properties>";
+
+        public static TheoryData<string, IcalOptions> StructuralPropertyData()
+        {
+            var data = new TheoryData<string, IcalOptions>();
+            foreach (var content in new[] { BeginPropertyCalendarContent, EndPropertyCalendarContent })
+            {
+                foreach (var options in ConformanceCases.EveryAccommodation())
+                {
+                    data.Add(content, options);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(StructuralPropertyData))]
+        public void ReadCalendar_PropertyNamedBeginOrEnd_ThrowsWhateverTheOptions(string calendarContent, IcalOptions options)
+        {
+            // arrange
+            var xml = Document(calendarContent);
+
+            // act
+            Action testAction = () => ReadXcal(xml, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("*RFC 6321 §3.3*");
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // arrange
+            var xml = Document(NoVersionCalendarContent);
+
+            // act
+            Action testAction = () => ReadXcal(xml, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Fact]
@@ -182,6 +305,8 @@ namespace DataStandardizer.File.iCal.Tests
             "X-PROPERTY;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
         [InlineData("<x-property><recur><freq>WEEKLY</freq><until>2011-05-17</until><byday>MO</byday><byday>-1FR</byday><wkst>SU</wkst></recur></x-property>",
             "X-PROPERTY;VALUE=RECUR:FREQ=WEEKLY;UNTIL=20110517;BYDAY=MO,-1FR;WKST=SU")]
+        [InlineData(EveryRecurPartInOrderProperty,
+            "X-PROPERTY;VALUE=RECUR:FREQ=YEARLY;COUNT=5;INTERVAL=2;BYSECOND=1;BYMINUTE=2;BYHOUR=3;BYDAY=SU;BYMONTHDAY=4;BYYEARDAY=5;BYWEEKNO=6;BYMONTH=7;BYSETPOS=1;WKST=MO")]
         [InlineData("<x-property><text>a,b;c\\d\ne</text></x-property>", "X-PROPERTY;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
         [InlineData("<x-property><time>12:00:00Z</time></x-property>", "X-PROPERTY;VALUE=TIME:120000Z")]
         [InlineData("<x-property><uri>http://example.com/</uri></x-property>", "X-PROPERTY;VALUE=URI:http://example.com/")]
@@ -592,6 +717,29 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ValidVersions))]
+        public void ReadCalendar_ValidVersion_IsAccepted(string version, string xml)
+        {
+            // act
+            var testResult = ReadXcal(xml).Single();
+
+            // assert
+            testResult.Version.Should().Be(version);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidVersions))]
+        public void ReadCalendar_InvalidVersion_Throws(string xml)
+        {
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.UnsupportedVersion);
+        }
+
         [Fact]
         public void ReadCalendar_UnsupportedVersion_ThrowsWithLocation()
         {
@@ -671,6 +819,318 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             JournalProperty(testResult.Single()).Value.Should().Be(ExampleNotValidDateTime);
+        }
+
+        // ref. RFC 6321 §3.6: a value in the iCalendar text form of its type (RFC 5545 §3.3), which xCal does not allow.  Each is valid as a
+        // content line, so only the converter can find it.
+        [Theory]
+        [InlineData(TextFormDateTimeProperty, "DTSTART")]
+        [InlineData("<x-start><date-time>" + TextFormDateTime + "</date-time></x-start>", "X-START")]
+        [InlineData("<x-time><time>120000</time></x-time>", "X-TIME")]
+        [InlineData("<x-flag><boolean>TRUE</boolean></x-flag>", "X-FLAG")]
+        [InlineData(TextFormRsvpProperty, "ATTENDEE")]
+        [InlineData("<dtstart><date>20240101</date></dtstart>", "DTSTART")]
+        [InlineData("<tzoffsetfrom><utc-offset>-0500</utc-offset></tzoffsetfrom>", "TZOFFSETFROM")]
+        [InlineData("<rdate><period><start>" + TextFormDateTime + "</start><duration>PT1H</duration></period></rdate>", "RDATE")]
+        [InlineData("<rdate><period><start>2024-01-01T12:00:00Z</start><end>20240101T130000Z</end></period></rdate>", "RDATE")]
+        [InlineData("<rrule><recur><freq>DAILY</freq><until>" + TextFormDateTime + "</until></recur></rrule>", "RRULE")]
+        [InlineData("<rrule><recur><freq>DAILY</freq><until>20240101</until></recur></rrule>", "RRULE")]
+        public void ReadCalendar_TextFormValueByDefault_ThrowsInvalidValue(string property, string propertyName)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        // ref. RFC 6321 §3.6.2 and §3.6.12: values in the xCal form of their types, which an extension property or a parameter may hold too.
+        [Theory]
+        [InlineData("<x-flag><boolean>true</boolean></x-flag>", "X-FLAG;VALUE=BOOLEAN:TRUE")]
+        [InlineData("<x-time><time>12:00:00</time></x-time>", "X-TIME;VALUE=TIME:120000")]
+        [InlineData("<attendee><parameters><rsvp><boolean>true</boolean></rsvp></parameters><cal-address>" + AttendeeAddress + "</cal-address></attendee>",
+            "ATTENDEE;RSVP=TRUE:" + AttendeeAddress)]
+        public void ReadCalendar_XcalFormValueByDefault_ConvertsToTextForm(string property, string expected)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadXcal(xml).Single()));
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormBooleanParameterByDefault_ThrowsNotInXcalForm()
+        {
+            // arrange
+            var xml = JournalDocument(TextFormRsvpProperty);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The RSVP parameter of the ATTENDEE property has a BOOLEAN value in the iCalendar text form, which xCal does not allow (RFC 6321 §3.6.2).");
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeByDefault_ThrowsNotInXcalForm()
+        {
+            // arrange
+            var xml = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The DTSTART property has a DATE-TIME value in the iCalendar text form, which xCal does not allow (RFC 6321 §3.6.5).");
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormDateTimeAllowed_KeepsTheValue()
+        {
+            // arrange
+            var xml = JournalDocument(TextFormDateTimeProperty);
+
+            // act
+            var testResult = ReadXcal(xml, new IcalOptions { AllowInvalidValues = true });
+
+            // assert
+            JournalProperty(testResult.Single()).Value.Should().Be(TextFormDateTime);
+        }
+
+        [Fact]
+        public void Validate_TextFormDateTimeReadWithAllowInvalidValues_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadXcal(JournalDocument(TextFormDateTimeProperty), new IcalOptions { AllowInvalidValues = true }).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        // ref. RFC 6321 §3.6.5, §3.6.6 and §3.6.9: the patterns of DATE-TIME and DURATION are XML Schema patterns, which are case-sensitive, so
+        // their designators are upper case only.
+        [Theory]
+        [InlineData("<dtstart><date-time>2026-01-01t09:00:00Z</date-time></dtstart>", "DTSTART")]
+        [InlineData("<dtstart><date-time>2026-01-01T09:00:00z</date-time></dtstart>", "DTSTART")]
+        [InlineData("<rdate><period><start>2026-01-01T09:00:00Z</start><end>2026-01-01T10:00:00z</end></period></rdate>", "RDATE")]
+        [InlineData("<rdate><period><start>2026-01-01T09:00:00Z</start><duration>pt1h</duration></period></rdate>", "RDATE")]
+        public void ReadCalendar_LowerCaseDesignatorByDefault_ThrowsInvalidValue(string property, string propertyName)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        // ref. RFC 6321 §3.6.6: a lower-case duration is valid in the iCalendar text form (RFC 5545 §3.3.6), but not in xCal.
+        [Theory]
+        [InlineData("<duration><duration>pt1h</duration></duration>")]
+        [InlineData("<duration><duration>P1w</duration></duration>")]
+        [InlineData("<duration><duration>P1dT1H</duration></duration>")]
+        [InlineData("<duration><duration>PT1H1m</duration></duration>")]
+        [InlineData("<duration><duration>PT1s</duration></duration>")]
+        public void ReadCalendar_LowerCaseDurationByDefault_ThrowsInvalidValue(string property)
+        {
+            // arrange
+            var xml = EventDocument(property);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("DURATION");
+        }
+
+        [Fact]
+        public void ReadCalendar_UpperCaseDuration_IsRead()
+        {
+            // arrange
+            var xml = EventDocument("<duration><duration>PT1H</duration></duration>");
+
+            // act
+            var testResult = FormatLine(EventProperty(ReadXcal(xml).Single()));
+
+            // assert
+            testResult.Should().Be("DURATION:PT1H");
+        }
+
+        [Fact]
+        public void ReadCalendar_LowerCaseDurationAllowed_KeepsTheValue()
+        {
+            // arrange
+            var xml = EventDocument(LowerCaseDurationProperty);
+
+            // act
+            var testResult = FormatLine(EventProperty(ReadXcal(xml, new IcalOptions { AllowInvalidValues = true }).Single()));
+
+            // assert
+            testResult.Should().Be("DURATION:pt1h");
+        }
+
+        // ref. RFC 6321 Appendix A (3.3.10): type-freq and type-weekday are upper-case strings, though the iCalendar text form allows any case
+        // (RFC 5545 §3.1).
+        [Theory]
+        [InlineData(LowerCaseFrequencyProperty)]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><byday>mo</byday></recur></rrule>")]
+        [InlineData("<rrule><recur><freq>MONTHLY</freq><byday>-1Fr</byday></recur></rrule>")]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><wkst>su</wkst></recur></rrule>")]
+        public void ReadCalendar_LowerCaseRecurKeywordByDefault_ThrowsInvalidValue(string property)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("RRULE");
+        }
+
+        [Fact]
+        public void ReadCalendar_LowerCaseFrequencyByDefault_ThrowsNotInXcalForm()
+        {
+            // arrange
+            var xml = JournalDocument(LowerCaseFrequencyProperty);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The RRULE property has a RECUR value with a lower-case FREQ, WKST or BYDAY weekday, which xCal does not allow (RFC 6321 Appendix A (3.3.10)).");
+        }
+
+        [Theory]
+        [InlineData(LowerCaseFrequencyProperty, "RRULE:FREQ=daily")]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><byday>mo</byday></recur></rrule>", "RRULE:FREQ=WEEKLY;BYDAY=mo")]
+        [InlineData("<rrule><recur><freq>MONTHLY</freq><byday>-1Fr</byday></recur></rrule>", "RRULE:FREQ=MONTHLY;BYDAY=-1Fr")]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><wkst>su</wkst></recur></rrule>", "RRULE:FREQ=WEEKLY;WKST=su")]
+        public void ReadCalendar_LowerCaseRecurKeywordAllowed_KeepsTheValue(string property, string expected)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadXcal(xml, new IcalOptions { AllowInvalidValues = true }).Single()));
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadCalendar_RecurNotValidInEitherForm_ThrowsNotValidRecur()
+        {
+            // arrange: a frequency that RFC 5545 §3.3.10 does not define, in any case.
+            var xml = JournalDocument("<rrule><recur><freq>dayly</freq></recur></rrule>");
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("The value of the RRULE property is not a valid RECUR.");
+        }
+
+        [Fact]
+        public void ReadCalendar_DurationNotValidInEitherForm_ThrowsNotValidDuration()
+        {
+            // arrange
+            var xml = EventDocument("<duration><duration>1 hour</duration></duration>");
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("The value of the DURATION property is not a valid DURATION.");
+        }
+
+        [Fact]
+        public void Validate_LowerCaseDurationReadWithAllowInvalidValues_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadXcal(EventDocument(LowerCaseDurationProperty), new IcalOptions { AllowInvalidValues = true }).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void WriteCalendars_IcsLowerCaseDurationReadWithAllowInvalidValues_WritesItAsRead()
+        {
+            // arrange
+            var calendars = ReadXcal(EventDocument(LowerCaseDurationProperty), new IcalOptions { AllowInvalidValues = true });
+
+            // act
+            var testResult = WriteCalendars(calendars);
+
+            // assert
+            testResult.Should().Contain("\r\nDURATION:pt1h\r\n");
+        }
+
+        [Fact]
+        public void WriteCalendars_XcalLowerCaseDurationReadWithAllowInvalidValues_WritesUpperCase()
+        {
+            // arrange
+            var calendars = ReadXcal(EventDocument(LowerCaseDurationProperty), new IcalOptions { AllowInvalidValues = true });
+
+            // act
+            var testResult = WriteXcal(calendars);
+
+            // assert
+            testResult.Should().Contain("<duration>PT1H</duration>");
+        }
+
+        [Fact]
+        public void ReadCalendar_LowerCaseDurationWithoutLineInfo_ThrowsInvalidValue()
+        {
+            // arrange
+            var xml = EventDocument(LowerCaseDurationProperty);
+
+            // act
+            Action testAction = () => ReadXcalWithoutLineInfo(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which
+                .Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void ReadCalendar_PropertyWithoutLineInfo_KeepsItsParameters()
+        {
+            // arrange
+            var xml = JournalDocument("<attach><parameters><fmttype><text>text/plain</text></fmttype></parameters><uri>http://example.com/</uri></attach>");
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadXcalWithoutLineInfo(xml).Single()));
+
+            // assert
+            testResult.Should().Be("ATTACH;FMTTYPE=text/plain:http://example.com/");
         }
 
         [Fact]

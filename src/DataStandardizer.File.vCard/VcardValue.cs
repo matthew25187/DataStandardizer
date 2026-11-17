@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
+using DataStandardizer.FloatingPoint;
 using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.File.vCard
@@ -675,7 +676,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the text of a number with no exponent, which RFC 6350 §4.6 disallows.
+        /// Gets the text of a number with no exponent, which RFC 6350 §4.6 disallows, and the fewest significant digits that read back as the same
+        /// value, as the same text on every target.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is NaN or infinite.</exception>
         internal static string FormatFloatText(double value)
@@ -683,32 +685,7 @@ namespace DataStandardizer.File.vCard
             if (double.IsNaN(value) || double.IsInfinity(value))
                 throw new ArgumentOutOfRangeException(nameof(value), value, "A FLOAT value cannot be NaN or infinite.");
 
-            var text = value.ToString("R", CultureInfo.InvariantCulture);
-            var exponentIndex = text.IndexOf('E');
-            if (exponentIndex < 0) return text;
-
-            var isNegative = text[0] == '-';
-            var mantissa = text.Substring(isNegative ? 1 : 0, exponentIndex - (isNegative ? 1 : 0));
-            var exponent = int.Parse(text.Substring(exponentIndex + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
-            var pointIndex = mantissa.IndexOf('.');
-            var digits = pointIndex < 0 ? mantissa : mantissa.Remove(pointIndex, 1);
-            var newPointIndex = (pointIndex < 0 ? mantissa.Length : pointIndex) + exponent;
-
-            string expanded;
-            if (newPointIndex <= 0)
-            {
-                expanded = "0." + new string('0', -newPointIndex) + digits;
-            }
-            else if (newPointIndex >= digits.Length)
-            {
-                expanded = digits + new string('0', newPointIndex - digits.Length);
-            }
-            else
-            {
-                expanded = digits.Substring(0, newPointIndex) + "." + digits.Substring(newPointIndex);
-            }
-
-            return isNegative ? "-" + expanded : expanded;
+            return ShortestDoubleFormatter.FormatFixedPoint(value);
         }
 
         /// <summary>

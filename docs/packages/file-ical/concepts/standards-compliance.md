@@ -82,12 +82,16 @@ Two kinds of problem have no option:
 
 - **Component nesting:** a component inside one where RFC 5545 doesn't allow it,
   such as a VEVENT inside a VTODO.
-- **vCalendar 1.0:** only iCalendar 2.0 is read. A `VERSION` that doesn't
-  include 2.0, such as `VERSION:1.0`, throws as soon as it is read:
+- **vCalendar 1.0:** only iCalendar 2.0 is read. RFC 5545 §3.7.4 allows a
+  `VERSION` made of registered version identifiers, and the only one is `2.0`, so
+  the readers accept `VERSION:2.0` and `VERSION:2.0;2.0` and nothing else. Any other
+  value, such as `VERSION:1.0`, `VERSION:2` or `VERSION:1.0;2.0`, throws as soon as
+  it is read:
 
   ```text
-  The calendar has VERSION:1.0, which does not include iCalendar 2.0, the only
-  version RFC 5545 defines.  vCalendar 1.0 (VERSION:1.0) is not supported.
+  The calendar has VERSION:1.0, but RFC 5545 allows only VERSION:2.0 (or the range
+  2.0;2.0), since 2.0 is the only iCalendar version it defines.  vCalendar 1.0
+  (VERSION:1.0) is not supported.
   ```
 
   vCalendar 1.0 differs in more than its version: it has quoted-printable
@@ -167,8 +171,13 @@ summary:
 - **Value syntax:** each value against its value type (RFC 5545 §3.3), including
   a `VALUE` parameter the property doesn't allow or one it requires, and
   `ENCODING=BASE64` on inline BINARY values.
-- **Values tied to their property:** date-times that must be in UTC; a `DTEND`,
-  `DUE` or `RECURRENCE-ID` with the same value type as `DTSTART`; a duration from
+- **Values tied to their property:** date-times that must be in UTC, including the
+  `DTSTART` and `DTEND` of a VFREEBUSY; a `DTEND` or `DUE` with the same value type
+  as `DTSTART`, in local time if and only if `DTSTART` is, and later in time than
+  it; a `RECURRENCE-ID` with the same value type as the `DTSTART` of the recurring
+  component with its `UID`, and in local time if and only if that `DTSTART` is,
+  when the calendar holds that component; `STATUS`, `TRANSP` and `CALSCALE` values
+  from their closed sets, in the components that define them; a duration from
   a DATE given in days or weeks; recurrence rules checked against `DTSTART`, with
   a `UNTIL` in UTC inside a VTIMEZONE; an observance `DTSTART` given as local
   time; and a VTIMEZONE `TZID` that isn't empty.

@@ -43,13 +43,17 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// RFC 5545 §3.6.5 requires a local time here, with no <c>Z</c> and no <c>TZID</c>.  The <c>VALUE</c> and <c>TZID</c> parameters are
-        /// read and written with the value, but the <see cref="IcalTimeZoneResolver.Calendar"/> resolver uses only its date and wall-clock
-        /// time, ignoring any <c>Z</c> or <c>TZID</c>.  The getter throws <see cref="IcalFileException"/> if the value is not valid.
+        /// read with the value, and a value set is written without them.  By default a reader and a writer reject a UTC or zoned value with
+        /// <see cref="IcalFileException"/>; with <see cref="IcalOptions.AllowInvalidValues"/> a reader keeps it, and the getter returns it as
+        /// it is.  The <see cref="IcalTimeZoneResolver.Calendar"/> resolver uses only its date and wall-clock time, ignoring any <c>Z</c> or
+        /// <c>TZID</c>.  The getter throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is in UTC or has a time zone; RFC 5545 §3.6.5 requires DTSTART in an
+        /// observance to be a DATE-TIME in local time.</exception>
         public IcalDateTime? DtStart
         {
             get { return GetDateTime(IcalPropertyNames.DtStart); }
-            set { SetDateTime(IcalPropertyNames.DtStart, value); }
+            set { SetLocalDateTime(IcalPropertyNames.DtStart, value, "3.6.5"); }
         }
 
         /// <summary>
@@ -82,13 +86,20 @@ namespace DataStandardizer.File.iCal
         /// Gets or sets the recurrence rules (RFC 5545 §3.8.5.3, <c>RRULE</c>).
         /// </summary>
         /// <remarks>
-        /// Setting a list replaces every <c>RRULE</c> property with one per rule; an empty list removes them.  The getter throws
-        /// <see cref="IcalFileException"/> if a rule is not valid.
+        /// Setting a list replaces every <c>RRULE</c> property with one per rule; an empty list removes them.  RFC 5545 §3.3.10 requires
+        /// the <c>UNTIL</c> of a rule in an observance to be a DATE-TIME in UTC.  By default a reader and a writer reject a rule whose
+        /// <c>UNTIL</c> is a DATE or a DATE-TIME in local time with <see cref="IcalFileException"/>; with
+        /// <see cref="IcalOptions.AllowInvalidValues"/> a reader keeps it, and the getter returns it as it is.  The setter rejects such a
+        /// rule, leaving the existing rules unchanged, so a rule kept that way has to be corrected before the list is set again.  A rule with
+        /// no <c>UNTIL</c> is accepted.
+        /// The getter throws <see cref="IcalFileException"/> if a rule is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">A rule set has an <c>UNTIL</c> that is not a DATE-TIME in UTC; RFC 5545 §3.3.10 requires the
+        /// <c>UNTIL</c> of a rule in an observance to be in UTC.</exception>
         public IReadOnlyList<IcalRecurrenceRule> RecurrenceRules
         {
             get { return GetRecurrenceRules(IcalPropertyNames.RecurrenceRule); }
-            set { SetRecurrenceRules(IcalPropertyNames.RecurrenceRule, value); }
+            set { SetRecurrenceRules(IcalPropertyNames.RecurrenceRule, value, "3.3.10"); }
         }
 
         /// <summary>
@@ -97,7 +108,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// TEXT escaping is removed by the getter and added by the setter.  The getter throws <see cref="IcalFileException"/> if the value
-        /// has a backslash that does not start a valid escape.
+        /// has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? TimeZoneName

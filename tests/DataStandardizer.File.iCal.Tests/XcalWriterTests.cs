@@ -18,6 +18,16 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ParametersElement = "parameters";
         private const string VcalendarElement = "vcalendar";
 
+        // ref. RFC 5545 §3.8.1.6: the example GEO value, and the elements RFC 6321 §3.4.1.2 gives it.
+        private const string GeoValue = "37.386013;-122.082932";
+        private const string GeoElement = "geo";
+        private const string GeoXcal = "<latitude>37.386013</latitude><longitude>-122.082932</longitude>";
+
+        // ref. RFC 5545 §3.8.8.3: the example REQUEST-STATUS value 2.0;Success, and the elements RFC 6321 §3.4.1.3 gives it.
+        private const string SuccessStatusValue = "2.0;Success";
+        private const string RequestStatusElement = "request-status";
+        private const string SuccessStatusXcal = "<code>2.0</code><description>Success</description>";
+
         // The octets of "<?xml", which an XML declaration starts with.
         private static readonly byte[] XmlDeclarationStart = { 0x3C, 0x3F, 0x78, 0x6D, 0x6C };
 
@@ -132,7 +142,7 @@ namespace DataStandardizer.File.iCal.Tests
                 "EXDATE;TZID=Europe/London:20260102T090000,20260103T090000",
                 "RDATE;VALUE=PERIOD:20260104T090000Z/PT1H,20260105T090000Z/20260105T100000Z",
                 "RRULE:FREQ=WEEKLY;UNTIL=20261231T235959Z;WKST=MO;BYDAY=TU,FR",
-                "GEO:37.386013;-122.082932",
+                "GEO:" + GeoValue,
                 "REQUEST-STATUS:3.1;Invalid property value;DTSTART:96-Apr-01",
                 "ATTENDEE;RSVP=TRUE;MEMBER=\"mailto:a@example.com\";X-FOO=bar:mailto:jane@example.com",
                 IcalLines.BeginAlarm, "ACTION:AUDIO", "TRIGGER;VALUE=DATE-TIME:20260101T080000Z", IcalLines.EndAlarm), options);
@@ -152,15 +162,94 @@ namespace DataStandardizer.File.iCal.Tests
                 "<period><start>2026-01-04T09:00:00Z</start><duration>PT1H</duration></period>" +
                 "<period><start>2026-01-05T09:00:00Z</start><end>2026-01-05T10:00:00Z</end></period>");
             Inner(properties, "rrule").Should().Be(
-                "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><wkst>MO</wkst><byday>TU</byday><byday>FR</byday></recur>");
-            Inner(properties, "geo").Should().Be("<latitude>37.386013</latitude><longitude>-122.082932</longitude>");
-            Inner(properties, "request-status").Should().Be(
+                "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><byday>TU</byday><byday>FR</byday><wkst>MO</wkst></recur>");
+            Inner(properties, GeoElement).Should().Be(GeoXcal);
+            Inner(properties, RequestStatusElement).Should().Be(
                 "<code>3.1</code><description>Invalid property value</description><data>DTSTART:96-Apr-01</data>");
             Inner(properties, "attendee").Should().Be(
                 "<parameters><rsvp><boolean>true</boolean></rsvp><member><cal-address>mailto:a@example.com</cal-address></member>" +
                 "<x-foo><unknown>bar</unknown></x-foo></parameters><cal-address>mailto:jane@example.com</cal-address>");
             Inner(testResult.Descendants(Ns + "valarm").Single().Element(Ns + PropertiesElement), "trigger")
                 .Should().Be("<date-time>2026-01-01T08:00:00Z</date-time>");
+        }
+
+        // ref. RFC 5545 §3.2.20: a VALUE parameter may name the default value type.  ref. RFC 6321 §3.4.1.2 and §3.4.1.3: GEO and
+        // REQUEST-STATUS have structured values whatever the parameters.
+        public static TheoryData<string, string, string> ExplicitDefaultValueTypeCases => new TheoryData<string, string, string>
+        {
+            { "GEO;VALUE=FLOAT:" + GeoValue, GeoElement, GeoXcal },
+            { "REQUEST-STATUS;VALUE=TEXT:" + SuccessStatusValue, RequestStatusElement, SuccessStatusXcal },
+            { "REQUEST-STATUS;VALUE=text:" + SuccessStatusValue, RequestStatusElement, SuccessStatusXcal },
+        };
+
+        [Theory]
+        [MemberData(nameof(ExplicitDefaultValueTypeCases))]
+        public void WriteCalendar_StructuredPropertyWithExplicitDefaultValueType_WritesStructuredValue(string line, string propertyName,
+            string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), propertyName).Should().Be(expected);
+        }
+
+        // ref. RFC 6321 Appendix A (3.3.10): value-recur gives the child elements of recur in a fixed order, and the values of freq and wkst,
+        // and the weekday of byday, are upper case.
+        public static TheoryData<string, string> RecurPartOrderCases => new TheoryData<string, string>
+        {
+            { "RRULE:COUNT=5;FREQ=DAILY", "<recur><freq>DAILY</freq><count>5</count></recur>" },
+            { "RRULE:freq=daily;interval=2;count=5", "<recur><freq>DAILY</freq><count>5</count><interval>2</interval></recur>" },
+            {
+                "RRULE:FREQ=WEEKLY;UNTIL=20261231T235959Z;WKST=SU;BYDAY=TU,TH",
+                "<recur><freq>WEEKLY</freq><until>2026-12-31T23:59:59Z</until><byday>TU</byday><byday>TH</byday><wkst>SU</wkst></recur>"
+            },
+            {
+                "RRULE:freq=monthly;wkst=su;byday=-1fr,2mo;bymonthday=13",
+                "<recur><freq>MONTHLY</freq><byday>-1FR</byday><byday>2MO</byday><bymonthday>13</bymonthday><wkst>SU</wkst></recur>"
+            },
+            {
+                "RRULE:WKST=MO;BYSETPOS=-1;BYMONTH=6;BYWEEKNO=20;BYYEARDAY=150;BYMONTHDAY=7;BYDAY=TU;BYHOUR=8;BYMINUTE=30;BYSECOND=15;" +
+                "INTERVAL=3;COUNT=4;FREQ=YEARLY",
+                "<recur><freq>YEARLY</freq><count>4</count><interval>3</interval><bysecond>15</bysecond><byminute>30</byminute>" +
+                "<byhour>8</byhour><byday>TU</byday><bymonthday>7</bymonthday><byyearday>150</byyearday><byweekno>20</byweekno>" +
+                "<bymonth>6</bymonth><bysetpos>-1</bysetpos><wkst>MO</wkst></recur>"
+            },
+        };
+
+        [Theory]
+        [MemberData(nameof(RecurPartOrderCases))]
+        public void WriteCalendar_RecurValue_WritesRulePartsInSchemaOrderAndCase(string line, string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), "rrule").Should().Be(expected);
+        }
+
+        // ref. RFC 6321 §3.6.6: the designators of a DURATION are upper case in xCal, though the iCalendar text form allows lower case (RFC 5545
+        // §3.3.6).
+        [Theory]
+        [InlineData("DURATION:pt1h", "duration", "<duration>PT1H</duration>")]
+        [InlineData("DURATION:-p1dT2h", "duration", "<duration>-P1DT2H</duration>")]
+        [InlineData("RDATE;VALUE=PERIOD:20260104T090000Z/pt1h", "rdate", "<period><start>2026-01-04T09:00:00Z</start><duration>PT1H</duration></period>")]
+        public void WriteCalendar_LowerCaseDuration_WritesUpperCase(string line, string propertyName, string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), propertyName).Should().Be(expected);
         }
 
         [Fact]
@@ -230,11 +319,28 @@ namespace DataStandardizer.File.iCal.Tests
                 .Equal(LanguageThatNeedsQuotes);
         }
 
+        // ref. RFC 5545 §3.7.4: the range 2.0;2.0, whose semicolon separates minver and maxver, and so is not escaped.  The calendar's own
+        // VERSION is always written as 2.0, so the range is in a component, where RFC 5545 §3.6.1 allows an iana-prop.  XcalReader reads it
+        // from one text element.
+        [Fact]
+        public void WriteCalendar_VersionRangeInComponent_WritesOneTextElementWithTheSemicolon()
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar("VERSION:2.0;2.0"));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), "version").Should().Be("<text>2.0;2.0</text>");
+        }
+
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingVersionCase].Text, MissingRequiredProperties);
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
 
             // act
             var testResult = XDocument.Parse(WriteXcal(new[] { calendar }, MissingRequiredProperties));
@@ -264,6 +370,37 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendar_TextSeparatorTheGrammarAllows_DoesNotThrow(string property)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(property));
+
+            // act
+            Action testAction = () => WriteXcal(new[] { calendar });
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.UnescapedTextSeparatorCases), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendar_UnescapedTextSeparatorWithDefaults_ThrowsForTheProperty(string caseName)
+        {
+            // arrange
+            var testCase = ConformanceCases.All[caseName];
+            var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
+
+            // act
+            Action testAction = () => WriteXcal(new[] { calendar });
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName);
+        }
+
         [Fact]
         public void WriteCalendar_NonConformant_Throws()
         {
@@ -277,6 +414,22 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
                 .Be(IcalDiagnosticKind.MissingRequiredProperty);
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarsNestedInvalidly), MemberType = typeof(ModelTestData), DisableDiscoveryEnumeration = true)]
+        public void WriteCalendar_ComponentsNestedInvalidly_Throws(Func<IcalCalendar> createCalendar)
+        {
+            // arrange
+            var calendar = createCalendar();
+            var writer = new XcalWriter(new StringWriter());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.InvalidComponentNesting);
         }
 
         [Fact]

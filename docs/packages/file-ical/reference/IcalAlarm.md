@@ -38,7 +38,9 @@ and keeps the parameters of the existing trigger that the new value doesn't deci
 - Setting `TriggerDuration` drops `VALUE=DATE-TIME`. It keeps `RELATED=END`, which
   makes the duration relative to the end of the event or to-do instead of its start.
 - Setting `TriggerDateTime` writes the `VALUE=DATE-TIME` parameter that RFC 5545
-  requires. It drops `RELATED`, which RFC 5545 allows only on a relative trigger.
+  requires. It drops `RELATED`, which RFC 5545 allows only on a relative trigger. It
+  throws `ArgumentException` for a date-time that isn't in UTC, floating or in a
+  named time zone, because RFC 5545 requires an absolute trigger to be in UTC.
 - Setting either to `null` removes the trigger, whichever kind it is.
 
 To nest an alarm, add it to the `Components` of the event or to-do. Read the alarms
@@ -54,14 +56,14 @@ back through `IcalEvent.Alarms` or `IcalTodo.Alarms`.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Action` | `string? Action { get; set; }` | `ACTION` (RFC 5545 §3.8.6.1), such as `AUDIO`, `DISPLAY` or `EMAIL`. TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape. `null` removes it. |
+| `Action` | `string? Action { get; set; }` | `ACTION` (RFC 5545 §3.8.6.1), such as `AUDIO`, `DISPLAY` or `EMAIL`. TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. `null` removes it. |
 | `Attachments` | `IReadOnlyList<IcalContentLine> Attachments { get; }` | `ATTACH` (RFC 5545 §3.8.1.1), as the content lines themselves. Change them through `Properties`. |
 | `Attendees` | `IReadOnlyList<IcalContentLine> Attendees { get; }` | `ATTENDEE` (RFC 5545 §3.8.4.1), as the content lines themselves: the recipients of an `EMAIL` alarm. Change them through `Properties`. |
 | `Description` | `string? Description { get; set; }` | `DESCRIPTION` (RFC 5545 §3.8.1.5). TEXT. `null` removes it. |
 | `Duration` | `IcalDuration? Duration { get; set; }` | `DURATION` (RFC 5545 §3.8.2.5), the delay between repeats. Throws `IcalFileException` on get if the value is not a valid DURATION. `null` removes it. |
 | `Repeat` | `int? Repeat { get; set; }` | `REPEAT` (RFC 5545 §3.8.6.2), the number of times the alarm repeats after it is first triggered. Throws `IcalFileException` on get if the value is not a valid INTEGER. `null` removes it. |
 | `Summary` | `string? Summary { get; set; }` | `SUMMARY` (RFC 5545 §3.8.1.12), the subject of an `EMAIL` alarm. TEXT. `null` removes it. |
-| `TriggerDateTime` | `IcalDateTime? TriggerDateTime { get; set; }` | An absolute `TRIGGER` (RFC 5545 §3.8.6.3), a DATE-TIME. `null` if there is no trigger, or it is relative. Throws `IcalFileException` on get if the value is not a valid DATE-TIME. See *Triggers*. |
+| `TriggerDateTime` | `IcalDateTime? TriggerDateTime { get; set; }` | An absolute `TRIGGER` (RFC 5545 §3.8.6.3), a DATE-TIME in UTC. `null` if there is no trigger, or it is relative. Throws `IcalFileException` on get if the value is not a valid DATE-TIME, and `ArgumentException` on set if the value is not in UTC. See *Triggers*. |
 | `TriggerDuration` | `IcalDuration? TriggerDuration { get; set; }` | A relative `TRIGGER` (RFC 5545 §3.8.6.3), a DURATION. `null` if there is no trigger, or it is absolute. Throws `IcalFileException` on get if the value is not a valid DURATION. See *Triggers*. |
 
 TEXT properties remove TEXT escaping on get and add it on set.

@@ -28,10 +28,16 @@ namespace DataStandardizer.File.vCard
         private const string Version40 = "4.0";
         private const string VersionName = "VERSION";
 
+        // A nested card deeper than this has its version taken from each VERSION line.  The card reader refuses a card nested so deeply.
+        private const int MaxTrackedDepth = 63;
+
         private int _cardIndex = -1;
         private bool _hasEnded;
         private bool _isInCard;
         private int _nestingDepth;
+
+        // Bit n is set once the card at nesting depth n has had its VERSION line.  Only the first says how the card is read, as only the first is the card's version.
+        private ulong _versionSeen;
 
         /// <summary>
         /// Gets the 0-based index of the card the current line is in, counting each <c>BEGIN:VCARD</c> that doesn't nest; or -1 if the line is outside a card.
@@ -57,6 +63,7 @@ namespace DataStandardizer.File.vCard
             _hasEnded = other._hasEnded;
             _isInCard = other._isInCard;
             _nestingDepth = other._nestingDepth;
+            _versionSeen = other._versionSeen;
             IsVersion21 = other.IsVersion21;
             IsVersion40 = other.IsVersion40;
         }
@@ -115,12 +122,13 @@ namespace DataStandardizer.File.vCard
                 {
                     if (IsVersion21)
                     {
-                        _nestingDepth++;
+                        Nest();
                         return;
                     }
 
                     // A nested card that said it is of another version, and has not ended, is left behind.
                     _nestingDepth = 0;
+                    _versionSeen = 0;
                     _cardIndex++;
                     _isInCard = true;
                     IsVersion21 = false;
@@ -129,16 +137,34 @@ namespace DataStandardizer.File.vCard
             }
             else if (IsVersion21 && !isValueElsewhere && EqualsIgnoreCase(name, AgentName) && EqualsIgnoreCase(value, InlineCardValue))
             {
-                _nestingDepth++;
+                Nest();
             }
             else if (EqualsIgnoreCase(name, VersionName))
             {
+                // ref. RFC 6350 §6.7.9 and RFC 2426 §5: a card has one VERSION.  A later one doesn't change how the card's lines are read, as it doesn't change its version.
+                if (_isInCard && _nestingDepth <= MaxTrackedDepth)
+                {
+                    var bit = 1UL << _nestingDepth;
+                    if ((_versionSeen & bit) != 0) return;
+
+                    _versionSeen |= bit;
+                }
+
                 IsVersion21 = _isInCard && value.SequenceEqual(Version21.AsSpan());
                 IsVersion40 = _isInCard && value.SequenceEqual(Version40.AsSpan());
             }
             else if (EqualsIgnoreCase(name, EndName))
             {
                 _hasEnded = _isInCard && EqualsIgnoreCase(value, CardValue);
+            }
+        }
+
+        private void Nest()
+        {
+            _nestingDepth++;
+            if (_nestingDepth <= MaxTrackedDepth)
+            {
+                _versionSeen &= ~(1UL << _nestingDepth);
             }
         }
 

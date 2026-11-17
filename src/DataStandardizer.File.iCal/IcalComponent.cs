@@ -50,7 +50,9 @@ namespace DataStandardizer.File.iCal
         /// Gets the components nested in this one, in order.
         /// </summary>
         /// <remarks>
-        /// The list does not accept <c>null</c>.
+        /// The list does not accept <c>null</c>.  A component object belongs in one place only.  One that is in this list twice, or in the lists
+        /// of two components, is reported as <see cref="IcalDiagnosticKind.InvalidComponentNesting"/> by <see cref="Validate"/> on a component
+        /// that holds both places, such as the calendar, and the writers refuse the calendar.
         /// </remarks>
         public IList<IcalComponent> Components { get; }
 
@@ -163,7 +165,7 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// <para>
         /// This checks the rules that <see cref="IcalReader"/> and <see cref="IcalWriter"/> enforce: required properties and components, how
-        /// often each property may appear, the syntax of property values, how often parameters occur and how many values they have, the syntax of the <c>FMTTYPE</c> parameter, quoted values of parameters whose grammar has no quoted form, where each component may be nested,
+        /// often each property may appear, the syntax of property values, how often parameters occur and how many values they have, the syntax of the <c>FMTTYPE</c> parameter, quoted values of parameters whose grammar has no quoted form, where each component may be nested, whether a component is nested in itself, in more than one place or more than 64 levels deep,
         /// and the <c>VERSION</c> of a calendar.  Whether a <c>TZID</c> parameter names a VTIMEZONE, and whether a VEVENT needs a <c>DTSTART</c>, depend on the calendar,
         /// so they are checked only when this is an <see cref="IcalCalendar"/>.
         /// </para>
@@ -221,6 +223,61 @@ namespace DataStandardizer.File.iCal
 #endif
         {
             SetValue(name, value is null ? null : IcalValue.FormatText(value, IcalValueFormat.Text));
+        }
+
+        /// <summary>
+        /// Gets a TEXT value to match against other values, such as a TZID or UID, with its escaping removed but without the check for a comma
+        /// or semicolon that is not escaped, so that a value kept with <see cref="IcalOptions.AllowInvalidValues"/> still matches.
+        /// </summary>
+        /// <returns>The text; or <c>null</c> if there is no such property or a backslash does not start a valid escape.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? GetTextForMatching(string name)
+#else
+        internal string GetTextForMatching(string name)
+#endif
+        {
+            var property = GetProperty(name);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            return property != null && IcalValue.TryUnescapeIgnoringSeparators(property.Value, out text) ? text : null;
+        }
+
+        /// <summary>
+        /// Gets a <c>VERSION</c> value as unescaped text, keeping the semicolon between <c>minver</c> and <c>maxver</c> (RFC 5545 §3.7.4).
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? GetVersionText(string name)
+#else
+        internal string GetVersionText(string name)
+#endif
+        {
+            var property = GetProperty(name);
+            if (property is null) return null;
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            if (!IcalConformance.TryParseVersion(property.Value, out text))
+                throw IcalPropertyValue.BuildInvalidValueException(property, IcalValueType.Text);
+
+            return text;
+        }
+
+        /// <summary>
+        /// Sets a <c>VERSION</c> value from unescaped text, keeping the semicolon between <c>minver</c> and <c>maxver</c> (RFC 5545 §3.7.4).
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal void SetVersionText(string name, string? value)
+#else
+        internal void SetVersionText(string name, string value)
+#endif
+        {
+            SetValue(name, value is null ? null : IcalConformance.FormatVersion(value));
         }
 
         /// <summary>
@@ -331,6 +388,40 @@ namespace DataStandardizer.File.iCal
             SetDateOrDateTime(name, value.HasValue ? new IcalDateOrDateTime(value.Value) : (IcalDateOrDateTime?)null);
         }
 
+        // Sets a property that RFC 5545 requires to be in UTC, rejecting a floating or zoned value before anything is changed.  section
+        // names the RFC 5545 section that requires it.
+        internal void SetUtcDateTime(string name, IcalDateTime? value, string section)
+        {
+            SetDateTimeOfKind(name, value, IcalDateTimeKind.Utc, "in UTC", section);
+        }
+
+        // Sets a property that RFC 5545 requires, in this component, to be a DATE-TIME in local time, with no "Z" and no TZID, rejecting a
+        // UTC or zoned value before anything is changed.  section names the RFC 5545 section that requires it.
+        internal void SetLocalDateTime(string name, IcalDateTime? value, string section)
+        {
+            SetDateTimeOfKind(name, value, IcalDateTimeKind.Floating, "in local time, with no UTC designator and no TZID", section);
+        }
+
+        // Sets a property that RFC 5545 requires to be a DATE-TIME of one kind, rejecting a value of any other kind before anything is
+        // changed.  requirement describes the kind for the message, and section names the RFC 5545 section that requires it.
+        private void SetDateTimeOfKind(string name, IcalDateTime? value, IcalDateTimeKind kind, string requirement, string section)
+        {
+            if (value.HasValue && value.Value.Kind != kind)
+                throw new ArgumentException(name + " must be " + requirement + " (RFC 5545 §" + section + ").", nameof(value));
+
+            SetDateTime(name, value);
+        }
+
+        // Sets a DATE or DATE-TIME property that RFC 5545 requires, in this component, to be a DATE-TIME in UTC, rejecting a DATE, a
+        // floating value or a zoned value before anything is changed.  section names the RFC 5545 section that requires it.
+        internal void SetUtcDateOrDateTime(string name, IcalDateOrDateTime? value, string section)
+        {
+            if (value.HasValue && value.Value.IsDate)
+                throw new ArgumentException(name + " must be a DATE-TIME in UTC, not a DATE (RFC 5545 §" + section + ").", nameof(value));
+
+            SetUtcDateTime(name, value.HasValue ? value.Value.DateTime : (IcalDateTime?)null, section);
+        }
+
         internal IcalDuration? GetDuration(string name)
         {
             var property = GetProperty(name);
@@ -415,16 +506,14 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            if (!value.IsAbsoluteUri)
-                throw new ArgumentException("Expected an absolute URI.", nameof(value));
-
+            var text = IcalValue.FormatUriText(value, nameof(value));
             var parameters = KeepParameters(name, IcalParameterNames.Value, IcalParameterNames.Encoding);
             if (isValueParameterRequired)
             {
                 parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value, IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Uri)));
             }
 
-            ReplaceProperties(name, new[] { new IcalContentLine(name, parameters, value.AbsoluteUri) });
+            ReplaceProperties(name, new[] { new IcalContentLine(name, parameters, text) });
         }
 
         internal IcalUtcOffset? GetUtcOffset(string name)
@@ -459,17 +548,26 @@ namespace DataStandardizer.File.iCal
             return rules;
         }
 
+        // Sets the recurrence rules of a property, building every property before anything is changed.  When utcUntilSection is given,
+        // RFC 5545 requires, in this component, any UNTIL to be a DATE-TIME in UTC, and a rule whose UNTIL is a DATE or a DATE-TIME of any
+        // other kind is rejected; utcUntilSection names the RFC 5545 section that requires it.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule>? rules)
+        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule>? value, string? utcUntilSection = null)
 #else
-        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule> rules)
+        internal void SetRecurrenceRules(string name, IEnumerable<IcalRecurrenceRule> value, string utcUntilSection = null)
 #endif
         {
             var properties = new List<IcalContentLine>();
-            if (rules != null)
+            if (value != null)
             {
-                foreach (var rule in rules)
+                foreach (var rule in value)
                 {
+                    var untilDateTime = rule.UntilDateTime;
+                    if (utcUntilSection != null &&
+                        (rule.UntilDate.HasValue || (untilDateTime.HasValue && untilDateTime.Value.Kind != IcalDateTimeKind.Utc)))
+                        throw new ArgumentException("The UNTIL of each " + name + " must be a DATE-TIME in UTC (RFC 5545 §" + utcUntilSection + ").",
+                            nameof(value));
+
                     properties.Add(new IcalContentLine(name, rule.ToString(IcalValueFormat.Text)));
                 }
             }
@@ -554,6 +652,22 @@ namespace DataStandardizer.File.iCal
         internal static bool IsNamed(IcalContentLine property, string name)
         {
             return string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Indicates whether text is an iana-token or x-name in lower case: one or more lower-case letters, digits and hyphens.  It is the
+        /// form xCal and jCal give names in (RFC 6321 §3.3 to §3.5, RFC 7265 §3.3 to §3.5).
+        /// </summary>
+        internal static bool IsLowerCaseName(string text)
+        {
+            if (text.Length == 0) return false;
+
+            foreach (var character in text)
+            {
+                if (!(character >= 'a' && character <= 'z' || character >= '0' && character <= '9' || character == '-')) return false;
+            }
+
+            return true;
         }
 
         /// <summary>

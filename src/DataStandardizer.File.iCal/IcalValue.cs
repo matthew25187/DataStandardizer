@@ -27,7 +27,9 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// <para>
-        /// For a property that holds a list of TEXT values, split the list with <see cref="EnumerateTextList"/> first, then parse each item.
+        /// A comma or semicolon in TEXT must be escaped, since TSAFE-CHAR excludes them.  For a property that holds a list of TEXT values,
+        /// split the list with <see cref="EnumerateTextList"/> first, then parse each item.  For a property whose grammar separates its parts
+        /// with a semicolon, such as <c>REQUEST-STATUS</c> (RFC 5545 §3.8.8.3), split it on the semicolons that are not escaped first.
         /// </para>
         /// <para>
         /// A value in <see cref="IcalValueFormat.Json"/> form is the content of a jCal string, and a value in <see cref="IcalValueFormat.Xml"/>
@@ -38,7 +40,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="destination">Receives the text.  It must be at least as long as <paramref name="value"/>, which is always enough.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if the value is not valid.</param>
-        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape.</returns>
+        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape, or a comma or
+        /// semicolon that is not escaped.</returns>
         /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="value"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, Span<char> destination, out int charsWritten)
@@ -55,7 +58,7 @@ namespace DataStandardizer.File.iCal
             }
 
             int errorIndex;
-            if (!ContentLineEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
+            if (FindUnescapedSeparator(value) >= 0 || !ContentLineEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
             {
                 charsWritten = 0;
                 return false;
@@ -65,13 +68,70 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Removes the escaping from a TEXT value in its text form without checking for a comma or semicolon that is not escaped, to match a
+        /// value that a reader kept with <see cref="IcalOptions.AllowInvalidValues"/>, such as a TZID or UID, against other values.
+        /// </summary>
+        /// <returns><c>true</c> if every backslash starts a valid escape; otherwise <c>false</c>.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryUnescapeIgnoringSeparators(string value, [NotNullWhen(true)] out string? result)
+#else
+        internal static bool TryUnescapeIgnoringSeparators(string value, [MaybeNullWhen(false)] out string result)
+#endif
+        {
+            if (value.IndexOf('\\') < 0)
+            {
+                result = value;
+                return true;
+            }
+
+            var buffer = new char[value.Length];
+            int charsWritten, errorIndex;
+            if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), buffer, out charsWritten, out errorIndex))
+            {
+                result = null;
+                return false;
+            }
+
+            result = new string(buffer, 0, charsWritten);
+            return true;
+        }
+
+        /// <summary>
+        /// Finds the first comma or semicolon in a TEXT value that is not escaped.
+        /// </summary>
+        /// <param name="value">The value as it appears in the content line.</param>
+        /// <returns>The index of the character; or -1 if every comma and semicolon is escaped.</returns>
+        internal static int FindUnescapedSeparator(ReadOnlySpan<char> value)
+        {
+            // ref. RFC 5545§3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT has them only in ESCAPED-CHAR.  The character after a backslash is
+            // part of its escape, valid or not.
+            if (value.IndexOfAny(',', ';') < 0) return -1;
+
+            for (var index = 0; index < value.Length; index++)
+            {
+                switch (value[index])
+                {
+                    case '\\':
+                        index++;
+                        break;
+                    case ',':
+                    case ';':
+                        return index;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Parses a TEXT value (RFC 5545 §3.3.11) into a string, removing its escaping: <c>\\</c>, <c>\;</c> and <c>\,</c> become the escaped
         /// character, and <c>\n</c> or <c>\N</c> a line feed.
         /// </summary>
         /// <param name="value">The value as it appears in the content line.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The text, if the value is valid.</param>
-        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape.</returns>
+        /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape, or a comma or
+        /// semicolon that is not escaped.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out string? result)
@@ -575,26 +635,63 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Formats a URI value (RFC 5545 §3.3.13), as the URI was given.
         /// </summary>
+        /// <remarks>
+        /// The value is written as <see cref="Uri.OriginalString"/>, which must be a URI that <see cref="TryParseUri"/> accepts.  It
+        /// starts with the URI's scheme, and every character is one that RFC 3986 §2 allows: printable US-ASCII other than space and
+        /// <c>" &lt; &gt; \ ^ ` { | }</c>.  Percent-encode any other character before creating the <see cref="Uri"/>, for example
+        /// with <see cref="Uri.EscapeDataString"/>, and give an internationalized host name in its ASCII form.  A <see cref="Uri"/>
+        /// made from a file path, such as <c>C:/temp/file.txt</c>, is not written; create it from a <c>file</c> URI instead.
+        /// </remarks>
         /// <param name="value">The URI, which must be absolute.</param>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its <see cref="Uri.OriginalString"/> is not a URI
+        /// that RFC 5545 §3.3.13 allows.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
-            if (value is null)
-                throw new ArgumentNullException(nameof(value));
-            if (!value.IsAbsoluteUri)
-                throw new ArgumentException("The URI must be absolute.", nameof(value));
-
+            var text = FormatUriText(value, nameof(value));
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            writer.Append(value.OriginalString);
+            writer.Append(text);
             return writer.TryComplete(out charsWritten);
+        }
+
+        /// <summary>
+        /// Gets the text of a URI value (RFC 5545 §3.3.13): the URI as it was given, which must be one that <see cref="TryParseUri"/>
+        /// accepts.  Every path that writes a <see cref="Uri"/> uses this, so that the reader accepts whatever is written.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its text is not a URI with the same scheme.</exception>
+        internal static string FormatUriText(Uri value, string paramName)
+        {
+            if (value is null)
+                throw new ArgumentNullException(paramName);
+            if (!value.IsAbsoluteUri)
+                throw new ArgumentException("The URI must be absolute.", paramName);
+
+            // ref. RFC 5545§3.3.13: uri = <As defined in Section 3 of [RFC3986]>.  The text is checked as the reader checks it, so that
+            // the reader accepts it.  The text must also start with the URI's own scheme: a Uri made from a drive path such as
+            // C:/temp/file.txt has the file scheme, but its text would be read as a URI with the scheme "C".
+            var text = value.OriginalString;
+            var scheme = value.Scheme;
+            if (!IsUriText(text.AsSpan())
+                || text.Length <= scheme.Length
+                || text[scheme.Length] != ':'
+                || string.Compare(text, 0, scheme, 0, scheme.Length, StringComparison.OrdinalIgnoreCase) != 0
+                || !Uri.TryCreate(text, UriKind.Absolute, out _))
+            {
+                throw new ArgumentException(
+                    "The URI must be written with its scheme and only the characters RFC 3986 section 2 allows: printable US-ASCII other "
+                    + "than space and \" < > \\ ^ ` { | } (RFC 5545 section 3.3.13).",
+                    paramName);
+            }
+
+            return text;
         }
 
         /// <summary>
@@ -624,7 +721,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its <see cref="Uri.OriginalString"/> is not a URI
+        /// that RFC 5545 §3.3.13 allows (see <see cref="TryFormatUri"/>).</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatCalAddress(Uri value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -638,18 +736,129 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static bool TryParseJsonInteger(ReadOnlySpan<char> value, out int result)
         {
-            // ref. RFC 7265§3.6.8: a JSON number that resolves to an integer, so a fraction or an exponent is allowed only where it does.
+            // ref. RFC 7265§3.6.8: a JSON number that resolves to an integer, so a fraction or an exponent is allowed only where it does.  The
+            // digits are checked as they are written, not through a double, so that a number such as 1.0000000000000001 is not rounded to one.
             result = 0;
-            double number;
-            if (!IcalValueFormatting.IsJsonNumber(value) ||
-                !TryParseDouble(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, out number) ||
-                Math.Floor(number) != number || number < int.MinValue || number > int.MaxValue)
+
+            // ref. RFC 8259§6: number = [ minus ] int [ frac ] [ exp ]; int = zero / ( digit1-9 *DIGIT ); frac = "." 1*DIGIT;
+            // exp = ( "e" / "E" ) [ "-" / "+" ] 1*DIGIT
+            var index = 0;
+            var isNegative = value.Length > 0 && value[0] == '-';
+            if (isNegative)
             {
-                return false;
+                index = 1;
             }
+
+            var integerStart = index;
+            if (index == value.Length || !IcalValueFormatting.IsDigit(value[index])) return false;
+
+            if (value[index++] != '0')
+            {
+                while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+                {
+                    index++;
+                }
+            }
+
+            var integerLength = index - integerStart;
+            var fractionStart = index;
+            var fractionLength = 0;
+            if (index < value.Length && value[index] == '.')
+            {
+                fractionStart = ++index;
+                while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                fractionLength = index - fractionStart;
+                if (fractionLength == 0) return false;
+            }
+
+            // The exponent is capped well beyond any power that could matter, so that it cannot overflow.
+            const long exponentLimit = 1L << 40;
+            long exponent = 0;
+            if (index < value.Length && (value[index] == 'e' || value[index] == 'E'))
+            {
+                index++;
+                var isExponentNegative = false;
+                if (index < value.Length && (value[index] == '+' || value[index] == '-'))
+                {
+                    isExponentNegative = value[index] == '-';
+                    index++;
+                }
+
+                var exponentStart = index;
+                while (index < value.Length && IcalValueFormatting.IsDigit(value[index]))
+                {
+                    if (exponent < exponentLimit)
+                    {
+                        exponent = exponent * 10 + (value[index] - '0');
+                    }
+
+                    index++;
+                }
+
+                if (index == exponentStart) return false;
+
+                if (isExponentNegative)
+                {
+                    exponent = -exponent;
+                }
+            }
+
+            if (index != value.Length) return false;
+
+            // The digits of the integer part and the fraction, taken together, scaled by a power of ten.  The first and last digits that are
+            // not zero bound the number: the last must stand at a whole power of ten, and the first at a power no greater than an int can hold.
+            var digitCount = integerLength + fractionLength;
+            var first = 0;
+            while (first < digitCount && GetJsonDigit(value, integerStart, integerLength, fractionStart, first) == 0)
+            {
+                first++;
+            }
+
+            if (first == digitCount) return true;
+
+            var last = digitCount - 1;
+            while (GetJsonDigit(value, integerStart, integerLength, fractionStart, last) == 0)
+            {
+                last--;
+            }
+
+            var scale = exponent - fractionLength;
+            var lastPower = digitCount - 1 - last + scale;
+            var firstPower = digitCount - 1 - first + scale;
+            if (lastPower < 0 || firstPower > 9) return false;
+
+            long number = 0;
+            for (var digit = first; digit <= last; digit++)
+            {
+                number = number * 10 + GetJsonDigit(value, integerStart, integerLength, fractionStart, digit);
+            }
+
+            for (var power = 0L; power < lastPower; power++)
+            {
+                number *= 10;
+            }
+
+            if (isNegative)
+            {
+                number = -number;
+            }
+
+            if (number < int.MinValue || number > int.MaxValue) return false;
 
             result = (int)number;
             return true;
+        }
+
+        /// <summary>
+        /// Gets a digit of a JSON number, counting through the digits of its integer part and then those of its fraction.
+        /// </summary>
+        private static int GetJsonDigit(ReadOnlySpan<char> value, int integerStart, int integerLength, int fractionStart, int digit)
+        {
+            return (digit < integerLength ? value[integerStart + digit] : value[fractionStart + digit - integerLength]) - '0';
         }
 
         /// <summary>
@@ -763,10 +972,11 @@ namespace DataStandardizer.File.iCal
 
         private static bool TryParseDouble(ReadOnlySpan<char> value, NumberStyles styles, out double result)
         {
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             if (!double.TryParse(value, styles, CultureInfo.InvariantCulture, out result)) return false;
 #else
-            if (!double.TryParse(value.ToString(), styles, CultureInfo.InvariantCulture, out result)) return false;
+            // .NET Framework's parse isn't correctly rounded, so the targets that may run on it read the value themselves.
+            if (!IcalFloatParser.TryParse(value, out result)) return false;
 #endif
 
             return !double.IsInfinity(result);
@@ -777,33 +987,8 @@ namespace DataStandardizer.File.iCal
             if (double.IsNaN(value) || double.IsInfinity(value))
                 throw new ArgumentOutOfRangeException(nameof(value), value, "A FLOAT value cannot be NaN or infinite.");
 
-            var text = value.ToString("R", CultureInfo.InvariantCulture);
-            var exponentIndex = text.IndexOf('E');
-            if (exponentIndex < 0) return text;
-
-            // ref. RFC 5545§3.3.7: there is no exponent, so move the decimal point instead.
-            var isNegative = text[0] == '-';
-            var mantissa = text.Substring(isNegative ? 1 : 0, exponentIndex - (isNegative ? 1 : 0));
-            var exponent = int.Parse(text.Substring(exponentIndex + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
-            var pointIndex = mantissa.IndexOf('.');
-            var digits = pointIndex < 0 ? mantissa : mantissa.Remove(pointIndex, 1);
-            var newPointIndex = (pointIndex < 0 ? mantissa.Length : pointIndex) + exponent;
-
-            string expanded;
-            if (newPointIndex <= 0)
-            {
-                expanded = "0." + new string('0', -newPointIndex) + digits;
-            }
-            else if (newPointIndex >= digits.Length)
-            {
-                expanded = digits + new string('0', newPointIndex - digits.Length);
-            }
-            else
-            {
-                expanded = digits.Substring(0, newPointIndex) + "." + digits.Substring(newPointIndex);
-            }
-
-            return isNegative ? "-" + expanded : expanded;
+            // ref. RFC 5545§3.3.7: there is no exponent, so the value is written in fixed-point notation.
+            return IcalFloatFormatter.Format(value);
         }
 
         private static bool IsUriText(ReadOnlySpan<char> value)

@@ -26,7 +26,7 @@ namespace DataStandardizer.File.iCal.Tests
             "DTSTART;VALUE=DATE:20261225\r\nSUMMARY:Christmas\\; holiday\\, family\r\nRRULE:FREQ=YEARLY\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\n" +
             "DESCRIPTION:Tomorrow\r\nTRIGGER:-P1D\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
 
-        // The start of ConformanceCases.MissingVersionCase as the writer writes it, with the VERSION it adds.
+        // The start of ConformanceCases.VersionAfterProductIdText with its VERSION removed in code, as the writer writes it, with the VERSION it adds.
         private const string MissingVersionStart = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//Test//EN\r\n";
 
         // The start of RfcFixtures.Rfc5545Event with a VERSION range, as the writer writes it.
@@ -48,26 +48,30 @@ namespace DataStandardizer.File.iCal.Tests
         // CalendarFixtures.GoogleExport followed by RfcFixtures.Rfc5545Event.
         private static readonly string GoogleExportThenRfc5545Event = CalendarFixtures.GoogleExport + RfcFixtures.Rfc5545Event;
 
-        public static TheoryData<string, string> VersionRanges()
-        {
-            var data = new TheoryData<string, string>();
-            foreach (var version in new[] { "1.0;2.0", "2.0;3.0" })
-            {
-                data.Add(version, RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:" + version));
-            }
+        // RfcFixtures.Rfc5545Event with VERSION:2.0;2.0, the only range RFC 5545 §3.7.4 allows.
+        private static readonly string Rfc5545EventWithVersionRange = RfcFixtures.Rfc5545Event.Replace(Version20, "VERSION:2.0;2.0");
 
-            return data;
-        }
-
-        // The conformance cases that the writer rejects: all but the missing VERSION, which the writer supplies itself.
+        // The conformance cases that the writer rejects: all of them.  A missing VERSION isn't one, since the writer supplies it itself.
         public static TheoryData<string> RejectedConformanceCases()
         {
             var data = new TheoryData<string>();
             foreach (var name in ConformanceCases.All.Keys)
             {
-                if (name != ConformanceCases.MissingVersionCase)
+                data.Add(name);
+            }
+
+            return data;
+        }
+
+        // ref. RFC 5545 §3.4 and §3.6: BEGIN and END start and end a component, so a property with either name would change the structure of what is written.
+        public static TheoryData<string, IcalOptions> StructuralPropertyData()
+        {
+            var data = new TheoryData<string, IcalOptions>();
+            foreach (var name in new[] { "BEGIN", "END", "end" })
+            {
+                foreach (var options in ConformanceCases.EveryAccommodation())
                 {
-                    data.Add(name);
+                    data.Add(name, options);
                 }
             }
 
@@ -154,6 +158,31 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(text);
         }
 
+        // ref. RFC 5545 §3.3.10: rule parts are accepted in any order, but FREQ MUST be the first rule part.  ref. RFC 5545 §3.2.20: a VALUE
+        // parameter names the value type of an x-prop.
+        public static TheoryData<string, string> FrequencyNotFirstCases => new TheoryData<string, string>
+        {
+            { "RRULE:COUNT=5;FREQ=DAILY", "RRULE:FREQ=DAILY;COUNT=5" },
+            { "RRULE:INTERVAL=2;FREQ=WEEKLY;BYDAY=TU,TH", "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,TH" },
+            { "RRULE:count=5;freq=daily", "RRULE:freq=daily;count=5" },
+            { "X-RULE;VALUE=RECUR:COUNT=5;FREQ=DAILY", "X-RULE;VALUE=RECUR:FREQ=DAILY;COUNT=5" },
+        };
+
+        [Theory]
+        [MemberData(nameof(FrequencyNotFirstCases))]
+        public void WriteCalendars_RecurValueWithFrequencyNotFirst_WritesFrequencyFirst(string line, string expectedLine)
+        {
+            // arrange
+            var calendars = ReadCalendars(EventCalendar(line));
+            var expected = EventCalendar(expectedLine);
+
+            // act
+            var testResult = WriteCalendars(calendars);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
         [Fact]
         public void WriteCalendar_BuiltInCode_WritesExpectedLines()
         {
@@ -191,8 +220,8 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteCalendar_NoVersion_WritesVersion20First()
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingVersionCase].Text,
-                new IcalOptions { AllowMissingRequiredProperties = true });
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
 
             // act
             var testResult = WriteCalendars(new[] { calendar });
@@ -202,26 +231,56 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void Validate_CalendarReadWithoutVersion_ReportsVersion()
+        public void Validate_CalendarWithoutVersion_ReportsUnsupportedVersion()
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingVersionCase].Text,
-                new IcalOptions { AllowMissingRequiredProperties = true });
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
 
             // act
             var testResult = calendar.Validate();
 
             // assert
-            testResult.Should().ContainSingle().Which.PropertyName.Should().Be("VERSION");
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Theory]
-        [MemberData(nameof(VersionRanges))]
-        public void WriteCalendar_VersionRangeIncluding2_WritesVersion20InPlace(string version, string text)
+        [MemberData(nameof(StructuralPropertyData))]
+        public void WriteCalendar_PropertyNamedBeginOrEnd_ThrowsWhateverTheOptions(string name, IcalOptions options)
         {
             // arrange
-            _ = version;
-            var calendar = ReadCalendar(text);
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Properties.Add(new IcalContentLine(name, "VJOURNAL"));
+            using (var writer = new IcalWriter(new StringWriter(), options))
+            {
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                testAction.Should().Throw<IcalFileException>()
+                    .Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidComponentNesting);
+            }
+        }
+
+        [Fact]
+        public void Validate_PropertyNamedEnd_ReportsInvalidComponentNesting()
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Properties.Add(new IcalContentLine("END", "VCALENDAR"));
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.InvalidComponentNesting);
+        }
+
+        [Fact]
+        public void WriteCalendar_VersionRange_WritesVersion20InPlace()
+        {
+            // arrange
+            var calendar = ReadCalendar(Rfc5545EventWithVersionRange);
 
             // act
             var testResult = WriteCalendars(new[] { calendar });
@@ -231,11 +290,28 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void WriteCalendar_UnsupportedVersion_Throws()
+        public void WriteCalendar_VersionRangeSetInCode_WritesVersion20InPlace()
         {
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
-            calendar.Version = "1.0";
+            calendar.Version = "2.0;2.0";
+
+            // act
+            var testResult = WriteCalendars(new[] { calendar });
+
+            // assert
+            testResult.Should().StartWith(VersionRangeStart);
+        }
+
+        [Theory]
+        [InlineData("1.0")]
+        [InlineData("2")]
+        [InlineData("1.0;2.0")]
+        public void WriteCalendar_UnsupportedVersion_Throws(string version)
+        {
+            // arrange
+            var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
+            calendar.Version = version;
             var text = new StringWriter();
             using (var writer = new IcalWriter(text))
             {
@@ -249,9 +325,56 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(CalendarsNestedInvalidly), MemberType = typeof(ModelTestData), DisableDiscoveryEnumeration = true)]
+        public void WriteCalendar_ComponentsNestedInvalidly_Throws(Func<IcalCalendar> createCalendar)
+        {
+            // arrange
+            var calendar = createCalendar();
+            var text = new StringWriter();
+            using (var writer = new IcalWriter(text))
+            {
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                    .Be(IcalDiagnosticKind.InvalidComponentNesting);
+                text.ToString().Should().BeEmpty();
+            }
+        }
+
         #endregion
 
         #region Conformance
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.OrderingsAndValuesTheStandardAllows), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendars_OrderingOrValueTheStandardAllows_DoesNotThrow(string text)
+        {
+            // arrange
+            var calendar = ReadCalendar(text);
+
+            // act
+            Action testAction = () => WriteCalendars(new[] { calendar });
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.TextSeparatorsTheGrammarAllows), MemberType = typeof(ConformanceCases))]
+        public void WriteCalendars_TextSeparatorTheGrammarAllows_DoesNotThrow(string property)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(property));
+
+            // act
+            Action testAction = () => WriteCalendars(new[] { calendar });
+
+            // assert
+            testAction.Should().NotThrow();
+        }
 
         [Theory]
         [MemberData(nameof(RejectedConformanceCases))]
@@ -276,11 +399,33 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void WriteCalendar_NonUtcObservanceUntilWithoutStart_ThrowsForTheRuleAndWritesNothing()
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.FloatingUntilInObservanceWithoutStartText,
+                new IcalOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true });
+            var text = new StringWriter();
+            using (var writer = new IcalWriter(text, new IcalOptions { AllowMissingRequiredProperties = true }))
+            {
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
+                exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+                exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(ConformanceCases.ObservancePath);
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(IcalPropertyNames.RecurrenceRule);
+                text.ToString().Should().BeEmpty();
+                writer.CalendarsWritten.Should().Be(0);
+            }
+        }
+
+        [Fact]
         public void WriteCalendar_MissingVersionWithDefaults_SuppliesTheVersion()
         {
             // arrange
-            var testCase = ConformanceCases.All[ConformanceCases.MissingVersionCase];
-            var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
             using (var writer = new IcalWriter(new StringWriter()))
             {
                 // act
@@ -308,15 +453,14 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void Validate_MissingVersionCalendarWrittenWithItsOption_ReportsNothing()
+        public void Validate_CalendarWithoutVersionWritten_ReportsNothing()
         {
             // arrange
-            var testCase = ConformanceCases.All[ConformanceCases.MissingVersionCase];
-            var options = testCase.AcceptingOptions;
-            var calendar = ReadCalendar(testCase.Text, options);
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
 
             // act
-            var testResult = ReadCalendar(WriteCalendars(new[] { calendar }, options), options).Validate();
+            var testResult = ReadCalendar(WriteCalendars(new[] { calendar })).Validate();
 
             // assert
             testResult.Should().BeEmpty();
@@ -356,10 +500,9 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = new IcalCalendar { ProductId = "x" };
-            calendar.Components.Add(new IcalEvent
-            {
-                Uid = "e", DtStamp = new IcalDateTime(new IcalDate(2026, 1, 1), new IcalTime(0, 0, 0)), DtStart = new IcalDate(2026, 1, 1)
-            });
+            var testEvent = new IcalEvent { Uid = "e", DtStart = new IcalDate(2026, 1, 1) };
+            testEvent.Properties.Add(new IcalContentLine("DTSTAMP", "20260101T000000"));
+            calendar.Components.Add(testEvent);
 
             // act
             Action testAction = () => WriteCalendars(new[] { calendar });

@@ -217,6 +217,28 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(new IcalDuration(1, TimeSpan.Zero));
         }
 
+        // ref. RFC 7265 §3.6.5: datetime = date-complete "T" time-complete, in ABNF, whose strings are case-insensitive (RFC 5234 §2.3).
+        [Fact]
+        public void IcalDateTimeParse_JsonFormLowerCaseDesignators_IsTheDateTime()
+        {
+            // act
+            var testResult = IcalDateTime.Parse("2011-05-17t12:00:00z".AsSpan(), IcalValueFormat.Json);
+
+            // assert
+            testResult.Should().Be(new IcalDateTime(new IcalDate(2011, 5, 17), new IcalTime(12, 0, 0, true)));
+        }
+
+        // ref. RFC 7265 §3.6.6: a DURATION is as in RFC 5545 §3.3.6, whose ABNF strings are case-insensitive (RFC 5234 §2.3).
+        [Fact]
+        public void IcalDurationParse_JsonFormLowerCase_IsTheDuration()
+        {
+            // act
+            var testResult = IcalDuration.Parse("p1d".AsSpan(), IcalValueFormat.Json);
+
+            // assert
+            testResult.Should().Be(new IcalDuration(1, TimeSpan.Zero));
+        }
+
         [Fact]
         public void IcalPeriodParse_JsonForm_JoinsTheJsonPartsWithASolidus()
         {
@@ -345,6 +367,12 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("1.0", 1)]
         [InlineData("1e2", 100)]
         [InlineData("-2147483648", int.MinValue)]
+        [InlineData("2147483647.000", int.MaxValue)]
+        [InlineData("21474836470e-1", int.MaxValue)]
+        [InlineData("100e-2", 1)]
+        [InlineData("0.5e1", 5)]
+        [InlineData("-0", 0)]
+        [InlineData("0.000e99999999999999999999", 0)]
         public void TryParseInteger_WholeJsonNumber_Parses(string json, int expected)
         {
             // act
@@ -362,6 +390,13 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("2147483648")]
         [InlineData("1.")]
         [InlineData(" 1")]
+        [InlineData("1.0000000000000001")]
+        [InlineData("2147483647.00000000001")]
+        [InlineData("-2147483649")]
+        [InlineData("1e-1")]
+        [InlineData("1e10")]
+        [InlineData("1e99999999999999999999")]
+        [InlineData("1e-99999999999999999999")]
         public void TryParseInteger_JsonFormNotValid_Fails(string json)
         {
             // act
