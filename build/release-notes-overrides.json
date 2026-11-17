@@ -858,6 +858,85 @@
           "text": "`MissingCultureResourceException` is obsolete, since the package no longer throws it, and will be removed in a future major version."
         }
       ]
+    },
+    "12907da049faf0fc30cc1c66023b9d3b938b9b08": {
+      "subject": "A card or calendar with no VERSION is rejected whatever the options, and the writers refuse structural property names (#1010)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`VcardReader` and `JcardReader` reject a card with no VERSION (other than a card held in an AGENT), with two VERSION properties, or with a vCard 4.0 VERSION after another property, whatever the options; `AllowMissingRequiredProperties` and `AllowCardinalityViolations` no longer accept these, and the `DiagnosticKind` is `InvalidStructure`.",
+          "packages": [
+            "DataStandardizer.File.vCard"
+          ]
+        },
+        {
+          "category": "deprecated",
+          "text": "`VcardOptions.AllowVersionNotFirst` is obsolete and has no effect.",
+          "packages": [
+            "DataStandardizer.File.vCard"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "`VcardContentLineReader` and `VcardContentLineWriter` take a card's version from its first VERSION line, so a second VERSION no longer changes how caret encoding, parameters and folds are handled.",
+          "packages": [
+            "DataStandardizer.File.vCard"
+          ]
+        },
+        {
+          "category": "breaking",
+          "text": "`IcalReader`, `JcalReader` and `XcalReader` reject a calendar with no VERSION whatever the options; `AllowMissingRequiredProperties` no longer accepts it, and the `DiagnosticKind` is `UnsupportedVersion`.",
+          "packages": [
+            "DataStandardizer.File.iCal"
+          ]
+        },
+        {
+          "category": "breaking",
+          "text": "`IcalWriter`, `JcalWriter` and `XcalWriter` refuse a calendar with a property named BEGIN or END, which was written as the start or end of a component, and `JcalReader` and `XcalReader` reject one; the `DiagnosticKind` is `InvalidComponentNesting`.",
+          "packages": [
+            "DataStandardizer.File.iCal"
+          ]
+        }
+      ]
+    },
+    "25959be5861093c83988510a0b518dd2b5d863bd": {
+      "subject": "IcalReader and IcalWriter reject an unescaped comma or semicolon in a TEXT value (#995)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`IcalReader`, `IcalWriter`, `IcalValue.TryParseText` and `GetTextValue` reject an unescaped comma or semicolon in a TEXT value, such as `SUMMARY:Lunch, then review` (RFC 5545 section 3.3.11), and TEXT getters such as `IcalEvent.Summary` throw `IcalFileException` for one; the separators of CATEGORIES, RESOURCES, VERSION and REQUEST-STATUS are still allowed."
+        },
+        {
+          "category": "breaking",
+          "text": "`IcalReader` and `IcalWriter` report a REQUEST-STATUS value without a valid status code followed by `;` and a description, such as `REQUEST-STATUS:2.0`, as an invalid value (RFC 5545 section 3.8.8.3)."
+        }
+      ]
+    },
+    "53bd4d33e63f7b6b353364a527af11cff2b1f75f": {
+      "subject": "IcalValue.TryParseText and GetTextValue reject an unescaped comma or semicolon in a TEXT value (#1017)",
+      "notes": []
+    },
+    "ce00edfa84f3195246e5fa6e841233d70281553c": {
+      "subject": "Calendar readers and writers reject an end before its start, local-time mismatches, local VFREEBUSY times and unknown STATUS, TRANSP and CALSCALE values (#997)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "The calendar readers and writers (`IcalReader`, `JcalReader`, `XcalReader` and their writers) report a DTEND or DUE that isn't later than DTSTART, or that is in local time when DTSTART isn't or the other way round, as an invalid value (RFC 5545 sections 3.8.2.2 and 3.8.2.3)."
+        },
+        {
+          "category": "breaking",
+          "text": "The calendar readers and writers report a VFREEBUSY DTSTART or DTEND that isn't a DATE-TIME in UTC (RFC 5545 section 3.8.2.4), and a STATUS, TRANSP or CALSCALE value outside the set RFC 5545 defines, such as `STATUS:BANANA` or a VJOURNAL status on a VEVENT (sections 3.8.1.11, 3.8.2.7 and 3.7.1), as an invalid value."
+        }
+      ]
+    },
+    "cb5bfa249836ee195109ace6f0c91f1251a697f2": {
+      "subject": "URI setters and TryFormatUri write the URI as given and reject one the calendar readers would reject (#1005)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`IcalValue.TryFormatUri`, `TryFormatCalAddress` and the `Url`, `Organizer`, `Source` and `TimeZoneUrl` setters write a `Uri` as given (`OriginalString`), not as `AbsoluteUri`, and throw `ArgumentException` for text the readers reject (RFC 5545 §3.3.13), such as a space, a non-ASCII character or a Windows file path; percent-encode such characters, and give an internationalized host in ASCII, before creating the `Uri`."
+        }
+      ]
     }
   }
 }
