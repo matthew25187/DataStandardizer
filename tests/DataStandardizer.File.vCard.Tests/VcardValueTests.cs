@@ -10,6 +10,58 @@ namespace DataStandardizer.File.vCard.Tests
     {
         private const int DestinationLength = 128;
 
+        /// <summary>
+        /// A double that needs 16 significant digits to read back as the same value, which .NET Framework's <c>"R"</c> writes with 15
+        /// (<c>901.742658997766</c>), a different double.
+        /// </summary>
+        private const double SixteenDigitDouble = 901.7426589977661;
+
+        /// <summary>
+        /// The sum of 0.1 and 0.7, which needs 16 significant digits, and which .NET Framework's <c>"R"</c> writes with 17
+        /// (<c>0.79999999999999993</c>).
+        /// </summary>
+        private const double SumOfOneTenthAndSevenTenths = 0.7999999999999999;
+
+        /// <summary>
+        /// A GEO coordinate that x64 .NET Framework's <c>"R"</c> writes as <c>0.84551240822557</c>, a different double.
+        /// </summary>
+        private const double GeoCoordinateWithSixteenDigits = 0.8455124082255701;
+
+        // The smallest normal double, which needs 17 significant digits and has 307 zeros after the decimal point.
+        private const double SmallestNormalDouble = 2.2250738585072014E-308;
+        private const string SmallestNormalDoubleText = "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014";
+
+        // The largest subnormal double, which has 307 zeros after the decimal point.
+        private const double LargestSubnormalDouble = 2.225073858507201E-308;
+        private const string LargestSubnormalDoubleText = "0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002225073858507201";
+
+        // The smallest subnormal double, 2^-1074, which has 323 zeros after the decimal point.
+        private const string SmallestSubnormalDoubleText = "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005";
+
+        // 2^60 and 2^-20, powers of two whose neighbour below is half as far away as the one above.
+        private const double TwoToTheSixtieth = 1152921504606846976.0;
+        private const double TwoToTheMinusTwentieth = 9.5367431640625E-07;
+
+        // Long enough for the smallest subnormal double written without an exponent.
+        private const int LongFloatDestinationLength = 400;
+
+        // Doubles in delegates, since xUnit on .NET Framework serializes a double in a theory row with that runtime's "R", which changes some.
+        public static TheoryData<string, Func<double>, string> ShortestFloatTexts => new TheoryData<string, Func<double>, string>
+        {
+            { "needs 16 digits", () => SixteenDigitDouble, "901.7426589977661" },
+            { "needs 16 digits, below 1", () => SumOfOneTenthAndSevenTenths, "0.7999999999999999" },
+            { "GEO coordinate", () => GeoCoordinateWithSixteenDigits, "0.8455124082255701" },
+            { "negative zero", () => -0.0, "-0" },
+            { "whole number of 17 digits", () => 1E+16, "10000000000000000" },
+            { "whole number of 18 digits", () => 1E+17, "100000000000000000" },
+            { "decimal point four places before the first digit", () => 0.00001, "0.00001" },
+            { "smallest normal", () => SmallestNormalDouble, SmallestNormalDoubleText },
+            { "largest subnormal", () => LargestSubnormalDouble, LargestSubnormalDoubleText },
+            { "smallest subnormal", () => double.Epsilon, SmallestSubnormalDoubleText },
+            { "power of two, above 1", () => TwoToTheSixtieth, "1152921504606847000" },
+            { "power of two, below 1", () => TwoToTheMinusTwentieth, "0.00000095367431640625" },
+        };
+
         [Theory]
         [InlineData("TRUE", true)]
         [InlineData("True", true)]
@@ -123,6 +175,23 @@ namespace DataStandardizer.File.vCard.Tests
             // act
             int charsWritten;
             var testResult = VcardValue.TryFormatFloat(value, destination, out charsWritten, VcardValueFormat.Text);
+
+            // assert
+            testResult.Should().BeTrue();
+            new string(destination, 0, charsWritten).Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(ShortestFloatTexts))]
+        public void TryFormatFloat_AnyNumber_WritesTheFewestDigitsThatReadBack(string scenario, Func<double> value, string expected)
+        {
+            // arrange
+            _ = scenario;
+            var number = value();
+            var destination = new char[LongFloatDestinationLength];
+
+            // act
+            var testResult = VcardValue.TryFormatFloat(number, destination, out var charsWritten, VcardValueFormat.Text);
 
             // assert
             testResult.Should().BeTrue();

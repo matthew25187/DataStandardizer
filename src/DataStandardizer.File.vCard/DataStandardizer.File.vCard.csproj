@@ -40,6 +40,8 @@ Provides types supporting the reading and writing of vCard files.  Includes:
 
   <Import Project="..\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems" Label="Shared" />
 
+  <Import Project="..\DataStandardizer.FloatingPoint.Shared\DataStandardizer.FloatingPoint.Shared.projitems" Label="Shared" />
+
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using DataStandardizer.FloatingPoint;
 
 namespace DataStandardizer.File.InternetMessage
 {
@@ -78,6 +79,10 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Creates a <c>real</c>.
         /// </summary>
+        /// <remarks>
+        /// A number is written with the fewest significant digits that read back as the same value, as <c>"R"</c> writes it on .NET Core 3.0 and
+        /// later, and as the same text on every target.  NaN and the infinities are written as words.
+        /// </remarks>
         /// <param name="value">The number.</param>
         /// <returns>The value.</returns>
         public static EmlxPlistValue FromReal(double value)
@@ -86,7 +91,7 @@ namespace DataStandardizer.File.InternetMessage
             if (double.IsNaN(value)) text = NaNText;
             else if (double.IsPositiveInfinity(value)) text = PositiveInfinityText;
             else if (double.IsNegativeInfinity(value)) text = NegativeInfinityText;
-            else text = value.ToString("R", CultureInfo.InvariantCulture);
+            else text = ShortestDoubleFormatter.Format(value);
 
             return CreateScalar(EmlxPlistValueKind.Real, text);
         }
