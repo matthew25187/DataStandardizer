@@ -11,7 +11,6 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     internal static class ConformanceCases
     {
-        public const string MissingVersionCase = "MissingVersion";
         public const string MissingUidCase = "MissingUid";
         public const string TwoSummariesCase = "TwoSummaries";
         public const string RefreshIntervalWithoutValueCase = "RefreshIntervalWithoutValue";
@@ -137,6 +136,53 @@ namespace DataStandardizer.File.iCal.Tests
             public IcalOptions AcceptingAllButOptions { get; }
         }
 
+        /// <summary>
+        /// A calendar with no <c>VERSION</c>, which no option lets a reader read (RFC 5545 §3.6 and §3.7.4).
+        /// </summary>
+        public static readonly string MissingVersionText = IcalTestData.Crlf(BeginCalendar, TestProductId, BeginJournal, JournalUid, NewYearStamp, EndJournal, EndCalendar);
+
+        /// <summary>
+        /// <see cref="MissingVersionText"/> with a <c>VERSION</c> after its <c>PRODID</c>, for a test to remove in code.
+        /// </summary>
+        public static readonly string VersionAfterProductIdText =
+            IcalTestData.Crlf(BeginCalendar, TestProductId, Version20, BeginJournal, JournalUid, NewYearStamp, EndJournal, EndCalendar);
+
+        /// <summary>
+        /// Gets the default options, each option that accepts a kind of problem on its own, and every option at once: the options under which a requirement that no option waives
+        /// must still be enforced.
+        /// </summary>
+        public static IEnumerable<IcalOptions> EveryAccommodation()
+        {
+            yield return new IcalOptions();
+            yield return new IcalOptions { AllowMissingRequiredProperties = true };
+            yield return new IcalOptions { AllowCardinalityViolations = true };
+            yield return new IcalOptions { AllowInvalidValues = true };
+            yield return new IcalOptions { AllowQuotedParameterValues = true };
+            yield return new IcalOptions { AllowUndefinedTimeZones = true };
+            yield return new IcalOptions
+            {
+                AcceptBareLineFeed = true,
+                AcceptByteOrderMark = true,
+                AcceptMissingFinalLineBreak = true,
+                AllowCardinalityViolations = true,
+                AllowInvalidValues = true,
+                AllowMissingRequiredProperties = true,
+                AllowQuotedParameterValues = true,
+                AllowUndefinedTimeZones = true
+            };
+        }
+
+        public static TheoryData<IcalOptions> EveryAccommodationData()
+        {
+            var data = new TheoryData<IcalOptions>();
+            foreach (var options in EveryAccommodation())
+            {
+                data.Add(options);
+            }
+
+            return data;
+        }
+
         public static readonly IReadOnlyDictionary<string, Case> All = new Dictionary<string, Case>
         {
             // Missing required properties and components.
@@ -146,8 +192,6 @@ namespace DataStandardizer.File.iCal.Tests
                 IcalDiagnosticKind.MissingRequiredProperty, "DTSTAMP", TodoPath),
             ["MissingProdId"] = new Case(IcalTestData.Crlf(BeginCalendar, Version20, BeginJournal, JournalUid, NewYearStamp,
                 EndJournal, EndCalendar), IcalDiagnosticKind.MissingRequiredProperty, "PRODID", CalendarPath),
-            [MissingVersionCase] = new Case(IcalTestData.Crlf(BeginCalendar, TestProductId, BeginJournal, JournalUid,
-                NewYearStamp, EndJournal, EndCalendar), IcalDiagnosticKind.MissingRequiredProperty, "VERSION", CalendarPath),
             ["MissingEventStart"] = new Case(Calendar(BeginEvent, OtherEventUid, NewYearStamp, EndEvent),
                 IcalDiagnosticKind.MissingRequiredProperty, DtStart, EventPath),
             ["NoCalendarComponent"] = new Case(Calendar(), IcalDiagnosticKind.MissingRequiredProperty, null, CalendarPath),
@@ -345,7 +389,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
-        /// The cases that xCal can hold.  Five cannot be written in it: the writer always writes VERSION, the value element of REFRESH-INTERVAL
+        /// The cases that xCal can hold.  Four cannot be written in it: the value element of REFRESH-INTERVAL
         /// gives it the VALUE parameter it lacked, a binary value gives its property the ENCODING parameter it lacked, and the value element of
         /// a property takes the place of its VALUE parameters, however many there are or however many values they have.  Nor can a quoted
         /// parameter value, since xCal has no quoting, or an unescaped comma or semicolon in a TEXT value, since xCal text has no escaping.
@@ -355,7 +399,7 @@ namespace DataStandardizer.File.iCal.Tests
             var data = new TheoryData<string>();
             foreach (var name in All.Keys)
             {
-                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
+                if (name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
                     name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name) &&
                     !IsUnescapedTextSeparatorCase(name))
                 {
@@ -375,7 +419,7 @@ namespace DataStandardizer.File.iCal.Tests
             var data = new TheoryData<string>();
             foreach (var name in All.Keys)
             {
-                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
+                if (name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
                     name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && name != TwoFormatTypesCase &&
                     name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name) && !IsUnescapedTextSeparatorCase(name))
                 {

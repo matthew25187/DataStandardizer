@@ -10,6 +10,12 @@ namespace DataStandardizer.File.vCard.Tests
     public class VcardReaderTests
     {
         // ref. RFC 6350 §6.6.5: the example of a group and the two cards it links to.
+        // ref. RFC 6350 §3.3: vcard = "BEGIN:VCARD" CRLF "VERSION:4.0" CRLF 1*contentline "END:VCARD" CRLF.
+        private const string BeginCard = "BEGIN:VCARD";
+        private const string Version40Line = "VERSION:4.0";
+        private const string EndCard = "END:VCARD";
+        private const string JaneDoeName = "FN:Jane Doe";
+
         private const string GroupExampleUid1Line = "UID:urn:uuid:03a0e51f-d1aa-4385-8a53-e29025acd8af";
         private const string GroupExampleUid2 = "urn:uuid:b8767877-b4a1-4c70-9acc-505d3819e519";
 
@@ -612,28 +618,10 @@ namespace DataStandardizer.File.vCard.Tests
             return new TheoryData<string, string, VcardOptions, VcardDiagnosticKind>
             {
                 {
-                    "VERSION after FN",
-                    VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "VERSION:4.0", "END:VCARD"),
-                    new VcardOptions { MaxLineLength = null, AllowVersionNotFirst = true },
-                    VcardDiagnosticKind.InvalidStructure
-                },
-                {
-                    "no VERSION",
-                    VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "END:VCARD"),
-                    new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true },
-                    VcardDiagnosticKind.MissingRequiredProperty
-                },
-                {
                     "no FN",
                     VcardCardTestData.BareCard("NOTE:a"),
                     new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true },
                     VcardDiagnosticKind.MissingRequiredProperty
-                },
-                {
-                    "two VERSIONs",
-                    VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "VERSION:4.0", "FN:Jane Doe", "END:VCARD"),
-                    new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true },
-                    VcardDiagnosticKind.CardinalityViolation
                 },
                 {
                     "two BDAYs",
@@ -764,18 +752,60 @@ namespace DataStandardizer.File.vCard.Tests
             }
         }
 
-        [Fact]
-        public void ReadCard_NoVersionAndOptionSet_LeavesSourceVersionNull()
+        // ref. RFC 6350 §3.3 and §6.7.9, RFC 2426 §5: the VERSION says how the lines of a card are read, so a card with none, with two, or, in vCard 4.0, with it after another line
+        // is never read, whatever the options.
+        public static TheoryData<string, string, VcardOptions> VersionStructureData()
+        {
+            var cards = new[]
+            {
+                new[] { "no VERSION", VcardTestData.Crlf(BeginCard, JaneDoeName, EndCard) },
+                new[] { "two VERSIONs", VcardTestData.Crlf(BeginCard, Version40Line, Version40Line, JaneDoeName, EndCard) },
+                new[] { "a 2.1 VERSION after a 4.0 one", VcardTestData.Crlf(BeginCard, Version40Line, JaneDoeName, "VERSION:2.1", EndCard) },
+                new[] { "a 4.0 VERSION after a 3.0 one", VcardTestData.Crlf(BeginCard, "VERSION:3.0", "N:Doe;Jane;;;", JaneDoeName, Version40Line, EndCard) },
+                new[] { "a VERSION that can't be read after a 4.0 one", VcardTestData.Crlf(BeginCard, Version40Line, JaneDoeName, "VERSION:9.9", EndCard) },
+                new[] { "a 4.0 VERSION after FN", VcardTestData.Crlf(BeginCard, JaneDoeName, Version40Line, EndCard) }
+            };
+
+            var data = new TheoryData<string, string, VcardOptions>();
+            foreach (var card in cards)
+            {
+                foreach (var options in VcardTestData.EveryAccommodation())
+                {
+                    data.Add(card[0], card[1], options);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(VersionStructureData))]
+        public void ReadCard_VersionMissingRepeatedOrNotFirst_ThrowsWhateverTheOptions(string scenario, string text, VcardOptions options)
         {
             // arrange
-            var text = VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "END:VCARD");
-            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
+            using (var reader = new VcardReader(new StringReader(text), options))
+            {
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>(scenario)
+                    .Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
+            }
+        }
+
+        [Fact]
+        public void ReadCard_Version30AfterOtherLines_ReadsTheCard()
+        {
+            // arrange
+            // ref. RFC 2426 §4: the VERSION is one contentline among others, so it may come anywhere in a vCard 3.0 card.
+            var text = VcardTestData.Crlf("BEGIN:VCARD", "N:Doe;Jane;;;", "FN:Jane Doe", "VERSION:3.0", "END:VCARD");
 
             // act
-            var testResult = VcardCardTestData.Read(text, options);
+            var testResult = VcardCardTestData.Read(text);
 
             // assert
-            testResult.SourceVersion.Should().BeNull();
+            testResult.SourceVersion.Should().Be(VcardVersion.V3_0);
         }
 
         [Fact]

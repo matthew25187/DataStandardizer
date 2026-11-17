@@ -229,8 +229,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gives a line of a vCard 4.0 card the form it has under the option that accepts a comma with no backslash.  It waits for the end of the card, since a <c>VERSION</c> needn't come first
-        /// under <see cref="VcardOptions.AllowVersionNotFirst"/>, and the rule isn't one of other versions.
+        /// Gives a line of a vCard 4.0 card the form it has under the option that accepts a comma with no backslash.  It waits for the end of the card, where the card's version is known, since
+        /// the rule isn't one of other versions.
         /// </summary>
         private VcardContentLine ApplyCommaAccommodation(VcardContentLine line)
         {
@@ -298,8 +298,14 @@ namespace DataStandardizer.File.vCard
             var mapping = _mapping;
             if (mapping is null)
             {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.MissingRequiredProperty, "A card requires a VERSION property: RFC 6350 §6.7.9, RFC 2426 §5.", VcardPropertyNames.Version, null,
-                    beginLine.LineNumber, card.CardIndex));
+                // A card that is the value of another takes its version from that card, as the RFC 2426 §3.5.4 example, which has no VERSION, does; so it is a required property
+                // like any other.  Any other card has nothing else to say how its lines are read, so no option accepts it.
+                _structureDiagnostics.Add(_depth == 0
+                    ? new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
+                        "A card requires a VERSION property, which says how its lines are read: RFC 6350 §3.3 and §6.7.9, RFC 2426 §5.  No option accepts a card without one.",
+                        VcardPropertyNames.Version, null, beginLine.LineNumber, card.CardIndex)
+                    : new VcardDiagnostic(VcardDiagnosticKind.MissingRequiredProperty, "A card requires a VERSION property: RFC 6350 §6.7.9, RFC 2426 §5.", VcardPropertyNames.Version,
+                        null, beginLine.LineNumber, card.CardIndex));
                 mapping = _defaultMapping;
             }
 
@@ -343,6 +349,15 @@ namespace DataStandardizer.File.vCard
 
         private void AddVersion(VcardContentLine line, VcardCard card)
         {
+            // The first VERSION says how the lines after it are read, and they are read by it, so no option accepts another, whatever its value.
+            if (_mapping != null)
+            {
+                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
+                    "A card has exactly one VERSION property, which says how its lines are read: RFC 6350 §6.7.9, RFC 2426 §5.  No option accepts another.", line.Name, line.Group,
+                    line.LineNumber, card.CardIndex));
+                return;
+            }
+
             // ref. RFC 6350 §6.7.9: "The value MUST be '4.0' if the vCard corresponds to this specification."
             var mapping = VcardVersionMapping.Find(line.Value);
             if (mapping is null)
@@ -367,17 +382,12 @@ namespace DataStandardizer.File.vCard
                 Vcard30Conformance.ValidateVersionLine(line, card, _structureDiagnostics);
             }
 
-            if (_mapping != null)
+            // ref. RFC 6350 §6.7.9: it "must appear immediately after BEGIN:VCARD", and the vcard rule of §3.3 has it there.  The lines before it are read without knowing that they are
+            // of vCard 4.0, so no option accepts it anywhere else.  RFC 2426 has no such rule, since §4 has it as one contentline among others.
+            if (mapping.Version == VcardVersion.V4_0 && card.Properties.Count != 0)
             {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.CardinalityViolation, "A card has exactly one VERSION property: RFC 6350 §6.7.9, RFC 2426 §5.", line.Name, line.Group,
-                    line.LineNumber, card.CardIndex));
-                return;
-            }
-
-            // ref. RFC 6350 §6.7.9: it "must appear immediately after BEGIN:VCARD".  RFC 2426 has no such rule, since §4 has it as one contentline among others.
-            if (mapping.Version == VcardVersion.V4_0 && card.Properties.Count != 0 && !_options.AllowVersionNotFirst)
-            {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §6.7.9 requires the VERSION property immediately after BEGIN:VCARD.",
+                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
+                    "RFC 6350 §3.3 and §6.7.9 require the VERSION property immediately after BEGIN:VCARD, since it says how the lines after it are read.  No option accepts it anywhere else.",
                     line.Name, line.Group, line.LineNumber, card.CardIndex));
             }
 

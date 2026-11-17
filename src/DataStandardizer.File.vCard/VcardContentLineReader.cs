@@ -24,8 +24,8 @@ namespace DataStandardizer.File.vCard
     /// </para>
     /// <para>
     /// RFC 6868 caret encoding in parameter values is decoded only on the lines of a vCard 4.0 card, from its <c>VERSION:4.0</c> line up to and
-    /// including its <c>END:VCARD</c> line.  The reader tracks this from the lines themselves: <c>BEGIN:VCARD</c> forgets the version, a
-    /// <c>VERSION</c> line sets it, and the line after <c>END:VCARD</c> forgets it again.  <see cref="VcardOptions.AcceptCaretEncodingInAllVersions"/>
+    /// including its <c>END:VCARD</c> line.  The reader tracks this from the lines themselves: <c>BEGIN:VCARD</c> forgets the version, the first
+    /// <c>VERSION</c> line of the card sets it, a later one doesn't change it, and the line after <c>END:VCARD</c> forgets it again.  <see cref="VcardOptions.AcceptCaretEncodingInAllVersions"/>
     /// decodes it on every line.
     /// </para>
     /// <para>

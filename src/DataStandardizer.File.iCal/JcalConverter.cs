@@ -80,6 +80,13 @@ namespace DataStandardizer.File.iCal
                 throw BuildException(property, null, "A property must be an array whose first element is the name of the property, as a string.");
 
             var name = ToIcalName(items[0], null, "property");
+
+            // ref. RFC 7265 §3.3: the component array takes the place of the BEGIN and END lines that delimit a component, so a property with either name would start or end one.
+            if (IsName(name, IcalCalendarBuilder.BeginName) || IsName(name, IcalCalendarBuilder.EndName))
+                throw BuildException(items[0], name,
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The {0} property can't be in jCal, whose component array takes the place of BEGIN and END: RFC 7265 §3.3.", name));
+
             if (items.Count < 4)
                 throw BuildException(property, name,
                     string.Format(CultureInfo.InvariantCulture,

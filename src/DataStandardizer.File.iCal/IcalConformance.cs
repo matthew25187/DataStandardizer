@@ -446,6 +446,17 @@ namespace DataStandardizer.File.iCal
 
             foreach (var property in component.Properties)
             {
+                // ref. RFC 5545§3.4 and §3.6: the BEGIN and END lines start and end a component, so a property with either name would change the structure when written.
+                if (IsName(property.Name, IcalCalendarBuilder.BeginName) || IsName(property.Name, IcalCalendarBuilder.EndName))
+                {
+                    context.Add(IcalDiagnosticKind.InvalidComponentNesting,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "A property can't be named {0}: RFC 5545 §3.4 and §3.6 keep BEGIN and END for the lines that start and end a component.  No option accepts it.",
+                            property.Name.ToUpperInvariant()),
+                        path, property.Name, property.LineNumber);
+                    continue;
+                }
+
                 ValidateValue(property, component.Name, path, context);
                 ValidateFormatType(property, path, context);
                 ValidateParameters(property, path, context);
@@ -494,7 +505,20 @@ namespace DataStandardizer.File.iCal
                 var properties = component.GetProperties(name);
                 if (properties.Count == 0)
                 {
-                    if (context.IsVersionWritten && IsName(name, IcalPropertyNames.Version)) continue;
+                    if (IsName(name, IcalPropertyNames.Version))
+                    {
+                        if (context.IsVersionWritten) continue;
+
+                        // ref. RFC 5545§3.6 and §3.7.4: the VERSION is required, and says which specification the calendar is read by, so no option lets a reader
+                        // accept a calendar without one.  A writer adds it, so for one it is no problem.
+                        context.Add(IcalDiagnosticKind.UnsupportedVersion,
+                            string.Format(CultureInfo.InvariantCulture,
+                                "The {0} component has no VERSION property, which says how the calendar is read: RFC 5545 §3.6 and §3.7.4.  No option lets a reader accept a " +
+                                "calendar without one; a writer adds VERSION:2.0.",
+                                component.Name),
+                            path, name, component.LineNumber);
+                        continue;
+                    }
 
                     context.Add(IcalDiagnosticKind.MissingRequiredProperty,
                         string.Format(CultureInfo.InvariantCulture, "The {0} component has no {1} property, which it requires.", component.Name, name),

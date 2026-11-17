@@ -323,7 +323,8 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingVersionCase].Text, MissingRequiredProperties);
+            var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
+            calendar.Version = null;
 
             // act
             var testResult = XDocument.Parse(WriteXcal(new[] { calendar }, MissingRequiredProperties));

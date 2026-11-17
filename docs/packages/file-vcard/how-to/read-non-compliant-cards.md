@@ -50,7 +50,7 @@ For a broken rule of a card, `Data` holds a `DiagnosticKind`, a
 | `InvalidValue` | `AllowInvalidValues`, or `AcceptUnescapedCommasInUris` for a comma in a URI |
 | `InvalidParameter` | `AllowInvalidValues` |
 | `LegacySyntax` | `AcceptLegacySyntax` |
-| `InvalidStructure` | `AllowVersionNotFirst`, for a `VERSION` that isn't first; otherwise never accepted |
+| `InvalidStructure` | Never accepted |
 | `UnsupportedVersion` | Never accepted |
 
 `Data` also holds the `CardIndex`, counting from 0, the `LineNumber` and, where one
@@ -76,7 +76,6 @@ after it the reader can't go on.
 | `AllowUnknownCharsetAsLatin1` | Yes | No | `.vcf` |
 | `AcceptUnescapedCommasInUris` | Yes | No | `.vcf` |
 | `AcceptOrgUriProperty` | Yes | No | All |
-| `AllowVersionNotFirst` | Yes | No | `.vcf` |
 | `AllowMissingRequiredProperties` | Yes | Yes | All |
 | `AllowCardinalityViolations` | Yes | Yes | All |
 | `AllowInvalidValues` | Yes | Yes | All |
@@ -132,8 +131,11 @@ VcardFileException: RFC 6350 §6.2.1 requires at least one FN property.
     PropertyName = FN
 ```
 
-The option also accepts a card with no `VERSION`, which is read as vCard 4.0 with a
-`SourceVersion` of `null`.
+The option doesn't accept a card with no `VERSION`, since nothing else says how its
+lines are read (RFC 6350 §6.7.9, RFC 2426 §5). The exception's `DiagnosticKind` is
+then `InvalidStructure`, which no option accepts. Only a card held in an `AGENT` may
+leave it out, as in the example of RFC 2426 §3.5.4: it takes the version of the card
+around it, the option accepts it, and its `SourceVersion` is `null`.
 
 ### AllowCardinalityViolations
 
@@ -217,20 +219,22 @@ A file with raw 8-bit values in a character set other than UTF-8, or a `CHARSET`
 that can't be resolved, needs more. See
 [Handle legacy character sets](handle-legacy-character-sets.md).
 
-### AllowVersionNotFirst
+### A VERSION that isn't first
 
-RFC 6350 §6.7.9 says `VERSION` comes straight after `BEGIN:VCARD`, which some
-writers don't do:
+RFC 6350 §6.7.9 says `VERSION` comes straight after `BEGIN:VCARD`, and the version
+says how the lines of the card are read, so no option accepts a vCard 4.0 card with
+it anywhere else. `AllowVersionNotFirst` is obsolete and has no effect:
 
 ```text
-VcardFileException: RFC 6350 §6.7.9 requires the VERSION property immediately after BEGIN:VCARD.
+VcardFileException: RFC 6350 §3.3 and §6.7.9 require the VERSION property immediately after BEGIN:VCARD, since it says how the lines after it are read.  No option accepts it anywhere else.
     DiagnosticKind = InvalidStructure
     CardIndex = 0
     LineNumber = 3
     PropertyName = VERSION
 ```
 
-vCard 3.0 and 2.1 allow `VERSION` anywhere in the card, so their cards need no option.
+vCard 3.0 and 2.1 allow `VERSION` anywhere in the card, so their cards are read
+wherever it is.
 
 ### AcceptOrgUriProperty
 

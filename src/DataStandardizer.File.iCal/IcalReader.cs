@@ -31,7 +31,9 @@ namespace DataStandardizer.File.iCal
     /// that the options do not accept throws <see cref="IcalFileException"/>, carrying the component path in its data; reading can then continue
     /// with the next calendar.  The accommodations are <see cref="IcalOptions.AllowMissingRequiredProperties"/>,
     /// <see cref="IcalOptions.AllowCardinalityViolations"/>, <see cref="IcalOptions.AllowUndefinedTimeZones"/> and
-    /// <see cref="IcalOptions.AllowInvalidValues"/>, all off by default.
+    /// <see cref="IcalOptions.AllowInvalidValues"/>, all off by default.  No option accepts a calendar with no <c>VERSION</c>, since the version says how the calendar is read
+    /// (RFC 5545 §3.6 and §3.7.4); the exception's <see cref="IcalDiagnosticKind"/> is then <see cref="IcalDiagnosticKind.UnsupportedVersion"/>.  It is
+    /// found once the calendar has been read, so reading can continue with the next.
     /// </para>
     /// <para>
     /// Any other exception from a read, including a cancellation, leaves the reader unable to continue, and later reads throw
