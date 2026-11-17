@@ -647,7 +647,7 @@ namespace DataStandardizer.File.iCal
 
             // The calendar has been read in full, so a problem with it does not stop the reader.
             var diagnostics = new List<IcalDiagnostic>();
-            IcalConformance.Validate(_calendar, diagnostics);
+            IcalConformance.Validate(_calendar, false, true, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
                 // xCal has no quoting, so a value is never quoted where it was read.

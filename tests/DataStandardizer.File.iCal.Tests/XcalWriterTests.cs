@@ -234,6 +234,24 @@ namespace DataStandardizer.File.iCal.Tests
             Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), "rrule").Should().Be(expected);
         }
 
+        // ref. RFC 6321 §3.6.6: the designators of a DURATION are upper case in xCal, though the iCalendar text form allows lower case (RFC 5545
+        // §3.3.6).
+        [Theory]
+        [InlineData("DURATION:pt1h", "duration", "<duration>PT1H</duration>")]
+        [InlineData("DURATION:-p1dT2h", "duration", "<duration>-P1DT2H</duration>")]
+        [InlineData("RDATE;VALUE=PERIOD:20260104T090000Z/pt1h", "rdate", "<period><start>2026-01-04T09:00:00Z</start><duration>PT1H</duration></period>")]
+        public void WriteCalendar_LowerCaseDuration_WritesUpperCase(string line, string propertyName, string expected)
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar(line));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), propertyName).Should().Be(expected);
+        }
+
         [Fact]
         public void WriteCalendar_InvalidValueAllowed_WritesUnknownWithValueParameter()
         {

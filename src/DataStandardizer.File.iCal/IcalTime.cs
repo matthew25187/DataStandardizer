@@ -95,7 +95,7 @@ namespace DataStandardizer.File.iCal
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return format != IcalValueFormat.Text ? TryParseXml(value, out result) : TryParseText(value, out result);
+            return format != IcalValueFormat.Text ? TryParseXml(value, format == IcalValueFormat.Xml, out result) : TryParseText(value, out result);
         }
 
         /// <summary>
@@ -261,11 +261,17 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Parses the <c>HH:MM:SS[Z]</c> xCal form, which must be exactly the length of <paramref name="value"/>.
+        /// Parses the <c>HH:MM:SS[Z]</c> form of xCal and jCal, which must be exactly the length of <paramref name="value"/>.
         /// </summary>
-        internal static bool TryParseXml(ReadOnlySpan<char> value, out IcalTime result)
+        /// <param name="value">The value.</param>
+        /// <param name="isUpperCaseOnly"><c>true</c> for xCal, whose pattern is case-sensitive, so the UTC designator must be <c>Z</c>;
+        /// <c>false</c> for jCal, whose ABNF also allows <c>z</c>.</param>
+        /// <param name="result">The time, if the value is valid.</param>
+        internal static bool TryParseXml(ReadOnlySpan<char> value, bool isUpperCaseOnly, out IcalTime result)
         {
-            // ref. RFC 6321§3.6.12: the time components are separated by ":" characters; pattern-time = "\d\d:\d\d:\d\dZ?".
+            // ref. RFC 6321§3.6.12: the time components are separated by ":" characters; pattern-time = "\d\d:\d\d:\d\dZ?", which, as an XML
+            // Schema pattern, is case-sensitive.  ref. RFC 7265§3.6.12: time-complete = hour ":" minute ":" second [zone], in ABNF, whose
+            // strings are case-insensitive (RFC 5234§2.3).
             result = default(IcalTime);
             int hour, minute, second;
             if (value.Length < XmlLength || value.Length > XmlLength + 1 || value[2] != ':' || value[5] != ':' ||
@@ -277,7 +283,7 @@ namespace DataStandardizer.File.iCal
             }
 
             var isUtc = value.Length > XmlLength;
-            if (isUtc && !IcalValueFormatting.IsLetter(value[XmlLength], 'Z')) return false;
+            if (isUtc && !IcalValueFormatting.IsLetter(value[XmlLength], 'Z', isUpperCaseOnly)) return false;
             if (hour > 23 || minute > 59 || second > 60) return false;
 
             result = new IcalTime(hour, minute, second, isUtc);

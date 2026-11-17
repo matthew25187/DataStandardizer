@@ -20,8 +20,9 @@
         /// A value in this form is the text of a JSON string with its JSON escaping removed, or the text of a JSON number or literal.  TEXT
         /// values have no iCalendar escaping in this form, and the items of a list are separate JSON strings, so a value is one item.  BOOLEAN
         /// values are <c>true</c> or <c>false</c>.  INTEGER and FLOAT values are JSON numbers, which have no plus sign or leading zeros and may
-        /// have an exponent.  DATE, TIME, DATE-TIME and UTC-OFFSET values are as in <see cref="Xml"/> form.  DURATION, BINARY, URI and
-        /// CAL-ADDRESS values are as in <see cref="Text"/> form.
+        /// have an exponent.  DATE, TIME, DATE-TIME and UTC-OFFSET values are as in <see cref="Xml"/> form, except that the <c>T</c> and
+        /// <c>Z</c> of a DATE-TIME or TIME value may be lower case, since RFC 7265 gives them in ABNF, which is case-insensitive.  DURATION,
+        /// BINARY, URI and CAL-ADDRESS values are as in <see cref="Text"/> form.
         /// </para>
         /// <para>
         /// A PERIOD is the start and end or duration joined by a solidus, as in <see cref="Xml"/> form; in a jCal document they are the two
@@ -43,7 +44,10 @@
         /// <remarks>
         /// <para>
         /// TEXT values have no escaping in this form, and the items of a list are separate elements, so a value is one item.  BOOLEAN values are
-        /// <c>true</c> or <c>false</c>.  DURATION, INTEGER, FLOAT, BINARY, URI and CAL-ADDRESS values are as in <see cref="Text"/> form.
+        /// <c>true</c> or <c>false</c>.  INTEGER, FLOAT, BINARY, URI and CAL-ADDRESS values are as in <see cref="Text"/> form.  DURATION values
+        /// are as in <see cref="Text"/> form, except that their designators, such as <c>P</c> and <c>T</c>, must be upper case; so must the
+        /// <c>T</c> and <c>Z</c> of a DATE-TIME or TIME value.  The patterns of RFC 6321 are XML Schema patterns, which are case-sensitive
+        /// (RFC 6321 §3.6.5, §3.6.6 and §3.6.12).
         /// Parsing accepts what the XML Schema types of RFC 6321 allow: white space around a BOOLEAN, INTEGER, FLOAT, URI or CAL-ADDRESS
         /// value, and white space anywhere in a BINARY value (RFC 6321 §3.6.1).  DATE, TIME, DATE-TIME, DURATION and UTC-OFFSET values are
         /// patterned <c>xsd:string</c> types, which keep white space, so they take none.

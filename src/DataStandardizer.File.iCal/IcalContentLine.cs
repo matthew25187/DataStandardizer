@@ -249,6 +249,40 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Creates a content line converted from another serialization, such as xCal, whose value was not in the form that serialization
+        /// requires, though it is valid in the text form; taking ownership of the parameter array.
+        /// </summary>
+        /// <param name="name">The property name.</param>
+        /// <param name="parameters">The parameters, in order.</param>
+        /// <param name="value">The value, in the form of a content line.</param>
+        /// <param name="lineNumber">The 1-based number of the line in the source on which the property starts; or 0 if not known.</param>
+        /// <param name="conversionProblem">The problem with the value in its source, which the conformance check reports; or <c>null</c> if
+        /// there is none.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static IcalContentLine FromConversion(string name, IcalContentLineParameter[] parameters, string value, long lineNumber,
+            string? conversionProblem)
+#else
+        internal static IcalContentLine FromConversion(string name, IcalContentLineParameter[] parameters, string value, long lineNumber,
+            string conversionProblem)
+#endif
+        {
+            var line = FromConversion(name, parameters, value, lineNumber);
+            line.ConversionProblem = conversionProblem;
+            return line;
+        }
+
+        /// <summary>
+        /// Gets the problem with the value in the serialization it was converted from, which the reader of that serialization reports as an
+        /// invalid value; or <c>null</c> if there is none, or the line was not converted.  Other checks, such as those of the writers, don't
+        /// report it, since the value is valid in the text form the line holds.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? ConversionProblem { get; private set; }
+#else
+        internal string ConversionProblem { get; private set; }
+#endif
+
+        /// <summary>
         /// Creates a copy of the line with another value, keeping the name, the parameters and the line number it was read from.
         /// </summary>
         /// <param name="value">The value, in the form of a content line.</param>

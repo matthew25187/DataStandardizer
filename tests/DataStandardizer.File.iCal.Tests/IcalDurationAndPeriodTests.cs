@@ -101,6 +101,17 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Time.Should().Be(new TimeSpan(5, 0, 20));
         }
 
+        // ref. RFC 5545 §3.3.6: dur-value is ABNF, whose strings are case-insensitive (RFC 5234 §2.3), so the text form allows lower case.
+        [Fact]
+        public void IcalDuration_Parse_LowerCaseDesignators_IsTheDuration()
+        {
+            // act
+            var testResult = IcalDuration.Parse("p1dt1h".AsSpan(), IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().Be(new IcalDuration(1, new TimeSpan(1, 0, 0)));
+        }
+
         [Fact]
         public void IcalDuration_Parse_OneDay_IsOneNominalDay()
         {
