@@ -65,9 +65,9 @@ The constructor adds `VERSION:2.0`. A calendar built in code also needs a `PRODI
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `CalendarName` | `string? CalendarName { get; set; }` | `NAME` (RFC 7986 §5.1). TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape. `null` removes it. |
+| `CalendarName` | `string? CalendarName { get; set; }` | `NAME` (RFC 7986 §5.1). TEXT. Throws `IcalFileException` on get if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. `null` removes it. |
 | `CalendarScale` | `string? CalendarScale { get; set; }` | `CALSCALE` (RFC 5545 §3.7.1), such as `GREGORIAN`. TEXT, as for `CalendarName`. `null` removes it. |
-| `Categories` | `IReadOnlyList<string> Categories { get; set; }` | `CATEGORIES` (RFC 5545 §3.8.1.2; RFC 7986 §5.6), the items of every `CATEGORIES` property. Setting writes one property holding the whole list; an empty list or `null` removes them. Throws `ArgumentException` on set if an item is `null`, or `IcalFileException` on get if an item has an invalid escape. |
+| `Categories` | `IReadOnlyList<string> Categories { get; set; }` | `CATEGORIES` (RFC 5545 §3.8.1.2; RFC 7986 §5.6), the items of every `CATEGORIES` property. Setting writes one property holding the whole list; an empty list or `null` removes them. Throws `ArgumentException` on set if an item is `null`, or `IcalFileException` on get if an item has an invalid escape or a semicolon that is not escaped. |
 | `Color` | `string? Color { get; set; }` | `COLOR` (RFC 7986 §5.9), a CSS3 color name such as `turquoise`. TEXT. `null` removes it. |
 | `Description` | `string? Description { get; set; }` | `DESCRIPTION` (RFC 5545 §3.8.1.5; RFC 7986 §5.2). TEXT. `null` removes it. |
 | `Images` | `IReadOnlyList<IcalContentLine> Images { get; }` | `IMAGE` (RFC 7986 §5.10), as the content lines themselves. Each is a URI or inline BINARY data, with parameters such as `DISPLAY` and `FMTTYPE`. Change them through `Properties`. |
@@ -78,11 +78,11 @@ The constructor adds `VERSION:2.0`. A calendar built in code also needs a `PRODI
 | `Source` | `Uri? Source { get; set; }` | `SOURCE` (RFC 7986 §5.8), where the calendar can be refreshed from. The setter writes the `VALUE=URI` parameter the property needs. Throws `ArgumentException` on set for a relative URI, or `IcalFileException` on get if the value is not a valid absolute URI. `null` removes it. |
 | `Uid` | `string? Uid { get; set; }` | `UID` (RFC 5545 §3.8.4.7; RFC 7986 §5.3), a persistent, globally unique identifier. TEXT. `null` removes it. |
 | `Url` | `Uri? Url { get; set; }` | `URL` (RFC 5545 §3.8.4.6; RFC 7986 §5.5). Throws `ArgumentException` on set for a relative URI, or `IcalFileException` on get if the value is not a valid absolute URI. `null` removes it. |
-| `Version` | `string? Version { get; set; }` | `VERSION` (RFC 5545 §3.7.4), as written: `2.0`, or the range `2.0;2.0`. TEXT. `null` removes it, but the writer writes `VERSION:2.0` regardless. |
+| `Version` | `string? Version { get; set; }` | `VERSION` (RFC 5545 §3.7.4), as written: `2.0`, or the range `2.0;2.0`. TEXT, except that the semicolon of a range is not escaped, so the getter throws `IcalFileException` only for a second semicolon that is not escaped. `null` removes it, but the writer writes `VERSION:2.0` regardless. |
 
 Every TEXT property removes TEXT escaping on get and adds it on set, and throws
 `IcalFileException` on get if the value has a backslash that does not start a
-valid escape.
+valid escape, or a comma or semicolon that is not escaped (RFC 5545 §3.3.11).
 
 Inherited members `Components`, `LineNumber`, `Name`, `Properties`, `GetProperty`,
 `GetProperties`, `SetProperty`, `RemoveProperties`, `Validate` and `ToString` are

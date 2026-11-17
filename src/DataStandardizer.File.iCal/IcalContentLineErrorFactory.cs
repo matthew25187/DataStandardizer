@@ -32,6 +32,7 @@ namespace DataStandardizer.File.iCal
             internal const string MissingLineBreak = "Expected a CRLF line break at the end of the last content line.";
             internal const string MissingValue = "Expected ':' and a property value.";
             internal const string ParameterValueNeedsCaretEncodingTemplate = "The character U+{0:X4} in a value of parameter {1} can only be written with RFC 6868 caret encoding.";
+            internal const string UnescapedTextSeparator = "Found a comma or semicolon that is not escaped, which a TEXT value cannot hold (RFC 5545 §3.3.11).";
             internal const string UnterminatedQuotedString = "Expected a closing '\"' for the quoted parameter value.";
         }
 
@@ -93,6 +94,11 @@ namespace DataStandardizer.File.iCal
         internal static IcalFileException BuildInvalidTextEscapeException(long lineNumber, long physicalLineNumber, string propertyName)
         {
             return BuildException(ErrorMessage.InvalidTextEscape, lineNumber, physicalLineNumber, propertyName);
+        }
+
+        internal static IcalFileException BuildUnescapedTextSeparatorException(long lineNumber, long physicalLineNumber, string propertyName)
+        {
+            return BuildException(ErrorMessage.UnescapedTextSeparator, lineNumber, physicalLineNumber, propertyName);
         }
 
         private static string GetMessage(ContentLineError error)

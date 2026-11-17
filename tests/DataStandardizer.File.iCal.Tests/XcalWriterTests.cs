@@ -319,6 +319,22 @@ namespace DataStandardizer.File.iCal.Tests
                 .Equal(LanguageThatNeedsQuotes);
         }
 
+        // ref. RFC 5545 §3.7.4: the range 2.0;2.0, whose semicolon separates minver and maxver, and so is not escaped.  The calendar's own
+        // VERSION is always written as 2.0, so the range is in a component, where RFC 5545 §3.6.1 allows an iana-prop.  XcalReader reads it
+        // from one text element.
+        [Fact]
+        public void WriteCalendar_VersionRangeInComponent_WritesOneTextElementWithTheSemicolon()
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar("VERSION:2.0;2.0"));
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            Inner(testResult.Descendants(Ns + "vevent").Single().Element(Ns + PropertiesElement), "version").Should().Be("<text>2.0;2.0</text>");
+        }
+
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {

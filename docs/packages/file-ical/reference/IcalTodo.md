@@ -85,9 +85,9 @@ components of `calendar`. The overloads without `options` use a default
 
 Every getter throws `IcalFileException` if the stored value is not valid for its
 type: a TEXT value or list item with a backslash that does not start a valid
-escape, a DATE-TIME property with `VALUE=DATE`, a value that does not parse, or a
-URI that is not absolute. TEXT properties remove TEXT escaping on get and add it on
-set.
+escape or with a comma or semicolon that is not escaped (RFC 5545 §3.3.11), a
+DATE-TIME property with `VALUE=DATE`, a value that does not parse, or a URI that is
+not absolute. TEXT properties remove TEXT escaping on get and add it on set.
 
 ## Methods
 

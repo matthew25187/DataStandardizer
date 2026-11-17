@@ -101,8 +101,8 @@ DELEGATED-TO: mailto:b@example.com -> mailto:b@example.com
 
 `GetTextValue()` removes TEXT escaping: `\\`, `\;` and `\,` become the escaped
 character, and `\n` or `\N` a line feed. A backslash that doesn't start a valid
-escape throws `IcalFileException`. Use it only for properties whose value type is
-TEXT.
+escape throws `IcalFileException`, as does a comma or semicolon that isn't escaped
+(RFC 5545 §3.3.11). Use it only for properties whose value type is TEXT.
 
 A property that holds a list of TEXT values, such as `CATEGORIES`, must be split on
 the unescaped commas before the escaping is removed. Split `RawValue` with

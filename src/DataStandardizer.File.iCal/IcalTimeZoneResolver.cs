@@ -245,7 +245,7 @@ namespace DataStandardizer.File.iCal
 
                 foreach (var timeZone in calendar.TimeZones)
                 {
-                    if (!string.Equals(timeZone.TimeZoneId, timeZoneId, StringComparison.Ordinal)) continue;
+                    if (!string.Equals(timeZone.GetTextForMatching(IcalPropertyNames.TimeZoneId), timeZoneId, StringComparison.Ordinal)) continue;
 
                     rules = IcalCalendarTimeZoneRules.Create(timeZoneId, timeZone);
                     return true;

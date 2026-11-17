@@ -157,7 +157,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private void ReadOverrides()
         {
-            var uid = _component.GetText(IcalPropertyNames.Uid);
+            var uid = _component.GetTextForMatching(IcalPropertyNames.Uid);
             if (_calendar is null || uid is null) return;
 
             // Of two overrides of the same instance, the one with the higher SEQUENCE wins, then the later one.
@@ -167,7 +167,7 @@ namespace DataStandardizer.File.iCal
             {
                 var candidate = component as TComponent;
                 if (candidate is null || ReferenceEquals(candidate, _component) || candidate.GetType() != _component.GetType() ||
-                    !string.Equals(candidate.GetText(IcalPropertyNames.Uid), uid, StringComparison.Ordinal)) continue;
+                    !string.Equals(candidate.GetTextForMatching(IcalPropertyNames.Uid), uid, StringComparison.Ordinal)) continue;
 
                 var recurrenceId = candidate.GetDateOrDateTime(IcalPropertyNames.RecurrenceId);
                 if (!recurrenceId.HasValue) continue;

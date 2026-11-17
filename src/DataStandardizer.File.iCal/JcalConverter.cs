@@ -741,6 +741,8 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 5545§3.2.20: a VALUE parameter may name the default type, so the structure follows the type, not the parameter.
             if (valueType == IcalValueType.Float && IsName(name, IcalPropertyNames.Geo)) return ToList(TryConvertGeo(value));
             if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.RequestStatus)) return ToList(TryConvertRequestStatus(value));
+            // ref. RFC 5545§3.7.4: the semicolon between minver and maxver is a separator, not TEXT.
+            if (valueType == IcalValueType.Text && IsName(name, IcalPropertyNames.Version)) return ToList(TryConvertVersion(value));
 
             // ref. RFC 7265§3.4: each value of a multi-valued property is an element of the array.  The values of a property whose type is
             // not known may be a list too, so they are split as well.
@@ -969,6 +971,21 @@ namespace DataStandardizer.File.iCal
             node.Add(latitude);
             node.Add(longitude);
             return node;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static JcalNode? TryConvertVersion(string value)
+#else
+        private static JcalNode TryConvertVersion(string value)
+#endif
+        {
+            // A range is one string, minver ";" maxver, as JcalReader reads it.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            return IcalConformance.TryParseVersion(value, out text) ? new JcalNode(JcalNodeKind.String, text) : null;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

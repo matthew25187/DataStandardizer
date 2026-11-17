@@ -57,7 +57,21 @@ namespace DataStandardizer.File.iCal.Tests
         private const string BeforeSummary = "Before";
         private const string AfterSummary = "After";
 
+        // A UID with a comma that is not escaped.  RFC 5545 §3.3.11 requires "\,", so it is read only with AllowInvalidValues.
+        private const string UnescapedCommaUid = "UID:x,y";
+
+        // An override that moves the instance of 2 March to 08:00 on 1 January 2027, and a window around that day that holds it and the
+        // instance of 09:00.
+        private const string March2RecurrenceId = "RECURRENCE-ID:20260302T090000Z";
+        private const string MovedToNewYear2027Start = "DTSTART:20270101T080000Z";
+        private const string MovedToNewYear2027 = "20270101T080000Z";
+        private const string NewYear2027Instance = "20270101T090000Z";
+        private const string NewYear2027WindowFrom = "20261231T120000Z";
+        private const string NewYear2027WindowTo = "20270102T000000Z";
+
         private static readonly IcalOptions UndefinedTimeZones = new IcalOptions() { AllowUndefinedTimeZones = true };
+        private static readonly IcalOptions UndefinedTimeZonesAndInvalidValues =
+            new IcalOptions() { AllowUndefinedTimeZones = true, AllowInvalidValues = true };
 
         private static readonly IIcalTimeZoneResolver CalendarThenTzData =
             IcalTimeZoneResolver.Chain(IcalTimeZoneResolver.Calendar, IcalTimeZoneResolver.TzData);
@@ -625,6 +639,44 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20270101T080000Z", "20270101T090000Z");
             testResult.Select(occurrence => occurrence.IsOverride).Should().Equal(true, false);
+        }
+
+        [Fact]
+        public void GetOccurrences_OtherEventWithUnescapedCommaInUid_IsIgnored()
+        {
+            // arrange
+            var lines = IcalTestData.Lines(Event(March2Start, Daily), Override(March2RecurrenceId, MovedToNewYear2027Start),
+                new[] { IcalLines.BeginEvent, UnescapedCommaUid, IcalLines.NewYearStamp, March2Start, IcalLines.EndEvent });
+            var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(lines), UndefinedTimeZonesAndInvalidValues);
+            var master = calendar.Events.First();
+            var from = Utc(NewYear2027WindowFrom);
+            var to = Utc(NewYear2027WindowTo);
+
+            // act
+            var testResult = master.GetOccurrences(calendar, from, to).ToList();
+
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(MovedToNewYear2027, NewYear2027Instance);
+        }
+
+        [Fact]
+        public void GetOccurrences_UidWithUnescapedComma_IsOverriddenByEventWithTheSameUid()
+        {
+            // arrange
+            var lines = IcalTestData.Lines(
+                new[] { IcalLines.BeginEvent, UnescapedCommaUid, IcalLines.NewYearStamp, March2Start, Daily, IcalLines.EndEvent },
+                new[] { IcalLines.BeginEvent, UnescapedCommaUid, IcalLines.NewYearStamp, March2RecurrenceId, MovedToNewYear2027Start,
+                    IcalLines.EndEvent });
+            var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(lines), UndefinedTimeZonesAndInvalidValues);
+            var master = calendar.Events.First();
+            var from = Utc(NewYear2027WindowFrom);
+            var to = Utc(NewYear2027WindowTo);
+
+            // act
+            var testResult = master.GetOccurrences(calendar, from, to).ToList();
+
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(MovedToNewYear2027, NewYear2027Instance);
         }
 
         [Fact]

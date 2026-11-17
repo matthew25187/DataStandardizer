@@ -189,6 +189,51 @@ namespace DataStandardizer.File.iCal.Tests
             text.Should().BeNull();
         }
 
+        // ref. RFC 5545 §3.3.11: TSAFE-CHAR excludes "," and ";", so TEXT has them only escaped.  The last value has an escaped backslash
+        // followed by a comma that is not escaped.
+        [Theory]
+        [InlineData("Lunch, then review")]
+        [InlineData("Lunch; then review")]
+        [InlineData("a\\\\,b")]
+        public void TryParseText_UnescapedCommaOrSemicolon_Fails(string value)
+        {
+            // act
+            var testResult = IcalValue.TryParseText(value.AsSpan(), IcalValueFormat.Text, out var text);
+
+            // assert
+            testResult.Should().BeFalse();
+            text.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryParseText_UnescapedCommaIntoSpan_FailsAndWritesNothing()
+        {
+            // arrange
+            var destination = new char[10];
+
+            // act
+            var testResult = IcalValue.TryParseText(UnescapedComma.AsSpan(), IcalValueFormat.Text, destination, out var charsWritten);
+
+            // assert
+            testResult.Should().BeFalse();
+            charsWritten.Should().Be(0);
+        }
+
+        // ref. RFC 7265 §3.6.11 and RFC 6321 §3.6.11: a jCal string and the content of an xCal text element have no escaping, so a comma or
+        // semicolon is plain text.
+        [Theory]
+        [InlineData(IcalValueFormat.Json)]
+        [InlineData(IcalValueFormat.Xml)]
+        public void TryParseText_SpecialCharactersInJsonOrXmlForm_AreKept(IcalValueFormat format)
+        {
+            // act
+            var testResult = IcalValue.TryParseText(SpecialCharacters.AsSpan(), format, out var text);
+
+            // assert
+            testResult.Should().BeTrue();
+            text.Should().Be(SpecialCharacters);
+        }
+
         [Fact]
         public void TryParseText_IntoSpan_WritesUnescapedText()
         {

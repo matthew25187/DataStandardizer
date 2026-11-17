@@ -246,21 +246,35 @@ namespace DataStandardizer.File.iCal
         /// <c>\n</c> or <c>\N</c> a line feed.
         /// </summary>
         /// <remarks>
-        /// Use this only for properties whose value type is TEXT.  A list of TEXT values must be split on unescaped commas before unescaping, so
-        /// for a multi-valued property use <see cref="RawValue"/> instead.
+        /// Use this only for properties whose value type is TEXT.  A comma or semicolon in TEXT must be escaped (RFC 5545 §3.3.11), so for a
+        /// property whose value holds unescaped commas or semicolons as separators, such as a list of TEXT values or <c>REQUEST-STATUS</c>,
+        /// use <see cref="RawValue"/> and split it before unescaping each part.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
-        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence.</exception>
+        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence, or a comma or
+        /// semicolon that is not escaped.</exception>
         public ReadOnlySpan<char> GetTextValue()
         {
-            return GetScanner().GetTextValue().Span;
+            return GetTextValueMemory().Span;
         }
 
         /// <inheritdoc cref="GetTextValue"/>
         public ReadOnlyMemory<char> GetTextValueMemory()
         {
-            return GetScanner().GetTextValue();
+            var scanner = GetScanner();
+            var result = scanner.GetTextValue();
+            var separatorIndex = IcalValue.FindUnescapedSeparator(scanner.RawValue.Span);
+            if (separatorIndex >= 0)
+            {
+                var foldOffsets = scanner.CopyFoldOffsets();
+                var physicalLineNumber = ContentLineScanner.GetPhysicalLineNumber(scanner.PhysicalLineNumber, foldOffsets, foldOffsets?.Length ?? 0,
+                    scanner.ValueOffsetInLine + separatorIndex);
+                throw IcalContentLineErrorFactory.BuildUnescapedTextSeparatorException(scanner.LineNumber, physicalLineNumber,
+                    scanner.Name.Span.ToString());
+            }
+
+            return result;
         }
 
         /// <summary>

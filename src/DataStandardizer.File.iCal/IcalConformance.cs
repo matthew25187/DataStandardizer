@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using DataStandardizer.File.ContentLine;
@@ -420,6 +421,38 @@ namespace DataStandardizer.File.iCal
             }
 
             return string.Join(";", parts);
+        }
+
+        /// <summary>
+        /// Removes the TEXT escaping from a <c>VERSION</c> value, keeping the semicolon between <c>minver</c> and <c>maxver</c>; the reverse of
+        /// <see cref="FormatVersion"/>.
+        /// </summary>
+        /// <returns><c>true</c> if each part is valid TEXT and there is at most one semicolon that is not escaped; otherwise <c>false</c>.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryParseVersion(string value, [NotNullWhen(true)] out string? result)
+#else
+        internal static bool TryParseVersion(string value, [MaybeNullWhen(false)] out string result)
+#endif
+        {
+            // ref. RFC 5545§3.7.4: vervalue = "2.0" / maxver / (minver ";" maxver), and minver and maxver are TEXT.
+            var span = value.AsSpan();
+            var separatorIndex = IcalValue.FindUnescapedSeparator(span);
+            if (separatorIndex < 0 || span[separatorIndex] != ';') return IcalValue.TryParseText(span, IcalValueFormat.Text, out result);
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? minimum, maximum;
+#else
+            string minimum, maximum;
+#endif
+            if (!IcalValue.TryParseText(span.Slice(0, separatorIndex), IcalValueFormat.Text, out minimum) ||
+                !IcalValue.TryParseText(span.Slice(separatorIndex + 1), IcalValueFormat.Text, out maximum))
+            {
+                result = null;
+                return false;
+            }
+
+            result = minimum + ";" + maximum;
+            return true;
         }
 
         internal static string BuildUnsupportedVersionMessage(string value)
@@ -1421,7 +1454,7 @@ namespace DataStandardizer.File.iCal
 #else
             string text;
 #endif
-            return IcalValue.TryParseText(property.Value.AsSpan(), IcalValueFormat.Text, out text) ? text : property.Value;
+            return IcalValue.TryUnescapeIgnoringSeparators(property.Value, out text) ? text : property.Value;
         }
 
         private static bool IsKnownComponent(string name)
