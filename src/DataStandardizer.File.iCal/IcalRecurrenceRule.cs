@@ -302,8 +302,9 @@ namespace DataStandardizer.File.iCal
         /// Gets a copy of the rule that ends at a date-time (UNTIL), and so has no COUNT.
         /// </summary>
         /// <param name="until">The last date-time.  RFC 5545 §3.3.10 requires it to be floating if DTSTART is floating, and otherwise in UTC.
-        /// This method refuses only a value in a named time zone, since it does not know DTSTART; <see cref="IcalComponent.Validate"/> and the
-        /// writers check the rest.</param>
+        /// In a STANDARD or DAYLIGHT observance it must always be in UTC, and <see cref="IcalTimeZoneObservance.RecurrenceRules"/> refuses a
+        /// rule whose UNTIL isn't.  This method refuses only a value in a named time zone, since it does not know the component;
+        /// <see cref="IcalComponent.Validate"/> and the writers check the rest.</param>
         /// <exception cref="ArgumentException"><paramref name="until"/> is in a named time zone.</exception>
         public IcalRecurrenceRule WithUntil(IcalDateTime until)
         {

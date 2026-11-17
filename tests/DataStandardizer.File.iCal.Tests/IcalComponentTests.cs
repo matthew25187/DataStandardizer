@@ -697,6 +697,20 @@ namespace DataStandardizer.File.iCal.Tests
             observance.Properties.Should().NotContain(property => property.Name == RecurrenceRule);
         }
 
+        [Fact]
+        public void RecurrenceRules_SetNull_RemovesProperties()
+        {
+            // arrange
+            var observance = CreateDaylightObservance();
+            observance.RecurrenceRules = CreateTwoRules();
+
+            // act
+            observance.RecurrenceRules = null;
+
+            // assert
+            observance.Properties.Should().NotContain(property => property.Name == RecurrenceRule);
+        }
+
         // RFC 5545 §3.3.10: in a STANDARD or DAYLIGHT sub-component "the UNTIL rule part MUST always be specified as a date with UTC time".
         // A rule whose UNTIL is a DATE and one whose UNTIL is a floating DATE-TIME, neither of which it allows.  A zoned UNTIL can't be
         // represented in a rule.
