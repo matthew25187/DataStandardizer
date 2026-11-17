@@ -711,6 +711,17 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // act
+            Action testAction = () => ReadCalendars(ConformanceCases.MissingVersionText, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+        }
+
+        [Theory]
         [MemberData(nameof(InvalidVersions))]
         public void ReadCalendar_InvalidVersion_ThrowsAtVersionLine(string versionLine, string text)
         {

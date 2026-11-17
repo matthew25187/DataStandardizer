@@ -39,13 +39,16 @@ kind.
 
 | Field | Value | Meaning |
 | --- | --- | --- |
-| `MissingRequiredProperty` | 1 | A required property or component is missing, such as the `UID` or `DTSTAMP` of a VEVENT, or the STANDARD or DAYLIGHT parts of a VTIMEZONE. Accepted with `IcalOptions.AllowMissingRequiredProperties`. |
+| `MissingRequiredProperty` | 1 | A required property or component is missing, such as the `UID` or `DTSTAMP` of a VEVENT, or the STANDARD or DAYLIGHT parts of a VTIMEZONE. A calendar with no `VERSION` is `InvalidStructure` instead. Accepted with `IcalOptions.AllowMissingRequiredProperties`. |
 | `CardinalityViolation` | 2 | A property appears more often than allowed, or two properties that exclude each other both appear, such as `DTEND` and `DURATION` in a VEVENT. Accepted with `IcalOptions.AllowCardinalityViolations`. |
 | `UndefinedTimeZone` | 3 | A `TZID` parameter names a time zone that has no VTIMEZONE in the calendar (RFC 5545 §3.2.19). Checked only when the calendar is validated. Accepted with `IcalOptions.AllowUndefinedTimeZones`. |
 | `InvalidValue` | 4 | A property value does not follow the syntax of its value type (RFC 5545 §3.3), or breaks a rule that ties it to its property; or a parameter that RFC 5545 or RFC 7986 defines is repeated or has too many values, or a `FMTTYPE` parameter does not follow RFC 5545 §3.2.8. Accepted with `IcalOptions.AllowInvalidValues`. |
 | `InvalidComponentNesting` | 5 | A component is inside a component where RFC 5545 does not allow it, such as a VEVENT inside a VTODO. Never accepted. |
 | `UnsupportedVersion` | 6 | The `VERSION` property is not `2.0` or `2.0;2.0`, the only values RFC 5545 §3.7.4 allows. Never accepted. The readers throw it as soon as they read the `VERSION`, and cannot continue afterwards. |
 | `QuotedParameterValue` | 7 | A parameter whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted form has a value in double quotes, such as `FMTTYPE="audio/basic"` (RFC 5545 §3.2.8); or, on a line not read from .ics, a value with a `:`, `;` or `,`, which a writer would have to quote. Accepted with `IcalOptions.AllowQuotedParameterValues`. The jCal and xCal readers and writers don't report it, since those formats have no quoting. |
+| `InvalidStructure` | 8 | The calendar has no `VERSION`, which says how it is read (RFC 5545 §3.6 and §3.7.4), or a property is named `BEGIN` or `END`, which would start or end a component when written (§3.4, §3.6). Never accepted. |
+
+`InvalidComponentNesting`, `UnsupportedVersion` and `InvalidStructure` break a rule that says how the data is read, or that keeps its structure, so no option accepts them.
 
 ## Applies to
 

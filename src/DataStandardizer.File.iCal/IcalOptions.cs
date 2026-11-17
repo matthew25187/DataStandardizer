@@ -159,8 +159,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects such a calendar, and <see cref="IcalWriter"/> refuses to write one,
-        /// with an <see cref="IcalFileException"/>.  A missing <c>VERSION</c> is covered too; <see cref="IcalWriter"/> always writes
-        /// <c>VERSION:2.0</c>, so it never refuses a calendar for lacking one.
+        /// with an <see cref="IcalFileException"/>.  A calendar with no <c>VERSION</c> is not covered: the version says how the calendar is read (RFC 5545 §3.6 and §3.7.4), so the
+        /// readers reject it whatever this is.  A writer always writes <c>VERSION:2.0</c>, so it never refuses a calendar for lacking one.
         /// </remarks>
         public bool AllowMissingRequiredProperties
         {

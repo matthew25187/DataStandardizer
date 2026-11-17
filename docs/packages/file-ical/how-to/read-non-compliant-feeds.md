@@ -51,6 +51,7 @@ For a broken RFC 5545 rule, `Data` holds a `DiagnosticKind`, an
 | `QuotedParameterValue` | `AllowQuotedParameterValues` |
 | `InvalidComponentNesting` | Never accepted |
 | `UnsupportedVersion` | Never accepted |
+| `InvalidStructure` | Never accepted |
 
 `Data` also holds the `ComponentPath`, such as `VCALENDAR/VEVENT[1]`, the
 `LineNumber` and, where one property is at fault, the `PropertyName`. After such an
@@ -229,8 +230,9 @@ IcalFileException: The VEVENT component has no DTSTAMP property, which it requir
 
 The `LineNumber` of a missing property is the line of the component's `BEGIN`.
 
-A missing `VERSION` is covered too. The writer always writes `VERSION:2.0`, so it
-never refuses a calendar for lacking one.
+A missing `VERSION` isn't covered: it says how the calendar is read, so no option
+accepts a calendar without one (see below). The writer always writes `VERSION:2.0`,
+so it never refuses a calendar for lacking one.
 
 ### AllowUndefinedTimeZones
 
@@ -312,6 +314,9 @@ this error.
 - **`UnsupportedVersion`:** a `VERSION` other than `2.0` or `2.0;2.0`, such as the
   `VERSION:1.0` of vCalendar 1.0, or `VERSION:2`. This is reported as soon as the `VERSION` line is
   read.
+- **`InvalidStructure`:** a calendar with no `VERSION` (RFC 5545 §3.6 and §3.7.4),
+  since nothing else says how it is read; or, when writing, a property named
+  `BEGIN` or `END`, which would start or end a component.
 - **Broken structure:** a `BEGIN` without a matching `END`, or a line that doesn't
   follow the content-line syntax.
 

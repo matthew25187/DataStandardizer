@@ -3,10 +3,15 @@
     /// <summary>
     /// The kinds of conformance problem <see cref="IcalComponent.Validate"/> reports.
     /// </summary>
+    /// <remarks>
+    /// <see cref="InvalidComponentNesting"/>, <see cref="UnsupportedVersion"/> and <see cref="InvalidStructure"/> are never accepted.  They break a requirement that says how the data is
+    /// read, or that keeps its structure, so no option waives them, and an <see cref="IcalFileException"/> of one of these kinds can't be avoided by setting one.
+    /// </remarks>
     public enum IcalDiagnosticKind
     {
         /// <summary>
-        /// A required property or component is missing.  Accepted with <see cref="IcalOptions.AllowMissingRequiredProperties"/>.
+        /// A required property or component is missing, other than the <c>VERSION</c> of a calendar, which is <see cref="InvalidStructure"/>.  Accepted with
+        /// <see cref="IcalOptions.AllowMissingRequiredProperties"/>.
         /// </summary>
         MissingRequiredProperty = 1,
 
@@ -45,6 +50,12 @@
         /// <c>FMTTYPE="audio/basic"</c>, or, on a line not read from .ics, a value that a writer would have to quote.  Accepted with
         /// <see cref="IcalOptions.AllowQuotedParameterValues"/>.
         /// </summary>
-        QuotedParameterValue = 7
+        QuotedParameterValue = 7,
+
+        /// <summary>
+        /// The lines don't have the structure that RFC 5545 §3.4 and §3.6 require: a calendar has no <c>VERSION</c>, which says how it is read (§3.7.4), or a property is named
+        /// <c>BEGIN</c> or <c>END</c>, which would start or end a component when written.  Never accepted.
+        /// </summary>
+        InvalidStructure = 8
     }
 }

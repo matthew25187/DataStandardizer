@@ -158,6 +158,24 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Equal(expected);
         }
 
+        [Theory]
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // arrange
+            // ref. RFC 5545 §3.6 and §3.7.4, which RFC 6321 §3 maps to xCal: a calendar requires a VERSION.
+            var xml = Document(
+                "<properties><prodid><text>-//Test//Test//EN</text></prodid></properties>" +
+                "<components><vjournal><properties><uid><text>j@example.com</text></uid>" +
+                "<dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal></components>");
+
+            // act
+            Action testAction = () => ReadXcal(xml, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+        }
+
         [Fact]
         public void ReadCalendars_RfcExample2_BuildsTypedModel()
         {

@@ -183,6 +183,22 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Equal(expected);
         }
 
+        [Theory]
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // arrange
+            // ref. RFC 5545 §3.6 and §3.7.4, which RFC 7265 §3 maps to jCal: a calendar requires a VERSION.
+            var json = Document("[\"prodid\",{},\"text\",\"-//Test//Test//EN\"]",
+                "[\"vjournal\",[[\"uid\",{},\"text\",\"j@example.com\"],[\"dtstamp\",{},\"date-time\",\"2026-01-01T00:00:00Z\"]],[]]");
+
+            // act
+            Action testAction = () => ReadJcal(json, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+        }
+
         [Fact]
         public void ReadCalendars_RfcExample2_BuildsTypedModel()
         {
