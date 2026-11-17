@@ -478,10 +478,9 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = new IcalCalendar { ProductId = "x" };
-            calendar.Components.Add(new IcalEvent
-            {
-                Uid = "e", DtStamp = new IcalDateTime(new IcalDate(2026, 1, 1), new IcalTime(0, 0, 0)), DtStart = new IcalDate(2026, 1, 1)
-            });
+            var testEvent = new IcalEvent { Uid = "e", DtStart = new IcalDate(2026, 1, 1) };
+            testEvent.Properties.Add(new IcalContentLine("DTSTAMP", "20260101T000000"));
+            calendar.Components.Add(testEvent);
 
             // act
             Action testAction = () => WriteCalendars(new[] { calendar });
