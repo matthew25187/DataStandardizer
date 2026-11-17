@@ -93,10 +93,12 @@ namespace DataStandardizer.File.iCal
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.2 requires DTSTAMP to be in
+        /// UTC.</exception>
         public IcalDateTime? DtStamp
         {
             get { return GetDateTime(IcalPropertyNames.DtStamp); }
-            set { SetDateTime(IcalPropertyNames.DtStamp, value); }
+            set { SetUtcDateTime(IcalPropertyNames.DtStamp, value, "3.8.7.2"); }
         }
 
         /// <summary>

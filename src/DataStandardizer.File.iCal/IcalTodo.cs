@@ -93,10 +93,12 @@ namespace DataStandardizer.File.iCal
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.2.1 requires COMPLETED to be in
+        /// UTC.</exception>
         public IcalDateTime? Completed
         {
             get { return GetDateTime(IcalPropertyNames.Completed); }
-            set { SetDateTime(IcalPropertyNames.Completed, value); }
+            set { SetUtcDateTime(IcalPropertyNames.Completed, value, "3.8.2.1"); }
         }
 
         /// <summary>
@@ -119,10 +121,12 @@ namespace DataStandardizer.File.iCal
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.1 requires CREATED to be in
+        /// UTC.</exception>
         public IcalDateTime? Created
         {
             get { return GetDateTime(IcalPropertyNames.Created); }
-            set { SetDateTime(IcalPropertyNames.Created, value); }
+            set { SetUtcDateTime(IcalPropertyNames.Created, value, "3.8.7.1"); }
         }
 
         /// <summary>
@@ -150,10 +154,12 @@ namespace DataStandardizer.File.iCal
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.2 requires DTSTAMP to be in
+        /// UTC.</exception>
         public IcalDateTime? DtStamp
         {
             get { return GetDateTime(IcalPropertyNames.DtStamp); }
-            set { SetDateTime(IcalPropertyNames.DtStamp, value); }
+            set { SetUtcDateTime(IcalPropertyNames.DtStamp, value, "3.8.7.2"); }
         }
 
         /// <summary>
@@ -214,10 +220,12 @@ namespace DataStandardizer.File.iCal
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.3 requires LAST-MODIFIED to be in
+        /// UTC.</exception>
         public IcalDateTime? LastModified
         {
             get { return GetDateTime(IcalPropertyNames.LastModified); }
-            set { SetDateTime(IcalPropertyNames.LastModified, value); }
+            set { SetUtcDateTime(IcalPropertyNames.LastModified, value, "3.8.7.3"); }
         }
 
         /// <summary>

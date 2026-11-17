@@ -74,7 +74,7 @@ gives one observance.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `LastModified` | `IcalDateTime? LastModified { get; set; }` | When the information was last revised (RFC 5545 §3.8.7.3, `LAST-MODIFIED`), in UTC. The `VALUE` and `TZID` parameters are read and written with the value. The getter throws `IcalFileException` if the value is not valid. |
+| `LastModified` | `IcalDateTime? LastModified { get; set; }` | When the information was last revised (RFC 5545 §3.8.7.3, `LAST-MODIFIED`), in UTC. The `VALUE` and `TZID` parameters are read and written with the value. The getter throws `IcalFileException` if the value is not valid, and the setter throws `ArgumentException` if the value is floating or zoned. |
 | `Observances` | `IEnumerable<IcalTimeZoneObservance> Observances { get; }` | The STANDARD and DAYLIGHT observances: the nested components of type `IcalTimeZoneObservance`, in order. Evaluated lazily over `Components`. |
 | `TimeZoneId` | `string? TimeZoneId { get; set; }` | The time zone identifier (RFC 5545 §3.8.3.1, `TZID`), which `TZID` parameters refer to. TEXT escaping is removed by the getter and added by the setter. The getter throws `IcalFileException` if the value has a backslash that does not start a valid escape, or a comma or semicolon that is not escaped. |
 | `TimeZoneUrl` | `Uri? TimeZoneUrl { get; set; }` | The location of a published definition of the time zone (RFC 5545 §3.8.3.5, `TZURL`). The getter throws `IcalFileException` if the value is not a valid absolute URI. The setter throws `ArgumentException` if the URI is not absolute. |

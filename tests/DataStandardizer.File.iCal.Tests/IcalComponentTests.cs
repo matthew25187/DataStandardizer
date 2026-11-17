@@ -765,15 +765,16 @@ namespace DataStandardizer.File.iCal.Tests
             alarm.Properties.Should().NotContain(property => property.Name == Trigger);
         }
 
-        // RFC 5545 §3.8.6.3: an absolute TRIGGER "MUST be specified in UTC time format".
-        public static TheoryData<IcalDateTime> NonUtcTriggerDateTimes => new TheoryData<IcalDateTime>
+        // A floating date-time and a zoned one, neither of them in UTC.  RFC 5545 §3.8.6.3: an absolute TRIGGER "MUST be specified in UTC
+        // time format".
+        public static TheoryData<IcalDateTime> NonUtcDateTimes => new TheoryData<IcalDateTime>
         {
             new IcalDateTime(StampDate, StampLocalTime),
             new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId),
         };
 
         [Theory]
-        [MemberData(nameof(NonUtcTriggerDateTimes))]
+        [MemberData(nameof(NonUtcDateTimes))]
         public void TriggerDateTime_SetNotUtc_ThrowsArgumentException(IcalDateTime value)
         {
             // arrange
@@ -787,7 +788,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(NonUtcTriggerDateTimes))]
+        [MemberData(nameof(NonUtcDateTimes))]
         public void TriggerDateTime_SetNotUtc_LeavesExistingTriggerUnchanged(IcalDateTime value)
         {
             // arrange
@@ -802,6 +803,135 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Name.Should().Be(Trigger);
             testResult.Parameters.Select(parameter => parameter.Name).Should().Equal(VendorParameter, "RELATED");
             testResult.Value.Should().Be("-PT15M");
+        }
+
+        /// <summary>
+        /// A typed accessor for a property that RFC 5545 requires to be in UTC, with the component it belongs to.
+        /// </summary>
+        public sealed class UtcDateTimeAccessor
+        {
+            public UtcDateTimeAccessor(string name, Func<IcalComponent> createComponent, Action<IcalComponent, IcalDateTime?> setValue,
+                Func<IcalComponent, IcalDateTime?> getValue)
+            {
+                Name = name;
+                CreateComponent = createComponent;
+                SetValue = setValue;
+                GetValue = getValue;
+            }
+
+            public string Name { get; }
+
+            public Func<IcalComponent> CreateComponent { get; }
+
+            public Action<IcalComponent, IcalDateTime?> SetValue { get; }
+
+            public Func<IcalComponent, IcalDateTime?> GetValue { get; }
+
+            public override string ToString() => Name;
+        }
+
+        // RFC 5545 §3.8.2.1 (COMPLETED), §3.8.7.1 (CREATED), §3.8.7.2 (DTSTAMP) and §3.8.7.3 (LAST-MODIFIED): each value "MUST be specified
+        // in the UTC time format".  RFC 7986 §5.4 gives VCALENDAR the same LAST-MODIFIED property.
+        private static readonly UtcDateTimeAccessor[] UtcDateTimeAccessors =
+        {
+            new UtcDateTimeAccessor("IcalCalendar.LastModified", () => new IcalCalendar(),
+                (component, value) => ((IcalCalendar)component).LastModified = value, component => ((IcalCalendar)component).LastModified),
+            new UtcDateTimeAccessor("IcalEvent.Created", () => new IcalEvent(),
+                (component, value) => ((IcalEvent)component).Created = value, component => ((IcalEvent)component).Created),
+            new UtcDateTimeAccessor("IcalEvent.DtStamp", () => new IcalEvent(),
+                (component, value) => ((IcalEvent)component).DtStamp = value, component => ((IcalEvent)component).DtStamp),
+            new UtcDateTimeAccessor("IcalEvent.LastModified", () => new IcalEvent(),
+                (component, value) => ((IcalEvent)component).LastModified = value, component => ((IcalEvent)component).LastModified),
+            new UtcDateTimeAccessor("IcalFreeBusy.DtStamp", () => new IcalFreeBusy(),
+                (component, value) => ((IcalFreeBusy)component).DtStamp = value, component => ((IcalFreeBusy)component).DtStamp),
+            new UtcDateTimeAccessor("IcalJournal.Created", () => new IcalJournal(),
+                (component, value) => ((IcalJournal)component).Created = value, component => ((IcalJournal)component).Created),
+            new UtcDateTimeAccessor("IcalJournal.DtStamp", () => new IcalJournal(),
+                (component, value) => ((IcalJournal)component).DtStamp = value, component => ((IcalJournal)component).DtStamp),
+            new UtcDateTimeAccessor("IcalJournal.LastModified", () => new IcalJournal(),
+                (component, value) => ((IcalJournal)component).LastModified = value, component => ((IcalJournal)component).LastModified),
+            new UtcDateTimeAccessor("IcalTimeZone.LastModified", () => new IcalTimeZone(),
+                (component, value) => ((IcalTimeZone)component).LastModified = value, component => ((IcalTimeZone)component).LastModified),
+            new UtcDateTimeAccessor("IcalTodo.Completed", () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).Completed = value, component => ((IcalTodo)component).Completed),
+            new UtcDateTimeAccessor("IcalTodo.Created", () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).Created = value, component => ((IcalTodo)component).Created),
+            new UtcDateTimeAccessor("IcalTodo.DtStamp", () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).DtStamp = value, component => ((IcalTodo)component).DtStamp),
+            new UtcDateTimeAccessor("IcalTodo.LastModified", () => new IcalTodo(),
+                (component, value) => ((IcalTodo)component).LastModified = value, component => ((IcalTodo)component).LastModified),
+        };
+
+        public static TheoryData<UtcDateTimeAccessor> UtcDateTimeProperties
+        {
+            get
+            {
+                var data = new TheoryData<UtcDateTimeAccessor>();
+                foreach (var accessor in UtcDateTimeAccessors)
+                    data.Add(accessor);
+                return data;
+            }
+        }
+
+        public static TheoryData<UtcDateTimeAccessor, IcalDateTime> UtcDateTimePropertiesWithNonUtcValues
+        {
+            get
+            {
+                var data = new TheoryData<UtcDateTimeAccessor, IcalDateTime>();
+                foreach (var accessor in UtcDateTimeAccessors)
+                {
+                    foreach (var value in NonUtcDateTimes)
+                        data.Add(accessor, value);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimeProperties))]
+        public void UtcDateTimeProperty_GetAfterSetUtc_IsTheDateTime(UtcDateTimeAccessor accessor)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+            accessor.SetValue(component, Stamp);
+
+            // act
+            var testResult = accessor.GetValue(component);
+
+            // assert
+            testResult.Should().Be(Stamp);
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimePropertiesWithNonUtcValues))]
+        public void UtcDateTimeProperty_SetNotUtc_ThrowsArgumentException(UtcDateTimeAccessor accessor, IcalDateTime value)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+
+            // act
+            Action testAction = () => accessor.SetValue(component, value);
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimePropertiesWithNonUtcValues))]
+        public void UtcDateTimeProperty_SetNotUtc_LeavesExistingValueUnchanged(UtcDateTimeAccessor accessor, IcalDateTime value)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+            accessor.SetValue(component, Stamp);
+
+            // act
+            var exception = Record.Exception(() => accessor.SetValue(component, value));
+            var testResult = accessor.GetValue(component);
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Be(Stamp);
         }
 
         [Fact]
