@@ -925,13 +925,18 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the recurrence rules (RFC 5545 §3.3.10) of a component against its <c>DTSTART</c>.
+        /// Checks the recurrence rules (RFC 5545 §3.3.10) of a component against its <c>DTSTART</c>.  In a STANDARD or DAYLIGHT observance
+        /// the only rule is that <c>UNTIL</c> is a DATE-TIME in UTC, which holds whatever the observance's <c>DTSTART</c> is, or whether it
+        /// has one; a <c>DTSTART</c> there that isn't a DATE-TIME in local time is reported for itself.
         /// </summary>
         private static void ValidateRecurrence(IcalComponent component, string path, bool isObservance, Context context)
         {
-            var start = component.GetProperty(IcalPropertyNames.DtStart);
-            IcalDateOrDateTime startValue;
-            if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
+            var startValue = default(IcalDateOrDateTime);
+            if (!isObservance)
+            {
+                var start = component.GetProperty(IcalPropertyNames.DtStart);
+                if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
+            }
 
             foreach (var property in component.GetProperties(IcalPropertyNames.RecurrenceRule))
             {
@@ -939,7 +944,15 @@ namespace DataStandardizer.File.iCal
                 if (!IcalRecurrenceRule.TryParse(property.Value.AsSpan(), IcalValueFormat.Text, out rule)) continue;
 
                 var problem = string.Empty;
-                if (startValue.IsDate)
+                if (isObservance)
+                {
+                    // ref. RFC 5545§3.3.10: in a VTIMEZONE, UNTIL MUST always be a date with UTC time.
+                    if (rule.UntilDate.HasValue || (rule.UntilDateTime.HasValue && rule.UntilDateTime.Value.Kind != IcalDateTimeKind.Utc))
+                    {
+                        problem = "The UNTIL of a recurrence rule in a time zone observance must be a DATE-TIME in UTC.";
+                    }
+                }
+                else if (startValue.IsDate)
                 {
                     if (rule.UntilDateTime.HasValue)
                     {
@@ -957,15 +970,7 @@ namespace DataStandardizer.File.iCal
                 else if (rule.UntilDateTime.HasValue)
                 {
                     var untilKind = rule.UntilDateTime.Value.Kind;
-                    if (isObservance)
-                    {
-                        // ref. RFC 5545§3.3.10: in a VTIMEZONE, UNTIL MUST always be in UTC.
-                        if (untilKind != IcalDateTimeKind.Utc)
-                        {
-                            problem = "The UNTIL of a recurrence rule in a time zone observance must be in UTC.";
-                        }
-                    }
-                    else if (startValue.DateTime.Kind == IcalDateTimeKind.Floating && untilKind != IcalDateTimeKind.Floating)
+                    if (startValue.DateTime.Kind == IcalDateTimeKind.Floating && untilKind != IcalDateTimeKind.Floating)
                     {
                         problem = "The UNTIL of a recurrence rule must be in local time when DTSTART is in local time.";
                     }
@@ -980,7 +985,6 @@ namespace DataStandardizer.File.iCal
                     AddInvalidValue(property, path, problem, context);
                 }
             }
-
         }
 
         /// <summary>

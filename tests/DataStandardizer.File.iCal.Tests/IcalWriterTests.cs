@@ -399,6 +399,27 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void WriteCalendar_NonUtcObservanceUntilWithoutStart_ThrowsForTheRuleAndWritesNothing()
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.FloatingUntilInObservanceWithoutStartText,
+                new IcalOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true });
+            var text = new StringWriter();
+            using (var writer = new IcalWriter(text, new IcalOptions { AllowMissingRequiredProperties = true }))
+            {
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
+                exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+                exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(ConformanceCases.ObservancePath);
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(IcalPropertyNames.RecurrenceRule);
+                text.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
         public void WriteCalendar_MissingVersionWithDefaults_SuppliesTheVersion()
         {
             // arrange

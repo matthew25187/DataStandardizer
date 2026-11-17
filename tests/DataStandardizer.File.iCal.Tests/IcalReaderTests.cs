@@ -909,6 +909,65 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void ReadCalendars_NonUtcObservanceUntilWithoutStart_ThrowsForTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true };
+
+            // act
+            Action testAction = () => ReadCalendars(ConformanceCases.FloatingUntilInObservanceWithoutStartText, options);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(ConformanceCases.ObservancePath);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
+        public void ReadCalendars_NonUtcObservanceUntilWithoutStartAllowingInvalidValues_IsRead()
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true };
+
+            // act
+            var testResult = ReadCalendars(ConformanceCases.FloatingUntilInObservanceWithoutStartText, options);
+
+            // assert
+            testResult.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void Validate_NonUtcObservanceUntilWithoutStart_ReportsTheMissingStartAndTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true, AllowInvalidValues = true };
+            var calendar = ReadCalendars(ConformanceCases.FloatingUntilInObservanceWithoutStartText, options).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.MissingRequiredProperty, IcalDiagnosticKind.InvalidValue);
+            testResult.Select(diagnostic => diagnostic.PropertyName).Should().Equal(IcalPropertyNames.DtStart, IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
+        public void Validate_DateUntilInObservanceWithDateStart_ReportsTheStartAndTheRule()
+        {
+            // arrange
+            var options = new IcalOptions { AllowInvalidValues = true };
+            var calendar = ReadCalendars(ConformanceCases.DateUntilInObservanceWithDateStartText, options).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.InvalidValue);
+            testResult.Select(diagnostic => diagnostic.PropertyName).Should().Equal(IcalPropertyNames.DtStart, IcalPropertyNames.RecurrenceRule);
+        }
+
+        [Fact]
         public void ReadCalendar_BareLineFeedByDefault_Throws()
         {
             // act
