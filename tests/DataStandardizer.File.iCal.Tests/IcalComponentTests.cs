@@ -60,6 +60,9 @@ namespace DataStandardizer.File.iCal.Tests
         // Stamp's wall-clock time, without the UTC designator.
         private static readonly IcalTime StampLocalTime = new IcalTime(9, 0, 0);
 
+        // Stamp's date and wall-clock time, as a floating DATE-TIME.
+        private static readonly IcalDateTime StampLocal = new IcalDateTime(StampDate, StampLocalTime);
+
         public static TheoryData<Action> NullListItemCalls()
         {
             var component = new IcalEvent();
@@ -1125,6 +1128,106 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             exception.Should().BeOfType<ArgumentException>();
             testResult.Should().Be(new IcalDateOrDateTime(Stamp));
+        }
+
+        // RFC 5545 §3.6.5: the DTSTART of an observance "MUST be specified as a date with local time value".  A UTC DATE-TIME and a zoned
+        // one, neither of which it allows.
+        public static TheoryData<IcalDateTime> NonLocalDateTimes => new TheoryData<IcalDateTime>
+        {
+            Stamp,
+            new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId),
+        };
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_GetAfterSetLocal_IsTheDateTime()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart = StampLocal;
+
+            // act
+            var testResult = observance.DtStart;
+
+            // assert
+            testResult.Should().Be(StampLocal);
+        }
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_SetLocal_WritesTheValueWithoutParameters()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+
+            // act
+            observance.DtStart = StampLocal;
+            var testResult = observance.GetProperty(DtStart);
+
+            // assert
+            testResult.Value.Should().Be(StampLocalValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_SetLocalOverZonedValue_DropsTheTimeZoneParameter()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.Properties.Add(new IcalContentLine(DtStart,
+                new[] { new IcalContentLineParameter(TimeZoneIdParameter, AucklandTimeZoneId) }, StampLocalValue));
+
+            // act
+            observance.DtStart = StampLocal;
+            var testResult = observance.GetProperty(DtStart);
+
+            // assert
+            testResult.Value.Should().Be(StampLocalValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void TimeZoneObservanceDtStart_SetNull_RemovesTheProperty()
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart = StampLocal;
+
+            // act
+            observance.DtStart = null;
+            var testResult = observance.Properties;
+
+            // assert
+            testResult.Should().NotContain(property => property.Name == DtStart);
+        }
+
+        [Theory]
+        [MemberData(nameof(NonLocalDateTimes))]
+        public void TimeZoneObservanceDtStart_SetUtcOrZoned_ThrowsArgumentException(IcalDateTime value)
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+
+            // act
+            Action testAction = () => observance.DtStart = value;
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonLocalDateTimes))]
+        public void TimeZoneObservanceDtStart_SetUtcOrZoned_LeavesExistingValueUnchanged(IcalDateTime value)
+        {
+            // arrange
+            var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart = StampLocal;
+
+            // act
+            var exception = Record.Exception(() => observance.DtStart = value);
+            var testResult = observance.DtStart;
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Be(StampLocal);
         }
 
         [Fact]

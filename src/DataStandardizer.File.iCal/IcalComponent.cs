@@ -398,6 +398,17 @@ namespace DataStandardizer.File.iCal
             SetDateTime(name, value);
         }
 
+        // Sets a property that RFC 5545 requires, in this component, to be a DATE-TIME in local time, with no "Z" and no TZID, rejecting a
+        // UTC or zoned value before anything is changed.  section names the RFC 5545 section that requires it.
+        internal void SetLocalDateTime(string name, IcalDateTime? value, string section)
+        {
+            if (value.HasValue && value.Value.Kind != IcalDateTimeKind.Floating)
+                throw new ArgumentException(name + " must be in local time, with no UTC designator and no TZID (RFC 5545 §" + section + ").",
+                    nameof(value));
+
+            SetDateTime(name, value);
+        }
+
         // Sets a DATE or DATE-TIME property that RFC 5545 requires, in this component, to be a DATE-TIME in UTC, rejecting a DATE, a
         // floating value or a zoned value before anything is changed.  section names the RFC 5545 section that requires it.
         internal void SetUtcDateOrDateTime(string name, IcalDateOrDateTime? value, string section)

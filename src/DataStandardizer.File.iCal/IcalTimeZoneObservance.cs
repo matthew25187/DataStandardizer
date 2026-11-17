@@ -43,13 +43,16 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// RFC 5545 §3.6.5 requires a local time here, with no <c>Z</c> and no <c>TZID</c>.  The <c>VALUE</c> and <c>TZID</c> parameters are
-        /// read and written with the value, but the <see cref="IcalTimeZoneResolver.Calendar"/> resolver uses only its date and wall-clock
+        /// read with the value, and a value set is written without them.  The getter returns a UTC or zoned value read from a file as it is;
+        /// the default writer rejects it, and the <see cref="IcalTimeZoneResolver.Calendar"/> resolver uses only its date and wall-clock
         /// time, ignoring any <c>Z</c> or <c>TZID</c>.  The getter throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is in UTC or has a time zone; RFC 5545 §3.6.5 requires DTSTART in an
+        /// observance to be a DATE-TIME in local time.</exception>
         public IcalDateTime? DtStart
         {
             get { return GetDateTime(IcalPropertyNames.DtStart); }
-            set { SetDateTime(IcalPropertyNames.DtStart, value); }
+            set { SetLocalDateTime(IcalPropertyNames.DtStart, value, "3.6.5"); }
         }
 
         /// <summary>

@@ -53,7 +53,7 @@ and throws `IcalFileException` if any of the three properties is missing.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `DtStart` | `IcalDateTime? DtStart { get; set; }` | The start of the observance (RFC 5545 §3.8.2.4, `DTSTART`), a DATE-TIME in local time. The `VALUE` and `TZID` parameters are read and written with the value. The getter throws `IcalFileException` if the value is not valid. |
+| `DtStart` | `IcalDateTime? DtStart { get; set; }` | The start of the observance (RFC 5545 §3.8.2.4, `DTSTART`), a DATE-TIME in local time. The `VALUE` and `TZID` parameters are read with the value, and a value set is written without them. The getter returns a UTC or zoned value read from a file as it is; the default writer rejects it. The setter throws `ArgumentException`, leaving the existing value unchanged, if the value is in UTC or has a time zone. The getter throws `IcalFileException` if the value is not valid. |
 | `Kind` | `IcalTimeZoneObservanceKind Kind { get; }` | Whether the observance is of standard time (STANDARD) or daylight saving time (DAYLIGHT). |
 | `OffsetFrom` | `IcalUtcOffset? OffsetFrom { get; set; }` | The UTC offset in use before the observance begins (RFC 5545 §3.8.3.3, `TZOFFSETFROM`). The getter throws `IcalFileException` if the value is not valid. |
 | `OffsetTo` | `IcalUtcOffset? OffsetTo { get; set; }` | The UTC offset in use during the observance (RFC 5545 §3.8.3.4, `TZOFFSETTO`). The getter throws `IcalFileException` if the value is not valid. |
