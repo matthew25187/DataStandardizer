@@ -272,8 +272,9 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets the problem with the value in the serialization it was converted from, which the conformance check reports as an invalid value;
-        /// or <c>null</c> if there is none, or the line was not converted.
+        /// Gets the problem with the value in the serialization it was converted from, which the reader of that serialization reports as an
+        /// invalid value; or <c>null</c> if there is none, or the line was not converted.  Other checks, such as those of the writers, don't
+        /// report it, since the value is valid in the text form the line holds.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal string? ConversionProblem { get; private set; }

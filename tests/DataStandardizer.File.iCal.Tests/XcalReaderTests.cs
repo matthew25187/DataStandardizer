@@ -19,6 +19,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string IcalendarEnd = "</icalendar>";
         private const string VcalendarStart = "<vcalendar>";
 
+        // ref. RFC 6321 §3.6.6: a DURATION with lower-case designators, which the iCalendar text form allows (RFC 5545 §3.3.6) but xCal does not.
+        private const string LowerCaseDurationProperty = "<duration><duration>pt1h</duration></duration>";
+
         private const string CafeSummary = "<summary><text>Caf\xE9</text></summary>";
 
         // A journal document with CafeSummary that declares UTF-8, and one with a document type definition that declares an entity.
@@ -780,7 +783,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendar_LowerCaseDurationAllowed_KeepsTheValue()
         {
             // arrange
-            var xml = EventDocument("<duration><duration>pt1h</duration></duration>");
+            var xml = EventDocument(LowerCaseDurationProperty);
 
             // act
             var testResult = FormatLine(EventProperty(ReadXcal(xml, new IcalOptions { AllowInvalidValues = true }).Single()));
@@ -790,10 +793,62 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void ReadCalendar_DurationNotValidInEitherForm_ThrowsNotValidDuration()
+        {
+            // arrange
+            var xml = EventDocument("<duration><duration>1 hour</duration></duration>");
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("The value of the DURATION property is not a valid DURATION.");
+        }
+
+        [Fact]
+        public void Validate_LowerCaseDurationReadWithAllowInvalidValues_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadXcal(EventDocument(LowerCaseDurationProperty), new IcalOptions { AllowInvalidValues = true }).Single();
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void WriteCalendars_IcsLowerCaseDurationReadWithAllowInvalidValues_WritesItAsRead()
+        {
+            // arrange
+            var calendars = ReadXcal(EventDocument(LowerCaseDurationProperty), new IcalOptions { AllowInvalidValues = true });
+
+            // act
+            var testResult = WriteCalendars(calendars);
+
+            // assert
+            testResult.Should().Contain("\r\nDURATION:pt1h\r\n");
+        }
+
+        [Fact]
+        public void WriteCalendars_XcalLowerCaseDurationReadWithAllowInvalidValues_WritesUpperCase()
+        {
+            // arrange
+            var calendars = ReadXcal(EventDocument(LowerCaseDurationProperty), new IcalOptions { AllowInvalidValues = true });
+
+            // act
+            var testResult = WriteXcal(calendars);
+
+            // assert
+            testResult.Should().Contain("<duration>PT1H</duration>");
+        }
+
+        [Fact]
         public void ReadCalendar_LowerCaseDurationWithoutLineInfo_ThrowsInvalidValue()
         {
             // arrange
-            var xml = EventDocument("<duration><duration>pt1h</duration></duration>");
+            var xml = EventDocument(LowerCaseDurationProperty);
 
             // act
             Action testAction = () => ReadXcalWithoutLineInfo(xml);

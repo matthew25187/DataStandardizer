@@ -164,10 +164,11 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the DURATION values of a property, including those in its periods, against their xCal form, which the text form of a
-        /// content line does not hold to.
+        /// Checks the DURATION values of a property, including those in its periods, for lower-case designators, which the text form of a
+        /// content line allows but xCal does not.
         /// </summary>
-        /// <returns>The problem with the first value that is not in its xCal form; or <c>null</c> if they all are.</returns>
+        /// <returns>The problem with the first value that has them; or <c>null</c> if none does.  A value that is not valid in either form is
+        /// left to the conformance check, which reports it as not valid for its type.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static string? GetDurationProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
 #else
@@ -176,32 +177,43 @@ namespace DataStandardizer.File.iCal
         {
             // ref. RFC 6321§3.6.6: the duration pattern is an XML Schema pattern, which is case-sensitive, so its designators are upper case
             // only.  The text form of RFC 5545§3.3.6 is ABNF, which is not, so a lower-case duration would otherwise pass the check.
-            foreach (var value in values)
+            switch (valueType)
             {
-                if (valueType == IcalValueType.Duration && !IsXmlDuration(value))
-                    return BuildDurationProblem(propertyName);
+                case IcalValueType.Duration:
+                    foreach (var value in values)
+                    {
+                        if (HasLowerCaseDesignator(value)) return BuildDurationProblem(propertyName);
+                    }
 
-                if (valueType != IcalValueType.Period) continue;
+                    return null;
+                case IcalValueType.Period:
+                    foreach (var value in values)
+                    {
+                        foreach (var part in value.Children)
+                        {
+                            if (part.Name == XcalNames.Duration && HasLowerCaseDesignator(part)) return BuildDurationProblem(propertyName);
+                        }
+                    }
 
-                foreach (var part in value.Children)
-                {
-                    if (part.Name == XcalNames.Duration && !IsXmlDuration(part))
-                        return BuildDurationProblem(propertyName);
-                }
+                    return null;
+                default:
+                    return null;
             }
-
-            return null;
         }
 
-        private static bool IsXmlDuration(XcalElement element)
+        /// <summary>
+        /// Gets whether the text of a duration element is a valid duration only in the text form, so has a lower-case designator.
+        /// </summary>
+        private static bool HasLowerCaseDesignator(XcalElement element)
         {
-            return IcalDuration.TryParse(element.Text.AsSpan(), IcalValueFormat.Xml, out _);
+            var text = element.Text.AsSpan();
+            return !IcalDuration.TryParse(text, IcalValueFormat.Xml, out _) && IcalDuration.TryParse(text, IcalValueFormat.Text, out _);
         }
 
         private static string BuildDurationProblem(string propertyName)
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "The value of the {0} property is not a valid DURATION in xCal, whose designators are upper case (RFC 6321 §3.6.6).", propertyName);
+                "The {0} property has a DURATION with a lower-case designator, which xCal does not allow (RFC 6321 §3.6.6).", propertyName);
         }
 
         /// <summary>
@@ -800,8 +812,13 @@ namespace DataStandardizer.File.iCal
         {
             // ref. RFC 6321§3.6.6: the designators are upper case, as the xCal pattern is case-sensitive; the text form also allows lower case
             // (RFC 5545§3.3.6).  Otherwise the forms are the same, so the digits are kept as written.  A valid duration holds only ASCII
-            // characters, so the invariant culture changes only its designators.
-            return text.ToUpperInvariant();
+            // characters, so the invariant culture changes only its designators.  Nearly every duration is already upper case, and is kept.
+            foreach (var character in text)
+            {
+                if (character >= 'a' && character <= 'z') return text.ToUpperInvariant();
+            }
+
+            return text;
         }
 
         /// <summary>
