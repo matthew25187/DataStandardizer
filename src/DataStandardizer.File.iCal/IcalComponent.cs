@@ -402,10 +402,10 @@ namespace DataStandardizer.File.iCal
         // floating value or a zoned value before anything is changed.  section names the RFC 5545 section that requires it.
         internal void SetUtcDateOrDateTime(string name, IcalDateOrDateTime? value, string section)
         {
-            if (value.HasValue && (value.Value.IsDate || value.Value.DateTime.Kind != IcalDateTimeKind.Utc))
-                throw new ArgumentException(name + " must be a DATE-TIME in UTC (RFC 5545 §" + section + ").", nameof(value));
+            if (value.HasValue && value.Value.IsDate)
+                throw new ArgumentException(name + " must be a DATE-TIME in UTC, not a DATE (RFC 5545 §" + section + ").", nameof(value));
 
-            SetDateOrDateTime(name, value);
+            SetUtcDateTime(name, value.HasValue ? value.Value.DateTime : (IcalDateTime?)null, section);
         }
 
         internal IcalDuration? GetDuration(string name)

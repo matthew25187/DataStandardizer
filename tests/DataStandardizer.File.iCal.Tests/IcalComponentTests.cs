@@ -25,6 +25,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const string CompletedProperty = "COMPLETED";
         private const string RecurrenceRule = "RRULE";
         private const string ValueParameter = "VALUE";
+        private const string TimeZoneIdParameter = "TZID";
         private const string VendorParameter = "X-VENDOR";
         private const int SharedThreeLevels = 3;
         private const string SharedMessage = "A X-A component is nested in more than one place; each place needs a component of its own.";
@@ -42,6 +43,9 @@ namespace DataStandardizer.File.iCal.Tests
 
         // Stamp, written as a DATE-TIME value.
         private const string StampValue = "20261015T090000Z";
+
+        // Stamp's wall-clock time, written as a DATE-TIME value without the UTC designator.
+        private const string StampLocalValue = "20261015T090000";
 
         // The text that the SUMMARY test sets, with each character that TEXT escapes, and the value it is written as.
         private const string SummaryText = "Line one\nTwo; three, four\\";
@@ -1060,6 +1064,24 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_SetUtcOverZonedValue_DropsTheTimeZoneParameter(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            freeBusy.Properties.Add(new IcalContentLine(accessor.PropertyName,
+                new[] { new IcalContentLineParameter(TimeZoneIdParameter, AucklandTimeZoneId) }, StampLocalValue));
+
+            // act
+            accessor.SetValue(freeBusy, Stamp);
+            var testResult = freeBusy.GetProperty(accessor.PropertyName);
+
+            // assert
+            testResult.Value.Should().Be(StampValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
         public void FreeBusyUtcProperty_SetNull_RemovesTheProperty(FreeBusyUtcAccessor accessor)
         {
             // arrange
@@ -1076,7 +1098,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(FreeBusyUtcPropertiesWithNonUtcValues))]
-        public void FreeBusyUtcProperty_SetNotUtcDateTime_ThrowsArgumentException(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
+        public void FreeBusyUtcProperty_SetDateOrNotUtc_ThrowsArgumentException(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
         {
             // arrange
             var freeBusy = new IcalFreeBusy();
@@ -1090,7 +1112,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(FreeBusyUtcPropertiesWithNonUtcValues))]
-        public void FreeBusyUtcProperty_SetNotUtcDateTime_LeavesExistingValueUnchanged(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
+        public void FreeBusyUtcProperty_SetDateOrNotUtc_LeavesExistingValueUnchanged(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
         {
             // arrange
             var freeBusy = new IcalFreeBusy();
