@@ -1454,7 +1454,7 @@ namespace DataStandardizer.File.iCal
 #else
             string text;
 #endif
-            return IcalValue.TryParseText(property.Value.AsSpan(), IcalValueFormat.Text, out text) ? text : property.Value;
+            return IcalValue.TryUnescapeIgnoringSeparators(property.Value, out text) ? text : property.Value;
         }
 
         private static bool IsKnownComponent(string name)

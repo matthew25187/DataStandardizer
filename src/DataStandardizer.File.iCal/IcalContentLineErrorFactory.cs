@@ -33,7 +33,7 @@ namespace DataStandardizer.File.iCal
             internal const string MissingValue = "Expected ':' and a property value.";
             internal const string ParameterValueNeedsCaretEncodingTemplate = "The character U+{0:X4} in a value of parameter {1} can only be written with RFC 6868 caret encoding.";
             internal const string UnescapedTextSeparator = "Found a comma or semicolon that is not escaped, which a TEXT value cannot hold (RFC 5545 §3.3.11).";
-            internal const string UnterminatedQuotedString ="Expected a closing '\"' for the quoted parameter value.";
+            internal const string UnterminatedQuotedString = "Expected a closing '\"' for the quoted parameter value.";
         }
 
         /// <summary>

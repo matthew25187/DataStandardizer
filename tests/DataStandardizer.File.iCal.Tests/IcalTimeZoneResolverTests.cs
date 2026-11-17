@@ -188,6 +188,17 @@ namespace DataStandardizer.File.iCal.Tests
             EndTimeZone
         };
 
+        // A VTIMEZONE whose TZID has a comma that is not escaped, as some calendar programs write it.  RFC 5545 §3.3.11 requires "\,", so it
+        // is read only with AllowInvalidValues.
+        private const string UnescapedCommaTimeZoneId = "(UTC+01:00) Amsterdam, Berlin";
+
+        private static readonly string[] UnescapedCommaTimeZone =
+        {
+            BeginTimeZone, "TZID:" + UnescapedCommaTimeZoneId,
+            BeginStandard, StartOf1970, FromOneHourAhead, ToOneHourAhead, EndStandard,
+            EndTimeZone
+        };
+
         // London local times in 2026, with the UTC time that RFC 5545 §3.3.5 gives each: in the gap, read with GMT, the offset before it; in
         // the overlap, the first occurrence, in BST; and in summer and in winter.
         public static TheoryData<string, IcalDateTime> LondonTimes => new TheoryData<string, IcalDateTime>
@@ -444,6 +455,21 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(NewYork)]
+        [InlineData(UnescapedCommaTimeZoneId)]
+        public void TryResolve_CalendarResolverWithTimeZoneIdHavingUnescapedComma_FindsEachTimeZone(string timeZoneId)
+        {
+            // arrange
+            var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(IcalTestData.Lines(UnescapedCommaTimeZone, FakeNewYork)), InvalidValues);
+
+            // act
+            var testResult = IcalTimeZoneResolver.Calendar.TryResolve(timeZoneId, calendar, out _);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]

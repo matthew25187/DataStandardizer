@@ -1085,6 +1085,29 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeEmpty();
         }
 
+        // ref. RFC 5545 §3.3.11: the TZID escapes its first comma but not its second, so it is not valid TEXT.  The time zone it defines is
+        // still the one the event's TZID parameter names, so the problems are the value and the quotes the parameter needs for its comma
+        // (RFC 5545 §3.2.19), and the time zone is defined.
+        [Fact]
+        public void Validate_TimeZoneIdWithUnescapedComma_IsStillDefined()
+        {
+            // arrange
+            var lines = IcalTestData.Lines(
+                new[]
+                {
+                    IcalLines.BeginTimeZone, "TZID:Foo\\, Bar, Baz", IcalLines.BeginStandard, "DTSTART:19700101T000000", "TZOFFSETFROM:+0100",
+                    "TZOFFSETTO:+0100", IcalLines.EndStandard, IcalLines.EndTimeZone
+                },
+                new[] { IcalLines.BeginEvent, IcalLines.EventUid, IcalLines.NewYearStamp, "DTSTART;TZID=\"Foo, Bar, Baz\":20260101T090000", IcalLines.EndEvent });
+            var calendar = ReadCalendar(Calendar(lines), new IcalOptions { AllowInvalidValues = true, AllowQuotedParameterValues = true });
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.QuotedParameterValue);
+        }
+
         [Fact]
         public void Validate_ManyProblems_ReturnsEachKind()
         {

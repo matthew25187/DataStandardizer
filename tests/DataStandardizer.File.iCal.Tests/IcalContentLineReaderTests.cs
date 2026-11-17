@@ -14,6 +14,9 @@ namespace DataStandardizer.File.iCal.Tests
     public class IcalContentLineReaderTests
     {
         private const string Summary = "SUMMARY";
+        private const string Description = "DESCRIPTION";
+        private const string FirstLineBeforeFoldedValue = "X-A:a";
+        private const string EmptyStartOfFoldedDescription = "DESCRIPTION:";
         private const string TimeZoneIdParameter = "TZID";
         private const string NewlineInText = "a\nb";
         private const string Rfc6868Geo = "40.446816;-80.00679";
@@ -734,7 +737,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetTextValue_UnescapedSeparatorInView_ThrowsWithLocation(string continuation)
         {
             // arrange
-            using (var reader = CreateReader(Crlf("X-A:a", "DESCRIPTION:", continuation)))
+            using (var reader = CreateReader(Crlf(FirstLineBeforeFoldedValue, EmptyStartOfFoldedDescription, continuation)))
             {
                 reader.ReadLine();
                 reader.ReadContentLine();
@@ -747,7 +750,7 @@ namespace DataStandardizer.File.iCal.Tests
                 var exception = testAction.Should().Throw<IcalFileException>().Which;
                 exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
                 exception.Data[IcalFileException.DataItemName.PhysicalLineNumber].Should().Be(3L);
-                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("DESCRIPTION");
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(Description);
             }
         }
 
@@ -756,7 +759,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetTextValue_UnescapedSeparatorInLine_ThrowsWithLocation(string continuation)
         {
             // arrange
-            using (var reader = CreateReader(Crlf("X-A:a", "DESCRIPTION:", continuation)))
+            using (var reader = CreateReader(Crlf(FirstLineBeforeFoldedValue, EmptyStartOfFoldedDescription, continuation)))
             {
                 reader.ReadLine();
                 var line = reader.ReadLine();
@@ -768,7 +771,7 @@ namespace DataStandardizer.File.iCal.Tests
                 var exception = testAction.Should().Throw<IcalFileException>().Which;
                 exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
                 exception.Data[IcalFileException.DataItemName.PhysicalLineNumber].Should().Be(3L);
-                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("DESCRIPTION");
+                exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(Description);
             }
         }
 

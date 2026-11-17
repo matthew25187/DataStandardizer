@@ -68,6 +68,35 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Removes the escaping from a TEXT value in its text form without checking for a comma or semicolon that is not escaped, to match a
+        /// value that a reader kept with <see cref="IcalOptions.AllowInvalidValues"/>, such as a TZID or UID, against other values.
+        /// </summary>
+        /// <returns><c>true</c> if every backslash starts a valid escape; otherwise <c>false</c>.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryUnescapeIgnoringSeparators(string value, [NotNullWhen(true)] out string? result)
+#else
+        internal static bool TryUnescapeIgnoringSeparators(string value, [MaybeNullWhen(false)] out string result)
+#endif
+        {
+            if (value.IndexOf('\\') < 0)
+            {
+                result = value;
+                return true;
+            }
+
+            var buffer = new char[value.Length];
+            int charsWritten, errorIndex;
+            if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), buffer, out charsWritten, out errorIndex))
+            {
+                result = null;
+                return false;
+            }
+
+            result = new string(buffer, 0, charsWritten);
+            return true;
+        }
+
+        /// <summary>
         /// Finds the first comma or semicolon in a TEXT value that is not escaped.
         /// </summary>
         /// <param name="value">The value as it appears in the content line.</param>

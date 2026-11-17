@@ -224,6 +224,26 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets a TEXT value to match against other values, such as a TZID or UID, with its escaping removed but without the check for a comma
+        /// or semicolon that is not escaped, so that a value kept with <see cref="IcalOptions.AllowInvalidValues"/> still matches.
+        /// </summary>
+        /// <returns>The text; or <c>null</c> if there is no such property or a backslash does not start a valid escape.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? GetTextForMatching(string name)
+#else
+        internal string GetTextForMatching(string name)
+#endif
+        {
+            var property = GetProperty(name);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            return property != null && IcalValue.TryUnescapeIgnoringSeparators(property.Value, out text) ? text : null;
+        }
+
+        /// <summary>
         /// Gets a <c>VERSION</c> value as unescaped text, keeping the semicolon between <c>minver</c> and <c>maxver</c> (RFC 5545 §3.7.4).
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
