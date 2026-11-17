@@ -41,8 +41,8 @@ case-insensitively.
   the first one it replaces, or at the end if there was none. It keeps the
   parameters of the first property, except those the new value decides: `VALUE`
   and `TZID` for a date or time, `VALUE` for a duration, and `VALUE` and
-  `ENCODING` for a URI. The `RecurrenceRules` setter and `IcalAlarm.TriggerDateTime`
-  keep no parameters.
+  `ENCODING` for a URI. The `RecurrenceRules` setter keeps no parameters, and
+  `IcalAlarm.TriggerDateTime` also drops `RELATED`.
 - Setting `null` removes every property of that name.
 - A list accessor, such as `Categories` or `RecurrenceRules`, reads every property
   of its name. Setting an empty list removes them all, as does `null`. A TEXT list,

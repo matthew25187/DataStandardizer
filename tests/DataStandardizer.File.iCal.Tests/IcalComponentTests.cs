@@ -42,7 +42,11 @@ namespace DataStandardizer.File.iCal.Tests
         // The line numbers in EventCalendar of the properties after the DTSTART that it adds.
         private const long FirstEventLineNumber = 8;
 
-        private static readonly IcalDateTime Stamp = new IcalDateTime(new IcalDate(2026, 10, 15), new IcalTime(9, 0, 0, true));
+        private static readonly IcalDate StampDate = new IcalDate(2026, 10, 15);
+        private static readonly IcalDateTime Stamp = new IcalDateTime(StampDate, new IcalTime(9, 0, 0, true));
+
+        // Stamp's wall-clock time, without the UTC designator.
+        private static readonly IcalTime StampLocalTime = new IcalTime(9, 0, 0);
 
         public static TheoryData<Action> NullListItemCalls()
         {
@@ -701,6 +705,45 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             alarm.Properties.Should().NotContain(property => property.Name == Trigger);
+        }
+
+        // RFC 5545 §3.8.6.3: an absolute TRIGGER "MUST be specified in UTC time format".
+        public static TheoryData<IcalDateTime> NonUtcTriggerDateTimes => new TheoryData<IcalDateTime>
+        {
+            new IcalDateTime(StampDate, StampLocalTime),
+            new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId),
+        };
+
+        [Theory]
+        [MemberData(nameof(NonUtcTriggerDateTimes))]
+        public void TriggerDateTime_SetNotUtc_ThrowsArgumentException(IcalDateTime value)
+        {
+            // arrange
+            var alarm = new IcalAlarm { Action = "AUDIO" };
+
+            // act
+            Action testAction = () => alarm.TriggerDateTime = value;
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(NonUtcTriggerDateTimes))]
+        public void TriggerDateTime_SetNotUtc_LeavesExistingTriggerUnchanged(IcalDateTime value)
+        {
+            // arrange
+            var alarm = ReadAlarm("TRIGGER;X-VENDOR=keep;RELATED=END:-PT15M", DisplayAction, ReminderDescription);
+
+            // act
+            var exception = Record.Exception(() => alarm.TriggerDateTime = value);
+            var testResult = alarm.Properties[0];
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Name.Should().Be(Trigger);
+            testResult.Parameters.Select(parameter => parameter.Name).Should().Equal(VendorParameter, "RELATED");
+            testResult.Value.Should().Be("-PT15M");
         }
 
         [Fact]
