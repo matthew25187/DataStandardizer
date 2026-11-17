@@ -95,11 +95,11 @@ namespace DataStandardizer.File.iCal
             && string.Equals(double.Epsilon.ToString("R", CultureInfo.InvariantCulture), "5E-324", StringComparison.Ordinal)
             && string.Equals(1E+16.ToString("R", CultureInfo.InvariantCulture), "10000000000000000", StringComparison.Ordinal);
 
-        // The IEEE 754 binary64 layout.
-        private const int DoubleFractionBits = 52;
+        // The IEEE 754 binary64 layout, which IcalFloatParser also uses.
+        internal const int DoubleFractionBits = 52;
         private const ulong DoubleFractionMask = (1UL << DoubleFractionBits) - 1;
-        private const int DoubleExponentMask = 0x7FF;
-        private const int DoubleExponentBias = 1023;
+        internal const int DoubleExponentMask = 0x7FF;
+        internal const int DoubleExponentBias = 1023;
 
         // The most significant digits a double needs to read back as the same value.
         private const int DoubleMaxDigits = 17;

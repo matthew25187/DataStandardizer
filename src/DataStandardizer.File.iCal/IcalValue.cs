@@ -972,10 +972,11 @@ namespace DataStandardizer.File.iCal
 
         private static bool TryParseDouble(ReadOnlySpan<char> value, NumberStyles styles, out double result)
         {
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
             if (!double.TryParse(value, styles, CultureInfo.InvariantCulture, out result)) return false;
 #else
-            if (!double.TryParse(value.ToString(), styles, CultureInfo.InvariantCulture, out result)) return false;
+            // .NET Framework's parse isn't correctly rounded, so the targets that may run on it read the value themselves.
+            if (!IcalFloatParser.TryParse(value, styles, out result)) return false;
 #endif
 
             return !double.IsInfinity(result);
