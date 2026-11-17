@@ -27,23 +27,16 @@ namespace DataStandardizer.FloatingPoint
         /// </summary>
         /// <param name="value">The number, which is neither NaN nor infinite.</param>
         /// <returns>The text, with <c>-</c> before a negative value, including negative zero.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is NaN or infinite.</exception>
         internal static string Format(double value)
         {
+            CheckFinite(value);
 #if NETCOREAPP3_0_OR_GREATER
             return value.ToString(RoundTripFormat, CultureInfo.InvariantCulture);
 #else
             if (IsRuntimeRoundTripFormatShortest) return value.ToString(RoundTripFormat, CultureInfo.InvariantCulture);
 
-            var bits = BitConverter.DoubleToInt64Bits(value);
-            var isNegative = bits < 0;
-            if ((bits & ~SignMask) == 0) return isNegative ? "-0" : "0";
-
-            var digits = GenerateShortestDigits((ulong)bits & DoubleFractionMask, (int)((bits >> DoubleFractionBits) & DoubleExponentMask),
-                out var decimalExponent);
-
-            return decimalExponent > DoubleMaxDigits || decimalExponent < MinFixedPointDecimalExponent
-                ? LayOutScientific(isNegative, digits, decimalExponent)
-                : LayOutFixedPoint(isNegative, digits, decimalExponent);
+            return FormatShortest(value, false);
 #endif
         }
 
@@ -53,22 +46,27 @@ namespace DataStandardizer.FloatingPoint
         /// </summary>
         /// <param name="value">The number, which is neither NaN nor infinite.</param>
         /// <returns>The text, with <c>-</c> before a negative value, including negative zero.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is NaN or infinite.</exception>
         internal static string FormatFixedPoint(double value)
         {
+            CheckFinite(value);
 #if NETCOREAPP3_0_OR_GREATER
             return ExpandRoundTripText(value.ToString(RoundTripFormat, CultureInfo.InvariantCulture));
 #else
             if (IsRuntimeRoundTripFormatShortest) return ExpandRoundTripText(value.ToString(RoundTripFormat, CultureInfo.InvariantCulture));
 
-            var bits = BitConverter.DoubleToInt64Bits(value);
-            var isNegative = bits < 0;
-            if ((bits & ~SignMask) == 0) return isNegative ? "-0" : "0";
-
-            var digits = GenerateShortestDigits((ulong)bits & DoubleFractionMask, (int)((bits >> DoubleFractionBits) & DoubleExponentMask),
-                out var decimalExponent);
-
-            return LayOutFixedPoint(isNegative, digits, decimalExponent);
+            return FormatShortest(value, true);
 #endif
+        }
+
+        /// <summary>
+        /// Checks that a number is neither NaN nor infinite, so that every target rejects it alike.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is NaN or infinite.</exception>
+        private static void CheckFinite(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                throw new ArgumentOutOfRangeException(nameof(value), value, "The number must be neither NaN nor infinite.");
         }
 
         /// <summary>
@@ -147,6 +145,24 @@ namespace DataStandardizer.FloatingPoint
 
         // Taken off the logarithm of a value so that rounding error can't make the estimate of its decimal exponent too high.
         private const double LogarithmTolerance = 1e-10;
+
+        /// <summary>
+        /// Formats a finite double with the digits <see cref="GenerateShortestDigits"/> generates, laid out as <c>"R"</c> lays it out on .NET Core
+        /// 3.0 and later, or in fixed-point notation.
+        /// </summary>
+        private static string FormatShortest(double value, bool isFixedPoint)
+        {
+            var bits = BitConverter.DoubleToInt64Bits(value);
+            var isNegative = bits < 0;
+            if ((bits & ~SignMask) == 0) return isNegative ? "-0" : "0";
+
+            var digits = GenerateShortestDigits((ulong)bits & DoubleFractionMask, (int)((bits >> DoubleFractionBits) & DoubleExponentMask),
+                out var decimalExponent);
+
+            return isFixedPoint || (decimalExponent <= DoubleMaxDigits && decimalExponent >= MinFixedPointDecimalExponent)
+                ? LayOutFixedPoint(isNegative, digits, decimalExponent)
+                : LayOutScientific(isNegative, digits, decimalExponent);
+        }
 
         /// <summary>
         /// Generates the fewest significant digits that read back as a finite double.
