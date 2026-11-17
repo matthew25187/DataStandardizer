@@ -18,6 +18,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Comment = "COMMENT";
         private const string Categories = "CATEGORIES";
         private const string DtStart = "DTSTART";
+        private const string DtEndProperty = "DTEND";
         private const string CreatedProperty = "CREATED";
         private const string DtStampProperty = "DTSTAMP";
         private const string LastModifiedProperty = "LAST-MODIFIED";
@@ -955,6 +956,153 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             exception.Should().BeOfType<ArgumentException>();
             testResult.Should().Be(Stamp);
+        }
+
+        /// <summary>
+        /// A typed accessor of <see cref="IcalFreeBusy"/> for a DATE or DATE-TIME property that RFC 5545 requires, in a VFREEBUSY, to be a
+        /// DATE-TIME in UTC.
+        /// </summary>
+        public sealed class FreeBusyUtcAccessor
+        {
+            public FreeBusyUtcAccessor(string name, string propertyName, Action<IcalFreeBusy, IcalDateOrDateTime?> setValue,
+                Func<IcalFreeBusy, IcalDateOrDateTime?> getValue)
+            {
+                Name = name;
+                PropertyName = propertyName;
+                SetValue = setValue;
+                GetValue = getValue;
+            }
+
+            public string Name { get; }
+
+            public string PropertyName { get; }
+
+            public Action<IcalFreeBusy, IcalDateOrDateTime?> SetValue { get; }
+
+            public Func<IcalFreeBusy, IcalDateOrDateTime?> GetValue { get; }
+
+            public override string ToString() => Name;
+        }
+
+        // RFC 5545 §3.8.2.4 (DTSTART) and §3.8.2.2 (DTEND): within VFREEBUSY, the value "MUST be specified as a date with UTC time".
+        private static readonly FreeBusyUtcAccessor[] FreeBusyUtcAccessors =
+        {
+            new FreeBusyUtcAccessor("IcalFreeBusy.DtStart", DtStart, (freeBusy, value) => freeBusy.DtStart = value,
+                freeBusy => freeBusy.DtStart),
+            new FreeBusyUtcAccessor("IcalFreeBusy.DtEnd", DtEndProperty, (freeBusy, value) => freeBusy.DtEnd = value,
+                freeBusy => freeBusy.DtEnd),
+        };
+
+        // A DATE, a floating DATE-TIME and a zoned one, none of which RFC 5545 allows for DTSTART or DTEND in a VFREEBUSY.
+        private static readonly IcalDateOrDateTime[] NonUtcDateOrDateTimes =
+        {
+            new IcalDateOrDateTime(StampDate),
+            new IcalDateOrDateTime(new IcalDateTime(StampDate, StampLocalTime)),
+            new IcalDateOrDateTime(new IcalDateTime(StampDate, StampLocalTime, AucklandTimeZoneId)),
+        };
+
+        public static TheoryData<FreeBusyUtcAccessor> FreeBusyUtcProperties
+        {
+            get
+            {
+                var data = new TheoryData<FreeBusyUtcAccessor>();
+                foreach (var accessor in FreeBusyUtcAccessors)
+                    data.Add(accessor);
+                return data;
+            }
+        }
+
+        public static TheoryData<FreeBusyUtcAccessor, IcalDateOrDateTime> FreeBusyUtcPropertiesWithNonUtcValues
+        {
+            get
+            {
+                var data = new TheoryData<FreeBusyUtcAccessor, IcalDateOrDateTime>();
+                foreach (var accessor in FreeBusyUtcAccessors)
+                {
+                    foreach (var value in NonUtcDateOrDateTimes)
+                        data.Add(accessor, value);
+                }
+
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_GetAfterSetUtc_IsTheDateTime(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            accessor.SetValue(freeBusy, Stamp);
+
+            // act
+            var testResult = accessor.GetValue(freeBusy);
+
+            // assert
+            testResult.Should().Be(new IcalDateOrDateTime(Stamp));
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_SetUtc_WritesTheValueWithoutParameters(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+
+            // act
+            accessor.SetValue(freeBusy, Stamp);
+            var testResult = freeBusy.GetProperty(accessor.PropertyName);
+
+            // assert
+            testResult.Value.Should().Be(StampValue);
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcProperties))]
+        public void FreeBusyUtcProperty_SetNull_RemovesTheProperty(FreeBusyUtcAccessor accessor)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            accessor.SetValue(freeBusy, Stamp);
+
+            // act
+            accessor.SetValue(freeBusy, null);
+            var testResult = freeBusy.Properties;
+
+            // assert
+            testResult.Should().NotContain(property => property.Name == accessor.PropertyName);
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcPropertiesWithNonUtcValues))]
+        public void FreeBusyUtcProperty_SetNotUtcDateTime_ThrowsArgumentException(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+
+            // act
+            Action testAction = () => accessor.SetValue(freeBusy, value);
+
+            // assert
+            testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+        }
+
+        [Theory]
+        [MemberData(nameof(FreeBusyUtcPropertiesWithNonUtcValues))]
+        public void FreeBusyUtcProperty_SetNotUtcDateTime_LeavesExistingValueUnchanged(FreeBusyUtcAccessor accessor, IcalDateOrDateTime value)
+        {
+            // arrange
+            var freeBusy = new IcalFreeBusy();
+            accessor.SetValue(freeBusy, Stamp);
+
+            // act
+            var exception = Record.Exception(() => accessor.SetValue(freeBusy, value));
+            var testResult = accessor.GetValue(freeBusy);
+
+            // assert
+            exception.Should().BeOfType<ArgumentException>();
+            testResult.Should().Be(new IcalDateOrDateTime(Stamp));
         }
 
         [Fact]

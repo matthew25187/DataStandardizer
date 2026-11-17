@@ -398,6 +398,16 @@ namespace DataStandardizer.File.iCal
             SetDateTime(name, value);
         }
 
+        // Sets a DATE or DATE-TIME property that RFC 5545 requires, in this component, to be a DATE-TIME in UTC, rejecting a DATE, a
+        // floating value or a zoned value before anything is changed.  section names the RFC 5545 section that requires it.
+        internal void SetUtcDateOrDateTime(string name, IcalDateOrDateTime? value, string section)
+        {
+            if (value.HasValue && (value.Value.IsDate || value.Value.DateTime.Kind != IcalDateTimeKind.Utc))
+                throw new ArgumentException(name + " must be a DATE-TIME in UTC (RFC 5545 §" + section + ").", nameof(value));
+
+            SetDateOrDateTime(name, value);
+        }
+
         internal IcalDuration? GetDuration(string name)
         {
             var property = GetProperty(name);
