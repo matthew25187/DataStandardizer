@@ -73,16 +73,20 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets or sets the end (RFC 5545 §3.8.2.2, <c>DTEND</c>), a DATE or a DATE-TIME; or <c>null</c> if there is none.
+        /// Gets or sets the end (RFC 5545 §3.8.2.2, <c>DTEND</c>), which in a VFREEBUSY is a DATE-TIME in UTC; or <c>null</c> if there is
+        /// none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// returns a DATE, floating or zoned value read from a file as it is; the default writer rejects it.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is a DATE, or a DATE-TIME that is floating or has a time zone; RFC 5545
+        /// §3.8.2.2 requires DTEND in a VFREEBUSY to be a DATE-TIME in UTC.</exception>
         public IcalDateOrDateTime? DtEnd
         {
             get { return GetDateOrDateTime(IcalPropertyNames.DtEnd); }
-            set { SetDateOrDateTime(IcalPropertyNames.DtEnd, value); }
+            set { SetUtcDateOrDateTime(IcalPropertyNames.DtEnd, value, "3.8.2.2"); }
         }
 
         /// <summary>
@@ -102,16 +106,20 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Gets or sets the start (RFC 5545 §3.8.2.4, <c>DTSTART</c>), a DATE or a DATE-TIME; or <c>null</c> if there is none.
+        /// Gets or sets the start (RFC 5545 §3.8.2.4, <c>DTSTART</c>), which in a VFREEBUSY is a DATE-TIME in UTC; or <c>null</c> if there is
+        /// none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// returns a DATE, floating or zoned value read from a file as it is; the default writer rejects it.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">The value set is a DATE, or a DATE-TIME that is floating or has a time zone; RFC 5545
+        /// §3.8.2.4 requires DTSTART in a VFREEBUSY to be a DATE-TIME in UTC.</exception>
         public IcalDateOrDateTime? DtStart
         {
             get { return GetDateOrDateTime(IcalPropertyNames.DtStart); }
-            set { SetDateOrDateTime(IcalPropertyNames.DtStart, value); }
+            set { SetUtcDateOrDateTime(IcalPropertyNames.DtStart, value, "3.8.2.4"); }
         }
 
         /// <summary>
