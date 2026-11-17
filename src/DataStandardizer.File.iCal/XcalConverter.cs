@@ -109,6 +109,11 @@ namespace DataStandardizer.File.iCal
             var parameters = new List<IcalContentLineParameter>();
             var values = new List<XcalElement>();
             var hasParameters = false;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? parameterProblem = null;
+#else
+            string parameterProblem = null;
+#endif
             foreach (var child in property.Children)
             {
                 if (child.Name == XcalNames.Parameters)
@@ -117,7 +122,7 @@ namespace DataStandardizer.File.iCal
                         throw BuildException(child, name, "A property can have only one parameters element.");
 
                     hasParameters = true;
-                    ReadParameters(child, name, parameters);
+                    parameterProblem = ReadParameters(child, name, parameters);
                 }
                 else
                 {
@@ -150,6 +155,8 @@ namespace DataStandardizer.File.iCal
                 value = ReadValues(values, name, out valueType);
                 conversionProblem = GetConversionProblem(values, valueType, name);
             }
+
+            conversionProblem = conversionProblem ?? parameterProblem;
 
             // ref. RFC 6321§3.5.1: the VALUE parameter MUST be included if the value type is not the property's default, and §5: never for
             // an unknown value.  RFC 7986 properties with no default always need one.
@@ -239,9 +246,23 @@ namespace DataStandardizer.File.iCal
             return name;
         }
 
-        private static void ReadParameters(XcalElement parametersElement, string propertyName, List<IcalContentLineParameter> parameters)
+        /// <summary>
+        /// Converts the parameter elements of a property.
+        /// </summary>
+        /// <returns>The problem with the first parameter value in the text form of a content line that xCal does not allow, such as a BOOLEAN of
+        /// <c>TRUE</c>; or <c>null</c> if there is none.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? ReadParameters(XcalElement parametersElement, string propertyName, List<IcalContentLineParameter> parameters)
+#else
+        private static string ReadParameters(XcalElement parametersElement, string propertyName, List<IcalContentLineParameter> parameters)
+#endif
         {
             CheckNoText(parametersElement, propertyName);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? problem = null;
+#else
+            string problem = null;
+#endif
             foreach (var parameter in parametersElement.Children)
             {
                 var name = ToIcalName(parameter);
@@ -269,12 +290,20 @@ namespace DataStandardizer.File.iCal
                     {
                         text = FormatBoolean(flag, IcalValueFormat.Text);
                     }
+                    else if (problem is null && IcalConversionCheck.IsTextFormOnly(text.AsSpan(), valueType, IcalValueFormat.Xml))
+                    {
+                        // ref. RFC 6321§3.6.2: a BOOLEAN is true or false, so the TRUE of the text form, which the conformance check would
+                        // accept, is not allowed.
+                        problem = IcalConversionCheck.BuildParameterProblem(propertyName, name, valueType, IcalValueFormat.Xml);
+                    }
 
                     values[index] = text;
                 }
 
                 parameters.Add(new IcalContentLineParameter(name, values));
             }
+
+            return problem;
         }
 
         /// <summary>

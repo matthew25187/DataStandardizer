@@ -40,6 +40,22 @@ namespace DataStandardizer.File.iCal
                 format == IcalValueFormat.Json ? "7265" : "6321", GetSectionNumber(valueType));
         }
 
+        /// <summary>
+        /// Builds the problem reported for a parameter value that is valid only in the text form.
+        /// </summary>
+        /// <param name="propertyName">The name of the property.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="valueType">The type of the value; one that <see cref="IsTextFormOnly"/> covers.</param>
+        /// <param name="format">The form of the serialization it was read from: <see cref="IcalValueFormat.Json"/> or
+        /// <see cref="IcalValueFormat.Xml"/>.</param>
+        internal static string BuildParameterProblem(string propertyName, string parameterName, IcalValueType valueType, IcalValueFormat format)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                "The {0} parameter of the {1} property has a {2} value in the iCalendar text form, which {3} does not allow (RFC {4} §3.6.{5}).",
+                parameterName, propertyName, IcalValueTypeRegistry.GetValueTypeName(valueType), format == IcalValueFormat.Json ? "jCal" : "xCal",
+                format == IcalValueFormat.Json ? "7265" : "6321", GetSectionNumber(valueType));
+        }
+
         private static bool IsCovered(IcalValueType valueType)
         {
             return GetSectionNumber(valueType) != 0;

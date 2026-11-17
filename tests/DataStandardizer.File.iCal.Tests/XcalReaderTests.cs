@@ -38,6 +38,10 @@ namespace DataStandardizer.File.iCal.Tests
         // ref. RFC 5545 §3.3.5: a DATE-TIME in the iCalendar text form, which RFC 6321 §3.6.5 writes as 2024-01-01T12:00:00Z in xCal.
         private const string TextFormDateTime = "20240101T120000Z";
         private const string TextFormDateTimeProperty = "<dtstart><date-time>" + TextFormDateTime + "</date-time></dtstart>";
+        private const string AttendeeAddress = "mailto:a@example.com";
+        // ref. RFC 6321 §3.6.2: an RSVP parameter with the TRUE of the iCalendar text form, where xCal requires true.
+        private const string TextFormRsvpProperty =
+            "<attendee><parameters><rsvp><boolean>TRUE</boolean></rsvp></parameters><cal-address>" + AttendeeAddress + "</cal-address></attendee>";
 
         // The calendar element of RfcExample1Xcal, twice in one document.
         private static readonly string TwoCalendars = IcalendarStart + Example1Calendar() + Example1Calendar() + IcalendarEnd;
@@ -783,12 +787,16 @@ namespace DataStandardizer.File.iCal.Tests
         // ref. RFC 6321 §3.6: a value in the iCalendar text form of its type (RFC 5545 §3.3), which xCal does not allow.  Each is valid as a
         // content line, so only the converter can find it.
         [Theory]
-        [InlineData("<dtstart><date-time>20240101T120000Z</date-time></dtstart>", "DTSTART")]
+        [InlineData(TextFormDateTimeProperty, "DTSTART")]
+        [InlineData("<x-start><date-time>" + TextFormDateTime + "</date-time></x-start>", "X-START")]
+        [InlineData("<x-time><time>120000</time></x-time>", "X-TIME")]
+        [InlineData("<x-flag><boolean>TRUE</boolean></x-flag>", "X-FLAG")]
+        [InlineData(TextFormRsvpProperty, "ATTENDEE")]
         [InlineData("<dtstart><date>20240101</date></dtstart>", "DTSTART")]
         [InlineData("<tzoffsetfrom><utc-offset>-0500</utc-offset></tzoffsetfrom>", "TZOFFSETFROM")]
-        [InlineData("<rdate><period><start>20240101T120000Z</start><duration>PT1H</duration></period></rdate>", "RDATE")]
+        [InlineData("<rdate><period><start>" + TextFormDateTime + "</start><duration>PT1H</duration></period></rdate>", "RDATE")]
         [InlineData("<rdate><period><start>2024-01-01T12:00:00Z</start><end>20240101T130000Z</end></period></rdate>", "RDATE")]
-        [InlineData("<rrule><recur><freq>DAILY</freq><until>20240101T120000Z</until></recur></rrule>", "RRULE")]
+        [InlineData("<rrule><recur><freq>DAILY</freq><until>" + TextFormDateTime + "</until></recur></rrule>", "RRULE")]
         [InlineData("<rrule><recur><freq>DAILY</freq><until>20240101</until></recur></rrule>", "RRULE")]
         public void ReadCalendar_TextFormValueByDefault_ThrowsInvalidValue(string property, string propertyName)
         {
@@ -802,6 +810,38 @@ namespace DataStandardizer.File.iCal.Tests
             var exception = testAction.Should().Throw<IcalFileException>().Which;
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
             exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        // ref. RFC 6321 §3.6.2 and §3.6.12: values in the xCal form of their types, which an extension property or a parameter may hold too.
+        [Theory]
+        [InlineData("<x-flag><boolean>true</boolean></x-flag>", "X-FLAG;VALUE=BOOLEAN:TRUE")]
+        [InlineData("<x-time><time>12:00:00</time></x-time>", "X-TIME;VALUE=TIME:120000")]
+        [InlineData("<attendee><parameters><rsvp><boolean>true</boolean></rsvp></parameters><cal-address>" + AttendeeAddress + "</cal-address></attendee>",
+            "ATTENDEE;RSVP=TRUE:" + AttendeeAddress)]
+        public void ReadCalendar_XcalFormValueByDefault_ConvertsToTextForm(string property, string expected)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadXcal(xml).Single()));
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadCalendar_TextFormBooleanParameterByDefault_ThrowsNotInXcalForm()
+        {
+            // arrange
+            var xml = JournalDocument(TextFormRsvpProperty);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The RSVP parameter of the ATTENDEE property has a BOOLEAN value in the iCalendar text form, which xCal does not allow (RFC 6321 §3.6.2).");
         }
 
         [Fact]

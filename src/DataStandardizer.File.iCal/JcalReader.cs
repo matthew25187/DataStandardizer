@@ -56,7 +56,8 @@ namespace DataStandardizer.File.iCal
     /// options as <see cref="IcalReader"/>.  The diagnostics have no line numbers, since a jCal document has no content lines; their component
     /// path gives the place.  The first problem that the options do not accept throws <see cref="IcalFileException"/>; reading can then continue
     /// with the next calendar.  A value that does not follow its jCal type is kept as it is, so the check reports it, even when it would be
-    /// valid in the iCalendar text form, and <see cref="IcalOptions.AllowInvalidValues"/> lets it through.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies, and
+    /// valid in the iCalendar text form, and even in an extension property, since jCal gives its type; and
+    /// <see cref="IcalOptions.AllowInvalidValues"/> lets it through.  Of the other options, only <see cref="IcalOptions.Encoding"/> applies, and
     /// it must be UTF-8 if it is set.
     /// </para>
     /// <para>

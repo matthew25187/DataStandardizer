@@ -746,12 +746,14 @@ namespace DataStandardizer.File.iCal.Tests
         // ref. RFC 7265 §3.6: a value in the iCalendar text form of its type (RFC 5545 §3.3), which jCal does not allow.  Each is valid as a
         // content line, so only the converter can find it.
         [Theory]
-        [InlineData("[\"dtstart\",{},\"date-time\",\"20240101T120000Z\"]", "DTSTART")]
+        [InlineData(TextFormDateTimeProperty, "DTSTART")]
+        [InlineData("[\"x-start\",{},\"date-time\",\"" + TextFormDateTime + "\"]", "X-START")]
+        [InlineData("[\"x-time\",{},\"time\",\"120000\"]", "X-TIME")]
         [InlineData("[\"dtstart\",{},\"date\",\"20240101\"]", "DTSTART")]
         [InlineData("[\"tzoffsetfrom\",{},\"utc-offset\",\"-0500\"]", "TZOFFSETFROM")]
-        [InlineData("[\"rdate\",{},\"period\",[\"20240101T120000Z\",\"PT1H\"]]", "RDATE")]
+        [InlineData("[\"rdate\",{},\"period\",[\"" + TextFormDateTime + "\",\"PT1H\"]]", "RDATE")]
         [InlineData("[\"rdate\",{},\"period\",[\"2024-01-01T12:00:00Z\",\"20240101T130000Z\"]]", "RDATE")]
-        [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"20240101T120000Z\"}]", "RRULE")]
+        [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"" + TextFormDateTime + "\"}]", "RRULE")]
         [InlineData("[\"rrule\",{},\"recur\",{\"freq\":\"DAILY\",\"until\":\"20240101\"}]", "RRULE")]
         public void ReadCalendar_TextFormValueByDefault_ThrowsInvalidValue(string property, string propertyName)
         {
@@ -765,6 +767,22 @@ namespace DataStandardizer.File.iCal.Tests
             var exception = testAction.Should().Throw<IcalFileException>().Which;
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
             exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(propertyName);
+        }
+
+        // ref. RFC 7265 §3.6.5 and §3.6.12: values in the jCal form of their types, which an extension property may hold too.
+        [Theory]
+        [InlineData("[\"x-start\",{},\"date-time\",\"2024-01-01T12:00:00Z\"]", "X-START;VALUE=DATE-TIME:20240101T120000Z")]
+        [InlineData("[\"x-time\",{},\"time\",\"12:00:00\"]", "X-TIME;VALUE=TIME:120000")]
+        public void ReadCalendar_JcalFormValueByDefault_ConvertsToTextForm(string property, string expected)
+        {
+            // arrange
+            var json = JournalDocument(property);
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadJcal(json).Single()));
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Fact]

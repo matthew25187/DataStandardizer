@@ -991,12 +991,23 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the value of a property RFC 5545 or RFC 7986 defines against its value type.
+        /// Checks the value of a property RFC 5545 or RFC 7986 defines against its value type; and, for any property read by the reader of
+        /// another serialization, whether its value was in the form of that serialization.
         /// </summary>
         private static void ValidateValue(IcalContentLine property, string componentName, string path, Context context)
         {
             var name = property.Name;
-            if (!IcalValueTypeRegistry.IsKnownProperty(name.AsSpan())) return;
+            if (!IcalValueTypeRegistry.IsKnownProperty(name.AsSpan()))
+            {
+                // A property RFC 5545 and RFC 7986 don't define may have any value, but jCal and xCal give the type of each value, so one that
+                // was not in the form of its type is still a problem.
+                if (context.IsConversionChecked && property.ConversionProblem != null)
+                {
+                    AddInvalidValue(property, path, property.ConversionProblem, context);
+                }
+
+                return;
+            }
 
             // ref. RFC 5545§3.2.20: the VALUE parameter names one of the value types the property allows.
             var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
