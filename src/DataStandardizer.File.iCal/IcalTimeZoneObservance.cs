@@ -86,13 +86,17 @@ namespace DataStandardizer.File.iCal
         /// Gets or sets the recurrence rules (RFC 5545 §3.8.5.3, <c>RRULE</c>).
         /// </summary>
         /// <remarks>
-        /// Setting a list replaces every <c>RRULE</c> property with one per rule; an empty list removes them.  The getter throws
-        /// <see cref="IcalFileException"/> if a rule is not valid.
+        /// Setting a list replaces every <c>RRULE</c> property with one per rule; an empty list removes them.  RFC 5545 §3.3.10 requires
+        /// the <c>UNTIL</c> of a rule in an observance to be a DATE-TIME in UTC, so the setter rejects a rule whose <c>UNTIL</c> is a DATE
+        /// or a DATE-TIME in local time, leaving the existing rules unchanged.  A rule with no <c>UNTIL</c> is accepted.
+        /// The getter throws <see cref="IcalFileException"/> if a rule is not valid.
         /// </remarks>
+        /// <exception cref="ArgumentException">A rule set has an <c>UNTIL</c> that is not a DATE-TIME in UTC; RFC 5545 §3.3.10 requires the
+        /// <c>UNTIL</c> of a rule in an observance to be in UTC.</exception>
         public IReadOnlyList<IcalRecurrenceRule> RecurrenceRules
         {
             get { return GetRecurrenceRules(IcalPropertyNames.RecurrenceRule); }
-            set { SetRecurrenceRules(IcalPropertyNames.RecurrenceRule, value); }
+            set { SetRecurrenceRulesWithUtcUntil(IcalPropertyNames.RecurrenceRule, value, "3.3.10"); }
         }
 
         /// <summary>
