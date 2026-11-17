@@ -703,6 +703,27 @@ namespace DataStandardizer.File.iCal.Tests
             alarm.Properties.Should().NotContain(property => property.Name == Trigger);
         }
 
+        // RFC 5545 §3.8.6.3: an absolute TRIGGER "MUST be specified in UTC time format".
+        public static TheoryData<IcalDateTime> NonUtcTriggerDateTimes => new TheoryData<IcalDateTime>
+        {
+            new IcalDateTime(new IcalDate(2026, 10, 15), new IcalTime(9, 0, 0)),
+            new IcalDateTime(new IcalDate(2026, 10, 15), new IcalTime(9, 0, 0), AucklandTimeZoneId),
+        };
+
+        [Theory]
+        [MemberData(nameof(NonUtcTriggerDateTimes))]
+        public void TriggerDateTime_SetNotUtc_ThrowsArgumentException(IcalDateTime value)
+        {
+            // arrange
+            var alarm = new IcalAlarm { Action = "AUDIO" };
+
+            // act
+            Action testAction = () => alarm.TriggerDateTime = value;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
         [Fact]
         public void Alarm_TriggerDateTime_ReplacesInPlace_KeepingOtherParameters()
         {
