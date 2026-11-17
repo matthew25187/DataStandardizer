@@ -888,33 +888,8 @@ namespace DataStandardizer.File.iCal
             if (double.IsNaN(value) || double.IsInfinity(value))
                 throw new ArgumentOutOfRangeException(nameof(value), value, "A FLOAT value cannot be NaN or infinite.");
 
-            var text = value.ToString("R", CultureInfo.InvariantCulture);
-            var exponentIndex = text.IndexOf('E');
-            if (exponentIndex < 0) return text;
-
-            // ref. RFC 5545§3.3.7: there is no exponent, so move the decimal point instead.
-            var isNegative = text[0] == '-';
-            var mantissa = text.Substring(isNegative ? 1 : 0, exponentIndex - (isNegative ? 1 : 0));
-            var exponent = int.Parse(text.Substring(exponentIndex + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
-            var pointIndex = mantissa.IndexOf('.');
-            var digits = pointIndex < 0 ? mantissa : mantissa.Remove(pointIndex, 1);
-            var newPointIndex = (pointIndex < 0 ? mantissa.Length : pointIndex) + exponent;
-
-            string expanded;
-            if (newPointIndex <= 0)
-            {
-                expanded = "0." + new string('0', -newPointIndex) + digits;
-            }
-            else if (newPointIndex >= digits.Length)
-            {
-                expanded = digits + new string('0', newPointIndex - digits.Length);
-            }
-            else
-            {
-                expanded = digits.Substring(0, newPointIndex) + "." + digits.Substring(newPointIndex);
-            }
-
-            return isNegative ? "-" + expanded : expanded;
+            // ref. RFC 5545§3.3.7: there is no exponent, so the value is written in fixed-point notation.
+            return IcalFloatFormatter.Format(value);
         }
 
         private static bool IsUriText(ReadOnlySpan<char> value)
