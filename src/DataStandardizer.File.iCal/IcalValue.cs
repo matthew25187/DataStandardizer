@@ -976,7 +976,7 @@ namespace DataStandardizer.File.iCal
             if (!double.TryParse(value, styles, CultureInfo.InvariantCulture, out result)) return false;
 #else
             // .NET Framework's parse isn't correctly rounded, so the targets that may run on it read the value themselves.
-            if (!IcalFloatParser.TryParse(value, styles, out result)) return false;
+            if (!IcalFloatParser.TryParse(value, out result)) return false;
 #endif
 
             return !double.IsInfinity(result);

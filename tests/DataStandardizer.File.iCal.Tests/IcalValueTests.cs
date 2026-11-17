@@ -205,6 +205,13 @@ namespace DataStandardizer.File.iCal.Tests
             { "just below halfway above the largest", JustBelowHalfwayAboveTheLargestText, IcalValueFormat.Xml, BitConverter.DoubleToInt64Bits(double.MaxValue) },
         };
 
+        // Whole numbers larger than the largest double, about 1.8E+308.
+        public static TheoryData<string, string> TooLargeFloatTexts => new TheoryData<string, string>
+        {
+            { "400 nines", new string('9', 400) },
+            { "more digits than are kept, 900 nines", new string('9', 900) },
+        };
+
         // ref. RFC 5545 §3.3.13, §3.3.3: the examples of URI and CAL-ADDRESS values.
         public static TheoryData<string> Rfc5545Uris => new TheoryData<string>
         {
@@ -538,11 +545,12 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeFalse();
         }
 
-        [Fact]
-        public void TryParseFloat_TooLarge_Fails()
+        [Theory]
+        [MemberData(nameof(TooLargeFloatTexts))]
+        public void TryParseFloat_TooLarge_Fails(string scenario, string value)
         {
-            // arrange: four hundred nines, which is larger than the largest double.
-            var value = new string('9', 400);
+            // arrange
+            _ = scenario;
 
             // act
             var testResult = IcalValue.TryParseFloat(value.AsSpan(), IcalValueFormat.Text, out _);

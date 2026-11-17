@@ -43,9 +43,15 @@ namespace DataStandardizer.File.iCal
         private const int MaxDecimalMagnitude = 400;
 
         /// <summary>
-        /// The exponent written in the text is read up to this value.  Any larger exponent is beyond <see cref="MaxDecimalMagnitude"/> anyway.
+        /// The exponent written in the text is read up to this value.  It is larger than the length of any text, so that the exponent the digits'
+        /// positions add, which is at most that length, can never bring a larger written exponent back within <see cref="MaxDecimalMagnitude"/>.
         /// </summary>
-        private const int MaxWrittenExponent = 100000000;
+        private const long MaxWrittenExponent = 10000000000;
+
+        /// <summary>
+        /// The styles of every FLOAT form, whose text has already been checked against its grammar.
+        /// </summary>
+        private const NumberStyles FloatStyles = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent;
 
         // The largest power of 10 that a double holds exactly, and the most significant digits it holds exactly in the fast path.  An operation on
         // two exactly held values is rounded once, so it gives the nearest value (Clinger, "How to Read Floating Point Numbers Accurately", 1990).
@@ -74,18 +80,17 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Reads FLOAT text, which matches the grammar of its form, as the nearest <see cref="double"/>.
         /// </summary>
-        /// <param name="value">The text.</param>
-        /// <param name="styles">The styles the runtime's parse reads the text with, when it is correctly rounded.</param>
+        /// <param name="value">The text, which is an optional sign, digits with at most one decimal point, and an optional exponent.</param>
         /// <param name="result">The nearest value, which is infinite when the text is too large for a <see cref="double"/>.</param>
         /// <returns><c>true</c> if the text was read; otherwise <c>false</c>, when the runtime's parse found it too large.</returns>
-        internal static bool TryParse(ReadOnlySpan<char> value, NumberStyles styles, out double result)
+        internal static bool TryParse(ReadOnlySpan<char> value, out double result)
         {
             if (IsRuntimeParseCorrectlyRounded)
             {
 #if NETSTANDARD2_1_OR_GREATER
-                return double.TryParse(value, styles, CultureInfo.InvariantCulture, out result);
+                return double.TryParse(value, FloatStyles, CultureInfo.InvariantCulture, out result);
 #else
-                return double.TryParse(value.ToString(), styles, CultureInfo.InvariantCulture, out result);
+                return double.TryParse(value.ToString(), FloatStyles, CultureInfo.InvariantCulture, out result);
 #endif
             }
 
@@ -231,7 +236,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Reads the sign and digits of an exponent, which start after the <c>e</c> or <c>E</c>.
         /// </summary>
-        private static int ReadExponent(ReadOnlySpan<char> value, int index)
+        private static long ReadExponent(ReadOnlySpan<char> value, int index)
         {
             var isNegative = false;
             if (index < value.Length && (value[index] == '+' || value[index] == '-'))
@@ -240,7 +245,7 @@ namespace DataStandardizer.File.iCal
                 index++;
             }
 
-            var exponent = 0;
+            long exponent = 0;
             while (index < value.Length && value[index] >= '0' && value[index] <= '9')
             {
                 exponent = Math.Min((exponent * 10) + (value[index] - '0'), MaxWrittenExponent);
