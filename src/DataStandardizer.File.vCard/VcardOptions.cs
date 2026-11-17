@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.vCard
@@ -228,7 +229,8 @@ namespace DataStandardizer.File.vCard
         /// <remarks>
         /// RFC 6350 §6 and its extensions say how many instances of each property a card may have, and §6.6.5 allows a <c>MEMBER</c> property only if the <c>KIND</c> property is <c>group</c>.  When
         /// <c>false</c> (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card that breaks those rules.  With
-        /// <c>true</c> they keep and write every instance, and read two <c>VERSION</c> lines as one.  The content line reader and writer ignore this.
+        /// <c>true</c> they keep and write every instance.  A second <c>VERSION</c> is not accepted, since the version says how the card's lines are read (RFC 6350 §6.7.9,
+        /// RFC 2426 §5).  The content line reader and writer ignore this.
         /// </remarks>
         public bool AllowCardinalityViolations
         {
@@ -301,10 +303,10 @@ namespace DataStandardizer.File.vCard
         /// <remarks>
         /// RFC 6350 §6.2.1 requires at least one <c>FN</c> property, and §6.7.9 a <c>VERSION</c> property.  RFC 8605 §2.1 requires a card with <c>CONTACT-URI</c> properties to have one with a
         /// <c>mailto</c>, <c>http</c> or <c>https</c> URI.  RFC 2426 §5 requires <c>N</c> and <c>FN</c> in vCard 3.0, and the vCard 2.1 specification §2.2.2 an <c>N</c>.  When <c>false</c>
-        /// (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card without them.  With <c>true</c> a card with no
-        /// <c>VERSION</c> is read as vCard 4.0, or as vCard 2.1 where it is the value of an <c>AGENT</c> in a vCard 2.1 card, and its
-        /// <see cref="VcardCard.SourceVersion"/> is <c>null</c>, but RFC 6868 caret encoding isn't decoded in it unless <see cref="AcceptCaretEncodingInAllVersions"/> is set, since the
-        /// content line reader doesn't know its version.  A writer always writes <c>VERSION</c>.  The content line reader and writer ignore this.
+        /// (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card without them.  With <c>true</c> they read and write
+        /// such a card.  A card with no <c>VERSION</c> is not accepted, since nothing else says how its lines are read, unless it is the value of an <c>AGENT</c>: that card takes the
+        /// version of the card around it, as the example of RFC 2426 §3.5.4 does, so this accepts it, and its <see cref="VcardCard.SourceVersion"/> is <c>null</c>.  A writer always writes
+        /// <c>VERSION</c>.  The content line reader and writer ignore this.
         /// </remarks>
         public bool AllowMissingRequiredProperties
         {
@@ -335,14 +337,14 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets a flag indicating if the <c>VERSION</c> property may be somewhere other than immediately after <c>BEGIN:VCARD</c>.
+        /// Gets a flag that no longer has any effect.
         /// </summary>
         /// <remarks>
-        /// RFC 6350 §6.7.9 says it "must appear immediately after BEGIN:VCARD".  When <c>false</c> (the default), <see cref="VcardReader"/> throws <see cref="VcardFileException"/> for a
-        /// card with it anywhere else.  With <c>true</c> the card is read, but RFC 6868 caret encoding isn't decoded on the lines before <c>VERSION</c> unless
-        /// <see cref="AcceptCaretEncodingInAllVersions"/> is set, since the content line reader doesn't know the version until then.  Ignored by a writer, which always writes it first.
-        /// The content line reader ignores this.
+        /// RFC 6350 §3.3 and §6.7.9 require the <c>VERSION</c> of a vCard 4.0 card immediately after <c>BEGIN:VCARD</c>.  The version says how the lines of the card are read, and the lines
+        /// before it would be read without it, so <see cref="VcardReader"/> and <c>JcardReader</c> (RFC 7095 §3.3.1.1) throw <see cref="VcardFileException"/> for a card with it
+        /// anywhere else, whatever this is.  vCard 3.0 and 2.1 have no such rule, so their cards may have it anywhere.
         /// </remarks>
+        [Obsolete("VcardOptions.AllowVersionNotFirst has no effect: a vCard 4.0 card with its VERSION anywhere but immediately after BEGIN:VCARD (RFC 6350 §3.3, §6.7.9) is never read.  It will be removed in a future major version.")]
         public bool AllowVersionNotFirst
         {
             get;

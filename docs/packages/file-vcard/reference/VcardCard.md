@@ -30,7 +30,7 @@ public sealed partial class VcardCard : IVcard40Card, IVcard30Card, IVcard21Card
 | Property | Type | Notes |
 | --- | --- | --- |
 | `Properties` | `IList<VcardContentLine>` | Every property in order, including unknown and `X-` properties, whether or not its value is valid. It can be changed. It doesn't hold `BEGIN`, `VERSION` or `END`. |
-| `SourceVersion` | `VcardVersion?` | The version the card was read from. `null` if it was built in code, or read with no `VERSION`. |
+| `SourceVersion` | `VcardVersion?` | The version the card was read from. `null` if it was built in code, or is a card held in an `AGENT` that was read with no `VERSION`. |
 | `Kind` | `VcardKind` | What the card represents. With no `KIND` it is `Individual`, as RFC 6350 §6.1.4 says. RFC 6473 adds `Application` and RFC 6869 adds `Device`. |
 | `KindText` | `string?` | The value of `KIND` as written, which holds any value that RFC 6350 and its extensions don't define. |
 | `ExtensionProperties` | `IReadOnlyList<VcardProperty<string>>` | The properties RFC 6350 and its extensions don't define. Each value is as it appears in the content line. |

@@ -357,6 +357,7 @@ namespace DataStandardizer.File.vCard.Tests
         // ref. RFC 6350 §6.7.9: VERSION is required, and comes first; RFC 7095 §3.3.1.1 says the same of the version property.
         private const string NoVersion = "[\"vcard\",[[\"fn\",{},\"text\",\"A\"]]]";
         private const string VersionNotFirst = "[\"vcard\",[[\"fn\",{},\"text\",\"A\"],[\"version\",{},\"text\",\"4.0\"]]]";
+        private const string TwoVersions = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"]]]";
 
         // ref. RFC 6350 §4.3.4: a value that isn't a DATE-AND-OR-TIME.
         private const string InvalidBirthday = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"bday\",{},\"date-and-or-time\",\"circa 1800\"]]]";
@@ -376,8 +377,6 @@ namespace DataStandardizer.File.vCard.Tests
         public static TheoryData<string, VcardDiagnosticKind> BreaksRfc6350() => new TheoryData<string, VcardDiagnosticKind>
         {
             { NoFormattedName, VcardDiagnosticKind.MissingRequiredProperty },
-            { NoVersion, VcardDiagnosticKind.MissingRequiredProperty },
-            { VersionNotFirst, VcardDiagnosticKind.InvalidStructure },
             { InvalidBirthday, VcardDiagnosticKind.InvalidValue },
             { BirthdayAsDate, VcardDiagnosticKind.InvalidValue },
             { BirthdayInBasicFormat, VcardDiagnosticKind.InvalidValue },
@@ -399,8 +398,6 @@ namespace DataStandardizer.File.vCard.Tests
         public static TheoryData<string, VcardOptions> BreaksRfc6350WithTheOptionThatAcceptsIt() => new TheoryData<string, VcardOptions>
         {
             { NoFormattedName, new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true } },
-            { NoVersion, new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true } },
-            { VersionNotFirst, new VcardOptions { MaxLineLength = null, AllowVersionNotFirst = true } },
             { InvalidBirthday, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
             { BirthdayAsDate, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
             { BirthdayInBasicFormat, new VcardOptions { MaxLineLength = null, AllowInvalidValues = true } },
@@ -417,6 +414,32 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().ContainSingle();
+        }
+
+        // ref. RFC 7095 §3.3.1.1: the version property MUST be present, and MUST be the first property, as in RFC 6350 §6.7.9.  No option accepts a card that breaks either.
+        public static TheoryData<string, VcardOptions> VersionStructureData()
+        {
+            var data = new TheoryData<string, VcardOptions>();
+            foreach (var json in new[] { NoVersion, VersionNotFirst, TwoVersions })
+            {
+                foreach (var options in VcardTestData.EveryAccommodation())
+                {
+                    data.Add(json, options);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(VersionStructureData))]
+        public void ReadCard_VersionMissingRepeatedOrNotFirst_ThrowsWhateverTheOptions(string json, VcardOptions options)
+        {
+            // act
+            Action testAction = () => ReadJcard(json, options);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
         }
 
         [Fact]

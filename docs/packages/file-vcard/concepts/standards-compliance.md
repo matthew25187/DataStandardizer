@@ -81,13 +81,30 @@ for reading only apply to the writers too.
 
 | Option | What it accepts | Rule it relaxes |
 | --- | --- | --- |
-| `AllowVersionNotFirst` | A `VERSION` that isn't straight after `BEGIN:VCARD`. Reading only. | RFC 6350 §6.7.9. |
-| `AllowMissingRequiredProperties` | A card with no `FN`, a vCard 3.0 card with no `N` or `FN`, a vCard 2.1 card with no `N`, or, reading, a card with no `VERSION`. Also a card whose `CONTACT-URI` properties have no `mailto`, `http` or `https` URI. | RFC 6350 §6.2.1 and §6.7.9, RFC 2426 §5, vCard 2.1 §2.2.2, RFC 8605 §2.1. |
+| `AllowMissingRequiredProperties` | A card with no `FN`, a vCard 3.0 card with no `N` or `FN`, a vCard 2.1 card with no `N`, or, reading, a card held in an `AGENT` with no `VERSION`. Also a card whose `CONTACT-URI` properties have no `mailto`, `http` or `https` URI. | RFC 6350 §6.2.1 and §6.7.9, RFC 2426 §5, vCard 2.1 §2.2.2, RFC 8605 §2.1. |
 | `AllowCardinalityViolations` | More instances of a property than it allows, or a `MEMBER` in a card that isn't `KIND:group`. | RFC 6350 §6 and §6.6.5. |
 | `AllowInvalidValues` | A value that doesn't follow its syntax, a `VALUE` the property doesn't allow, a parameter the property doesn't allow, a `PREF` outside 1 to 100, a `PID` source with no `CLIENTPIDMAP`, and the parameter rules of the extensions. The line is kept as written. A value that doesn't follow its syntax is left out of the typed members. A value that does stays in its typed member when only a parameter breaks a rule. A parameter whose value can't be read is then unset, so with `PREF=101`, `Pref` is `null`. A parameter that is well formed but breaks a rule elsewhere in the card is still given, so a `PID` with no `CLIENTPIDMAP` is in `Pid`. | RFC 6350 §4, §5 and §6, and the rules of each extension. |
 | `AcceptUnescapedCommasInUris` | A comma with no backslash in a URI value of a vCard 4.0 card, which is escaped as the line is read. Reading only. | RFC 6350 §3.4 and its errata 3845 and 3846. |
 | `AcceptOrgUriProperty` | A property named `ORG-URI`, read as `ORG-DIRECTORY`. Reading only. | RFC 6715 §2.4, and its errata 3340 and 3341. |
 | `AllowLossyVersionConversion` | Writing a card that holds data the version written can't hold, which is left out. Writing only. | RFC 2426 and vCard 2.1 can't hold it. |
+
+`AllowVersionNotFirst` is obsolete and has no effect.
+
+### What no option accepts
+
+Some rules say how the rest of the data is read, or keep its structure intact. No
+option relaxes them, and breaking one throws `VcardFileException` with a
+`DiagnosticKind` of `InvalidStructure` or `UnsupportedVersion`, whatever the
+options:
+
+- A card has exactly one `VERSION` (RFC 6350 §6.7.9, RFC 2426 §5), since the
+  version says how its lines are read. Only a card held in an `AGENT` may leave it
+  out, since it takes the version of the card around it.
+- In vCard 4.0 the `VERSION` comes immediately after `BEGIN:VCARD` (RFC 6350 §3.3
+  and §6.7.9; RFC 7095 §3.3.1.1 for jCard). vCard 3.0 and 2.1 allow it anywhere.
+- The `VERSION` is one the package reads: 4.0, 3.0 or 2.1.
+- `BEGIN:VCARD` and `END:VCARD` lines pair up, and a card's properties don't
+  include `BEGIN`, `END` or `VERSION` lines, which the writer writes itself.
 
 The same options apply to reading and writing:
 
@@ -114,8 +131,8 @@ written without the legacy forms.
 
 | Rule | Reference | Accepted with |
 | --- | --- | --- |
-| `VERSION` immediately after `BEGIN` | §6.7.9 | `AllowVersionNotFirst`, reading only |
-| A `VERSION`, and at least one `FN` | §6.7.9, §6.2.1 | `AllowMissingRequiredProperties` |
+| One `VERSION`, immediately after `BEGIN` | §3.3, §6.7.9 | Never accepted |
+| At least one `FN` | §6.2.1 | `AllowMissingRequiredProperties` |
 | A `CONTACT-URI` with a `mailto`, `http` or `https` URI, in a card that has others | RFC 8605 §2.1 | `AllowMissingRequiredProperties` |
 | The cardinality of each property, and `MEMBER` only with `KIND:group` | §6, §6.6.5 | `AllowCardinalityViolations` |
 | The syntax of each value, and `VALUE` only with a type the property allows | §4, §6 | `AllowInvalidValues` |

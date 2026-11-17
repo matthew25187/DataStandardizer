@@ -3,11 +3,16 @@ namespace DataStandardizer.File.vCard
     /// <summary>
     /// The kinds of conformance problem that <see cref="VcardCard.Validate"/>, <see cref="VcardReader"/> and <see cref="VcardWriter"/> report.
     /// </summary>
+    /// <remarks>
+    /// <see cref="UnsupportedVersion"/> and <see cref="InvalidStructure"/> are never accepted.  They break a requirement that says how the data is read, or that keeps its structure,
+    /// so no option waives them, and a <see cref="VcardFileException"/> of either kind can't be avoided by setting one.
+    /// </remarks>
     public enum VcardDiagnosticKind
     {
         /// <summary>
-        /// A required property is missing: <c>FN</c>, the <c>VERSION</c> of a card being read, or a <c>CONTACT-URI</c> with a <c>mailto</c>, <c>http</c> or <c>https</c> URI in a card
-        /// that has others (RFC 8605 §2.1).  Accepted with <see cref="VcardOptions.AllowMissingRequiredProperties"/>.
+        /// A required property is missing: <c>FN</c>, the <c>VERSION</c> of a card that is the value of an <c>AGENT</c>, or a <c>CONTACT-URI</c> with a <c>mailto</c>, <c>http</c> or
+        /// <c>https</c> URI in a card that has others (RFC 8605 §2.1).  Accepted with <see cref="VcardOptions.AllowMissingRequiredProperties"/>.  Any other card with no <c>VERSION</c> is
+        /// <see cref="InvalidStructure"/>.
         /// </summary>
         MissingRequiredProperty = 1,
 
@@ -53,8 +58,8 @@ namespace DataStandardizer.File.vCard
         LegacySyntax = 8,
 
         /// <summary>
-        /// The lines of a card don't have the structure of the <c>vcard</c> rule of RFC 6350 §3.3: for example a <c>BEGIN</c> line with a group, or a <c>VERSION</c> line that
-        /// isn't immediately after <c>BEGIN</c>, which a reader accepts with <see cref="VcardOptions.AllowVersionNotFirst"/>.  Nothing else is accepted.
+        /// The lines of a card don't have the structure of the <c>vcard</c> rule of RFC 6350 §3.3: for example a <c>BEGIN</c> line with a group, a card with no <c>VERSION</c> or with
+        /// two (RFC 6350 §6.7.9, RFC 2426 §5), or a vCard 4.0 card whose <c>VERSION</c> line isn't immediately after <c>BEGIN</c>.  Never accepted.
         /// </summary>
         InvalidStructure = 9
     }
