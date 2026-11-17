@@ -90,7 +90,7 @@ differently but with the same meaning:
 
 | iCalendar | jCal |
 | --- | --- |
-| A component | An array of three elements: the name in lower case, an array of its properties and an array of its sub-components. The last is there even if it is empty. |
+| A component | An array of three elements: the name in lower case, an array of its properties and an array of its sub-components. The last is there even if it is empty. The reader rejects a component, property or parameter name, type identifier or RECUR key in any other case, such as `"SUMMARY"`. |
 | A property | An array: the name in lower case, an object holding the parameters, the type identifier, such as `"date-time"`, and the value or values. Names are converted to upper case when read. |
 | Parameters | An object whose keys are the parameter names in lower case. A parameter with more than one value, such as `DELEGATED-TO`, is an array of strings. |
 | The `VALUE` parameter | Not written, since the type identifier gives the type. When reading, it is added if the type isn't the property's default. |

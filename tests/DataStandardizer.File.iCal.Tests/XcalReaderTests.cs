@@ -147,6 +147,14 @@ namespace DataStandardizer.File.iCal.Tests
                 ("Components before properties", Document("<components/><^properties/>")),
                 ("Parameter without value", JournalDocument("<summary><parameters><^language/></parameters><text>Hi</text></summary>")),
                 ("Name not valid in iCalendar", JournalDocument("<^x_prop><unknown>a</unknown></x_prop>")),
+                // ref. RFC 6321 §3.3 to §3.5: components, properties and parameters are named in lower case; and recur parts (Appendix A).
+                ("Component name not in lower case", Document("<properties/><components><^VJOURNAL/></components>")),
+                ("Property name not in lower case", JournalDocument("<^SUMMARY><text>Hi</text></SUMMARY>")),
+                ("Property name in mixed case", JournalDocument("<^Summary><text>Hi</text></Summary>")),
+                ("Extension property name not in lower case", JournalDocument("<^X-PROP><unknown>a</unknown></X-PROP>")),
+                ("Parameter name not in lower case",
+                    JournalDocument("<summary><parameters><^LANGUAGE><text>en</text></LANGUAGE></parameters><text>Hi</text></summary>")),
+                ("Recur part name not in lower case", JournalDocument("<rrule><recur><^FREQ>DAILY</FREQ></recur></rrule>")),
                 ("Not well-formed", IcalendarStart + "\n<vcalendar></^icalendar>"),
             };
             var data = new TheoryData<string, string, long, long>();

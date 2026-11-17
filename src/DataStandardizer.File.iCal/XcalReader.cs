@@ -25,6 +25,9 @@ namespace DataStandardizer.File.iCal
     /// those <see cref="IcalReader"/> reads from the same data in <c>.ics</c> form, and can be written in either form.  In particular:
     /// </para>
     /// <list type="bullet">
+    /// <item><description>Component, property and parameter elements, and the rule part elements of a <c>recur</c> element, are named in lower
+    /// case (RFC 6321 §3.3 to §3.5 and Appendix A).  An element named in any other case, such as <c>SUMMARY</c>, does not follow the structure
+    /// of xCal.</description></item>
     /// <item><description>A value element whose type is not the property's default adds a <c>VALUE</c> parameter, after the other parameters
     /// (RFC 6321 §3.5.1).</description></item>
     /// <item><description>An <c>unknown</c> value element is kept as raw text, with no <c>VALUE</c> parameter (RFC 6321 §5).</description></item>

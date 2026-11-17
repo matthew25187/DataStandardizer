@@ -249,17 +249,37 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the iCalendar name for an element: its name in upper case (RFC 6321 §4).
         /// </summary>
-        /// <exception cref="IcalFileException">The name is not a valid iCalendar name.</exception>
+        /// <remarks>
+        /// ref. RFC 6321 §3.3, §3.4 and §3.5: a component, property or parameter element has the iCalendar name "but in lowercase", and XML
+        /// names are case-sensitive.  The rule parts of a recur element are named in lower case too (RFC 6321 Appendix A).
+        /// </remarks>
+        /// <exception cref="IcalFileException">The name is not an iCalendar name in lower case.</exception>
         internal static string ToIcalName(XcalElement element)
         {
-            var name = element.Name.ToUpperInvariant();
-            if (!IcalComponent.IsValidName(name))
+            if (!IsLowerCaseName(element.Name))
                 throw BuildException(
                     string.Format(CultureInfo.InvariantCulture,
-                        "The element name {0} is not a valid iCalendar name, which is one or more letters, digits and hyphens.", element.Name),
+                        "The element name {0} is not an xCal name, which is one or more lower-case letters, digits and hyphens: RFC 6321 §3.3 to §3.5.",
+                        element.Name),
                     element.LineNumber, element.LinePosition, null);
 
-            return name;
+            return element.Name.ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// Checks that text is an iCalendar name in lower case: one or more lower-case letters, digits and hyphens.  It is the form xCal and
+        /// jCal give names in (RFC 6321 §3.3 to §3.5, RFC 7265 §3.3 to §3.5).
+        /// </summary>
+        internal static bool IsLowerCaseName(string text)
+        {
+            if (text.Length == 0) return false;
+
+            foreach (var character in text)
+            {
+                if (!(character >= 'a' && character <= 'z' || character >= '0' && character <= '9' || character == '-')) return false;
+            }
+
+            return true;
         }
 
         /// <summary>

@@ -104,6 +104,13 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 7265§5.2: an unknown value is taken over without processing, and has no VALUE parameter.  A type identifier that is not
             // one of RFC 5545's is an extension value type, whose value is kept as it is.
             var typeName = items[2].Text;
+            // ref. RFC 7265 §3.4: the type identifier is "in lowercase".
+            if (!XcalConverter.IsLowerCaseName(typeName))
+                throw BuildException(items[2], name,
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The type identifier \"{0}\" of the {1} property is not a jCal name, which is one or more lower-case letters, digits and hyphens: " +
+                        "RFC 7265 §3.4.", typeName, name));
+
             IcalValueType valueType;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? extensionTypeName = null;
@@ -114,11 +121,6 @@ namespace DataStandardizer.File.iCal
                 !IcalValueFormatting.EqualsKeyword(typeName.AsSpan(), "UNKNOWN"))
             {
                 extensionTypeName = typeName.ToUpperInvariant();
-                if (!IcalComponent.IsValidName(extensionTypeName))
-                    throw BuildException(items[2], name,
-                        string.Format(CultureInfo.InvariantCulture,
-                            "The type identifier {0} of the {1} property is not a valid value type name, which is one or more letters, digits and hyphens.",
-                            typeName, name));
             }
 
             var values = new List<JcalNode>();
@@ -246,13 +248,15 @@ namespace DataStandardizer.File.iCal
         private static string ToIcalName(string text, JcalNode node, string propertyName, string kind)
 #endif
         {
-            var name = text.ToUpperInvariant();
-            if (!IcalComponent.IsValidName(name))
+            // ref. RFC 7265 §3.3, §3.4 and §3.5: component, property and parameter names are in lower case.  ref. §3.6.10: the key of a rule part
+            // "MUST be converted to lowercase".
+            if (!XcalConverter.IsLowerCaseName(text))
                 throw BuildException(node, propertyName,
                     string.Format(CultureInfo.InvariantCulture,
-                        "The {0} name \"{1}\" is not a valid iCalendar name, which is one or more letters, digits and hyphens.", kind, text));
+                        "The {0} name \"{1}\" is not a jCal name, which is one or more lower-case letters, digits and hyphens: RFC 7265 §3.3 to §3.6.",
+                        kind, text));
 
-            return name;
+            return text.ToUpperInvariant();
         }
 
         private static List<IcalContentLineParameter> ReadParameters(JcalNode parametersNode, string propertyName)
