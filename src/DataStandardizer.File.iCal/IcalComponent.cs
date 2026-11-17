@@ -392,19 +392,22 @@ namespace DataStandardizer.File.iCal
         // names the RFC 5545 section that requires it.
         internal void SetUtcDateTime(string name, IcalDateTime? value, string section)
         {
-            if (value.HasValue && value.Value.Kind != IcalDateTimeKind.Utc)
-                throw new ArgumentException(name + " must be in UTC (RFC 5545 §" + section + ").", nameof(value));
-
-            SetDateTime(name, value);
+            SetDateTimeOfKind(name, value, IcalDateTimeKind.Utc, "in UTC", section);
         }
 
         // Sets a property that RFC 5545 requires, in this component, to be a DATE-TIME in local time, with no "Z" and no TZID, rejecting a
         // UTC or zoned value before anything is changed.  section names the RFC 5545 section that requires it.
         internal void SetLocalDateTime(string name, IcalDateTime? value, string section)
         {
-            if (value.HasValue && value.Value.Kind != IcalDateTimeKind.Floating)
-                throw new ArgumentException(name + " must be in local time, with no UTC designator and no TZID (RFC 5545 §" + section + ").",
-                    nameof(value));
+            SetDateTimeOfKind(name, value, IcalDateTimeKind.Floating, "in local time, with no UTC designator and no TZID", section);
+        }
+
+        // Sets a property that RFC 5545 requires to be a DATE-TIME of one kind, rejecting a value of any other kind before anything is
+        // changed.  requirement describes the kind for the message, and section names the RFC 5545 section that requires it.
+        private void SetDateTimeOfKind(string name, IcalDateTime? value, IcalDateTimeKind kind, string requirement, string section)
+        {
+            if (value.HasValue && value.Value.Kind != kind)
+                throw new ArgumentException(name + " must be " + requirement + " (RFC 5545 §" + section + ").", nameof(value));
 
             SetDateTime(name, value);
         }

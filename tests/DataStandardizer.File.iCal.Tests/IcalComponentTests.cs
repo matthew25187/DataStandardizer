@@ -1168,12 +1168,17 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void TimeZoneObservanceDtStart_SetLocalOverZonedValue_DropsTheTimeZoneParameter()
+        public void TimeZoneObservanceDtStart_SetLocalOverZonedValue_DropsValueAndTimeZoneParametersKeepingOthers()
         {
             // arrange
             var observance = new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard);
             observance.Properties.Add(new IcalContentLine(DtStart,
-                new[] { new IcalContentLineParameter(TimeZoneIdParameter, AucklandTimeZoneId) }, StampLocalValue));
+                new[]
+                {
+                    new IcalContentLineParameter(VendorParameter, "keep"),
+                    new IcalContentLineParameter(ValueParameter, "DATE-TIME"),
+                    new IcalContentLineParameter(TimeZoneIdParameter, AucklandTimeZoneId),
+                }, StampLocalValue));
 
             // act
             observance.DtStart = StampLocal;
@@ -1181,7 +1186,7 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Value.Should().Be(StampLocalValue);
-            testResult.Parameters.Should().BeEmpty();
+            testResult.Parameters.Select(parameter => parameter.Name).Should().Equal(VendorParameter);
         }
 
         [Fact]

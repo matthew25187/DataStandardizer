@@ -78,7 +78,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
-        /// returns a DATE, floating or zoned value read from a file as it is; the default writer rejects it.  The getter throws
+        /// returns a DATE, floating or zoned value as it is, which a reader keeps and a writer accepts only with
+        /// <see cref="IcalOptions.AllowInvalidValues"/>.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         /// <exception cref="ArgumentException">The value set is a DATE, or a DATE-TIME that is floating or has a time zone; RFC 5545
@@ -111,7 +112,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
-        /// returns a DATE, floating or zoned value read from a file as it is; the default writer rejects it.  The getter throws
+        /// returns a DATE, floating or zoned value as it is, which a reader keeps and a writer accepts only with
+        /// <see cref="IcalOptions.AllowInvalidValues"/>.  The getter throws
         /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         /// <exception cref="ArgumentException">The value set is a DATE, or a DATE-TIME that is floating or has a time zone; RFC 5545
