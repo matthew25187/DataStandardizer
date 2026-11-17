@@ -50,8 +50,9 @@ namespace DataStandardizer.File.iCal
         /// Gets the components nested in this one, in order.
         /// </summary>
         /// <remarks>
-        /// The list does not accept <c>null</c>.  A component object belongs in one place only: <see cref="Validate"/> reports one that is in this
-        /// list twice, or in the lists of two components, as <see cref="IcalDiagnosticKind.InvalidComponentNesting"/>, and the writers refuse it.
+        /// The list does not accept <c>null</c>.  A component object belongs in one place only.  One that is in this list twice, or in the lists
+        /// of two components, is reported as <see cref="IcalDiagnosticKind.InvalidComponentNesting"/> by <see cref="Validate"/> on a component
+        /// that holds both places, such as the calendar, and the writers refuse the calendar.
         /// </remarks>
         public IList<IcalComponent> Components { get; }
 

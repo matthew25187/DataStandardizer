@@ -512,8 +512,7 @@ namespace DataStandardizer.File.iCal
                 indexes[child.Name] = ++index;
 
                 var childPath = GetChildPath(path, child.Name, index);
-                // IcalComponent does not override Equals, so this compares references.
-                if (context.Ancestors.Contains(child))
+                if (context.Ancestors.Contains(child, ComponentReferenceComparer.Instance))
                 {
                     // A model built in code can hold a component inside itself; checking it would never end.
                     context.Add(IcalDiagnosticKind.InvalidComponentNesting,

@@ -1196,9 +1196,9 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var component = new IcalComponent(NestedComponentName);
-            var first = new IcalComponent("X-B");
-            var second = new IcalComponent("X-C");
-            var shared = new IcalComponent("X-D");
+            var first = new IcalComponent(NestedComponentName);
+            var second = new IcalComponent(NestedComponentName);
+            var shared = new IcalComponent(NestedComponentName);
             component.Components.Add(first);
             component.Components.Add(second);
             first.Components.Add(shared);
@@ -1208,9 +1208,26 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = component.Validate();
 
             // assert
-            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.ToString())).Should().Equal(
-                (IcalDiagnosticKind.InvalidComponentNesting,
-                    "X-A/X-C[1]/X-D[1]: A X-D component is nested in more than one place; each place needs a component of its own."));
+            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(
+                (IcalDiagnosticKind.InvalidComponentNesting, "X-A/X-A[2]/X-A[1]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_DistinctComponentsThatAreEqual_ReturnsNothing()
+        {
+            // arrange
+            var component = new EqualToEveryComponent();
+            var first = new EqualToEveryComponent();
+            var second = new EqualToEveryComponent();
+            component.Components.Add(first);
+            component.Components.Add(second);
+            first.Components.Add(new EqualToEveryComponent());
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         [Fact]
@@ -1382,6 +1399,27 @@ namespace DataStandardizer.File.iCal.Tests
                 "COLOR:b");
             var options = new IcalOptions { AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true };
             return ReadCalendar(text, options);
+        }
+
+        /// <summary>
+        /// A <see cref="NestedComponentName"/> component that is equal to every other, so that a check comparing components with
+        /// <see cref="object.Equals(object)"/> instead of by reference would find each one nested in itself or in more than one place.
+        /// </summary>
+        private sealed class EqualToEveryComponent : IcalComponent
+        {
+            public EqualToEveryComponent() : base(NestedComponentName)
+            {
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is IcalComponent;
+            }
+
+            public override int GetHashCode()
+            {
+                return 0;
+            }
         }
     }
 }
