@@ -576,10 +576,11 @@ namespace DataStandardizer.File.iCal
         /// Formats a URI value (RFC 5545 §3.3.13), as the URI was given.
         /// </summary>
         /// <remarks>
-        /// The value is written as <see cref="Uri.OriginalString"/>, which must be a URI that <see cref="TryParseUri"/> accepts:
-        /// printable US-ASCII without spaces, starting with a scheme (RFC 3986 §2, §3.1).  Escape any other character before
-        /// creating the <see cref="Uri"/>, for example with <see cref="Uri.EscapeDataString"/>, and write an internationalized
-        /// host name in its ASCII form.
+        /// The value is written as <see cref="Uri.OriginalString"/>, which must be a URI that <see cref="TryParseUri"/> accepts.  It
+        /// starts with the URI's scheme, and every character is one that RFC 3986 §2 allows: printable US-ASCII other than space and
+        /// <c>" &lt; &gt; \ ^ ` { | }</c>.  Percent-encode any other character before creating the <see cref="Uri"/>, for example
+        /// with <see cref="Uri.EscapeDataString"/>, and give an internationalized host name in its ASCII form.  A <see cref="Uri"/>
+        /// made from a file path, such as <c>C:/temp/file.txt</c>, is not written; create it from a <c>file</c> URI instead.
         /// </remarks>
         /// <param name="value">The URI, which must be absolute.</param>
         /// <param name="destination">The span to write to.</param>
@@ -605,7 +606,7 @@ namespace DataStandardizer.File.iCal
         /// accepts.  Every path that writes a <see cref="Uri"/> uses this, so that the reader accepts whatever is written.
         /// </summary>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its text is not a URI.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its text is not a URI with the same scheme.</exception>
         internal static string FormatUriText(Uri value, string paramName)
         {
             if (value is null)
@@ -613,10 +614,22 @@ namespace DataStandardizer.File.iCal
             if (!value.IsAbsoluteUri)
                 throw new ArgumentException("The URI must be absolute.", paramName);
 
-            // ref. RFC 5545§3.3.13: uri = <As defined in Section 3 of [RFC3986]>.  The text is checked as the reader checks it.
+            // ref. RFC 5545§3.3.13: uri = <As defined in Section 3 of [RFC3986]>.  The text is checked as the reader checks it, so that
+            // the reader accepts it.  The text must also start with the URI's own scheme: a Uri made from a drive path such as
+            // C:/temp/file.txt has the file scheme, but its text would be read as a URI with the scheme "C".
             var text = value.OriginalString;
-            if (!IsUriText(text.AsSpan()) || !Uri.TryCreate(text, UriKind.Absolute, out _))
-                throw new ArgumentException("The URI must be printable US-ASCII without spaces, starting with a scheme (RFC 5545 §3.3.13, RFC 3986 §2).", paramName);
+            var scheme = value.Scheme;
+            if (!IsUriText(text.AsSpan())
+                || text.Length <= scheme.Length
+                || text[scheme.Length] != ':'
+                || string.Compare(text, 0, scheme, 0, scheme.Length, StringComparison.OrdinalIgnoreCase) != 0
+                || !Uri.TryCreate(text, UriKind.Absolute, out _))
+            {
+                throw new ArgumentException(
+                    "The URI must be written with its scheme and only the characters RFC 3986 section 2 allows: printable US-ASCII other "
+                    + "than space and \" < > \\ ^ ` { | } (RFC 5545 section 3.3.13).",
+                    paramName);
+            }
 
             return text;
         }
@@ -648,7 +661,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or its <see cref="Uri.OriginalString"/> is not a URI
+        /// that RFC 5545 §3.3.13 allows (see <see cref="TryFormatUri"/>).</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatCalAddress(Uri value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {

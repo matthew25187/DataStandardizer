@@ -29,8 +29,8 @@ namespace DataStandardizer.File.iCal.Tests
         private const string AucklandTimeZoneId = "Pacific/Auckland";
         private const string CalendarSource = "https://example.com/cal.ics";
 
-        // An absolute URI that the setters write as it was given, though System.Uri would normalise the scheme and host and add a path.
-        private const string UpperCaseUri = "HTTP://EXAMPLE.COM";
+        // ref. RFC 5545 §3.8.4.6: the URL property.
+        private const string UrlProperty = "URL";
 
         // Stamp, written as a DATE-TIME value.
         private const string StampValue = "20261015T090000Z";
@@ -471,7 +471,7 @@ namespace DataStandardizer.File.iCal.Tests
             calendar.Url = new Uri("https://example.com/");
 
             // assert
-            calendar.Properties.Should().ContainSingle(property => property.Name == "URL").Which.Parameters.Should().BeEmpty();
+            calendar.Properties.Should().ContainSingle(property => property.Name == UrlProperty).Which.Parameters.Should().BeEmpty();
         }
 
         [Fact]
@@ -494,27 +494,27 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = new IcalCalendar();
 
             // act
-            calendar.Url = new Uri(UpperCaseUri);
+            calendar.Url = new Uri(UriTestData.UpperCaseUri);
 
             // assert
-            calendar.Properties.Should().ContainSingle(property => property.Name == "URL").Which.Value.Should().Be(UpperCaseUri);
+            calendar.Properties.Should().ContainSingle(property => property.Name == UrlProperty).Which.Value.Should().Be(UriTestData.UpperCaseUri);
         }
 
         [Fact]
-        public void Url_GetAfterSetNotNormalizedUri_IsTheUri()
+        public void Url_GetAfterSetNotNormalizedUri_HasTheTextAsGiven()
         {
             // arrange
-            var calendar = new IcalCalendar { Url = new Uri(UpperCaseUri) };
+            var calendar = new IcalCalendar { Url = new Uri(UriTestData.UpperCaseUri) };
 
             // act
             var testResult = calendar.Url;
 
             // assert
-            testResult.Should().Be(new Uri(UpperCaseUri));
+            testResult.OriginalString.Should().Be(UriTestData.UpperCaseUri);
         }
 
         [Theory]
-        [MemberData(nameof(IcalValueTests.UriTextsNotAllowed), MemberType = typeof(IcalValueTests))]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
         public void Url_SetUriTextNotAllowed_ThrowsArgumentException(string value)
         {
             // arrange

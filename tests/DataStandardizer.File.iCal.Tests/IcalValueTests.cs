@@ -147,18 +147,6 @@ namespace DataStandardizer.File.iCal.Tests
             { "power of two, below 1", () => TwoToTheMinusTwentieth, "0.00000095367431640625" },
         };
 
-        // An absolute URI that is written as it was given, though System.Uri would normalise the scheme and host and add a path.
-        private const string UpperCaseUri = "HTTP://EXAMPLE.COM";
-
-        // ref. RFC 3986 §2: absolute URIs that System.Uri accepts but whose text is not a URI, because it has a space or a
-        // character outside US-ASCII.
-        public static TheoryData<string> UriTextsNotAllowed => new TheoryData<string>
-        {
-            "http://example.com/a b",
-            "http://b\x00FCcher.example/",
-            "http://example.com/caf\x00E9",
-        };
-
         // ref. RFC 5545 §3.3.13, §3.3.3: the examples of URI and CAL-ADDRESS values.
         public static TheoryData<string> Rfc5545Uris => new TheoryData<string>
         {
@@ -712,7 +700,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void TryFormatUri_NotNormalized_WritesItAsGiven()
         {
             // arrange
-            var uri = new Uri(UpperCaseUri);
+            var uri = new Uri(UriTestData.UpperCaseUri);
             var destination = new char[64];
 
             // act
@@ -720,11 +708,11 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().BeTrue();
-            new string(destination, 0, charsWritten).Should().Be(UpperCaseUri);
+            new string(destination, 0, charsWritten).Should().Be(UriTestData.UpperCaseUri);
         }
 
         [Theory]
-        [MemberData(nameof(UriTextsNotAllowed))]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
         public void TryFormatUri_TextNotAllowed_ThrowsArgumentException(string value)
         {
             // arrange
@@ -739,7 +727,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(UriTextsNotAllowed))]
+        [MemberData(nameof(UriTestData.UriTextsNotAllowed), MemberType = typeof(UriTestData))]
         public void TryFormatCalAddress_TextNotAllowed_ThrowsArgumentException(string value)
         {
             // arrange
