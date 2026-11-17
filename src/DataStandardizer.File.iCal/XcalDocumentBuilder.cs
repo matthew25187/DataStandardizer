@@ -178,8 +178,8 @@ namespace DataStandardizer.File.iCal
 
                     return StartComponent(localName, lineNumber, linePosition);
                 case FrameKind.Component:
-                    // ref. RFC 6321§3.2: a component holds a properties element and a components element.
-                    if (localName == XcalNames.Properties && !parent.HasProperties)
+                    // ref. RFC 6321§3.2 and Appendix A (3.6): a component holds a properties element, then a components element.
+                    if (localName == XcalNames.Properties && !parent.HasProperties && !parent.HasComponents)
                     {
                         parent.HasProperties = true;
                         return new Frame(FrameKind.Properties, localName);
@@ -191,7 +191,7 @@ namespace DataStandardizer.File.iCal
                         return new Frame(FrameKind.Components, localName);
                     }
 
-                    throw BuildUnexpectedElementException(localName, parent, "one properties element and one components element", lineNumber,
+                    throw BuildUnexpectedElementException(localName, parent, "one properties element, then one components element", lineNumber,
                         linePosition);
                 case FrameKind.Components:
                     return StartComponent(localName, lineNumber, linePosition);

@@ -88,7 +88,7 @@ come back spelled differently but with the same meaning:
 | BINARY | A `<binary>` element. When reading, `ENCODING=BASE64` is added if the property has no ENCODING parameter, as RFC 5545 requires. |
 | CATEGORIES, RESOURCES, EXDATE, RDATE and FREEBUSY | One value element for each item in the list. |
 | PERIOD | A `<period>` element with `<start>`, and `<end>` or `<duration>`. |
-| RECUR | A `<recur>` element with one element for each rule part, and one for each value of a BYxxx part. The writer puts the elements in the order RFC 6321 Appendix A gives them, with the values of `freq` and `wkst`, and the weekday of each `byday`, in upper case. Rule parts read from xCal keep their order, and `IcalWriter` writes FREQ first, as RFC 5545 §3.3.10 requires. |
+| RECUR | A `<recur>` element with one element for each rule part, and one for each value of a BYxxx part. The elements are in the order RFC 6321 Appendix A gives them, with the values of `freq` and `wkst`, and the weekday of each `byday`, in upper case. The writer writes them that way, and the reader requires it. |
 | GEO | `<latitude>` and `<longitude>` elements. |
 | REQUEST-STATUS | `<code>`, `<description>` and, if present, `<data>` elements. |
 
@@ -128,10 +128,15 @@ The checks are on by default, as they are for `.ics`:
 - **Invalid values:** a value element whose text isn't valid for its type is kept,
   and the check reports it unless `AllowInvalidValues` is set. When writing, a value
   that isn't valid for its type is written in an `<unknown>` element with its `VALUE`
-  parameter.
+  parameter. A value in the `.ics` form that xCal doesn't allow, such as
+  `<date-time>20110517T120000Z</date-time>` or `<freq>daily</freq>`, is reported the
+  same way.
 - **XML errors:** XML that isn't well-formed, or doesn't follow the structure of
   xCal, throws `IcalFileException`. The exception's `Data` holds the line of the XML
-  document under `LineNumber` and the position on that line under `LinePosition`. A
+  document under `LineNumber` and the position on that line under `LinePosition`.
+  That includes elements out of the order of RFC 6321 Appendix A: a `components`
+  element before `properties`, a `parameters` element after the value, and the
+  child elements of a `recur`, `period`, `geo` or `request-status` element. A
   document type definition (DTD) isn't allowed.
 
 ## Asynchronous reading and writing
