@@ -104,6 +104,12 @@ namespace DataStandardizer.File.iCal.Tests
         private const string InstanceFloatingStart = "DTSTART:20260112T090000";
         private const string InstanceDateStart = "DTSTART;VALUE=DATE:20260112";
         private const string InstancePath = "VCALENDAR/VEVENT[2]";
+        private const string TodoInstancePath = "VCALENDAR/VTODO[2]";
+        private const string JournalInstancePath = "VCALENDAR/VJOURNAL[2]";
+
+        // 09:00 in New York on 5 January 2026, and the instance of 12 January named in UTC: 09:00 EST is 14:00 UTC.
+        private const string SeriesNewYorkStart = "DTSTART;TZID=America/New_York:20260105T090000";
+        private const string InstanceNewYorkUtcRecurrenceId = "RECURRENCE-ID:20260112T140000Z";
         private const string RecurrenceId = "RECURRENCE-ID";
 
         public sealed class Case
@@ -286,6 +292,10 @@ namespace DataStandardizer.File.iCal.Tests
                 IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
             ["UtcRecurrenceIdForFloatingSeries"] = new Case(SeriesCalendar(SeriesFloatingStart, InstanceUtcRecurrenceId, InstanceFloatingStart),
                 IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["DateTimeRecurrenceIdForDateTodoSeries"] = new Case(ComponentSeriesCalendar(BeginTodo, EndTodo, SeriesDateStart, InstanceUtcRecurrenceId),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, TodoInstancePath),
+            ["DateTimeRecurrenceIdForDateJournalSeries"] = new Case(ComponentSeriesCalendar(BeginJournal, EndJournal, SeriesDateStart,
+                InstanceUtcRecurrenceId), IcalDiagnosticKind.InvalidValue, RecurrenceId, JournalInstancePath),
 
             ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath),
 
@@ -514,6 +524,11 @@ namespace DataStandardizer.File.iCal.Tests
                 SeriesCalendar(SeriesUtcStart, InstanceUtcRecurrenceId, InstanceDateStart),
                 SeriesCalendar(SeriesFloatingStart, InstanceFloatingRecurrenceId, InstanceUtcStart),
 
+                // ref. RFC 5545 §3.8.4.4: a date with UTC time and a date with local time and a time zone reference are both not "a date with
+                // local time", so either may name an instance of a series in the other form.
+                Calendar(IcalTestData.Lines(Rfc5545NewYorkTimeZone, new[] { BeginEvent, SeriesUid, NewYearStamp, SeriesNewYorkStart, WeeklyRule,
+                    EndEvent, BeginEvent, SeriesUid, NewYearStamp, InstanceNewYorkUtcRecurrenceId, "DTSTART:20260112T150000Z", EndEvent })),
+
                 // An instance with no recurring component in the calendar, as in an iTIP message, has nothing to be checked against.
                 Calendar(BeginEvent, SeriesUid, NewYearStamp, InstanceDateRecurrenceId, InstanceUtcStart, EndEvent),
 
@@ -536,8 +551,16 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         private static string SeriesCalendar(string seriesStart, params string[] instanceLines)
         {
-            return Calendar(IcalTestData.Lines(new[] { BeginEvent, SeriesUid, NewYearStamp, seriesStart, WeeklyRule, EndEvent, BeginEvent, SeriesUid,
-                NewYearStamp }, instanceLines, new[] { EndEvent }));
+            return ComponentSeriesCalendar(BeginEvent, EndEvent, seriesStart, instanceLines);
+        }
+
+        /// <summary>
+        /// Builds a calendar holding a weekly series of components with this DTSTART, and an instance of it with these lines.
+        /// </summary>
+        private static string ComponentSeriesCalendar(string begin, string end, string seriesStart, params string[] instanceLines)
+        {
+            return Calendar(IcalTestData.Lines(new[] { begin, SeriesUid, NewYearStamp, seriesStart, WeeklyRule, end, begin, SeriesUid, NewYearStamp },
+                instanceLines, new[] { end }));
         }
 
         /// <summary>

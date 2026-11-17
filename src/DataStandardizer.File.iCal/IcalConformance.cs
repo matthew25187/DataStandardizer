@@ -293,9 +293,9 @@ namespace DataStandardizer.File.iCal
                 context.IsCalendar = true;
                 context.HasMethod = root.GetProperty(IcalPropertyNames.Method) != null;
                 context.IsVersionWritten = isVersionWritten;
+                context.Calendar = root;
                 foreach (var timeZone in root.Components)
                 {
-                    context.AddRecurringComponent(timeZone);
                     if (!IsName(timeZone.Name, IcalComponentNames.TimeZone)) continue;
 
                     var offsets = GetOffsetRange(timeZone);
@@ -985,10 +985,11 @@ namespace DataStandardizer.File.iCal
             IcalDateOrDateTime recurrenceIdValue;
             if (recurrenceId is null || !TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue)) return;
 
-            var uid = component.GetProperty(IcalPropertyNames.Uid);
+            // Matched as the occurrence expander matches them, so that both find the same recurring component.
+            var uid = component.GetTextForMatching(IcalPropertyNames.Uid);
             if (uid is null) return;
 
-            var masterStart = context.GetRecurringStart(component.Name, GetTextOrRaw(uid));
+            var masterStart = context.GetRecurringStart(component.Name, uid);
             IcalDateOrDateTime masterStartValue;
             if (masterStart is null || !TryGetDateOrDateTime(masterStart, out masterStartValue)) return;
 
@@ -1567,6 +1568,8 @@ namespace DataStandardizer.File.iCal
             private readonly Dictionary<string, IcalComponent> _recurringComponents = new Dictionary<string, IcalComponent>(StringComparer.Ordinal);
 #endif
 
+            private bool _isRecurringRead;
+
             internal Context(List<IcalDiagnostic> diagnostics)
             {
                 _diagnostics = diagnostics;
@@ -1606,22 +1609,19 @@ namespace DataStandardizer.File.iCal
             internal HashSet<string> TimeZoneIds { get; }
 
             /// <summary>
-            /// Records a component of the calendar that an instance's <c>RECURRENCE-ID</c> can refer to: one with a <c>UID</c> and no
-            /// <c>RECURRENCE-ID</c>.  When the calendar has more than one such component with the same name and <c>UID</c>, it is not known
-            /// which of them an instance belongs to, so none of them is used.
+            /// Gets or sets the calendar checked, or <c>null</c> if the component checked is not a calendar.
             /// </summary>
-            internal void AddRecurringComponent(IcalComponent component)
-            {
-                var uid = component.GetProperty(IcalPropertyNames.Uid);
-                if (uid is null || component.GetProperty(IcalPropertyNames.RecurrenceId) != null) return;
-
-                var key = GetRecurringKey(component.Name, GetTextOrRaw(uid));
-                _recurringComponents[key] = _recurringComponents.ContainsKey(key) ? null : component;
-            }
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal IcalComponent? Calendar { get; set; }
+#else
+            internal IcalComponent Calendar { get; set; }
+#endif
 
             /// <summary>
             /// Gets the <c>DTSTART</c> of the one component of the calendar with a name and <c>UID</c> and no <c>RECURRENCE-ID</c>, or
-            /// <c>null</c> if there is no such component, more than one, or it has no <c>DTSTART</c>.
+            /// <c>null</c> if there is no such component, more than one, or it has no <c>DTSTART</c>.  When the calendar has more than one
+            /// such component, it is not known which of them an instance belongs to, so none of them is used.  The components are read when
+            /// first needed, so a calendar with no <c>RECURRENCE-ID</c> does not pay for them.
             /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal IcalContentLine? GetRecurringStart(string componentName, string uid)
@@ -1632,6 +1632,22 @@ namespace DataStandardizer.File.iCal
             {
                 IcalComponent component;
 #endif
+                if (!_isRecurringRead)
+                {
+                    _isRecurringRead = true;
+                    if (Calendar != null)
+                    {
+                        foreach (var candidate in Calendar.Components)
+                        {
+                            var candidateUid = candidate.GetTextForMatching(IcalPropertyNames.Uid);
+                            if (candidateUid is null || candidate.GetProperty(IcalPropertyNames.RecurrenceId) != null) continue;
+
+                            var key = GetRecurringKey(candidate.Name, candidateUid);
+                            _recurringComponents[key] = _recurringComponents.ContainsKey(key) ? null : candidate;
+                        }
+                    }
+                }
+
                 return _recurringComponents.TryGetValue(GetRecurringKey(componentName, uid), out component) && component != null
                     ? component.GetProperty(IcalPropertyNames.DtStart)
                     : null;
