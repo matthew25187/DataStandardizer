@@ -90,8 +90,8 @@ namespace DataStandardizer.File.iCal
         /// if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.2.1 requires COMPLETED to be in
         /// UTC.</exception>
@@ -118,8 +118,8 @@ namespace DataStandardizer.File.iCal
         /// <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.1 requires CREATED to be in
         /// UTC.</exception>
@@ -151,8 +151,8 @@ namespace DataStandardizer.File.iCal
         /// information last revised; or <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.2 requires DTSTAMP to be in
         /// UTC.</exception>
@@ -217,8 +217,8 @@ namespace DataStandardizer.File.iCal
         /// <c>null</c> if there is none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// The <c>VALUE</c> and <c>TZID</c> parameters are read with the value, and a value set is written without them.  The getter
+        /// throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         /// <exception cref="ArgumentException">The value set is floating or has a time zone; RFC 5545 §3.8.7.3 requires LAST-MODIFIED to be in
         /// UTC.</exception>

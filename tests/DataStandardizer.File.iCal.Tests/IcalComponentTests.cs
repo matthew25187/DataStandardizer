@@ -18,6 +18,10 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Comment = "COMMENT";
         private const string Categories = "CATEGORIES";
         private const string DtStart = "DTSTART";
+        private const string CreatedProperty = "CREATED";
+        private const string DtStampProperty = "DTSTAMP";
+        private const string LastModifiedProperty = "LAST-MODIFIED";
+        private const string CompletedProperty = "COMPLETED";
         private const string RecurrenceRule = "RRULE";
         private const string ValueParameter = "VALUE";
         private const string VendorParameter = "X-VENDOR";
@@ -765,8 +769,8 @@ namespace DataStandardizer.File.iCal.Tests
             alarm.Properties.Should().NotContain(property => property.Name == Trigger);
         }
 
-        // A floating date-time and a zoned one, neither of them in UTC.  RFC 5545 §3.8.6.3: an absolute TRIGGER "MUST be specified in UTC
-        // time format".
+        // A floating date-time and a zoned one, neither of them in UTC, which RFC 5545 requires of an absolute TRIGGER (§3.8.6.3) and of
+        // every property in UtcDateTimeAccessors.
         public static TheoryData<IcalDateTime> NonUtcDateTimes => new TheoryData<IcalDateTime>
         {
             new IcalDateTime(StampDate, StampLocalTime),
@@ -810,16 +814,19 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public sealed class UtcDateTimeAccessor
         {
-            public UtcDateTimeAccessor(string name, Func<IcalComponent> createComponent, Action<IcalComponent, IcalDateTime?> setValue,
-                Func<IcalComponent, IcalDateTime?> getValue)
+            public UtcDateTimeAccessor(string name, string propertyName, Func<IcalComponent> createComponent,
+                Action<IcalComponent, IcalDateTime?> setValue, Func<IcalComponent, IcalDateTime?> getValue)
             {
                 Name = name;
+                PropertyName = propertyName;
                 CreateComponent = createComponent;
                 SetValue = setValue;
                 GetValue = getValue;
             }
 
             public string Name { get; }
+
+            public string PropertyName { get; }
 
             public Func<IcalComponent> CreateComponent { get; }
 
@@ -834,31 +841,31 @@ namespace DataStandardizer.File.iCal.Tests
         // in the UTC time format".  RFC 7986 §5.4 gives VCALENDAR the same LAST-MODIFIED property.
         private static readonly UtcDateTimeAccessor[] UtcDateTimeAccessors =
         {
-            new UtcDateTimeAccessor("IcalCalendar.LastModified", () => new IcalCalendar(),
+            new UtcDateTimeAccessor("IcalCalendar.LastModified", LastModifiedProperty, () => new IcalCalendar(),
                 (component, value) => ((IcalCalendar)component).LastModified = value, component => ((IcalCalendar)component).LastModified),
-            new UtcDateTimeAccessor("IcalEvent.Created", () => new IcalEvent(),
+            new UtcDateTimeAccessor("IcalEvent.Created", CreatedProperty, () => new IcalEvent(),
                 (component, value) => ((IcalEvent)component).Created = value, component => ((IcalEvent)component).Created),
-            new UtcDateTimeAccessor("IcalEvent.DtStamp", () => new IcalEvent(),
+            new UtcDateTimeAccessor("IcalEvent.DtStamp", DtStampProperty, () => new IcalEvent(),
                 (component, value) => ((IcalEvent)component).DtStamp = value, component => ((IcalEvent)component).DtStamp),
-            new UtcDateTimeAccessor("IcalEvent.LastModified", () => new IcalEvent(),
+            new UtcDateTimeAccessor("IcalEvent.LastModified", LastModifiedProperty, () => new IcalEvent(),
                 (component, value) => ((IcalEvent)component).LastModified = value, component => ((IcalEvent)component).LastModified),
-            new UtcDateTimeAccessor("IcalFreeBusy.DtStamp", () => new IcalFreeBusy(),
+            new UtcDateTimeAccessor("IcalFreeBusy.DtStamp", DtStampProperty, () => new IcalFreeBusy(),
                 (component, value) => ((IcalFreeBusy)component).DtStamp = value, component => ((IcalFreeBusy)component).DtStamp),
-            new UtcDateTimeAccessor("IcalJournal.Created", () => new IcalJournal(),
+            new UtcDateTimeAccessor("IcalJournal.Created", CreatedProperty, () => new IcalJournal(),
                 (component, value) => ((IcalJournal)component).Created = value, component => ((IcalJournal)component).Created),
-            new UtcDateTimeAccessor("IcalJournal.DtStamp", () => new IcalJournal(),
+            new UtcDateTimeAccessor("IcalJournal.DtStamp", DtStampProperty, () => new IcalJournal(),
                 (component, value) => ((IcalJournal)component).DtStamp = value, component => ((IcalJournal)component).DtStamp),
-            new UtcDateTimeAccessor("IcalJournal.LastModified", () => new IcalJournal(),
+            new UtcDateTimeAccessor("IcalJournal.LastModified", LastModifiedProperty, () => new IcalJournal(),
                 (component, value) => ((IcalJournal)component).LastModified = value, component => ((IcalJournal)component).LastModified),
-            new UtcDateTimeAccessor("IcalTimeZone.LastModified", () => new IcalTimeZone(),
+            new UtcDateTimeAccessor("IcalTimeZone.LastModified", LastModifiedProperty, () => new IcalTimeZone(),
                 (component, value) => ((IcalTimeZone)component).LastModified = value, component => ((IcalTimeZone)component).LastModified),
-            new UtcDateTimeAccessor("IcalTodo.Completed", () => new IcalTodo(),
+            new UtcDateTimeAccessor("IcalTodo.Completed", CompletedProperty, () => new IcalTodo(),
                 (component, value) => ((IcalTodo)component).Completed = value, component => ((IcalTodo)component).Completed),
-            new UtcDateTimeAccessor("IcalTodo.Created", () => new IcalTodo(),
+            new UtcDateTimeAccessor("IcalTodo.Created", CreatedProperty, () => new IcalTodo(),
                 (component, value) => ((IcalTodo)component).Created = value, component => ((IcalTodo)component).Created),
-            new UtcDateTimeAccessor("IcalTodo.DtStamp", () => new IcalTodo(),
+            new UtcDateTimeAccessor("IcalTodo.DtStamp", DtStampProperty, () => new IcalTodo(),
                 (component, value) => ((IcalTodo)component).DtStamp = value, component => ((IcalTodo)component).DtStamp),
-            new UtcDateTimeAccessor("IcalTodo.LastModified", () => new IcalTodo(),
+            new UtcDateTimeAccessor("IcalTodo.LastModified", LastModifiedProperty, () => new IcalTodo(),
                 (component, value) => ((IcalTodo)component).LastModified = value, component => ((IcalTodo)component).LastModified),
         };
 
@@ -901,6 +908,22 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be(Stamp);
+        }
+
+        [Theory]
+        [MemberData(nameof(UtcDateTimeProperties))]
+        public void UtcDateTimeProperty_SetNull_RemovesTheProperty(UtcDateTimeAccessor accessor)
+        {
+            // arrange
+            var component = accessor.CreateComponent();
+            accessor.SetValue(component, Stamp);
+
+            // act
+            accessor.SetValue(component, null);
+            var testResult = component.Properties;
+
+            // assert
+            testResult.Should().NotContain(property => property.Name == accessor.PropertyName);
         }
 
         [Theory]
