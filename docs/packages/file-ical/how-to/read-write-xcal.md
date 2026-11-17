@@ -81,7 +81,7 @@ come back spelled differently but with the same meaning:
 
 | iCalendar | xCal |
 | --- | --- |
-| Component, property and parameter names | The same names in lower case, in the namespace `urn:ietf:params:xml:ns:icalendar-2.0`. Names are converted to upper case when read. |
+| Component, property and parameter names | The same names in lower case, in the namespace `urn:ietf:params:xml:ns:icalendar-2.0`. Names are converted to upper case when read. The reader rejects a name in any other case, such as `<SUMMARY>`, and so a rule part element of a `<recur>` such as `<FREQ>`. |
 | A value | An element named for its value type, such as `<date-time>2011-05-17T12:00:00Z</date-time>`. Dates, times and UTC offsets use the extended forms of XML Schema. |
 | The `VALUE` parameter | Not written, since the value element gives the type. When reading, it is added if the type isn't the property's default. |
 | A value whose type isn't known, such as `X-FOO` with no `VALUE` | An `<unknown>` element holding the raw text, so it converts without loss. |

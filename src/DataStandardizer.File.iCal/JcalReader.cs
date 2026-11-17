@@ -26,6 +26,8 @@ namespace DataStandardizer.File.iCal
     /// written in either form.  In particular:
     /// </para>
     /// <list type="bullet">
+    /// <item><description>Component, property and parameter names, type identifiers and the keys of a RECUR object are in lower case (RFC 7265
+    /// §3.3 to §3.5 and §3.6.10).  A name in any other case, such as <c>SUMMARY</c>, does not follow the structure of jCal.</description></item>
     /// <item><description>A value whose type identifier is not the property's default adds a <c>VALUE</c> parameter, after the other parameters
     /// (RFC 7265 §3.5.1).</description></item>
     /// <item><description>A value with the <c>unknown</c> type is kept as raw text, with no <c>VALUE</c> parameter (RFC 7265 §5).  A type

@@ -249,17 +249,23 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the iCalendar name for an element: its name in upper case (RFC 6321 §4).
         /// </summary>
-        /// <exception cref="IcalFileException">The name is not a valid iCalendar name.</exception>
-        internal static string ToIcalName(XcalElement element)
+        /// <remarks>
+        /// ref. RFC 6321 §3.3, §3.4 and §3.5: a component, property or parameter element has the iCalendar name "but in lowercase", and XML
+        /// names are case-sensitive.  The rule parts of a recur element are named in lower case too (RFC 6321 Appendix A).
+        /// </remarks>
+        /// <param name="element">The element.</param>
+        /// <param name="rule">The rule that names the element in lower case, cited in the exception message.</param>
+        /// <exception cref="IcalFileException">The name is not an iCalendar name in lower case.</exception>
+        internal static string ToIcalName(XcalElement element, string rule = "RFC 6321 §3.3 to §3.5")
         {
-            var name = element.Name.ToUpperInvariant();
-            if (!IcalComponent.IsValidName(name))
+            if (!IcalComponent.IsLowerCaseName(element.Name))
                 throw BuildException(
                     string.Format(CultureInfo.InvariantCulture,
-                        "The element name {0} is not a valid iCalendar name, which is one or more letters, digits and hyphens.", element.Name),
+                        "The element name {0} is not an xCal name, which is one or more lower-case letters, digits and hyphens: {1}.",
+                        element.Name, rule),
                     element.LineNumber, element.LinePosition, null);
 
-            return name;
+            return element.Name.ToUpperInvariant();
         }
 
         /// <summary>
@@ -424,11 +430,12 @@ namespace DataStandardizer.File.iCal
             var seenRankedPart = false;
             foreach (var part in recur.Children)
             {
+                // ref. RFC 6321 Appendix A (3.3.10): the rule parts are named in lower case, so an upper-case FREQ is not a rule part.
+                var name = ToIcalName(part, "RFC 6321 Appendix A (3.3.10)");
                 CheckNoChildren(part, propertyName);
 
                 // ref. RFC 6321 Appendix A (3.3.10): value-recur is a sequence, so the rule parts are in its order, with UNTIL and COUNT in
-                // one place, and only the BYxxx parts repeat.  An element it does not name, such as an upper-case FREQ (#1015), is not
-                // checked here.
+                // one place, and only the BYxxx parts repeat.
                 var rank = GetRecurPartRank(part.Name);
                 if (rank >= 0 && rank < lastRank)
                     throw BuildException(part, propertyName,
@@ -447,7 +454,6 @@ namespace DataStandardizer.File.iCal
                     lastRank = rank;
                     seenRankedPart = true;
                 }
-                var name = ToIcalName(part);
                 var value = IcalValueFormatting.TrimXmlWhitespace(part.Text.AsSpan()).ToString();
                 if (part.Name == XcalNames.Until)
                 {
