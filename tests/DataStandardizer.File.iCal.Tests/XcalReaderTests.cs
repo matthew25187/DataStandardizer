@@ -22,6 +22,15 @@ namespace DataStandardizer.File.iCal.Tests
         // ref. RFC 6321 §3.6.6: a DURATION with lower-case designators, which the iCalendar text form allows (RFC 5545 §3.3.6) but xCal does not.
         private const string LowerCaseDurationProperty = "<duration><duration>pt1h</duration></duration>";
 
+        // ref. RFC 6321 Appendix A (3.3.10): a recur element with a child for every rule part but UNTIL, in the order of value-recur.
+        private const string EveryRecurPartInOrderProperty =
+            "<x-property><recur><freq>YEARLY</freq><count>5</count><interval>2</interval><bysecond>1</bysecond><byminute>2</byminute>" +
+            "<byhour>3</byhour><byday>SU</byday><bymonthday>4</bymonthday><byyearday>5</byyearday><byweekno>6</byweekno><bymonth>7</bymonth>" +
+            "<bysetpos>1</bysetpos><wkst>MO</wkst></recur></x-property>";
+
+        // ref. RFC 6321 Appendix A (3.3.10): a FREQ in lower case, which the iCalendar text form allows (RFC 5545 §3.1) but type-freq does not.
+        private const string LowerCaseFrequencyProperty = "<rrule><recur><freq>daily</freq></recur></rrule>";
+
         private const string CafeSummary = "<summary><text>Caf\xE9</text></summary>";
 
         // A journal document with CafeSummary that declares UTF-8, and one with a document type definition that declares an entity.
@@ -117,7 +126,25 @@ namespace DataStandardizer.File.iCal.Tests
                 ("Text in property", JournalDocument("<^summary>Hi</summary>")),
                 ("Period without end", JournalDocument("<rdate><^period><start>2026-01-01T00:00:00Z</start></period></rdate>")),
                 ("Empty recur", JournalDocument("<rrule><^recur/></rrule>")),
+                // ref. RFC 6321 Appendix A (3.3.9, 3.3.10, 3.6, 3.8.1.6, 3.8.8.3): the children of these elements are sequences, in order.
+                ("Recur count before freq", JournalDocument("<x-property><recur><count>5</count><^freq>DAILY</freq></recur></x-property>")),
+                ("Recur until after interval", JournalDocument("<rrule><recur><freq>DAILY</freq><interval>2</interval><^until>2026-01-01</until></recur></rrule>")),
+                ("Recur byday after bymonth", JournalDocument("<rrule><recur><freq>YEARLY</freq><bymonth>1</bymonth><^byday>MO</byday></recur></rrule>")),
+                ("Recur byday after wkst", JournalDocument("<rrule><recur><freq>WEEKLY</freq><wkst>SU</wkst><^byday>MO</byday></recur></rrule>")),
+                ("Recur freq repeated", JournalDocument("<rrule><recur><freq>DAILY</freq><^freq>WEEKLY</freq></recur></rrule>")),
+                ("Recur until and count", JournalDocument("<rrule><recur><freq>DAILY</freq><until>2026-01-01</until><^count>5</count></recur></rrule>")),
+                ("Recur interval repeated", JournalDocument("<rrule><recur><freq>DAILY</freq><interval>2</interval><^interval>3</interval></recur></rrule>")),
+                ("Recur wkst repeated", JournalDocument("<rrule><recur><freq>WEEKLY</freq><wkst>SU</wkst><^wkst>MO</wkst></recur></rrule>")),
+                ("Period end before start", JournalDocument("<rdate><period><^end>2026-01-01T01:00:00Z</end><start>2026-01-01T00:00:00Z</start></period></rdate>")),
+                ("Period duration before start", JournalDocument("<rdate><period><^duration>PT1H</duration><start>2026-01-01T00:00:00Z</start></period></rdate>")),
                 ("Geo without longitude", JournalDocument("<geo><^latitude>1.5</latitude></geo>")),
+                ("Geo longitude before latitude", JournalDocument("<geo><longitude>1.5</longitude><^latitude>2.5</latitude></geo>")),
+                ("Request status description before code",
+                    JournalDocument("<request-status><description>Success</description><^code>2.0</code></request-status>")),
+                ("Request status data before description",
+                    JournalDocument("<request-status><code>2.0</code><data>a</data><^description>Success</description></request-status>")),
+                ("Parameters after value", JournalDocument("<summary><text>Hi</text><^parameters><language><text>en</text></language></parameters></summary>")),
+                ("Components before properties", Document("<components/><^properties/>")),
                 ("Parameter without value", JournalDocument("<summary><parameters><^language/></parameters><text>Hi</text></summary>")),
                 ("Name not valid in iCalendar", JournalDocument("<^x_prop><unknown>a</unknown></x_prop>")),
                 ("Not well-formed", IcalendarStart + "\n<vcalendar></^icalendar>"),
@@ -270,6 +297,8 @@ namespace DataStandardizer.File.iCal.Tests
             "X-PROPERTY;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
         [InlineData("<x-property><recur><freq>WEEKLY</freq><until>2011-05-17</until><byday>MO</byday><byday>-1FR</byday><wkst>SU</wkst></recur></x-property>",
             "X-PROPERTY;VALUE=RECUR:FREQ=WEEKLY;UNTIL=20110517;BYDAY=MO,-1FR;WKST=SU")]
+        [InlineData(EveryRecurPartInOrderProperty,
+            "X-PROPERTY;VALUE=RECUR:FREQ=YEARLY;COUNT=5;INTERVAL=2;BYSECOND=1;BYMINUTE=2;BYHOUR=3;BYDAY=SU;BYMONTHDAY=4;BYYEARDAY=5;BYWEEKNO=6;BYMONTH=7;BYSETPOS=1;WKST=MO")]
         [InlineData("<x-property><text>a,b;c\\d\ne</text></x-property>", "X-PROPERTY;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
         [InlineData("<x-property><time>12:00:00Z</time></x-property>", "X-PROPERTY;VALUE=TIME:120000Z")]
         [InlineData("<x-property><uri>http://example.com/</uri></x-property>", "X-PROPERTY;VALUE=URI:http://example.com/")]
@@ -950,6 +979,71 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be("DURATION:pt1h");
+        }
+
+        // ref. RFC 6321 Appendix A (3.3.10): type-freq and type-weekday are upper-case strings, though the iCalendar text form allows any case
+        // (RFC 5545 §3.1).
+        [Theory]
+        [InlineData(LowerCaseFrequencyProperty)]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><byday>mo</byday></recur></rrule>")]
+        [InlineData("<rrule><recur><freq>MONTHLY</freq><byday>-1Fr</byday></recur></rrule>")]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><wkst>su</wkst></recur></rrule>")]
+        public void ReadCalendar_LowerCaseRecurKeywordByDefault_ThrowsInvalidValue(string property)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
+            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("RRULE");
+        }
+
+        [Fact]
+        public void ReadCalendar_LowerCaseFrequencyByDefault_ThrowsNotInXcalForm()
+        {
+            // arrange
+            var xml = JournalDocument(LowerCaseFrequencyProperty);
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>()
+                .WithMessage("The RRULE property has a RECUR value with a lower-case FREQ, WKST or BYDAY weekday, which xCal does not allow (RFC 6321 Appendix A (3.3.10)).");
+        }
+
+        [Theory]
+        [InlineData(LowerCaseFrequencyProperty, "RRULE:FREQ=daily")]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><byday>mo</byday></recur></rrule>", "RRULE:FREQ=WEEKLY;BYDAY=mo")]
+        [InlineData("<rrule><recur><freq>MONTHLY</freq><byday>-1Fr</byday></recur></rrule>", "RRULE:FREQ=MONTHLY;BYDAY=-1Fr")]
+        [InlineData("<rrule><recur><freq>WEEKLY</freq><wkst>su</wkst></recur></rrule>", "RRULE:FREQ=WEEKLY;WKST=su")]
+        public void ReadCalendar_LowerCaseRecurKeywordAllowed_KeepsTheValue(string property, string expected)
+        {
+            // arrange
+            var xml = JournalDocument(property);
+
+            // act
+            var testResult = FormatLine(JournalProperty(ReadXcal(xml, new IcalOptions { AllowInvalidValues = true }).Single()));
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadCalendar_RecurNotValidInEitherForm_ThrowsNotValidRecur()
+        {
+            // arrange: a frequency that RFC 5545 §3.3.10 does not define, in any case.
+            var xml = JournalDocument("<rrule><recur><freq>dayly</freq></recur></rrule>");
+
+            // act
+            Action testAction = () => ReadXcal(xml);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("The value of the RRULE property is not a valid RECUR.");
         }
 
         [Fact]

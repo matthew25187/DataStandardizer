@@ -42,9 +42,12 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static readonly string[] RecurPartNames =
         {
-            FrequencyPartName, XcalNames.Until, "count", "interval", "bysecond", "byminute", "byhour", ByDayPartName, "bymonthday", "byyearday",
+            FrequencyPartName, XcalNames.Until, CountPartName, IntervalPartName, "bysecond", "byminute", "byhour", ByDayPartName, "bymonthday", "byyearday",
             "byweekno", "bymonth", "bysetpos", WeekStartPartName
         };
+
+        private const string CountPartName = "count";
+        private const string IntervalPartName = "interval";
 
         /// <summary>
         /// The parameters whose value is a URI (RFC 6321 Appendix A §3.2).
@@ -120,6 +123,12 @@ namespace DataStandardizer.File.iCal
                 {
                     if (hasParameters)
                         throw BuildException(child, name, "A property can have only one parameters element.");
+
+                    // ref. RFC 6321 Appendix A: each property is an optional parameters element, then its value.
+                    if (values.Count != 0)
+                        throw BuildException(child, name,
+                            string.Format(CultureInfo.InvariantCulture,
+                                "The parameters element of the {0} property must come before its value: RFC 6321 Appendix A.", name));
 
                     hasParameters = true;
                     parameterProblem = ReadParameters(child, name, parameters);
@@ -217,6 +226,13 @@ namespace DataStandardizer.File.iCal
                             if (IcalConversionCheck.IsTextFormOnly(until, IcalValueType.DateTime, IcalValueFormat.Xml))
                                 return IcalConversionCheck.BuildProblem(propertyName, IcalValueType.DateTime, IcalValueFormat.Xml);
                         }
+
+                        // ref. RFC 6321 Appendix A (3.3.10): FREQ and WKST, and the weekday of BYDAY, are upper case.  A rule that is not valid
+                        // in the text form either is left to the conformance check.
+                        if (HasLowerCaseKeyword(value) && IcalRecurrenceRule.TryParse(ReadRecur(value, propertyName).AsSpan(), IcalValueFormat.Text, out _))
+                            return string.Format(CultureInfo.InvariantCulture,
+                                "The {0} property has a RECUR value with a lower-case FREQ, WKST or BYDAY weekday, which xCal does not allow " +
+                                "(RFC 6321 Appendix A (3.3.10)).", propertyName);
 
                         break;
                     default:
@@ -361,7 +377,7 @@ namespace DataStandardizer.File.iCal
 
         private static string ReadPeriod(XcalElement period, string propertyName)
         {
-            // ref. RFC 6321§3.6.9: a start, and an end or a duration.
+            // ref. RFC 6321§3.6.9 and Appendix A (3.3.9): a start, then an end or a duration.
             CheckNoText(period, propertyName);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             XcalElement? start = null, end = null;
@@ -371,19 +387,20 @@ namespace DataStandardizer.File.iCal
             foreach (var part in period.Children)
             {
                 CheckNoChildren(part, propertyName);
-                if (part.Name == XcalNames.Start && start is null)
+                if (part.Name == XcalNames.Start && start is null && end is null)
                 {
                     start = part;
                 }
-                else if ((part.Name == XcalNames.End || part.Name == XcalNames.Duration) && end is null)
+                else if ((part.Name == XcalNames.End || part.Name == XcalNames.Duration) && start != null && end is null)
                 {
                     end = part;
                 }
                 else
                 {
                     throw BuildException(part, propertyName,
-                        string.Format(CultureInfo.InvariantCulture, "The {0} element is not expected in a period, which has a start and an end or a duration.",
-                            part.Name));
+                        string.Format(CultureInfo.InvariantCulture,
+                            "The {0} element is not expected here in a period, which has a start element, then an end or a duration element: " +
+                            "RFC 6321 Appendix A (3.3.9).", part.Name));
                 }
             }
 
@@ -403,9 +420,33 @@ namespace DataStandardizer.File.iCal
                 throw BuildException(recur, propertyName, "A recur element must have a child element for each rule part.");
 
             var parts = new List<KeyValuePair<string, StringBuilder>>();
+            var lastRank = 0;
+            var seenRankedPart = false;
             foreach (var part in recur.Children)
             {
                 CheckNoChildren(part, propertyName);
+
+                // ref. RFC 6321 Appendix A (3.3.10): value-recur is a sequence, so the rule parts are in its order, with UNTIL and COUNT in
+                // one place, and only the BYxxx parts repeat.  An element it does not name, such as an upper-case FREQ (#1015), is not
+                // checked here.
+                var rank = GetRecurPartRank(part.Name);
+                if (rank >= 0 && rank < lastRank)
+                    throw BuildException(part, propertyName,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "The {0} element is out of order in a recur element, whose rule parts are in the order {1}: RFC 6321 Appendix A (3.3.10).",
+                            part.Name, string.Join(", ", RecurPartNames)));
+
+                if (rank >= 0 && rank == lastRank && seenRankedPart && !IsRepeatableRecurPart(part.Name))
+                    throw BuildException(part, propertyName,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "The {0} element is repeated in a recur element, which can have only one freq, one until or count, one interval and one " +
+                            "wkst: RFC 6321 Appendix A (3.3.10).", part.Name));
+
+                if (rank >= 0)
+                {
+                    lastRank = rank;
+                    seenRankedPart = true;
+                }
                 var name = ToIcalName(part);
                 var value = IcalValueFormatting.TrimXmlWhitespace(part.Text.AsSpan()).ToString();
                 if (part.Name == XcalNames.Until)
@@ -427,11 +468,55 @@ namespace DataStandardizer.File.iCal
             return string.Join(";", parts.Select(pair => pair.Key + "=" + pair.Value));
         }
 
+        /// <summary>
+        /// Gets the place of a child element of a <c>recur</c> element in the order of RFC 6321 Appendix A (3.3.10), where <c>until</c> and
+        /// <c>count</c> share a place; or -1 if the element is not one of its rule parts.
+        /// </summary>
+        private static int GetRecurPartRank(string name)
+        {
+            // ref. RFC 6321 Appendix A (3.3.10): (type-until | type-count)? is one item of the sequence.  The ranks need only increase
+            // along the sequence, so COUNT takes the rank of UNTIL and its own index is left unused.
+            return Array.IndexOf(RecurPartNames, name == CountPartName ? XcalNames.Until : name);
+        }
+
+        /// <summary>
+        /// Determines whether a child element of a <c>recur</c> element may repeat: the BYxxx rule parts, one element for each value
+        /// (RFC 6321 Appendix A (3.3.10)).
+        /// </summary>
+        private static bool IsRepeatableRecurPart(string name)
+        {
+            return name != FrequencyPartName && name != XcalNames.Until && name != CountPartName && name != IntervalPartName &&
+                   name != WeekStartPartName;
+        }
+
+        /// <summary>
+        /// Determines whether a <c>recur</c> element has a <c>freq</c> or <c>wkst</c> value, or the weekday of a <c>byday</c> value, with a
+        /// lower-case letter.  RFC 5545 §3.1 makes the enumerated values of a rule case-insensitive, but in xCal they are the upper-case
+        /// strings of <c>type-freq</c> and <c>type-weekday</c> (RFC 6321 Appendix A (3.3.10)).
+        /// </summary>
+        private static bool HasLowerCaseKeyword(XcalElement recur)
+        {
+            foreach (var part in recur.Children)
+            {
+                if (part.Name != FrequencyPartName && part.Name != WeekStartPartName && part.Name != ByDayPartName) continue;
+
+                foreach (var character in IcalValueFormatting.TrimXmlWhitespace(part.Text.AsSpan()))
+                {
+                    if (character >= 'a' && character <= 'z') return true;
+                }
+            }
+
+            return false;
+        }
+
         private static string ReadGeo(List<XcalElement> values, string propertyName)
         {
             // ref. RFC 6321§3.4.1.2: a latitude element and a longitude element, each holding a FLOAT.
             var latitude = GetRequiredPart(values, XcalNames.Latitude, propertyName);
             var longitude = GetRequiredPart(values, XcalNames.Longitude, propertyName);
+
+            // ref. RFC 6321 Appendix A (3.8.1.6): latitude, then longitude.
+            CheckPartOrder(values, propertyName, "3.8.1.6", XcalNames.Latitude, XcalNames.Longitude);
             return ToText(IcalValueType.Float, latitude.Text, latitude, propertyName) + ";" +
                    ToText(IcalValueType.Float, longitude.Text, longitude, propertyName);
         }
@@ -442,6 +527,9 @@ namespace DataStandardizer.File.iCal
             var code = GetRequiredPart(values, XcalNames.Code, propertyName);
             var description = GetRequiredPart(values, XcalNames.Description, propertyName);
             var data = GetPart(values, XcalNames.Data, propertyName);
+
+            // ref. RFC 6321 Appendix A (3.8.8.3): code, description, then any data.
+            CheckPartOrder(values, propertyName, "3.8.8.3", XcalNames.Code, XcalNames.Description, XcalNames.Data);
             var text = ToText(IcalValueType.Text, code.Text, code, propertyName) + ";" +
                        ToText(IcalValueType.Text, description.Text, description, propertyName);
             return data is null ? text : text + ";" + ToText(IcalValueType.Text, data.Text, data, propertyName);
@@ -470,6 +558,29 @@ namespace DataStandardizer.File.iCal
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// Checks that the elements of a structured value are in the order of its sequence in RFC 6321 Appendix A.
+        /// </summary>
+        /// <param name="values">The elements, each of which is one of <paramref name="partNames"/>, once.</param>
+        /// <param name="propertyName">The name of the property.</param>
+        /// <param name="schemaSection">The number of the comment in Appendix A that defines the property.</param>
+        /// <param name="partNames">The names of the elements, in order.</param>
+        /// <exception cref="IcalFileException">An element comes before one that the sequence puts ahead of it.</exception>
+        private static void CheckPartOrder(List<XcalElement> values, string propertyName, string schemaSection, params string[] partNames)
+        {
+            var lastRank = 0;
+            foreach (var value in values)
+            {
+                var rank = Array.IndexOf(partNames, value.Name);
+                if (rank < lastRank)
+                    throw BuildException(value, propertyName,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} element is out of order in the {1} property, whose elements are in the order {2}: RFC 6321 Appendix A ({3}).",
+                            value.Name, propertyName, string.Join(", ", partNames), schemaSection));
+
+                lastRank = rank;
+            }
         }
 
         private static XcalElement GetRequiredPart(List<XcalElement> values, string name, string propertyName)
