@@ -42,14 +42,12 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static readonly string[] RecurPartNames =
         {
-            FrequencyPartName, XcalNames.Until, "count", "interval", "bysecond", "byminute", "byhour", ByDayPartName, "bymonthday", "byyearday",
+            FrequencyPartName, XcalNames.Until, CountPartName, IntervalPartName, "bysecond", "byminute", "byhour", ByDayPartName, "bymonthday", "byyearday",
             "byweekno", "bymonth", "bysetpos", WeekStartPartName
         };
 
-        /// <summary>
-        /// The index of <c>until</c> in <see cref="RecurPartNames"/>; <c>count</c>, which shares its place in the order, follows it.
-        /// </summary>
-        private const int RecurUntilIndex = 1;
+        private const string CountPartName = "count";
+        private const string IntervalPartName = "interval";
 
         /// <summary>
         /// The parameters whose value is a URI (RFC 6321 Appendix A §3.2).
@@ -423,12 +421,14 @@ namespace DataStandardizer.File.iCal
 
             var parts = new List<KeyValuePair<string, StringBuilder>>();
             var lastRank = 0;
+            var seenRankedPart = false;
             foreach (var part in recur.Children)
             {
                 CheckNoChildren(part, propertyName);
 
                 // ref. RFC 6321 Appendix A (3.3.10): value-recur is a sequence, so the rule parts are in its order, with UNTIL and COUNT in
-                // one place.  A rule part it does not name is left to the conformance check, which rejects it.
+                // one place, and only the BYxxx parts repeat.  An element it does not name, such as an upper-case FREQ (#1015), is not
+                // checked here.
                 var rank = GetRecurPartRank(part.Name);
                 if (rank >= 0 && rank < lastRank)
                     throw BuildException(part, propertyName,
@@ -436,7 +436,17 @@ namespace DataStandardizer.File.iCal
                             "The {0} element is out of order in a recur element, whose rule parts are in the order {1}: RFC 6321 Appendix A (3.3.10).",
                             part.Name, string.Join(", ", RecurPartNames)));
 
-                lastRank = Math.Max(lastRank, rank);
+                if (rank >= 0 && rank == lastRank && seenRankedPart && !IsRepeatableRecurPart(part.Name))
+                    throw BuildException(part, propertyName,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "The {0} element is repeated in a recur element, which can have only one freq, one until or count, one interval and one " +
+                            "wkst: RFC 6321 Appendix A (3.3.10).", part.Name));
+
+                if (rank >= 0)
+                {
+                    lastRank = rank;
+                    seenRankedPart = true;
+                }
                 var name = ToIcalName(part);
                 var value = IcalValueFormatting.TrimXmlWhitespace(part.Text.AsSpan()).ToString();
                 if (part.Name == XcalNames.Until)
@@ -464,9 +474,19 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static int GetRecurPartRank(string name)
         {
-            // ref. RFC 6321 Appendix A (3.3.10): (type-until | type-count)? is one item of the sequence.
-            var index = Array.IndexOf(RecurPartNames, name);
-            return index <= RecurUntilIndex ? index : index - 1;
+            // ref. RFC 6321 Appendix A (3.3.10): (type-until | type-count)? is one item of the sequence.  The ranks need only increase
+            // along the sequence, so COUNT takes the rank of UNTIL and its own index is left unused.
+            return Array.IndexOf(RecurPartNames, name == CountPartName ? XcalNames.Until : name);
+        }
+
+        /// <summary>
+        /// Determines whether a child element of a <c>recur</c> element may repeat: the BYxxx rule parts, one element for each value
+        /// (RFC 6321 Appendix A (3.3.10)).
+        /// </summary>
+        private static bool IsRepeatableRecurPart(string name)
+        {
+            return name != FrequencyPartName && name != XcalNames.Until && name != CountPartName && name != IntervalPartName &&
+                   name != WeekStartPartName;
         }
 
         /// <summary>

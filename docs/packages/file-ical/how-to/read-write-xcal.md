@@ -88,7 +88,7 @@ come back spelled differently but with the same meaning:
 | BINARY | A `<binary>` element. When reading, `ENCODING=BASE64` is added if the property has no ENCODING parameter, as RFC 5545 requires. |
 | CATEGORIES, RESOURCES, EXDATE, RDATE and FREEBUSY | One value element for each item in the list. |
 | PERIOD | A `<period>` element with `<start>`, and `<end>` or `<duration>`. |
-| RECUR | A `<recur>` element with one element for each rule part, and one for each value of a BYxxx part. The elements are in the order RFC 6321 Appendix A gives them, with the values of `freq` and `wkst`, and the weekday of each `byday`, in upper case. The writer writes them that way, and the reader requires it. |
+| RECUR | A `<recur>` element with one element for each rule part, and one for each value of a BYxxx part. The elements are in the order RFC 6321 Appendix A gives them, with the values of `freq` and `wkst`, and the weekday of each `byday`, in upper case. The writer writes them that way. The reader rejects elements out of that order, and reports a lower-case value as an invalid value unless `AllowInvalidValues` is set. |
 | GEO | `<latitude>` and `<longitude>` elements. |
 | REQUEST-STATUS | `<code>`, `<description>` and, if present, `<data>` elements. |
 

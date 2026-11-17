@@ -68,7 +68,8 @@ namespace DataStandardizer.File.iCal
         private static int GetSectionNumber(IcalValueType valueType)
         {
             // INTEGER, FLOAT and BINARY in the text form are valid in both serializations, URI and CAL-ADDRESS have the same form in all three,
-            // and the forms of PERIOD and RECUR are built from their parts, which are checked as values of their own types.
+            // and the forms of PERIOD and RECUR are built from their parts, which are checked as values of their own types.  XcalConverter
+            // checks the case of the enumerated rule parts of an xCal RECUR itself.
             switch (valueType)
             {
                 case IcalValueType.Boolean:
