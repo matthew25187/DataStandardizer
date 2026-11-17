@@ -90,6 +90,19 @@ namespace DataStandardizer.File.iCal.Tests
         private const string TimeZoneId = "TZID:Zone";
         private const string ZeroOffsetFrom = "TZOFFSETFROM:+0000";
         private const string ZeroOffsetTo = "TZOFFSETTO:+0000";
+        private const string StandardPath = "VCALENDAR/VTIMEZONE[1]/STANDARD[1]";
+        private const string ObservanceStart = "DTSTART:19700101T000000";
+
+        // ref. RFC 5545 §3.6.5: the DTSTART of an observance is a DATE-TIME in local time, so a DATE breaks that rule on its own.
+        private const string DateObservanceStart = "DTSTART;VALUE=DATE:19700101";
+
+        // ref. RFC 5545 §3.3.10: the UNTIL of a rule in a STANDARD or DAYLIGHT observance MUST be a date with UTC time.  These are in local
+        // time, and a DATE.
+        private const string FloatingUntilYearlyRule = "RRULE:FREQ=YEARLY;UNTIL=20261015T090000";
+        private const string DateUntilYearlyRule = "RRULE:FREQ=YEARLY;UNTIL=20261015";
+
+        // ref. RFC 5545 §3.3.10: BYHOUR is not allowed when DTSTART is a DATE.
+        private const string ByHourYearlyRule = "RRULE:FREQ=YEARLY;BYHOUR=2";
 
         // A weekly series from 5 January 2026 and an instance of it on 12 January, which RECURRENCE-ID identifies.
         private const string SeriesUid = "UID:series@example.com";
@@ -167,6 +180,33 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public static readonly string VersionAfterProductIdText =
             IcalTestData.Crlf(BeginCalendar, TestProductId, Version20, BeginJournal, JournalUid, NewYearStamp, EndJournal, EndCalendar);
+
+        /// <summary>
+        /// The path of the STANDARD observance in <see cref="FloatingUntilInObservanceWithoutStartText"/> and
+        /// <see cref="DateUntilInObservanceWithDateStartText"/>.
+        /// </summary>
+        public const string ObservancePath = StandardPath;
+
+        /// <summary>
+        /// A STANDARD observance with no <c>DTSTART</c> whose rule has an <c>UNTIL</c> in local time: a missing required property (RFC 5545
+        /// §3.6.5), and a value that breaks RFC 5545 §3.3.10, which holds whether or not the observance has a <c>DTSTART</c>.
+        /// </summary>
+        public static readonly string FloatingUntilInObservanceWithoutStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            FloatingUntilYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
+
+        /// <summary>
+        /// A STANDARD observance whose <c>DTSTART</c> is a DATE and whose rule's <c>UNTIL</c> is a DATE: two invalid values, since RFC 5545
+        /// §3.3.10 requires a date with UTC time in an observance, whatever its <c>DTSTART</c> is.
+        /// </summary>
+        public static readonly string DateUntilInObservanceWithDateStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            DateObservanceStart, DateUntilYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
+
+        /// <summary>
+        /// A STANDARD observance whose <c>DTSTART</c> is a DATE and whose rule has BYHOUR: two invalid values, since RFC 5545 §3.3.10 allows
+        /// BYHOUR only with a DATE-TIME <c>DTSTART</c>, in an observance as anywhere else.
+        /// </summary>
+        public static readonly string ByHourInObservanceWithDateStartText = Calendar(BeginTimeZone, TimeZoneId, BeginStandard,
+            DateObservanceStart, ByHourYearlyRule, ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone);
 
         /// <summary>
         /// Gets the default options, each option that accepts a kind of problem on its own, and every option at once: the options under which a requirement that no option waives
@@ -279,8 +319,12 @@ namespace DataStandardizer.File.iCal.Tests
             ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", EventPath),
             ["RelativeUrl"] = new Case(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", EventPath),
             ["UtcObservanceStart"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000Z", ZeroOffsetFrom,
-                ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
-            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+                ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, StandardPath),
+            ["FloatingUntilInObservance"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, FloatingUntilYearlyRule,
+                ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, RecurrenceRule, StandardPath),
+            ["DateUntilInObservance"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, DateUntilYearlyRule,
+                ZeroOffsetFrom, ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, RecurrenceRule, StandardPath),
+            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, ObservanceStart, ZeroOffsetFrom,
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
             // ref. RFC 5545 §3.8.4.4: RECURRENCE-ID has the value type of the recurring component's DTSTART, and is a date with local time
             // if and only if that DTSTART is, whatever the instance's own DTSTART.
@@ -366,7 +410,7 @@ namespace DataStandardizer.File.iCal.Tests
             // Quoted values of parameters whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted-string.
             [QuotedFormatTypeCase] = new Case(EventCalendar("ATTACH;FMTTYPE=\"audio/basic\":http://example.com/a"),
                 IcalDiagnosticKind.QuotedParameterValue, Attachment, EventPath),
-            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, ObservanceStart, ZeroOffsetFrom,
                     ZeroOffsetTo, EndStandard, EndTimeZone, BeginEvent, OtherEventUid, NewYearStamp, "DTSTART;TZID=\"Zone\":20260101T090000",
                     EndEvent),
                 IcalDiagnosticKind.QuotedParameterValue, DtStart, EventPath),
