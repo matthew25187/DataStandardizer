@@ -79,7 +79,9 @@ namespace DataStandardizer.File.iCal
         /// to its property: a <c>VALUE</c> parameter the property does not allow, or one it requires; a DATE-TIME that must be in UTC, such as
         /// the <c>DTSTART</c> and <c>DTEND</c> of a VFREEBUSY (RFC 5545 §3.8.2.4 and §3.8.2.2); date-times that must have the same value type
         /// as the component's <c>DTSTART</c>; a <c>DTEND</c> or <c>DUE</c> that is in local time with no time zone when <c>DTSTART</c> is not,
-        /// or the other way round, or that is not later in time than <c>DTSTART</c> (RFC 5545 §3.8.2.2 and §3.8.2.3); and a <c>STATUS</c>,
+        /// or the other way round, or that is not later in time than <c>DTSTART</c> (RFC 5545 §3.8.2.2 and §3.8.2.3); a <c>RECURRENCE-ID</c>
+        /// whose value type, or whether it is in local time with no time zone, differs from the <c>DTSTART</c> of the recurring component in the
+        /// calendar with the same <c>UID</c> (RFC 5545 §3.8.4.4); and a <c>STATUS</c>,
         /// <c>TRANSP</c> or <c>CALSCALE</c> value, in a component that defines it, outside the closed set of RFC 5545 §3.8.1.11, §3.8.2.7 or
         /// §3.7.1.  A <c>DTEND</c> or <c>DUE</c> with a time zone is compared
         /// without expanding the rules of its VTIMEZONE, so one earlier than <c>DTSTART</c> by less than the spread of the time zone's UTC

@@ -295,6 +295,7 @@ namespace DataStandardizer.File.iCal
                 context.IsVersionWritten = isVersionWritten;
                 foreach (var timeZone in root.Components)
                 {
+                    context.AddRecurringComponent(timeZone);
                     if (!IsName(timeZone.Name, IcalComponentNames.TimeZone)) continue;
 
                     var offsets = GetOffsetRange(timeZone);
@@ -646,6 +647,7 @@ namespace DataStandardizer.File.iCal
 
                 ValidateEnd(component, path, IcalPropertyNames.DtEnd, context);
                 ValidateRecurrence(component, path, false, context);
+                ValidateRecurrenceId(component, path, context);
             }
             else if (IsName(name, IcalComponentNames.Todo))
             {
@@ -660,10 +662,12 @@ namespace DataStandardizer.File.iCal
 
                 ValidateEnd(component, path, IcalPropertyNames.Due, context);
                 ValidateRecurrence(component, path, false, context);
+                ValidateRecurrenceId(component, path, context);
             }
             else if (IsName(name, IcalComponentNames.Journal))
             {
                 ValidateRecurrence(component, path, false, context);
+                ValidateRecurrenceId(component, path, context);
             }
             else if (IsName(name, IcalComponentNames.FreeBusy))
             {
@@ -911,7 +915,7 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the recurrence rules (RFC 5545 §3.3.10) and recurrence identifier of a component against its <c>DTSTART</c>.
+        /// Checks the recurrence rules (RFC 5545 §3.3.10) of a component against its <c>DTSTART</c>.
         /// </summary>
         private static void ValidateRecurrence(IcalComponent component, string path, bool isObservance, Context context)
         {
@@ -967,15 +971,43 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            // ref. RFC 5545§3.8.4.4: the value type of RECURRENCE-ID MUST be the same as DTSTART.
+        }
+
+        /// <summary>
+        /// Checks the <c>RECURRENCE-ID</c> of a component against the <c>DTSTART</c> of the recurring component it identifies an instance of:
+        /// the component of the calendar with the same name and <c>UID</c> and no <c>RECURRENCE-ID</c>.  The instance's own <c>DTSTART</c> may
+        /// move it to another time, of another value type.  With no recurring component in the calendar, as in an iTIP message that holds only
+        /// the instance, there is nothing to check against.
+        /// </summary>
+        private static void ValidateRecurrenceId(IcalComponent component, string path, Context context)
+        {
             var recurrenceId = component.GetProperty(IcalPropertyNames.RecurrenceId);
             IcalDateOrDateTime recurrenceIdValue;
-            if (!isObservance && recurrenceId != null && TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue) &&
-                recurrenceIdValue.IsDate != startValue.IsDate)
+            if (recurrenceId is null || !TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue)) return;
+
+            var uid = component.GetProperty(IcalPropertyNames.Uid);
+            if (uid is null) return;
+
+            var masterStart = context.GetRecurringStart(component.Name, GetTextOrRaw(uid));
+            IcalDateOrDateTime masterStartValue;
+            if (masterStart is null || !TryGetDateOrDateTime(masterStart, out masterStartValue)) return;
+
+            // ref. RFC 5545§3.8.4.4: RECURRENCE-ID MUST have the same value type as the DTSTART of the recurring component, and MUST be a date
+            // with local time if and only if that DTSTART is.
+            if (recurrenceIdValue.IsDate != masterStartValue.IsDate)
             {
                 AddInvalidValue(recurrenceId, path,
-                    string.Format(CultureInfo.InvariantCulture, "The RECURRENCE-ID property must have the same value type as the DTSTART property, {0}.",
-                        IcalValueTypeRegistry.GetValueTypeName(startValue.ValueType)), context);
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The RECURRENCE-ID property must have the same value type as the DTSTART property of the recurring component, {0}.",
+                        IcalValueTypeRegistry.GetValueTypeName(masterStartValue.ValueType)), context);
+            }
+            else if (!recurrenceIdValue.IsDate && IsFloating(recurrenceIdValue) != IsFloating(masterStartValue))
+            {
+                AddInvalidValue(recurrenceId, path,
+                    IsFloating(masterStartValue)
+                        ? "The RECURRENCE-ID property must be in local time, since the DTSTART property of the recurring component is."
+                        : "The RECURRENCE-ID property must not be in local time, since the DTSTART property of the recurring component is not.",
+                    context);
             }
         }
 
@@ -1529,6 +1561,11 @@ namespace DataStandardizer.File.iCal
         {
             private readonly List<IcalDiagnostic> _diagnostics;
             private readonly Dictionary<string, OffsetRange> _offsetRanges = new Dictionary<string, OffsetRange>(StringComparer.Ordinal);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            private readonly Dictionary<string, IcalComponent?> _recurringComponents = new Dictionary<string, IcalComponent?>(StringComparer.Ordinal);
+#else
+            private readonly Dictionary<string, IcalComponent> _recurringComponents = new Dictionary<string, IcalComponent>(StringComparer.Ordinal);
+#endif
 
             internal Context(List<IcalDiagnostic> diagnostics)
             {
@@ -1567,6 +1604,44 @@ namespace DataStandardizer.File.iCal
             /// Gets the identifiers of the calendar's VTIMEZONE components.
             /// </summary>
             internal HashSet<string> TimeZoneIds { get; }
+
+            /// <summary>
+            /// Records a component of the calendar that an instance's <c>RECURRENCE-ID</c> can refer to: one with a <c>UID</c> and no
+            /// <c>RECURRENCE-ID</c>.  When the calendar has more than one such component with the same name and <c>UID</c>, it is not known
+            /// which of them an instance belongs to, so none of them is used.
+            /// </summary>
+            internal void AddRecurringComponent(IcalComponent component)
+            {
+                var uid = component.GetProperty(IcalPropertyNames.Uid);
+                if (uid is null || component.GetProperty(IcalPropertyNames.RecurrenceId) != null) return;
+
+                var key = GetRecurringKey(component.Name, GetTextOrRaw(uid));
+                _recurringComponents[key] = _recurringComponents.ContainsKey(key) ? null : component;
+            }
+
+            /// <summary>
+            /// Gets the <c>DTSTART</c> of the one component of the calendar with a name and <c>UID</c> and no <c>RECURRENCE-ID</c>, or
+            /// <c>null</c> if there is no such component, more than one, or it has no <c>DTSTART</c>.
+            /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal IcalContentLine? GetRecurringStart(string componentName, string uid)
+            {
+                IcalComponent? component;
+#else
+            internal IcalContentLine GetRecurringStart(string componentName, string uid)
+            {
+                IcalComponent component;
+#endif
+                return _recurringComponents.TryGetValue(GetRecurringKey(componentName, uid), out component) && component != null
+                    ? component.GetProperty(IcalPropertyNames.DtStart)
+                    : null;
+            }
+
+            private static string GetRecurringKey(string componentName, string uid)
+            {
+                // A component name has no colon (RFC 5545 §3.1: name = iana-token / x-name), so the key is unambiguous.
+                return componentName.ToUpperInvariant() + ":" + uid;
+            }
 
             /// <summary>
             /// Adds the UTC offsets of a VTIMEZONE to those of any other with the same identifier.

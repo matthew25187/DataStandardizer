@@ -91,6 +91,21 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ZeroOffsetFrom = "TZOFFSETFROM:+0000";
         private const string ZeroOffsetTo = "TZOFFSETTO:+0000";
 
+        // A weekly series from 5 January 2026 and an instance of it on 12 January, which RECURRENCE-ID identifies.
+        private const string SeriesUid = "UID:series@example.com";
+        private const string WeeklyRule = "RRULE:FREQ=WEEKLY";
+        private const string SeriesDateStart = "DTSTART;VALUE=DATE:20260105";
+        private const string SeriesUtcStart = "DTSTART:20260105T090000Z";
+        private const string SeriesFloatingStart = "DTSTART:20260105T090000";
+        private const string InstanceDateRecurrenceId = "RECURRENCE-ID;VALUE=DATE:20260112";
+        private const string InstanceUtcRecurrenceId = "RECURRENCE-ID:20260112T090000Z";
+        private const string InstanceFloatingRecurrenceId = "RECURRENCE-ID:20260112T090000";
+        private const string InstanceUtcStart = "DTSTART:20260112T090000Z";
+        private const string InstanceFloatingStart = "DTSTART:20260112T090000";
+        private const string InstanceDateStart = "DTSTART;VALUE=DATE:20260112";
+        private const string InstancePath = "VCALENDAR/VEVENT[2]";
+        private const string RecurrenceId = "RECURRENCE-ID";
+
         public sealed class Case
         {
             public Case(string text, IcalDiagnosticKind kind, string propertyName, string componentPath)
@@ -261,6 +276,17 @@ namespace DataStandardizer.File.iCal.Tests
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
             ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
+            // ref. RFC 5545 §3.8.4.4: RECURRENCE-ID has the value type of the recurring component's DTSTART, and is a date with local time
+            // if and only if that DTSTART is, whatever the instance's own DTSTART.
+            ["DateTimeRecurrenceIdForDateSeries"] = new Case(SeriesCalendar(SeriesDateStart, InstanceUtcRecurrenceId, InstanceUtcStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["DateRecurrenceIdForDateTimeSeries"] = new Case(SeriesCalendar(SeriesUtcStart, InstanceDateRecurrenceId, InstanceDateStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["FloatingRecurrenceIdForUtcSeries"] = new Case(SeriesCalendar(SeriesUtcStart, InstanceFloatingRecurrenceId, InstanceUtcStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+            ["UtcRecurrenceIdForFloatingSeries"] = new Case(SeriesCalendar(SeriesFloatingStart, InstanceUtcRecurrenceId, InstanceFloatingStart),
+                IcalDiagnosticKind.InvalidValue, RecurrenceId, InstancePath),
+
             ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath),
 
             // ref. RFC 5545 §3.8.2.2 and §3.8.2.3: DTEND and DUE MUST be later in time than DTSTART.
@@ -482,6 +508,15 @@ namespace DataStandardizer.File.iCal.Tests
                 NewYorkEventCalendar(NewYorkNewYearStart, "DTEND:20260101T150000Z"),
                 Calendar(BeginFreeBusy, FreeBusyUid, NewYearStamp, NewYearStart, UtcEndAfterStart, EndFreeBusy),
 
+                // ref. RFC 5545 §3.8.4.4: RECURRENCE-ID follows the DTSTART of the recurring component, not the instance's own DTSTART, which
+                // may move the instance to a time of another value type.
+                SeriesCalendar(SeriesDateStart, InstanceDateRecurrenceId, InstanceUtcStart, "DTEND:20260112T100000Z"),
+                SeriesCalendar(SeriesUtcStart, InstanceUtcRecurrenceId, InstanceDateStart),
+                SeriesCalendar(SeriesFloatingStart, InstanceFloatingRecurrenceId, InstanceUtcStart),
+
+                // An instance with no recurring component in the calendar, as in an iTIP message, has nothing to be checked against.
+                Calendar(BeginEvent, SeriesUid, NewYearStamp, InstanceDateRecurrenceId, InstanceUtcStart, EndEvent),
+
                 // ref. RFC 5545 §2: enumerated property values are case-insensitive.
                 EventCalendar("STATUS:confirmed"),
                 Calendar(BeginTodo, TodoUid, NewYearStamp, "STATUS:IN-PROCESS", EndTodo),
@@ -494,6 +529,15 @@ namespace DataStandardizer.File.iCal.Tests
                 Calendar(BeginJournal, JournalUid, NewYearStamp, EndJournal, "BEGIN:X-ABC-ITEM", "STATUS:ARCHIVED", "TRANSP:MAYBE",
                     "CALSCALE:JULIAN", "END:X-ABC-ITEM")
             };
+        }
+
+        /// <summary>
+        /// Builds a calendar holding a weekly VEVENT series with this DTSTART, and an instance of it with these lines.
+        /// </summary>
+        private static string SeriesCalendar(string seriesStart, params string[] instanceLines)
+        {
+            return Calendar(IcalTestData.Lines(new[] { BeginEvent, SeriesUid, NewYearStamp, seriesStart, WeeklyRule, EndEvent, BeginEvent, SeriesUid,
+                NewYearStamp }, instanceLines, new[] { EndEvent }));
         }
 
         /// <summary>
