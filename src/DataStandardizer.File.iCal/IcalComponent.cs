@@ -622,6 +622,22 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Indicates whether text is an iana-token or x-name in lower case: one or more lower-case letters, digits and hyphens.  It is the
+        /// form xCal and jCal give names in (RFC 6321 §3.3 to §3.5, RFC 7265 §3.3 to §3.5).
+        /// </summary>
+        internal static bool IsLowerCaseName(string text)
+        {
+            if (text.Length == 0) return false;
+
+            foreach (var character in text)
+            {
+                if (!(character >= 'a' && character <= 'z' || character >= '0' && character <= '9' || character == '-')) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Indicates whether text is an iana-token or x-name (RFC 5545 §3.1): one or more letters, digits and hyphens.
         /// </summary>
         internal static bool IsValidName(string name)

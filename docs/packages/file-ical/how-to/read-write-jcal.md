@@ -90,9 +90,9 @@ differently but with the same meaning:
 
 | iCalendar | jCal |
 | --- | --- |
-| A component | An array of three elements: the name in lower case, an array of its properties and an array of its sub-components. The last is there even if it is empty. The reader rejects a component, property or parameter name, type identifier or RECUR key in any other case, such as `"SUMMARY"`. |
-| A property | An array: the name in lower case, an object holding the parameters, the type identifier, such as `"date-time"`, and the value or values. Names are converted to upper case when read. |
-| Parameters | An object whose keys are the parameter names in lower case. A parameter with more than one value, such as `DELEGATED-TO`, is an array of strings. |
+| A component | An array of three elements: the name in lower case, an array of its properties and an array of its sub-components. The last is there even if it is empty. The reader rejects a component name in any other case, such as `"VEVENT"`. |
+| A property | An array: the name in lower case, an object holding the parameters, the type identifier, such as `"date-time"`, and the value or values. Names are converted to upper case when read. The reader rejects a name or type identifier in any other case, such as `"SUMMARY"` or `"TEXT"`. |
+| Parameters | An object whose keys are the parameter names in lower case. The reader rejects a key in any other case, such as `"LANGUAGE"`. A parameter with more than one value, such as `DELEGATED-TO`, is an array of strings. |
 | The `VALUE` parameter | Not written, since the type identifier gives the type. When reading, it is added if the type isn't the property's default. |
 | A value whose type isn't known, such as `X-FOO` with no `VALUE` | The type `unknown`, with the raw text as a string, so it converts without loss. |
 | A `VALUE` that names a type RFC 5545 doesn't define, such as `X-MYTYPE` | That type identifier in lower case, with the raw text as a string. When reading, `VALUE=X-MYTYPE` is added back. |
@@ -102,7 +102,7 @@ differently but with the same meaning:
 | INTEGER and FLOAT | A number. |
 | CATEGORIES, RESOURCES, EXDATE, RDATE and FREEBUSY | One value for each item in the list. |
 | PERIOD | An array of two strings: the start, and the end or the duration. |
-| RECUR | An object with one key for each rule part, such as `{"freq": "WEEKLY", "byday": ["MO", "FR"], "count": 5}`. COUNT and INTERVAL are numbers, and a BYxxx part with more than one value is an array. The rule parts keep their order, and `IcalWriter` writes FREQ first, as RFC 5545 §3.3.10 requires. |
+| RECUR | An object with one key for each rule part, such as `{"freq": "WEEKLY", "byday": ["MO", "FR"], "count": 5}`. COUNT and INTERVAL are numbers, and a BYxxx part with more than one value is an array. The rule parts keep their order, and `IcalWriter` writes FREQ first, as RFC 5545 §3.3.10 requires. The reader rejects a key in upper or mixed case, such as `"FREQ"`. |
 | GEO | An array of two numbers: the latitude and the longitude. |
 | REQUEST-STATUS | An array of two or three strings: the code, the description and, if present, the data. |
 
