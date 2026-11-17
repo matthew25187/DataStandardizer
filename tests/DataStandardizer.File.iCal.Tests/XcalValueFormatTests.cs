@@ -296,6 +296,61 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(Rfc6321FloatingStartPeriod);
         }
 
+        // ref. RFC 6321 §3.6.5 and §3.6.12: the patterns of DATE-TIME and TIME are XML Schema patterns, which are case-sensitive, so their T
+        // and Z are upper case only.
+        [Theory]
+        [InlineData("2011-05-17t12:00:00")]
+        [InlineData("2011-05-17T12:00:00z")]
+        public void IcalDateTimeTryParse_XmlFormLowerCaseDesignator_Fails(string xml)
+        {
+            // act
+            var testResult = IcalDateTime.TryParse(xml.AsSpan(), IcalValueFormat.Xml, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IcalTimeTryParse_XmlFormLowerCaseUtcDesignator_Fails()
+        {
+            // act
+            var testResult = IcalTime.TryParse("12:00:00z".AsSpan(), IcalValueFormat.Xml, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        // ref. RFC 6321 §3.6.6: the DURATION pattern is an XML Schema pattern, which is case-sensitive, so its designators are upper case only.
+        [Theory]
+        [InlineData("p1W")]
+        [InlineData("P1w")]
+        [InlineData("P1d")]
+        [InlineData("P1Dt1H")]
+        [InlineData("PT1h")]
+        [InlineData("PT1H1m")]
+        [InlineData("PT1s")]
+        public void IcalDurationTryParse_XmlFormLowerCaseDesignator_Fails(string xml)
+        {
+            // act
+            var testResult = IcalDuration.TryParse(xml.AsSpan(), IcalValueFormat.Xml, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("1997-01-01T18:00:00/pt5h30m")]
+        [InlineData("1997-01-01t18:00:00Z/1997-01-02T07:00:00Z")]
+        [InlineData("1997-01-01T18:00:00Z/1997-01-02T07:00:00z")]
+        public void IcalPeriodTryParse_XmlFormLowerCaseDesignator_Fails(string xml)
+        {
+            // act
+            var testResult = IcalPeriod.TryParse(xml.AsSpan(), IcalValueFormat.Xml, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
         [Fact]
         public void IcalPeriodTryParse_TextFormAsXml_Fails()
         {

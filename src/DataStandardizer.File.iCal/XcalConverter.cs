@@ -123,6 +123,11 @@ namespace DataStandardizer.File.iCal
 
             string value;
             IcalValueType valueType;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? conversionProblem = null;
+#else
+            string conversionProblem = null;
+#endif
             if (IsName(name, IcalPropertyNames.Geo) && IsStructuredValue(values, XcalNames.Latitude, XcalNames.Longitude))
             {
                 value = ReadGeo(values, name);
@@ -136,6 +141,7 @@ namespace DataStandardizer.File.iCal
             else
             {
                 value = ReadValues(values, name, out valueType);
+                conversionProblem = GetDurationProblem(values, valueType, name);
             }
 
             // ref. RFC 6321§3.5.1: the VALUE parameter MUST be included if the value type is not the property's default, and §5: never for
@@ -154,7 +160,48 @@ namespace DataStandardizer.File.iCal
                 parameters.Add(new IcalContentLineParameter(IcalParameterNames.Encoding, "BASE64"));
             }
 
-            return IcalContentLine.FromConversion(name, parameters.ToArray(), value, property.LineNumber);
+            return IcalContentLine.FromConversion(name, parameters.ToArray(), value, property.LineNumber, conversionProblem);
+        }
+
+        /// <summary>
+        /// Checks the DURATION values of a property, including those in its periods, against their xCal form, which the text form of a
+        /// content line does not hold to.
+        /// </summary>
+        /// <returns>The problem with the first value that is not in its xCal form; or <c>null</c> if they all are.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? GetDurationProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
+#else
+        private static string GetDurationProblem(List<XcalElement> values, IcalValueType valueType, string propertyName)
+#endif
+        {
+            // ref. RFC 6321§3.6.6: the duration pattern is an XML Schema pattern, which is case-sensitive, so its designators are upper case
+            // only.  The text form of RFC 5545§3.3.6 is ABNF, which is not, so a lower-case duration would otherwise pass the check.
+            foreach (var value in values)
+            {
+                if (valueType == IcalValueType.Duration && !IsXmlDuration(value))
+                    return BuildDurationProblem(propertyName);
+
+                if (valueType != IcalValueType.Period) continue;
+
+                foreach (var part in value.Children)
+                {
+                    if (part.Name == XcalNames.Duration && !IsXmlDuration(part))
+                        return BuildDurationProblem(propertyName);
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsXmlDuration(XcalElement element)
+        {
+            return IcalDuration.TryParse(element.Text.AsSpan(), IcalValueFormat.Xml, out _);
+        }
+
+        private static string BuildDurationProblem(string propertyName)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                "The value of the {0} property is not a valid DURATION in xCal, whose designators are upper case (RFC 6321 §3.6.6).", propertyName);
         }
 
         /// <summary>
@@ -454,7 +501,8 @@ namespace DataStandardizer.File.iCal
                     IcalUtcOffset offset;
                     return IcalUtcOffset.TryParse(value, IcalValueFormat.Xml, out offset) ? offset.ToString(IcalValueFormat.Text) : xml;
                 default:
-                    // DURATION is the same in both forms, and an unknown value is kept as it is (RFC 6321§5).
+                    // DURATION is the same in both forms but for the case of its designators, which GetDurationProblem checks, and an unknown
+                    // value is kept as it is (RFC 6321§5).
                     return xml;
             }
         }
@@ -633,8 +681,7 @@ namespace DataStandardizer.File.iCal
             element.Add(XcalNames.Start, period.Start.ToString(IcalValueFormat.Xml));
             if (period.Duration.HasValue)
             {
-                // The duration is the same in both forms, so its text is kept.
-                element.Add(XcalNames.Duration, value.Substring(value.IndexOf('/') + 1));
+                element.Add(XcalNames.Duration, ToXmlDuration(value.Substring(value.IndexOf('/') + 1)));
             }
             else
             {
@@ -747,6 +794,17 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Converts a valid DURATION from the text form of a content line to the text of a duration element.
+        /// </summary>
+        private static string ToXmlDuration(string text)
+        {
+            // ref. RFC 6321§3.6.6: the designators are upper case, as the xCal pattern is case-sensitive; the text form also allows lower case
+            // (RFC 5545§3.3.6).  Otherwise the forms are the same, so the digits are kept as written.  A valid duration holds only ASCII
+            // characters, so the invariant culture changes only its designators.
+            return text.ToUpperInvariant();
+        }
+
+        /// <summary>
         /// Converts a value from the text form of a content line to the text of a value element.
         /// </summary>
         /// <returns>The text; or <c>null</c> if the value is not valid.</returns>
@@ -780,7 +838,7 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.CalAddress:
                     return IcalValue.TryParseUri(value, IcalValueFormat.Text, out _) ? text : null;
                 case IcalValueType.Duration:
-                    return IcalDuration.TryParse(value, IcalValueFormat.Text, out _) ? text : null;
+                    return IcalDuration.TryParse(value, IcalValueFormat.Text, out _) ? ToXmlDuration(text) : null;
                 case IcalValueType.Date:
                     IcalDate date;
                     return IcalDate.TryParse(value, IcalValueFormat.Text, out date) ? date.ToString(IcalValueFormat.Xml) : null;

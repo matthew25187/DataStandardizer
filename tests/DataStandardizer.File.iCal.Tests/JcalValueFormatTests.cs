@@ -217,6 +217,28 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(new IcalDuration(1, TimeSpan.Zero));
         }
 
+        // ref. RFC 7265 §3.6.5: datetime = date-complete "T" time-complete, in ABNF, whose strings are case-insensitive (RFC 5234 §2.3).
+        [Fact]
+        public void IcalDateTimeParse_JsonFormLowerCaseDesignators_IsTheDateTime()
+        {
+            // act
+            var testResult = IcalDateTime.Parse("2011-05-17t12:00:00z".AsSpan(), IcalValueFormat.Json);
+
+            // assert
+            testResult.Should().Be(new IcalDateTime(new IcalDate(2011, 5, 17), new IcalTime(12, 0, 0, true)));
+        }
+
+        // ref. RFC 7265 §3.6.6: a DURATION is as in RFC 5545 §3.3.6, whose ABNF strings are case-insensitive (RFC 5234 §2.3).
+        [Fact]
+        public void IcalDurationParse_JsonFormLowerCase_IsTheDuration()
+        {
+            // act
+            var testResult = IcalDuration.Parse("p1d".AsSpan(), IcalValueFormat.Json);
+
+            // assert
+            testResult.Should().Be(new IcalDuration(1, TimeSpan.Zero));
+        }
+
         [Fact]
         public void IcalPeriodParse_JsonForm_JoinsTheJsonPartsWithASolidus()
         {

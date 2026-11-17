@@ -995,6 +995,13 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
+            // A value converted from xCal that was not in its xCal form, though it is valid here.
+            if (property.ConversionProblem != null)
+            {
+                AddInvalidValue(property, path, property.ConversionProblem, context);
+                return;
+            }
+
             if (!IsValidValue(property, valueType))
             {
                 AddInvalidValue(property, path,

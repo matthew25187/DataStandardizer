@@ -221,7 +221,9 @@ namespace DataStandardizer.File.iCal
         private IcalCalendar AddLine(IcalContentLine line, long lineNumber, long linePosition)
 #endif
         {
-            if (line.LineNumber == 0)
+            // Only a BEGIN or END line, made with no line number, takes the element's.  A property line already has its element's line number,
+            // which is 0 when the XML reader gives no line information, and is kept with its parameters.
+            if (line.LineNumber == 0 && lineNumber != 0)
             {
                 line = IcalContentLine.FromConversion(line.Name, new IcalContentLineParameter[0], line.Value, lineNumber);
             }

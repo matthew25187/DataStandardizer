@@ -223,6 +223,18 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets whether a character is a given ASCII letter, in upper case only or in either case.
+        /// </summary>
+        /// <param name="character">The character.</param>
+        /// <param name="upperCaseLetter">The letter, in upper case.</param>
+        /// <param name="isUpperCaseOnly"><c>true</c> if only the upper-case letter matches, as in the patterns of RFC 6321, which are
+        /// case-sensitive; <c>false</c> if either case matches, as in the ABNF of RFC 5545 and RFC 7265.</param>
+        internal static bool IsLetter(char character, char upperCaseLetter, bool isUpperCaseOnly)
+        {
+            return isUpperCaseOnly ? character == upperCaseLetter : IsLetter(character, upperCaseLetter);
+        }
+
+        /// <summary>
         /// Compares text with an upper-case ASCII keyword, ignoring the case of ASCII letters.
         /// </summary>
         internal static bool EqualsKeyword(ReadOnlySpan<char> value, string keyword)
