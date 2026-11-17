@@ -18,6 +18,43 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const int TryGetValueOutParameterIndex = 1;
 
+        /// <summary>
+        /// A double that needs 16 significant digits to read back as the same value, which .NET Framework's <c>"R"</c> writes with 15
+        /// (<c>901.742658997766</c>), a different double.
+        /// </summary>
+        private const double SixteenDigitDouble = 901.7426589977661;
+
+        /// <summary>
+        /// The sum of 0.1 and 0.7, which needs 16 significant digits, and which .NET Framework's <c>"R"</c> writes with 17
+        /// (<c>0.79999999999999993</c>).
+        /// </summary>
+        private const double SumOfOneTenthAndSevenTenths = 0.7999999999999999;
+
+        // The smallest normal double, which needs 17 significant digits.
+        private const double SmallestNormalDouble = 2.2250738585072014E-308;
+
+        // 2^60 and 2^-20, powers of two whose neighbour below is half as far away as the one above.
+        private const double TwoToTheSixtieth = 1152921504606846976.0;
+        private const double TwoToTheMinusTwentieth = 9.5367431640625E-07;
+
+        // Doubles in delegates, since xUnit on .NET Framework serializes a double in a theory row with that runtime's "R", which changes some.  The
+        // texts are those "R" gives on .NET Core 3.0 and later.
+        public static TheoryData<string, Func<double>, string> ShortestRealTexts => new TheoryData<string, Func<double>, string>
+        {
+            { "needs 16 digits", () => SixteenDigitDouble, "901.7426589977661" },
+            { "needs 16 digits, below 1", () => SumOfOneTenthAndSevenTenths, "0.7999999999999999" },
+            { "negative zero", () => -0.0, "-0" },
+            { "whole number of 17 digits", () => 1E+16, "10000000000000000" },
+            { "whole number of 18 digits", () => 1E+17, "1E+17" },
+            { "decimal point three places before the first digit", () => 0.0001, "0.0001" },
+            { "decimal point four places before the first digit", () => 0.00001, "1E-05" },
+            { "smallest normal", () => SmallestNormalDouble, "2.2250738585072014E-308" },
+            { "smallest subnormal", () => double.Epsilon, "5E-324" },
+            { "power of two, above 1", () => TwoToTheSixtieth, "1.152921504606847E+18" },
+            { "power of two, below 1", () => TwoToTheMinusTwentieth, "9.5367431640625E-07" },
+            { "negative, in scientific notation", () => -1.5E+300, "-1.5E+300" },
+        };
+
         private const string Message = EmlxFiles.Message;
         private const string Metadata = EmlxFiles.Metadata;
 
@@ -521,6 +558,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // assert
             testResult.Should().BeTrue();
             value.Should().Be(RealValue);
+        }
+
+        [Theory]
+        [MemberData(nameof(ShortestRealTexts))]
+        public void FromReal_Number_WritesTheFewestDigitsThatReadBack(string scenario, Func<double> value, string expected)
+        {
+            // arrange
+            _ = scenario;
+            var number = value();
+
+            // act
+            var testResult = EmlxPlistValue.FromReal(number);
+
+            // assert
+            testResult.Text.Should().Be(expected);
         }
 
         [Theory]
