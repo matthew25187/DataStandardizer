@@ -417,8 +417,8 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(CalendarsNestedTooDeeply), MemberType = typeof(ModelTestData), DisableDiscoveryEnumeration = true)]
-        public void WriteCalendar_ComponentsNestedTooDeeply_Throws(Func<IcalCalendar> createCalendar)
+        [MemberData(nameof(CalendarsNestedInvalidly), MemberType = typeof(ModelTestData), DisableDiscoveryEnumeration = true)]
+        public void WriteCalendar_ComponentsNestedInvalidly_Throws(Func<IcalCalendar> createCalendar)
         {
             // arrange
             var calendar = createCalendar();

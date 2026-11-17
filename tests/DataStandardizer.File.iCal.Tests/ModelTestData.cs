@@ -72,6 +72,44 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
+        /// The number of levels at which <see cref="CalendarSharingAtEveryLevel"/> shares a component: enough that walking every place each
+        /// component is found, 2^60 of them for the innermost, would never end.
+        /// </summary>
+        public const int SharedLevels = 60;
+
+        /// <summary>
+        /// Builds a chain of <see cref="NestedComponentName"/> components in which each but the innermost holds the next one twice: the same
+        /// object in two places, so that the number of places the innermost is found doubles with each level.  There is no cycle.
+        /// </summary>
+        /// <param name="levels">The number of components that hold the next one twice.</param>
+        /// <returns>The outermost component.</returns>
+        public static IcalComponent SharedComponents(int levels)
+        {
+            var outermost = new IcalComponent(NestedComponentName);
+            var current = outermost;
+            for (var level = 0; level < levels; level++)
+            {
+                var child = new IcalComponent(NestedComponentName);
+                current.Components.Add(child);
+                current.Components.Add(child);
+                current = child;
+            }
+
+            return outermost;
+        }
+
+        /// <summary>
+        /// Reads a calendar of one event, and adds to it the components of <see cref="SharedComponents"/> over <see cref="SharedLevels"/>
+        /// levels, so that the only problem is the sharing.
+        /// </summary>
+        public static IcalCalendar CalendarSharingAtEveryLevel()
+        {
+            var calendar = ReadCalendar(EventCalendar());
+            calendar.Components.Add(SharedComponents(SharedLevels));
+            return calendar;
+        }
+
+        /// <summary>
         /// Reads a calendar of one event, and adds to it a <see cref="NestedComponentName"/> component that holds itself, so that the only
         /// problem is the nesting in itself.
         /// </summary>
@@ -96,13 +134,14 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
-        /// Gets the factories of the calendars whose components are nested more deeply than a writer accepts: one with a component nested in
-        /// itself, and one nested past <see cref="MaxComponentDepth"/>.
+        /// Gets the factories of the calendars whose components are nested in a way a writer doesn't accept: one with a component nested in
+        /// itself, one nested past <see cref="MaxComponentDepth"/>, and one with components in more than one place.
         /// </summary>
-        public static TheoryData<Func<IcalCalendar>> CalendarsNestedTooDeeply => new TheoryData<Func<IcalCalendar>>
+        public static TheoryData<Func<IcalCalendar>> CalendarsNestedInvalidly => new TheoryData<Func<IcalCalendar>>
         {
             CalendarWithComponentInItself,
-            CalendarNestedPastLimit
+            CalendarNestedPastLimit,
+            CalendarSharingAtEveryLevel
         };
 
         public static IcalReader CreateCalendarReader(string text, IcalOptions options = null, int bufferSize = 16 * 1024)

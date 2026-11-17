@@ -50,7 +50,9 @@ namespace DataStandardizer.File.iCal
         /// Gets the components nested in this one, in order.
         /// </summary>
         /// <remarks>
-        /// The list does not accept <c>null</c>.
+        /// The list does not accept <c>null</c>.  A component object belongs in one place only.  One that is in this list twice, or in the lists
+        /// of two components, is reported as <see cref="IcalDiagnosticKind.InvalidComponentNesting"/> by <see cref="Validate"/> on a component
+        /// that holds both places, such as the calendar, and the writers refuse the calendar.
         /// </remarks>
         public IList<IcalComponent> Components { get; }
 
@@ -163,7 +165,7 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// <para>
         /// This checks the rules that <see cref="IcalReader"/> and <see cref="IcalWriter"/> enforce: required properties and components, how
-        /// often each property may appear, the syntax of property values, how often parameters occur and how many values they have, the syntax of the <c>FMTTYPE</c> parameter, quoted values of parameters whose grammar has no quoted form, where each component may be nested, whether a component is nested in itself or more than 64 levels deep,
+        /// often each property may appear, the syntax of property values, how often parameters occur and how many values they have, the syntax of the <c>FMTTYPE</c> parameter, quoted values of parameters whose grammar has no quoted form, where each component may be nested, whether a component is nested in itself, in more than one place or more than 64 levels deep,
         /// and the <c>VERSION</c> of a calendar.  Whether a <c>TZID</c> parameter names a VTIMEZONE, and whether a VEVENT needs a <c>DTSTART</c>, depend on the calendar,
         /// so they are checked only when this is an <see cref="IcalCalendar"/>.
         /// </para>

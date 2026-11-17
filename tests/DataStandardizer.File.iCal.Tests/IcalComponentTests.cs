@@ -21,6 +21,8 @@ namespace DataStandardizer.File.iCal.Tests
         private const string RecurrenceRule = "RRULE";
         private const string ValueParameter = "VALUE";
         private const string VendorParameter = "X-VENDOR";
+        private const int SharedThreeLevels = 3;
+        private const string SharedMessage = "A X-A component is nested in more than one place; each place needs a component of its own.";
         private const string KeepParameter = "X-KEEP";
         private const string TestComponentName = "X-TEST";
         private const string DisplayAction = "ACTION:DISPLAY";
@@ -1190,6 +1192,87 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void Validate_ComponentInTwoParents_ReportsTheSecondPlace()
+        {
+            // arrange
+            var component = new IcalComponent(NestedComponentName);
+            var first = new IcalComponent(NestedComponentName);
+            var second = new IcalComponent(NestedComponentName);
+            var shared = new IcalComponent(NestedComponentName);
+            component.Components.Add(first);
+            component.Components.Add(second);
+            first.Components.Add(shared);
+            second.Components.Add(shared);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.Kind, diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(
+                (IcalDiagnosticKind.InvalidComponentNesting, "X-A/X-A[2]/X-A[1]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_DistinctComponentsThatAreEqual_ReturnsNothing()
+        {
+            // arrange
+            var component = new EqualToEveryComponent();
+            var first = new EqualToEveryComponent();
+            var second = new EqualToEveryComponent();
+            component.Components.Add(first);
+            component.Components.Add(second);
+            first.Components.Add(new EqualToEveryComponent());
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Validate_ComponentTwiceInOneParent_ReportsTheSecondPlace()
+        {
+            // arrange
+            var component = SharedComponents(1);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(("X-A/X-A[2]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_ComponentsSharedAtEachLevel_ReportsEachSecondPlace()
+        {
+            // arrange
+            var component = SharedComponents(SharedThreeLevels);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Select(diagnostic => (diagnostic.ComponentPath, diagnostic.Message)).Should().Equal(
+                ("X-A/X-A[1]/X-A[1]/X-A[2]", SharedMessage),
+                ("X-A/X-A[1]/X-A[2]", SharedMessage),
+                ("X-A/X-A[2]", SharedMessage));
+        }
+
+        [Fact]
+        public void Validate_ComponentsSharedAtSixtyLevels_ReportsEachLevelOnce()
+        {
+            // arrange
+            var component = SharedComponents(SharedLevels);
+
+            // act
+            var testResult = component.Validate();
+
+            // assert
+            testResult.Should().HaveCount(SharedLevels).And.OnlyContain(diagnostic => diagnostic.Message == SharedMessage);
+        }
+
+        [Fact]
         public void Validate_ComponentsNestedToTheLimit_ReturnsNothing()
         {
             // arrange
@@ -1316,6 +1399,27 @@ namespace DataStandardizer.File.iCal.Tests
                 "COLOR:b");
             var options = new IcalOptions { AllowCardinalityViolations = true, AllowInvalidValues = true, AllowMissingRequiredProperties = true };
             return ReadCalendar(text, options);
+        }
+
+        /// <summary>
+        /// A <see cref="NestedComponentName"/> component that is equal to every other, so that a check comparing components with
+        /// <see cref="object.Equals(object)"/> instead of by reference would find each one nested in itself or in more than one place.
+        /// </summary>
+        private sealed class EqualToEveryComponent : IcalComponent
+        {
+            public EqualToEveryComponent() : base(NestedComponentName)
+            {
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is IcalComponent;
+            }
+
+            public override int GetHashCode()
+            {
+                return 0;
+            }
         }
     }
 }
