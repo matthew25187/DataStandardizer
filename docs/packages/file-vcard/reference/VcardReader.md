@@ -58,8 +58,8 @@ vCard 4.0, 3.0 and 2.1 are read, and one stream can hold any of them. A vCard 3.
 
 | Problem | What happens |
 | --- | --- |
-| A line that isn't valid; a `BEGIN` or `END` that isn't paired; a nested `BEGIN`; another `VERSION`; data with no card | `VcardFileException`, and the reader can't continue. |
-| A problem found in a card once it has been read, which the options don't accept | `VcardFileException`, with the card index and the property in `Data`. Reading can continue with the next card. |
+| A line that isn't valid; a `BEGIN` or `END` that isn't paired; a nested `BEGIN`; a `VERSION` other than 4.0, 3.0 or 2.1; data with no card | `VcardFileException`, and the reader can't continue. |
+| A problem found in a card once it has been read, which the options don't accept, including a card with no `VERSION` or with two | `VcardFileException`, with the card index and the property in `Data`. Reading can continue with the next card. |
 
 Each card is checked as `VcardCard.Validate` does, and for the structure of its `BEGIN`, `VERSION` and `END` lines. The accommodations are `AllowMissingRequiredProperties`, `AllowCardinalityViolations`, `AllowInvalidValues` and `AcceptLegacySyntax` on [VcardOptions](VcardOptions.md). No option accepts a card with no `VERSION` or with two, or a vCard 4.0 card whose `VERSION` isn't immediately after `BEGIN:VCARD` (RFC 6350 §3.3 and §6.7.9, RFC 2426 §5); the `DiagnosticKind` is then `InvalidStructure`.
 

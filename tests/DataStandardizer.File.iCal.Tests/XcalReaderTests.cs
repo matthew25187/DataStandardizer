@@ -158,22 +158,56 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Equal(expected);
         }
 
+        // ref. RFC 5545 §3.6 and §3.7.4, which RFC 6321 §3 maps to xCal: a calendar requires a VERSION.
+        private const string NoVersionCalendarContent =
+            "<properties><prodid><text>-//Test//Test//EN</text></prodid></properties><components><vjournal><properties><uid><text>j@example.com</text></uid><dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal></components>";
+
+        // ref. RFC 6321 §3.3: the component element takes the place of BEGIN and END, so neither can be a property.
+        private const string BeginPropertyCalendarContent =
+            "<properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version><begin><text>VEVENT</text></begin></properties>";
+        private const string EndPropertyCalendarContent =
+            "<properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version><end><text>VCALENDAR</text></end></properties>";
+
+        public static TheoryData<string, IcalOptions> StructuralPropertyData()
+        {
+            var data = new TheoryData<string, IcalOptions>();
+            foreach (var content in new[] { BeginPropertyCalendarContent, EndPropertyCalendarContent })
+            {
+                foreach (var options in ConformanceCases.EveryAccommodation())
+                {
+                    data.Add(content, options);
+                }
+            }
+
+            return data;
+        }
+
         [Theory]
-        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
-        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        [MemberData(nameof(StructuralPropertyData))]
+        public void ReadCalendar_PropertyNamedBeginOrEnd_ThrowsWhateverTheOptions(string calendarContent, IcalOptions options)
         {
             // arrange
-            // ref. RFC 5545 §3.6 and §3.7.4, which RFC 6321 §3 maps to xCal: a calendar requires a VERSION.
-            var xml = Document(
-                "<properties><prodid><text>-//Test//Test//EN</text></prodid></properties>" +
-                "<components><vjournal><properties><uid><text>j@example.com</text></uid>" +
-                "<dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal></components>");
+            var xml = Document(calendarContent);
 
             // act
             Action testAction = () => ReadXcal(xml, options);
 
             // assert
-            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+            testAction.Should().Throw<IcalFileException>().WithMessage("*RFC 6321 §3.3*");
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
+        public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
+        {
+            // arrange
+            var xml = Document(NoVersionCalendarContent);
+
+            // act
+            Action testAction = () => ReadXcal(xml, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Fact]

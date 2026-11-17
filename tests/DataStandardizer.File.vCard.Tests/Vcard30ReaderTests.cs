@@ -443,7 +443,6 @@ namespace DataStandardizer.File.vCard.Tests
                 // ref. RFC 2426 §4: the parameters of each type.
                 { "a parameter of vCard 4.0", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "TEL;PREF=1:+1" }, VcardDiagnosticKind.InvalidParameter },
                 { "a parameter on URL", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "URL;TYPE=work:http://example.com" }, VcardDiagnosticKind.InvalidParameter },
-                { "a parameter on VERSION", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "VERSION;X-A=1:3.0" }, VcardDiagnosticKind.InvalidParameter },
                 { "a repeated LANGUAGE", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;LANGUAGE=en;LANGUAGE=fr:a" }, VcardDiagnosticKind.InvalidParameter },
                 { "a language that isn't one of RFC 1766", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "NOTE;LANGUAGE=es-419:a" }, VcardDiagnosticKind.InvalidParameter },
 
@@ -466,6 +465,22 @@ namespace DataStandardizer.File.vCard.Tests
 
                 // assert
                 testAction.Should().Throw<VcardFileException>(scenario).Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(expected);
+            }
+        }
+
+        [Fact]
+        public void ReadCard_ParameterOnVersion_ThrowsInvalidParameter()
+        {
+            // arrange
+            // ref. RFC 2426 §3.6.9 registers the VERSION type with no type parameters.
+            var text = VcardTestData.Crlf(Vcard30TestData.Begin, "VERSION;X-A=1:3.0", Vcard30TestData.FormattedName, Vcard30TestData.Name, Vcard30TestData.End);
+            using (var reader = new VcardReader(new StringReader(text)))
+            {
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidParameter);
             }
         }
 

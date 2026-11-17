@@ -97,6 +97,13 @@ namespace DataStandardizer.File.iCal
         internal static IcalContentLine ToContentLine(XcalElement property)
         {
             var name = ToIcalName(property);
+
+            // ref. RFC 6321 §3.3: the component element takes the place of the BEGIN and END lines that delimit a component, so a property with either name would start or end one.
+            if (IsName(name, IcalCalendarBuilder.BeginName) || IsName(name, IcalCalendarBuilder.EndName))
+                throw BuildException(property, name,
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The {0} property can't be in xCal, whose component element takes the place of BEGIN and END: RFC 6321 §3.3.", name));
+
             CheckNoText(property, name);
 
             var parameters = new List<IcalContentLineParameter>();

@@ -183,6 +183,38 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Equal(expected);
         }
 
+        // ref. RFC 7265 §3.3: the component array takes the place of BEGIN and END, so neither can be a property.
+        private const string BeginProperty = "[\"begin\",{},\"text\",\"vevent\"]";
+        private const string EndProperty = "[\"end\",{},\"text\",\"vcalendar\"]";
+
+        public static TheoryData<string, IcalOptions> StructuralPropertyData()
+        {
+            var data = new TheoryData<string, IcalOptions>();
+            foreach (var property in new[] { BeginProperty, EndProperty })
+            {
+                foreach (var options in ConformanceCases.EveryAccommodation())
+                {
+                    data.Add(property, options);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(StructuralPropertyData))]
+        public void ReadCalendar_PropertyNamedBeginOrEnd_ThrowsWhateverTheOptions(string property, IcalOptions options)
+        {
+            // arrange
+            var json = Document(property);
+
+            // act
+            Action testAction = () => ReadJcal(json, options);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("*RFC 7265 §3.3*");
+        }
+
         [Theory]
         [MemberData(nameof(ConformanceCases.EveryAccommodationData), MemberType = typeof(ConformanceCases))]
         public void ReadCalendar_NoVersion_ThrowsWhateverTheOptions(IcalOptions options)
@@ -196,7 +228,7 @@ namespace DataStandardizer.File.iCal.Tests
             Action testAction = () => ReadJcal(json, options);
 
             // assert
-            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Fact]

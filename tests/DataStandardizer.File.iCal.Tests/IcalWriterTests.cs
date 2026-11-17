@@ -231,7 +231,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void Validate_CalendarWithoutVersion_ReportsInvalidStructure()
+        public void Validate_CalendarWithoutVersion_ReportsUnsupportedVersion()
         {
             // arrange
             var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
@@ -241,7 +241,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = calendar.Validate();
 
             // assert
-            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.InvalidStructure);
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Theory]
@@ -258,12 +258,12 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testAction.Should().Throw<IcalFileException>()
-                    .Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+                    .Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidComponentNesting);
             }
         }
 
         [Fact]
-        public void Validate_PropertyNamedEnd_ReportsInvalidStructure()
+        public void Validate_PropertyNamedEnd_ReportsInvalidComponentNesting()
         {
             // arrange
             var calendar = ReadCalendar(ConformanceCases.VersionAfterProductIdText);
@@ -273,7 +273,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = calendar.Validate();
 
             // assert
-            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.InvalidStructure);
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.InvalidComponentNesting);
         }
 
         [Fact]

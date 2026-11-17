@@ -229,8 +229,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gives a line of a vCard 4.0 card the form it has under the option that accepts a comma with no backslash.  It waits for the end of the card, since a <c>VERSION</c> needn't come first
-        /// under <see cref="VcardOptions.AllowVersionNotFirst"/>, and the rule isn't one of other versions.
+        /// Gives a line of a vCard 4.0 card the form it has under the option that accepts a comma with no backslash.  It waits for the end of the card, where the card's version is known, since
+        /// the rule isn't one of other versions.
         /// </summary>
         private VcardContentLine ApplyCommaAccommodation(VcardContentLine line)
         {
@@ -349,6 +349,15 @@ namespace DataStandardizer.File.vCard
 
         private void AddVersion(VcardContentLine line, VcardCard card)
         {
+            // The first VERSION says how the lines after it are read, and they are read by it, so no option accepts another, whatever its value.
+            if (_mapping != null)
+            {
+                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
+                    "A card has exactly one VERSION property, which says how its lines are read: RFC 6350 §6.7.9, RFC 2426 §5.  No option accepts another.", line.Name, line.Group,
+                    line.LineNumber, card.CardIndex));
+                return;
+            }
+
             // ref. RFC 6350 §6.7.9: "The value MUST be '4.0' if the vCard corresponds to this specification."
             var mapping = VcardVersionMapping.Find(line.Value);
             if (mapping is null)
@@ -371,15 +380,6 @@ namespace DataStandardizer.File.vCard
             else if (mapping.Version == VcardVersion.V3_0)
             {
                 Vcard30Conformance.ValidateVersionLine(line, card, _structureDiagnostics);
-            }
-
-            // The VERSION says how the lines after it are read, and the lines are read by the first, so no option accepts another.
-            if (_mapping != null)
-            {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
-                    "A card has exactly one VERSION property, which says how its lines are read: RFC 6350 §6.7.9, RFC 2426 §5.  No option accepts another.", line.Name, line.Group,
-                    line.LineNumber, card.CardIndex));
-                return;
             }
 
             // ref. RFC 6350 §6.7.9: it "must appear immediately after BEGIN:VCARD", and the vcard rule of §3.3 has it there.  The lines before it are read without knowing that they are

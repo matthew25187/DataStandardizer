@@ -718,7 +718,7 @@ namespace DataStandardizer.File.iCal.Tests
             Action testAction = () => ReadCalendars(ConformanceCases.MissingVersionText, options);
 
             // assert
-            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidStructure);
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
         }
 
         [Theory]

@@ -10,6 +10,12 @@ namespace DataStandardizer.File.vCard.Tests
     public class VcardReaderTests
     {
         // ref. RFC 6350 §6.6.5: the example of a group and the two cards it links to.
+        // ref. RFC 6350 §3.3: vcard = "BEGIN:VCARD" CRLF "VERSION:4.0" CRLF 1*contentline "END:VCARD" CRLF.
+        private const string BeginCard = "BEGIN:VCARD";
+        private const string Version40Line = "VERSION:4.0";
+        private const string EndCard = "END:VCARD";
+        private const string JaneDoeName = "FN:Jane Doe";
+
         private const string GroupExampleUid1Line = "UID:urn:uuid:03a0e51f-d1aa-4385-8a53-e29025acd8af";
         private const string GroupExampleUid2 = "urn:uuid:b8767877-b4a1-4c70-9acc-505d3819e519";
 
@@ -752,11 +758,12 @@ namespace DataStandardizer.File.vCard.Tests
         {
             var cards = new[]
             {
-                new[] { "no VERSION", VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "END:VCARD") },
-                new[] { "two VERSIONs", VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "VERSION:4.0", "FN:Jane Doe", "END:VCARD") },
-                new[] { "a 2.1 VERSION after a 4.0 one", VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "VERSION:2.1", "END:VCARD") },
-                new[] { "a 4.0 VERSION after a 3.0 one", VcardTestData.Crlf("BEGIN:VCARD", "VERSION:3.0", "N:Doe;Jane;;;", "FN:Jane Doe", "VERSION:4.0", "END:VCARD") },
-                new[] { "a 4.0 VERSION after FN", VcardTestData.Crlf("BEGIN:VCARD", "FN:Jane Doe", "VERSION:4.0", "END:VCARD") }
+                new[] { "no VERSION", VcardTestData.Crlf(BeginCard, JaneDoeName, EndCard) },
+                new[] { "two VERSIONs", VcardTestData.Crlf(BeginCard, Version40Line, Version40Line, JaneDoeName, EndCard) },
+                new[] { "a 2.1 VERSION after a 4.0 one", VcardTestData.Crlf(BeginCard, Version40Line, JaneDoeName, "VERSION:2.1", EndCard) },
+                new[] { "a 4.0 VERSION after a 3.0 one", VcardTestData.Crlf(BeginCard, "VERSION:3.0", "N:Doe;Jane;;;", JaneDoeName, Version40Line, EndCard) },
+                new[] { "a VERSION that can't be read after a 4.0 one", VcardTestData.Crlf(BeginCard, Version40Line, JaneDoeName, "VERSION:9.9", EndCard) },
+                new[] { "a 4.0 VERSION after FN", VcardTestData.Crlf(BeginCard, JaneDoeName, Version40Line, EndCard) }
             };
 
             var data = new TheoryData<string, string, VcardOptions>();
