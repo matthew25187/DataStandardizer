@@ -16,6 +16,9 @@ public class SystemTimeExtensionsTests
     private const long LastSecondOfYear9999 = 253402300799L;
     private const long FirstSecondOfYear10000 = 253402300800L;
 
+    // Less than half a nanosecond before the midnight that starts 1970-01-02 (JDN 2440588.5), within the rounding tolerance.
+    private const decimal JustBeforeMidnight19700102 = 2440588.4999999999999999m;
+
     // DOS date 0x0021 is 1980-01-01; DOS time 0x0001 is two seconds past midnight, as a DOS time counts seconds in units of two.
     private const uint DosDateTime19800101T000002 = 0x00210001U;
 
@@ -75,7 +78,31 @@ public class SystemTimeExtensionsTests
         { 2451545.0000115740740509259259m, new DateTime(2000, 1, 1, 12, 0, 0) },
         // 0.4 nanoseconds before 12:00:01, within the tolerance of half a nanosecond.
         { 2451545.0000115740740694444444m, new DateTime(2000, 1, 1, 12, 0, 1) },
+        // Within the tolerance of the next midnight, so on the next day.
+        { JustBeforeMidnight19700102, new DateTime(1970, 1, 2, 0, 0, 0) },
     };
+
+    // Julian Day Numbers and the time of day each gives. A whole number is noon.
+    public static TheoryData<decimal, TimeOnly> TimeOfDayCases => new()
+    {
+        { JustBeforeMidnight19700102, new TimeOnly(0, 0, 0) },
+        { decimal.MaxValue, new TimeOnly(12, 0, 0) },
+        { decimal.MinValue, new TimeOnly(12, 0, 0) },
+    };
+
+    [Theory]
+    [MemberData(nameof(TimeOfDayCases))]
+    public void ToTimeOnly_OnSystemTimeValueAnywhere_ReturnsTimeOfDay(decimal testJdn, TimeOnly expectedResult)
+    {
+        // arrange
+        var testValue = new TestSystemTime(testJdn);
+
+        // act
+        var testResult = testValue.ToTimeOnly();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
 
     [Theory]
     [MemberData(nameof(FractionOfSecondCases))]
@@ -197,38 +224,34 @@ public class SystemTimeExtensionsTests
         testResult.Kind.Should().Be(DateTimeKind.Unspecified);
     }
 
+    // Each date conversion of a system time outside the range of DateTime and DateOnly, 0001-01-01 to 9999-12-31.
+    public static TheoryData<string, Func<object>> BeyondDateRangeConversionCases => new()
+    {
+        { "ToDateTime long.MaxValue", () => new UnixTime(long.MaxValue).ToDateTime() },
+        { "ToDateTime long.MinValue", () => new UnixTime(long.MinValue).ToDateTime() },
+        { "ToDateTime year 10000", () => new UnixTime(FirstSecondOfYear10000).ToDateTime() },
+        { "ToDateTime year 0", () => new UnixTime(LastSecondBeforeYear1).ToDateTime() },
+        { "ToDateTime decimal.MaxValue", () => new TestSystemTime(decimal.MaxValue).ToDateTime() },
+        { "ToDateTime decimal.MinValue", () => new TestSystemTime(decimal.MinValue).ToDateTime() },
+        { "ToDateOnly long.MaxValue", () => new UnixTime(long.MaxValue).ToDateOnly() },
+        { "ToDateOnly long.MinValue", () => new UnixTime(long.MinValue).ToDateOnly() },
+        { "ToDateOnly year 10000", () => new UnixTime(FirstSecondOfYear10000).ToDateOnly() },
+        { "ToDateOnly year 0", () => new UnixTime(LastSecondBeforeYear1).ToDateOnly() },
+        { "ToDateOnly decimal.MaxValue", () => new TestSystemTime(decimal.MaxValue).ToDateOnly() },
+        { "ToDateOnly decimal.MinValue", () => new TestSystemTime(decimal.MinValue).ToDateOnly() },
+    };
+
     [Theory]
-    [InlineData(long.MaxValue),
-     InlineData(long.MinValue),
-     InlineData(FirstSecondOfYear10000),
-     InlineData(LastSecondBeforeYear1)]
-    public void ToDateTime_UnixTimeBeyondDateTimeRange_ThrowsArgumentOutOfRangeException(long testUnixTime)
+    [MemberData(nameof(BeyondDateRangeConversionCases))]
+    public void DateConversion_SystemTimeBeyondDateRange_ThrowsArgumentOutOfRangeException(string testCaseName, Func<object> testConversion)
     {
         // arrange
-        var testValue = new UnixTime(testUnixTime);
 
         // act
-        Action testAction = () => testValue.ToDateTime();
+        Action testAction = () => testConversion();
 
         // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("systemTime");
-    }
-
-    [Theory]
-    [InlineData(long.MaxValue),
-     InlineData(long.MinValue),
-     InlineData(FirstSecondOfYear10000),
-     InlineData(LastSecondBeforeYear1)]
-    public void ToDateOnly_UnixTimeBeyondDateOnlyRange_ThrowsArgumentOutOfRangeException(long testUnixTime)
-    {
-        // arrange
-        var testValue = new UnixTime(testUnixTime);
-
-        // act
-        Action testAction = () => testValue.ToDateOnly();
-
-        // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("systemTime");
+        testAction.Should().Throw<ArgumentOutOfRangeException>(testCaseName).WithParameterName("systemTime");
     }
 
     [Theory]

@@ -52,7 +52,8 @@ namespace DataStandardizer.Chronology
         }
 
         /// <remarks>
-        /// A day number that doesn't fit an <see cref="int"/> throws <see cref="OverflowException"/>.
+        /// A day too far from the epoch of the Julian Day Number to give a year, including one whose number doesn't fit an
+        /// <see cref="int"/>, throws <see cref="OverflowException"/>.
         /// </remarks>
         internal static (int Year, int Month, int Day) ConvertJdnToGregorianCalendarDate(decimal jdn)
         {
@@ -151,14 +152,26 @@ namespace DataStandardizer.Chronology
         /// <para>
         /// The day is split off before the seconds are counted, so that the fraction of the day is multiplied by the number of
         /// seconds in a day at full precision, however far the day is from the epoch. A fraction that rounds up to a whole day
-        /// moves to the start of the next day.
+        /// moves to the start of the next day. The half day between noon, where a Julian Day Number starts, and midnight is
+        /// moved from the fraction to the day, not added to <paramref name="jdn"/>, so that no value of <paramref name="jdn"/>
+        /// overflows.
         /// </para>
         /// </remarks>
         private static (decimal DayNumber, int SecondOfDay) SplitJdn(decimal jdn)
         {
-            var jdnSinceMidnight = jdn + 0.5m;
-            var dayNumber = decimal.Floor(jdnSinceMidnight);
-            var secondOfDay = decimal.Floor(Math.Round((jdnSinceMidnight - dayNumber) * SecondsPerDay, SubSecondDigits));
+            var dayNumber = decimal.Floor(jdn);
+            var fractionSinceMidnight = jdn - dayNumber;
+            if (fractionSinceMidnight >= 0.5m)
+            {
+                dayNumber++;
+                fractionSinceMidnight -= 0.5m;
+            }
+            else
+            {
+                fractionSinceMidnight += 0.5m;
+            }
+
+            var secondOfDay = decimal.Floor(Math.Round(fractionSinceMidnight * SecondsPerDay, SubSecondDigits));
             if (secondOfDay == SecondsPerDay)
             {
                 dayNumber++;
