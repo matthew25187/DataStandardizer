@@ -123,13 +123,14 @@ function Out-SourceCode {
 
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
 
+        $standardName = ($CodeType -eq [CodeType]::Bibliographic) ? 'ISO 639-2/B' : 'ISO 639-2/T'
         $stringToStructConversionOperatorSnippet = "        /// <summary>
-        /// Converts a string to the <see cref=`"$TypeName`"/> value that holds it, without checking that it is an ISO 639 code.
+        /// Converts an $standardName code to the <see cref=`"$TypeName`"/> member with that code.
         /// </summary>
-        /// <param name=`"value`">The code.</param>
-        /// <returns>A value that holds <paramref name=`"value`"/>.</returns>
+        /// <param name=`"value`">The code, such as <c>eng</c>. Codes are case-sensitive.</param>
+        /// <returns>The predefined member with the code.</returns>
         /// <exception cref=`"System.InvalidCastException`">
-        /// <paramref name=`"value`"/> is <see langword=`"null`"/>.
+        /// <paramref name=`"value`"/> is <see langword=`"null`"/>, or is not an $standardName code.
         /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName(string value)
@@ -142,7 +143,12 @@ function Out-SourceCode {
                 throw new System.InvalidCastException(`"A null string cannot be converted to $TypeName.`");
             }
 
-            return new $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName(value);
+            if (!MembersByCode.Value.TryGetValue(value, out var member))
+            {
+                throw new System.InvalidCastException(`"'`" + value + `"' is not an $standardName code.`");
+            }
+
+            return member;
         }"
         $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)
         [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
@@ -315,8 +321,11 @@ function Out-SourceCode {
 
         $memberFieldPredicateMethod = Get-MemberFieldPredicateMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName -GenerateLanguage $GenerateLanguage
         [void]$memberFieldPredicateMethod.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Private Methods'))
-        [void]$memberFieldPredicateMethod.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
         [void]$structType.Members.Add($memberFieldPredicateMethod)
+
+        $membersByCodeMember = Get-MembersByCodeDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName
+        [void]$membersByCodeMember.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
+        [void]$structType.Members.Add($membersByCodeMember)
 
         Write-Progress -Completed
 

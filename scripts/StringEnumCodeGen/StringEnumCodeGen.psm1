@@ -128,8 +128,41 @@ function Get-MemberFieldPredicateMethodDefinition {
                         [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
                         [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'))))))
     [void]$method.Statements.Add($linqQueryPredicateReturnStatement)
-    
+
     return $method
+}
+
+function Get-MembersByCodeDefinition {
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
+    param (
+        [Parameter()]
+        [string]    $TypeNamespace,
+
+        [Parameter(Mandatory)]
+        [string]    $TypeName
+    )
+
+    $typeReference = Get-TypeFullName $TypeNamespace $TypeName
+    $dictionaryType = "System.Collections.Generic.Dictionary<string, $typeReference>"
+
+    $snippet = "        // Built on first use rather than in a static field initializer, which could run before the member fields it reads are assigned.
+        // PublicationOnly doesn't cache an exception thrown while building it, so a later cast tries again.
+        private static readonly System.Lazy<$dictionaryType> MembersByCode = new System.Lazy<$dictionaryType>(CreateMembersByCode, System.Threading.LazyThreadSafetyMode.PublicationOnly);
+
+        private static $dictionaryType CreateMembersByCode()
+        {
+            var membersByCode = new $dictionaryType(System.StringComparer.Ordinal);
+            foreach (var field in typeof($typeReference).GetTypeInfo().DeclaredFields)
+            {
+                if (field.IsPublic && field.IsStatic && field.GetValue(null) is $typeReference member && member._value is string code)
+                {
+                    membersByCode[code] = member;
+                }
+            }
+            return membersByCode;
+        }"
+
+    return [System.CodeDom.CodeSnippetTypeMember]::new($snippet)
 }
 
 function Get-InheritedToStringMethodDefinition {
@@ -886,6 +919,7 @@ Export-ModuleMember -Function Get-ValueFieldDeclaration
 Export-ModuleMember -Function Get-EqualsMethodDefinition
 Export-ModuleMember -Function Get-GetHashCodeMethodDefinition
 Export-ModuleMember -Function Get-MemberFieldPredicateMethodDefinition
+Export-ModuleMember -Function Get-MembersByCodeDefinition
 Export-ModuleMember -Function Get-InheritedToStringMethodDefinition
 Export-ModuleMember -Function Get-CompareToMethodDefinition
 Export-ModuleMember -Function Get-InheritedEqualsMethodDefinition

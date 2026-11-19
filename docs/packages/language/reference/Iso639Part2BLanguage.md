@@ -564,7 +564,7 @@ underlying `string` and is callable only through an `IConvertible` reference.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Iso639Part2BLanguage(string)` | Wraps a code string. Throws `InvalidCastException` for `null`. |
+| Explicit | `explicit operator Iso639Part2BLanguage(string)` | Gives the member with that code, such as `Iso639Part2BLanguage.eng` for `"eng"`. Codes are case-sensitive. Throws `InvalidCastException` for `null` or a string that isn't an ISO 639-2/B code. |
 | Implicit | `implicit operator string(Iso639Part2BLanguage)` | Unwraps to the underlying code string. |
 | Equality | `operator ==`, `!=` `(Iso639Part2BLanguage, Iso639Part2BLanguage)` | |
 
