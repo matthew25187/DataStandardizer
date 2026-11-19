@@ -872,15 +872,11 @@ namespace DataStandardizer.Chronology
             if (year < rule.FromYear || year > rule.ToYear)
                 return null;
 
-            try
-            {
-                return rule.GetTransitionDate(year).Ticks + rule.AtTime.Ticks;
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                // The date falls outside the range of DateTime, as for a weekday counted back from the first day of year 1.
+            // A date outside the range of DateTime, as for a weekday counted back from the first day of year 1, is skipped. A day that doesn't occur in the year is an error in the data, and throws.
+            if (!TzDataDayRule.TryResolve(year, rule.Month, rule.DayKind, rule.Day, rule.DayOfWeek, out var date))
                 return null;
-            }
+
+            return date.Ticks + rule.AtTime.Ticks;
         }
 
         private static long GetUntilTicks(TzDataUntil until, long standardOffset, long save)
