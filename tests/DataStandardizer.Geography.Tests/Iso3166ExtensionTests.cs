@@ -95,6 +95,21 @@ public class Iso3166ExtensionTests
     private const string NorthernIrelandSubdivisionCode = "GB-NIR";
     private const string ScotlandSubdivisionCode = "GB-SCT";
     private const string WalesSubdivisionCode = "GB-WLS";
+    private const string NewSouthWalesSubdivisionCode = "AU-NSW";
+    private const string DevonSubdivisionCode = "GB-DEV";
+    private const string LibertadorGeneralBernardoOHigginsSubdivisionCode = "CL-LI";
+
+    // ISO 3166-2 subdivision codes followed by a line feed, which ISO 3166-2 doesn't allow.
+    private const string NewSouthWalesSubdivisionCodeWithLineFeed = "AU-NSW\n";
+    private const string DevonSubdivisionCodeWithLineFeed = "GB-DEV\n";
+    private const string LibertadorGeneralBernardoOHigginsSubdivisionCodeWithLineFeed = "CL-LI\n";
+
+    // ISO 3166-2 data for AU-NSW: the "state" category, its names and the subdivision's English name.
+    private const ushort Iso3166Part2AustraliaStateCategoryId = 393;
+    private const string AustraliaStateCategoryNameEnglish = "state";
+    private const string AustraliaStateCategoryNamePluralEnglish = "states";
+    private const string NewSouthWalesNameEnglish = "New South Wales";
+
     #region Test: GetEnglishName_OnIso3166Part1Alpha2CountryCode
 
     [Theory]
@@ -587,6 +602,62 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part2Subdivision.GB._CRF, WalesSubdivisionCode };
             }
         }
+    }
+
+    #endregion
+
+    #region Test: subdivision code with a trailing line feed
+
+    // Each subdivision lookup, given a subdivision made from a code, with the data ISO 3166-2 gives that subdivision.
+    public static TheoryData<string, Func<object?>, object> SubdivisionLookupsOnCode => new TheoryData<string, Func<object?>, object>
+    {
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryIdentifier), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCategoryIdentifier(), Iso3166Part2AustraliaStateCategoryId },
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryName), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCategoryName(Iso639Part1English), AustraliaStateCategoryNameEnglish },
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryNamePlural), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCategoryNamePlural(Iso639Part1English), AustraliaStateCategoryNamePluralEnglish },
+        { nameof(Iso3166Extensions.GetSubdivisionCode), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCode(), NewSouthWalesSubdivisionCode },
+        { nameof(Iso3166Extensions.GetSubdivisionParentCode), () => ((Iso3166Part2Subdivision)DevonSubdivisionCode).GetSubdivisionParentCode(), EnglandSubdivisionCode },
+        { nameof(Iso3166Extensions.GetSubdivisionNativeName), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionNativeName(Iso639Part1English), NewSouthWalesNameEnglish },
+        { nameof(Iso3166Extensions.GetSubdivisionNativeNameLocalVariant), () => ((Iso3166Part2Subdivision)LibertadorGeneralBernardoOHigginsSubdivisionCode).GetSubdivisionNativeNameLocalVariant(Iso639Part1Spanish), LibertadorGeneralBernardoOHigginsLocalVariantSpanish },
+    };
+
+    [Theory]
+    [MemberData(nameof(SubdivisionLookupsOnCode))]
+    public void SubdivisionLookup_Code_ReturnsSubdivisionData(string name, Func<object?> lookup, object expectedResult)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    // The same lookups, given a subdivision made from the same code followed by a line feed.
+    public static TheoryData<string, Func<object?>> SubdivisionLookupsOnCodeWithTrailingLineFeed => new TheoryData<string, Func<object?>>
+    {
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryIdentifier), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCodeWithLineFeed).GetSubdivisionCategoryIdentifier() },
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryName), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCodeWithLineFeed).GetSubdivisionCategoryName(Iso639Part1English) },
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryNamePlural), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCodeWithLineFeed).GetSubdivisionCategoryNamePlural(Iso639Part1English) },
+        { nameof(Iso3166Extensions.GetSubdivisionCode), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCodeWithLineFeed).GetSubdivisionCode() },
+        { nameof(Iso3166Extensions.GetSubdivisionParentCode), () => ((Iso3166Part2Subdivision)DevonSubdivisionCodeWithLineFeed).GetSubdivisionParentCode() },
+        { nameof(Iso3166Extensions.GetSubdivisionNativeName), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCodeWithLineFeed).GetSubdivisionNativeName(Iso639Part1English) },
+        { nameof(Iso3166Extensions.GetSubdivisionNativeNameLocalVariant), () => ((Iso3166Part2Subdivision)LibertadorGeneralBernardoOHigginsSubdivisionCodeWithLineFeed).GetSubdivisionNativeNameLocalVariant(Iso639Part1Spanish) },
+    };
+
+    [Theory]
+    [MemberData(nameof(SubdivisionLookupsOnCodeWithTrailingLineFeed))]
+    public void SubdivisionLookup_CodeWithTrailingLineFeed_ReturnsNull(string name, Func<object?> lookup)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup();
+
+        // assert
+        testResult.Should().BeNull();
     }
 
     #endregion

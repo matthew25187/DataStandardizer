@@ -19,7 +19,8 @@ namespace DataStandardizer.Geography
 #if NETSTANDARD1_3_OR_GREATER||NET
             options |= RegexOptions.Compiled;
 #endif
-            SubdivisionCodeExpression = new Regex("^(?<country>[A-Z]{2})-(?<subdivision>[0-9A-Z]{1,3})$", options);
+            // \z, not $: $ also matches before a final line feed, so "AU-NSW\n" would resolve to AU-NSW.
+            SubdivisionCodeExpression = new Regex(@"^(?<country>[A-Z]{2})-(?<subdivision>[0-9A-Z]{1,3})\z", options);
         }
 
         #region Public Methods: ISO 3166-1 Alpha-2
