@@ -111,12 +111,11 @@ namespace DataStandardizer.Language
         /// Get the date of a script code.
         /// </summary>
         /// <param name="scriptCode">Script code having a date to retrieve.</param>
-        /// <returns>Date of the script code, if found; otherwise <c>null</c>.</returns>
-#if NET6_0_OR_GREATER
-        public static DateOnly? GetDate(this Iso15924Script scriptCode)
-#else
+        /// <returns>
+        /// Date of the script code at midnight, with a <see cref="DateTime.Kind"/> of
+        /// <see cref="DateTimeKind.Unspecified"/>, if found; otherwise <c>null</c>.
+        /// </returns>
         public static DateTime? GetDate(this Iso15924Script scriptCode)
-#endif
         {
             if (!Enum.IsDefined(scriptCode.GetType(), scriptCode))
             {

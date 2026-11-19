@@ -37,8 +37,9 @@ an extension method on a script code:
 var scriptDate = Iso15924Script.Egyp.GetDate();
 ```
 
-> **Applies to:** on `net10.0` `GetDate()` returns a `DateOnly?`; on the
-> .NET Standard targets it returns a `DateTime?`.
+`GetDate()` returns a `DateTime?` on every target: the date at midnight, with a
+`Kind` of `DateTimeKind.Unspecified`. On .NET 6 and later, take a `DateOnly` from
+it with `DateOnly.FromDateTime`.
 
 ## English name
 
