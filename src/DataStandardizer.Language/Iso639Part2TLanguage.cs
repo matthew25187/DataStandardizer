@@ -47,12 +47,25 @@ namespace DataStandardizer.Language
         #endregion
         
         #region Operators
+        /// <summary>
+        /// Converts a code to the <see cref="Iso639Part2TLanguage"/> value with that code.
+        /// </summary>
+        /// <param name="value">The code.</param>
+        /// <returns>The value with the code.</returns>
+        /// <exception cref="System.InvalidCastException">
+        /// <paramref name="value"/> is <see langword="null"/>.
+        /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator DataStandardizer.Language.Iso639Part2TLanguage(string value)
 #else
         public static explicit operator DataStandardizer.Language.Iso639Part2TLanguage([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
         {
+            if (value is null)
+            {
+                throw new System.InvalidCastException("A null string cannot be converted to Iso639Part2TLanguage.");
+            }
+
             return new DataStandardizer.Language.Iso639Part2TLanguage(value);
         }
         
