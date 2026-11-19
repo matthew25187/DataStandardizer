@@ -279,12 +279,8 @@ namespace DataStandardizer.Geography
         [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Burkina Faso", "BURKINA FASO", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Burkina Faso (le)", "BURKINA FASO", "le Burkina Faso")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Burkina Faso", "BURKINA FASO")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Upper Volta", "UPPER VOLTA")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Haute-Volta", "HAUTE-VOLTA")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=true)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         BFA = 854,
         
         /// <summary>
@@ -465,14 +461,10 @@ namespace DataStandardizer.Geography
         /// Belarus
         /// </summary>
         [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belarus", "BELARUS", "the Republic of Belarus", IsIndependent=true)]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Byelorussian SSR", "BYELORUSSIAN SSR")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Biélorussie, RSS de", "BIÉLORUSSIE, RSS DE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Belarus", "BELARUS", "the Republic of Belarus")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bélarus (le)", "BÉLARUS", "la République du Bélarus")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("be", "bel", "Bielaruś", "Bielaruś")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ru", "rus", "Belarus\'", "Belarus\'")]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("be", "bel", IsAdministrative=true)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
@@ -515,12 +507,8 @@ namespace DataStandardizer.Geography
         [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Congo (the Democratic Republic of the)", "CONGO, DEMOCRATIC REPUBLIC OF THE", "the Democratic Republic of the Congo", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Congo (the Democratic Republic of the)", "CONGO, DEMOCRATIC REPUBLIC OF THE", "the Democratic Republic of the Congo")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Congo (la République démocratique du)", "CONGO, RÉPUBLIQUE DÉMOCRATIQUE DU", "la République démocratique du Congo")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Zaire", "Zaire")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Zaïre", "ZAÏRE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=true)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         COD = 180,
         
         /// <summary>
@@ -1884,13 +1872,9 @@ namespace DataStandardizer.Geography
         /// Myanmar
         /// </summary>
         [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Myanmar", "MYANMAR", "the Republic of the Union of Myanmar", IsIndependent=true)]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Burma", "Burma")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Birmanie", "BIRMANIE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Myanmar", "MYANMAR", "the Republic of the Union of Myanmar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Myanmar (le)", "MYANMAR", "la République de l\'Union du Myanmar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("my", "mya", "Myanma", "Myanma")]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("my", "mya", IsAdministrative=true)]
@@ -2890,16 +2874,12 @@ namespace DataStandardizer.Geography
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Timor-Leste (le)", "TIMOR-LESTE", "la République démocratique du Timor-Leste")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Timor-Leste", "Timor-Leste")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "tet", "Timor Lorosa\'e", "Timor Lorosa\'e")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "East Timor", "East Timor")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Timor oriental", "TIMOR ORIENTAL")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1143, "the exclave of Oecussi")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("fr", "fra", 1143, "l\'exclave d\'Oecussi")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("pt", "por", IsAdministrative=true)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute(null, "tet", IsAdministrative=true)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         TLS = 626,
         
         /// <summary>

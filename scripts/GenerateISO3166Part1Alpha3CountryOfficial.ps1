@@ -1,6 +1,6 @@
 #########################################################################
 # Title: ISO 3166 Part 1 Alpha-3 Source Code Generator                  #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.       #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.  #
 #                                                                       #
 # Purpose: Generate source code for implementing the ISO 3166 standard. #
 # Source: Country Codes Collection, ISO.                                #
@@ -107,9 +107,13 @@ function Out-SourceCode {
         $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166CountryCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
-        # Add name attributes.
+        # Add name attributes. A code that replaced another keeps its numeric code (BU and MM are both 104),
+        # and Belarus kept the alpha-2 code BY of the Byelorussian SSR, so only all three codes together pick
+        # out the rows of the officially assigned code.
+        $countryAlpha2Code = $_.alpha_2_code
+        $countryAlpha3Code = $_.alpha_3_code
         $countryNumericCode = $_.numeric_code -as [ushort]
-        $countryNamesCurrentSet = $CountryNamesSet | Where-Object { ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
+        $countryNamesCurrentSet = $CountryNamesSet | Where-Object { $_.alpha_2_code -eq $countryAlpha2Code -and $_.alpha_3_code -eq $countryAlpha3Code -and ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
         foreach ($countryName in $countryNamesCurrentSet) {
             $countryNameLanguage = (-not [string]::IsNullOrWhiteSpace($countryName.language))?$countryName.language:$null
             $nameAttributeArguments = @(
@@ -126,7 +130,7 @@ function Out-SourceCode {
         }
 
         # Add territory attributes.
-        $territoriesCurrentSet = $TerritoriesSet | Where-Object { ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
+        $territoriesCurrentSet = $TerritoriesSet | Where-Object { $_.alpha_2_code -eq $countryAlpha2Code -and $_.alpha_3_code -eq $countryAlpha3Code -and ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
         foreach ($territory in $territoriesCurrentSet) {
             $territoryNameLanguage = (-not [string]::IsNullOrWhiteSpace($territory.language))?$territory.language:$null
             $territoryAttributeArguments = @(
@@ -139,7 +143,7 @@ function Out-SourceCode {
         }
         
         # Add language attributes.
-        $languagesCurrentSet = $LanguagesSet | Where-Object { ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
+        $languagesCurrentSet = $LanguagesSet | Where-Object { $_.alpha_2_code -eq $countryAlpha2Code -and $_.alpha_3_code -eq $countryAlpha3Code -and ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
         foreach ($language in $languagesCurrentSet) {
             $languageAlpha2Code = (-not [string]::IsNullOrWhiteSpace($language.language_alpha_2_code))?$language.language_alpha_2_code:$null
             $languageAttributeArguments = @(
