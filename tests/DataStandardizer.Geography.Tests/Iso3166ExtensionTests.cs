@@ -689,7 +689,7 @@ public class Iso3166ExtensionTests
     {
         { Iso639Part2BGerman, () => Iso3166Part1Alpha2Country.AT.GetNativeName(Iso639Part2BGerman, Iso3166CountryName.Short) },
         { Iso639TestCodes.SpanishCodeWithLongS, () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(Iso639TestCodes.SpanishCodeWithLongS) },
-        { "null", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null!) },
+        { "null", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null) },
     };
 
     [Theory]

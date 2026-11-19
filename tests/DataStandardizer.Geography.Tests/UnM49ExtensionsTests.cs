@@ -1469,7 +1469,7 @@ public class UnM49ExtensionsTests
     public void GetName_UnmatchedLanguageCode_ReturnsNull(string? languageCode)
     {
         // act
-        var testResult = UnM49Area._894.GetName(languageCode!);
+        var testResult = UnM49Area._894.GetName(languageCode);
 
         // assert
         testResult.Should().BeNull();
