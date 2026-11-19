@@ -132,6 +132,9 @@ function Get-MemberFieldPredicateMethodDefinition {
     return $method
 }
 
+# Emits a lazily built table from each member's code to the member, for an explicit conversion from string to look codes up in.
+# It reads only the public static fields declared on the struct itself, not those of nested classes, so it suits only a string
+# enumeration whose members are all declared on the struct, such as the ISO 639 types.
 function Get-MembersByCodeDefinition {
     [OutputType([System.CodeDom.CodeSnippetTypeMember])]
     param (

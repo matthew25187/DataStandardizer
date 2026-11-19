@@ -81,7 +81,7 @@ underlying `string` and is callable only through an `IConvertible` reference.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Iso639Part3Language(string)` | Gives the member with that code, such as `Iso639Part3Language.eng` for `"eng"`. Codes are case-sensitive. Throws `InvalidCastException` for `null` or a string that isn't an ISO 639-3 code. |
+| Explicit | `explicit operator Iso639Part3Language(string)` | Gives the member with that code, such as `Iso639Part3Language.eng` for `"eng"`. Codes are case-sensitive. Throws `InvalidCastException` for `null` or a string that isn't an ISO 639-3 code. Codes reserved for local use, `qaa` to `qtz`, aren't members and are rejected. |
 | Implicit | `implicit operator string(Iso639Part3Language)` | Unwraps to the underlying code string. |
 | Equality | `operator ==`, `!=` `(Iso639Part3Language, Iso639Part3Language)` | |
 

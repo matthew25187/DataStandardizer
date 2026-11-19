@@ -55,6 +55,7 @@ namespace DataStandardizer.Language
         /// <exception cref="System.InvalidCastException">
         /// <paramref name="value"/> is <see langword="null"/>, or is not an ISO 639-2/T code.
         /// </exception>
+        /// <remarks>Codes in the range reserved for local use, <c>qaa</c> to <c>qtz</c>, aren't members and are rejected.</remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator DataStandardizer.Language.Iso639Part2TLanguage(string value)
 #else
