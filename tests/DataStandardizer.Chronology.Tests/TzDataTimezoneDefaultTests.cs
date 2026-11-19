@@ -172,7 +172,7 @@ public class TzDataTimezoneDefaultTests
         var testResult = TzDataTimezone.Europe.Zurich.CompareTo(null);
 
         // assert
-        testResult.Should().Be(1, "every instance compares greater than null under the IComparable.CompareTo contract");
+        testResult.Should().BePositive("every instance compares greater than null under the IComparable.CompareTo contract");
     }
 
     [Fact]
