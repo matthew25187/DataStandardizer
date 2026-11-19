@@ -111,12 +111,25 @@ function Out-SourceCode {
 
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
 
-        $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+        $stringToStructConversionOperatorSnippet = "        /// <summary>
+        /// Converts a string to the <see cref=`"$TypeName`"/> value that holds it, without checking that it is an ISO 639 code.
+        /// </summary>
+        /// <param name=`"value`">The code.</param>
+        /// <returns>A value that holds <paramref name=`"value`"/>.</returns>
+        /// <exception cref=`"System.InvalidCastException`">
+        /// <paramref name=`"value`"/> is <see langword=`"null`"/>.
+        /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
         public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName(string value)
 #else
         public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
         {
+            if (value is null)
+            {
+                throw new System.InvalidCastException(`"A null string cannot be converted to $TypeName.`");
+            }
+
             return new $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName(value);
         }"
         $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)

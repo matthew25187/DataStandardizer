@@ -564,7 +564,7 @@ underlying `string` and is callable only through an `IConvertible` reference.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Iso639Part2TLanguage(string)` | Wraps a code string. Throws `ArgumentNullException` for `null`. |
+| Explicit | `explicit operator Iso639Part2TLanguage(string)` | Wraps a code string. Throws `InvalidCastException` for `null`. |
 | Implicit | `implicit operator string(Iso639Part2TLanguage)` | Unwraps to the underlying code string. |
 | Equality | `operator ==`, `!=` `(Iso639Part2TLanguage, Iso639Part2TLanguage)` | |
 
