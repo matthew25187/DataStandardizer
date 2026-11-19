@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 #endif
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 namespace DataStandardizer.Geography
 {
@@ -12,8 +13,9 @@ namespace DataStandardizer.Geography
     {
         // Built on first use rather than in a static field initializer: each nested country class creates its subdivisions with the
         // struct's constructor, so building it while the struct is first initialized would read fields that aren't yet assigned.
+        // PublicationOnly doesn't cache an exception thrown while building it, so a later cast tries again.
         private static readonly Lazy<Dictionary<string, Iso3166Part2Subdivision>> SubdivisionsByCode =
-            new Lazy<Dictionary<string, Iso3166Part2Subdivision>>(CreateSubdivisionsByCode);
+            new Lazy<Dictionary<string, Iso3166Part2Subdivision>>(CreateSubdivisionsByCode, LazyThreadSafetyMode.PublicationOnly);
 
 #if NETCOREAPP3_0_OR_GREATER
         private static Iso3166Part2Subdivision ConvertFromCode(string? value)

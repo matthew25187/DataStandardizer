@@ -1,6 +1,10 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "abe9eb3be659272c7bda2efb15b69ce67eb146cb": {
+      "subject": "ISO 3166-2 subdivision lookups return null for a code with a trailing line feed (#1068)",
+      "notes": []
+    },
     "dd5754f7021311b50c911052dfe54bfdd8fe127a": {
       "subject": "VcardOptions.MaxLineLength is a required property on .NET 10 and later (#788)",
       "notes": []
