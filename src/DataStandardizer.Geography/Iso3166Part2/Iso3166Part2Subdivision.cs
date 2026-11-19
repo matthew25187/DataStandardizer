@@ -51,13 +51,21 @@ namespace DataStandardizer.Geography
         #endregion
         
         #region Operators
+            /// <summary>
+            /// Converts an ISO 3166-2 subdivision code to the subdivision with that code.
+            /// </summary>
+            /// <param name="value">The subdivision code, such as <c>AU-NSW</c>. Codes are case-sensitive.</param>
+            /// <returns>The predefined subdivision with the code.</returns>
+            /// <exception cref="System.InvalidCastException">
+            /// <paramref name="value"/> is <see langword="null"/>, or is not the code of a subdivision in ISO 3166-2.
+            /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Geography.Iso3166Part2Subdivision(string value)
     #else
             public static explicit operator DataStandardizer.Geography.Iso3166Part2Subdivision([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
-                return new DataStandardizer.Geography.Iso3166Part2Subdivision(value);
+                return DataStandardizer.Geography.Iso3166Part2Subdivision.ConvertFromCode(value);
             }
         
 #if NETCOREAPP3_0_OR_GREATER
