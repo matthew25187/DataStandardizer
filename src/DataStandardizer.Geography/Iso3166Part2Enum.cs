@@ -13,10 +13,10 @@ namespace DataStandardizer.Geography
             SubdivisionCodeLookup = typeof(Iso3166Part2Subdivision).GetTypeInfo().DeclaredNestedTypes
                 .SelectMany(typeInfo => typeInfo.DeclaredFields, (typeInfo, fieldInfo) => new { CountryType = typeInfo.AsType(), Field = fieldInfo })
                 .Where(kvp => kvp.Field.FieldType == typeof(Iso3166Part2Subdivision))
-                // Iso3166Part2Subdivision.CompareTo compares the codes ordinally, so each country's subdivisions
-                // come out in code order, whatever order DeclaredFields returns them in.
-                .OrderBy(kvp => kvp.Field.GetValue(null))
-                .ThenBy(kvp => kvp.Field.Name, StringComparer.Ordinal)
+                // Each field's name is its code with the country prefix ("AU-") replaced by "_", so within a country
+                // ordering the names ordinally puts the subdivisions in ordinal code order, whatever order DeclaredFields
+                // returns them in, without reading the field values.
+                .OrderBy(kvp => kvp.Field.Name, StringComparer.Ordinal)
                 .ToLookup(kvp => kvp.CountryType, kvp => kvp.Field);
         }
 
