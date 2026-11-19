@@ -48,10 +48,10 @@ namespace DataStandardizer.Language
         
         #region Operators
         /// <summary>
-        /// Converts a code to the <see cref="Iso639Part1Language"/> value with that code.
+        /// Converts a string to the <see cref="Iso639Part1Language"/> value that holds it, without checking that it is an ISO 639 code.
         /// </summary>
         /// <param name="value">The code.</param>
-        /// <returns>The value with the code.</returns>
+        /// <returns>A value that holds <paramref name="value"/>.</returns>
         /// <exception cref="System.InvalidCastException">
         /// <paramref name="value"/> is <see langword="null"/>.
         /// </exception>

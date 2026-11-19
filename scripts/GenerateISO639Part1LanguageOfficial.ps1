@@ -45,7 +45,7 @@ function Out-SourceCode {
     )
     
     begin {
-        $activity = "Generating $GenerateTypeName code DOM"
+        $activity = "Generating $TypeName code DOM"
         Write-Progress -Activity $activity -PercentComplete -1
 
         $codesProcessed = 0
@@ -112,10 +112,10 @@ function Out-SourceCode {
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
 
         $stringToStructConversionOperatorSnippet = "        /// <summary>
-        /// Converts a code to the <see cref=`"$TypeName`"/> value with that code.
+        /// Converts a string to the <see cref=`"$TypeName`"/> value that holds it, without checking that it is an ISO 639 code.
         /// </summary>
         /// <param name=`"value`">The code.</param>
-        /// <returns>The value with the code.</returns>
+        /// <returns>A value that holds <paramref name=`"value`"/>.</returns>
         /// <exception cref=`"System.InvalidCastException`">
         /// <paramref name=`"value`"/> is <see langword=`"null`"/>.
         /// </exception>
