@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 
 namespace DataStandardizer.Chronology.Tests;
 
@@ -95,6 +95,7 @@ public class TzDataRuleTests
     [InlineData(3, DayOfWeek.Sunday, 8, 2026, 2026, 3, 8)]
     [InlineData(11, DayOfWeek.Sunday, 1, 2024, 2024, 11, 3)]
     [InlineData(2, DayOfWeek.Sunday, 29, 2024, 2024, 3, 3)]
+    [InlineData(2, DayOfWeek.Sunday, 29, 2004, 2004, 2, 29)]
     [InlineData(4, DayOfWeek.Sunday, 30, 2023, 2023, 4, 30)]
     [InlineData(4, DayOfWeek.Monday, 30, 2023, 2023, 5, 1)]
     [InlineData(12, DayOfWeek.Monday, 31, 2024, 2025, 1, 6)]
@@ -111,6 +112,22 @@ public class TzDataRuleTests
     }
 
     [Theory]
+    [InlineData(2023)]
+    [InlineData(2026)]
+    [InlineData(2100)]
+    public void GetTransitionDate_WeekdayOnOrAfterFebruary29InCommonYear_ThrowsArgumentOutOfRangeException(int testYear)
+    {
+        // arrange
+        var testRule = CreateRule(2, TzDataDayKind.WeekdayOnOrAfter, 29, DayOfWeek.Sunday);
+
+        // act
+        Action testAction = () => testRule.GetTransitionDate(testYear);
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(YearParameterName);
+    }
+
+    [Theory]
     [InlineData(3, DayOfWeek.Sunday, 25, 2024, 2024, 3, 24)]
     [InlineData(3, DayOfWeek.Sunday, 25, 2026, 2026, 3, 22)]
     [InlineData(3, DayOfWeek.Sunday, 25, 2018, 2018, 3, 25)]
@@ -120,6 +137,8 @@ public class TzDataRuleTests
     [InlineData(3, DayOfWeek.Thursday, 1, 2024, 2024, 2, 29)]
     [InlineData(2, DayOfWeek.Sunday, 29, 2024, 2024, 2, 25)]
     [InlineData(2, DayOfWeek.Sunday, 29, 2026, 2026, 2, 22)]
+    [InlineData(2, DayOfWeek.Sunday, 29, 2027, 2027, 2, 28)]
+    [InlineData(2, DayOfWeek.Sunday, 29, 2004, 2004, 2, 29)]
     public void GetTransitionDate_WeekdayOnOrBefore_ReturnsLastSuchWeekdayToDay(int testMonth, DayOfWeek testDayOfWeek, int testDay, int testYear, int expectedYear, int expectedMonth, int expectedDay)
     {
         // arrange

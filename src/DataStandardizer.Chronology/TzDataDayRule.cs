@@ -22,7 +22,7 @@ namespace DataStandardizer.Chronology
             if (dayOfWeek.HasValue && (dayOfWeek.Value < DayOfWeek.Sunday || dayOfWeek.Value > DayOfWeek.Saturday))
                 throw new ArgumentOutOfRangeException(nameof(dayOfWeek), dayOfWeek, "Day of week is not defined.");
 
-            // A day is validated against the length of the month in a leap year, as zic does, so that Feb 29 is accepted here and rejected only when it is resolved in a common year.
+            // A day is validated against the length of the month in a leap year, as zic does, so that Feb 29 is accepted here. In a common year, Resolve counts a weekday on or before Feb 29 back from Feb 28, and rejects Feb 29 as a fixed day or as the day from which a weekday is counted forward.
             var dayMaximum = DateTime.DaysInMonth(LeapYear, month);
 
             switch (dayKind)

@@ -638,6 +638,12 @@ function ConvertFrom-TzDataRule {
 
         .PARAMETER Lines
         The Rule lines of the rule set, as returned by Read-TzDataSource.
+
+        .PARAMETER LastYear
+        The last year in which a zone line that uses the rule set resolves its rules: the latest UNTIL year of
+        those zone lines, or [int]::MaxValue where one of them has no UNTIL.  As zic does, a February 29 that
+        does not occur is rejected only in the years up to it, and also in the FROM year, which the zone
+        calculator resolves for any zone line that uses the rule set.
     #>
     [OutputType([pscustomobject[]])]
     param (
@@ -645,7 +651,10 @@ function ConvertFrom-TzDataRule {
         [string]    $Name,
 
         [Parameter(Mandatory)]
-        [pscustomobject[]]  $Lines
+        [pscustomobject[]]  $Lines,
+
+        [Parameter()]
+        [int]       $LastYear = [int]::MaxValue
     )
 
     foreach ($line in $Lines) {
@@ -659,7 +668,8 @@ function ConvertFrom-TzDataRule {
             $toYear = ConvertFrom-TzDataYear -Value $fields[1] -FromYear $fromYear
             $month = ConvertFrom-TzDataMonth -Value $fields[3]
             $dayRule = ConvertFrom-TzDataDayRule -Value $fields[4] -Month $month
-            Assert-TzDataFebruary29 -Value $fields[4] -Month $month -DayRule $dayRule -FromYear $fromYear -ToYear $toYear
+            $lastResolvedYear = [System.Math]::Max($fromYear, [System.Math]::Min($toYear, $LastYear))
+            Assert-TzDataFebruary29 -Value $fields[4] -Month $month -DayRule $dayRule -FromYear $fromYear -ToYear $lastResolvedYear
             $at = ConvertFrom-TzDataTime -Value $fields[5]
             $save = ConvertFrom-TzDataSave -Value $fields[6]
 
