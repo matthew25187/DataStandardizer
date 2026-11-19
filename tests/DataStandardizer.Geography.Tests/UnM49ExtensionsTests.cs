@@ -1469,7 +1469,44 @@ public class UnM49ExtensionsTests
     public void GetName_UnmatchedLanguageCode_ReturnsNull(string? languageCode)
     {
         // act
-        var testResult = UnM49Area._894.GetName(languageCode!);
+        var testResult = UnM49Area._894.GetName(languageCode);
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    // Each name lookup, on each type of code, with a null language code.
+    public static TheoryData<string, Func<string?>> NullLanguageCodeLookups => new TheoryData<string, Func<string?>>
+    {
+        { "UnM49AreaByAlpha2CountryCode.GetGlobalName", () => UnM49AreaByAlpha2CountryCode.ZM.GetGlobalName(null) },
+        { "UnM49AreaByAlpha3CountryCode.GetGlobalName", () => UnM49AreaByAlpha3CountryCode.ZMB.GetGlobalName(null) },
+        { "UnM49Area.GetGlobalName", () => UnM49Area._894.GetGlobalName(null) },
+        { "UnM49AreaByAlpha2CountryCode.GetRegionName", () => UnM49AreaByAlpha2CountryCode.ZM.GetRegionName(null) },
+        { "UnM49AreaByAlpha3CountryCode.GetRegionName", () => UnM49AreaByAlpha3CountryCode.ZMB.GetRegionName(null) },
+        { "UnM49Area.GetRegionName", () => UnM49Area._894.GetRegionName(null) },
+        { "UnM49AreaByAlpha2CountryCode.GetSubRegionName", () => UnM49AreaByAlpha2CountryCode.ZM.GetSubRegionName(null) },
+        { "UnM49AreaByAlpha3CountryCode.GetSubRegionName", () => UnM49AreaByAlpha3CountryCode.ZMB.GetSubRegionName(null) },
+        { "UnM49Area.GetSubRegionName", () => UnM49Area._894.GetSubRegionName(null) },
+        { "UnM49AreaByAlpha2CountryCode.GetIntermediateRegionName", () => UnM49AreaByAlpha2CountryCode.ZM.GetIntermediateRegionName(null) },
+        { "UnM49AreaByAlpha3CountryCode.GetIntermediateRegionName", () => UnM49AreaByAlpha3CountryCode.ZMB.GetIntermediateRegionName(null) },
+        { "UnM49Area.GetIntermediateRegionName", () => UnM49Area._894.GetIntermediateRegionName(null) },
+        { "UnM49AreaByAlpha2CountryCode.GetCountryOrAreaName", () => UnM49AreaByAlpha2CountryCode.ZM.GetCountryOrAreaName(null) },
+        { "UnM49AreaByAlpha3CountryCode.GetCountryOrAreaName", () => UnM49AreaByAlpha3CountryCode.ZMB.GetCountryOrAreaName(null) },
+        { "UnM49Area.GetCountryOrAreaName", () => UnM49Area._894.GetCountryOrAreaName(null) },
+        { "UnM49AreaByAlpha2CountryCode.GetName", () => UnM49AreaByAlpha2CountryCode.ZM.GetName(null) },
+        { "UnM49AreaByAlpha3CountryCode.GetName", () => UnM49AreaByAlpha3CountryCode.ZMB.GetName(null) },
+        { "UnM49Area.GetName", () => UnM49Area._894.GetName(null) },
+    };
+
+    [Theory]
+    [MemberData(nameof(NullLanguageCodeLookups))]
+    public void NameLookup_NullLanguageCode_ReturnsNull(string name, Func<string?> lookup)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup();
 
         // assert
         testResult.Should().BeNull();
