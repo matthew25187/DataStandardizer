@@ -191,7 +191,7 @@ The time zone instances are grouped by region:
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CompareTo(object obj)` | `int` | Compares the identifiers in ordinal order. Throws `ArgumentNullException` if `obj` is `null`, and `ArgumentException` if it is not a `TzDataTimezone`. |
+| `CompareTo(object obj)` | `int` | Compares the identifiers in ordinal order. Returns a positive number if `obj` is `null`, and throws `ArgumentException` if it is not a `TzDataTimezone`. |
 | `Equals(TzDataTimezone other)` | `bool` | Compares the identifiers, so `default` equals `Etc.UTC`. |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
