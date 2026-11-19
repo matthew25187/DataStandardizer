@@ -10,6 +10,12 @@ public class SystemTimeWithGregorianCalendarTests
     // What ToString returns, for a default instance as for any other: the full name of the type.
     private const string TypeFullName = "DataStandardizer.Chronology.SystemTimeWithGregorianCalendar";
 
+    // Unix time 0 is the Unix epoch, 1970-01-01T00:00:00Z.
+    private const long UnixEpoch = 0L;
+
+    // DOS date 0x0021 is 1980-01-01; DOS time 0x0001 is two seconds past midnight, as a DOS time counts seconds in units of two.
+    private const uint DosDateTime19800101T000002 = 0x00210001U;
+
     public static TheoryData<string, Func<object>> DescribingMember_TestCases => new()
     {
         { nameof(SystemTimeWithGregorianCalendar.JulianDayNumber), () => default(SystemTimeWithGregorianCalendar).JulianDayNumber },
@@ -141,6 +147,73 @@ public class SystemTimeWithGregorianCalendarTests
 
         // assert
         testResult.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Constructor_DefaultWrapper_ThrowsArgumentException()
+    {
+        // arrange
+        ISystemTime testSystemTime = default(SystemTimeWithGregorianCalendar);
+
+        // act
+        Action testAction = () => _ = new SystemTimeWithGregorianCalendar(testSystemTime);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>().WithParameterName("systemTime");
+    }
+
+    [Fact]
+    public void AsUnixTime_NestedWrapper_ReturnsInnerUnixTime()
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new SystemTimeWithGregorianCalendar(new UnixTime(UnixEpoch)));
+
+        // act
+        var testResult = testValue.AsUnixTime();
+
+        // assert
+        testResult.Should().Be(new UnixTime(UnixEpoch));
+    }
+
+    [Fact]
+    public void AsDosDateTime_NestedWrapper_ReturnsInnerDosDateTime()
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new SystemTimeWithGregorianCalendar(new DosDateTime(DosDateTime19800101T000002)));
+
+        // act
+        var testResult = testValue.AsDosDateTime();
+
+        // assert
+        testResult.Should().Be(new DosDateTime(DosDateTime19800101T000002));
+    }
+
+    [Fact]
+    public void ToDateTime_NestedWrapperOfUnixTime_ReturnsUtcDateTime()
+    {
+        // arrange
+        var expectedResult = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var testValue = new SystemTimeWithGregorianCalendar(new SystemTimeWithGregorianCalendar(new UnixTime(UnixEpoch)));
+
+        // act
+        var testResult = testValue.ToDateTime();
+
+        // assert
+        testResult.Should().Be(expectedResult).And.BeIn(DateTimeKind.Utc);
+    }
+
+    [Fact]
+    public void Equals_NestedAndSingleWrapperOfSameValue_ReturnsTrue()
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new SystemTimeWithGregorianCalendar(new UnixTime(UnixEpoch)));
+        var testOther = new SystemTimeWithGregorianCalendar(new UnixTime(UnixEpoch));
+
+        // act
+        var testResult = testValue.Equals(testOther);
+
+        // assert
+        testResult.Should().BeTrue();
     }
 
     [Theory]

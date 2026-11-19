@@ -23,10 +23,24 @@ namespace DataStandardizer.Chronology
         /// Initializes a new instance of the <see cref="SystemTimeWithGregorianCalendar"/> struct that wraps a system time.
         /// </summary>
         /// <param name="systemTime">The system time to wrap.</param>
+        /// <remarks>
+        /// When <paramref name="systemTime"/> is itself a <see cref="SystemTimeWithGregorianCalendar"/>, the new instance wraps the
+        /// system time that it wraps, so it is equal to that instance and converts in the same way, for example with
+        /// <see cref="SystemTimeExtensions.AsUnixTime(SystemTimeWithGregorianCalendar)"/>.
+        /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="systemTime"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="systemTime"/> is a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.</exception>
         public SystemTimeWithGregorianCalendar(ISystemTime systemTime)
         {
-            _systemTime = systemTime ?? throw new ArgumentNullException(nameof(systemTime));
+            if (systemTime is null)
+            {
+                throw new ArgumentNullException(nameof(systemTime));
+            }
+
+            // Store the system time a wrapper wraps, not the wrapper, so that nesting never hides it.
+            _systemTime = systemTime is SystemTimeWithGregorianCalendar wrapper
+                ? wrapper._systemTime ?? throw new ArgumentException($"The {nameof(SystemTimeWithGregorianCalendar)} instance is not initialised.", nameof(systemTime))
+                : systemTime;
         }
 
         #region Public Properties
