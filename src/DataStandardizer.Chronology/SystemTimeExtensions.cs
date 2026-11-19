@@ -68,9 +68,13 @@ namespace DataStandardizer.Chronology
         /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
         /// or a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="systemTime"/> falls on a day before 0001-01-01 or after 9999-12-31, outside the range of
+        /// <see cref="DateTime"/>.
+        /// </exception>
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
-            var (year, month, day, hour, minute, second) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDateTime(systemTime.JulianDayNumber);
+            var (year, month, day, hour, minute, second) = JulianDayNumberHelper.ConvertJdnToDateTimeRangeGregorianCalendarDateTime(systemTime.JulianDayNumber, nameof(systemTime));
             var kind = systemTime is ISystemTimeKind systemTimeKind ? systemTimeKind.DateTimeKind : DateTimeKind.Unspecified;
             return new DateTime(year, month, day, hour, minute, second, kind);
         }
@@ -96,9 +100,13 @@ namespace DataStandardizer.Chronology
         /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
         /// or a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="systemTime"/> falls on a day before 0001-01-01 or after 9999-12-31, outside the range of
+        /// <see cref="DateOnly"/>.
+        /// </exception>
         public static DateOnly ToDateOnly<T>(this T systemTime) where T : struct, ISystemTime
         {
-            var (year, month, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(systemTime.JulianDayNumber);
+            var (year, month, day, _, _, _) = JulianDayNumberHelper.ConvertJdnToDateTimeRangeGregorianCalendarDateTime(systemTime.JulianDayNumber, nameof(systemTime));
             return new DateOnly(year, month, day);
         }
 
@@ -115,8 +123,14 @@ namespace DataStandardizer.Chronology
         /// A <see cref="TimeOnly"/> instance representing the time derived from the Julian Day Number.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// This method extracts the time components (hour, minute, and second) based on the Julian Day Number 
         /// provided by the <paramref name="systemTime"/> and constructs a corresponding <see cref="TimeOnly"/> object.
+        /// </para>
+        /// <para>
+        /// Every system time has a time of day, so this method gives one even for a system time whose date is outside the
+        /// range of <see cref="DateTime"/> and <see cref="DateOnly"/>.
+        /// </para>
         /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// <paramref name="systemTime"/> is a default instance of a type that holds no date, such as <see cref="DosDateTime"/>,
