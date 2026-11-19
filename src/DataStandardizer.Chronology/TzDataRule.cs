@@ -154,12 +154,20 @@ namespace DataStandardizer.Chronology
         /// read against <see cref="AtTimeReference"/>, and <see cref="AtTime"/> is not applied to it.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// A weekday counted from a day of the month may fall outside <see cref="Month"/>, as for <c>Fri&lt;=1</c>,
         /// which falls in the preceding month whenever the first is not itself a Friday.
+        /// </para>
+        /// <para>
+        /// Where the rule counts a weekday back from February 29, as for <c>Sun&lt;=29</c>, and <paramref name="year"/>
+        /// is not a leap year, the weekday is counted back from February 28, as zic does.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="year"/> is outside the years in which the rule applies or the range supported by
-        /// <see cref="DateTime"/>, or the rule names February 29 and <paramref name="year"/> is not a leap year.
+        /// <see cref="DateTime"/>, the date falls outside the range supported by <see cref="DateTime"/>, or the rule
+        /// names February 29 as a day of the month, or as the day from which it counts a weekday forward, as for
+        /// <c>Sun&gt;=29</c>, and <paramref name="year"/> is not a leap year.
         /// </exception>
         public DateTime GetTransitionDate(int year)
         {

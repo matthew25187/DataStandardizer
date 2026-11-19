@@ -467,6 +467,71 @@ function ConvertFrom-TzDataDayRule {
     return [pscustomobject]@{ DayKind = $dayKind; Day = $day; DayOfWeek = $dayOfWeek }
 }
 
+function Test-TzDataLeapYear {
+    <#
+        .SYNOPSIS
+        Tests whether a year of the proleptic Gregorian calendar is a leap year.  Unlike
+        [datetime]::IsLeapYear, it accepts any year, including those outside 1 - 9999.
+    #>
+    [OutputType([bool])]
+    param (
+        [Parameter(Mandatory)]
+        [long]      $Year
+    )
+
+    return ($Year % 4 -eq 0 -and $Year % 100 -ne 0) -or $Year % 400 -eq 0
+}
+
+function Assert-TzDataFebruary29 {
+    <#
+        .SYNOPSIS
+        Throws where a day specification names February 29 in a way that zic rejects in a common year: as a day
+        of the month, such as 29, or as the day from which a weekday is counted forward, such as Sun>=29.  A
+        weekday counted back from February 29, such as Sun<=29, is accepted, since zic counts it back from
+        February 28 in a common year (rpytime in zic.c).
+
+        .PARAMETER Value
+        The day specification, for the error message.
+
+        .PARAMETER Month
+        The month, from 1 to 12, in which the day is specified.
+
+        .PARAMETER DayRule
+        The day specification, as returned by ConvertFrom-TzDataDayRule.
+
+        .PARAMETER FromYear
+        The first year in which the day is resolved.
+
+        .PARAMETER ToYear
+        The last year in which the day is resolved.
+    #>
+    param (
+        [Parameter(Mandatory)]
+        [string]    $Value,
+
+        [Parameter(Mandatory)]
+        [int]       $Month,
+
+        [Parameter(Mandatory)]
+        [pscustomobject]    $DayRule,
+
+        [Parameter(Mandatory)]
+        [int]       $FromYear,
+
+        [Parameter(Mandatory)]
+        [int]       $ToYear
+    )
+
+    if ($Month -ne 2 -or $DayRule.Day -ne 29 -or $DayRule.DayKind -notin @('DayOfMonth', 'WeekdayOnOrAfter')) {
+        return
+    }
+
+    # Any two consecutive years include a common year.
+    if ($FromYear -ne $ToYear -or -not (Test-TzDataLeapYear -Year $FromYear)) {
+        throw "'$Value' uses February 29 in a year that is not a leap year, which zic rejects."
+    }
+}
+
 function ConvertFrom-TzDataYear {
     <#
         .SYNOPSIS
@@ -545,7 +610,9 @@ function ConvertFrom-TzDataUntil {
     }
     [int]$year = $Fields[0]
     $month = $Fields.Length -gt 1 ? (ConvertFrom-TzDataMonth -Value $Fields[1]) : 1
-    $dayRule = ConvertFrom-TzDataDayRule -Value ($Fields.Length -gt 2 ? $Fields[2] : '1') -Month $month
+    $dayValue = $Fields.Length -gt 2 ? $Fields[2] : '1'
+    $dayRule = ConvertFrom-TzDataDayRule -Value $dayValue -Month $month
+    Assert-TzDataFebruary29 -Value $dayValue -Month $month -DayRule $dayRule -FromYear $year -ToYear $year
     $time = $Fields.Length -gt 3 ? (ConvertFrom-TzDataTime -Value $Fields[3]) : (ConvertFrom-TzDataTime -Value '0')
 
     return [pscustomobject]@{
@@ -571,6 +638,12 @@ function ConvertFrom-TzDataRule {
 
         .PARAMETER Lines
         The Rule lines of the rule set, as returned by Read-TzDataSource.
+
+        .PARAMETER LastYear
+        The last year in which a zone line that uses the rule set resolves its rules: the latest UNTIL year of
+        those zone lines, or [int]::MaxValue where one of them has no UNTIL.  As zic does, a February 29 that
+        does not occur is rejected only in the years up to it, and also in the FROM year, which the zone
+        calculator resolves for any zone line that uses the rule set.
     #>
     [OutputType([pscustomobject[]])]
     param (
@@ -578,7 +651,10 @@ function ConvertFrom-TzDataRule {
         [string]    $Name,
 
         [Parameter(Mandatory)]
-        [pscustomobject[]]  $Lines
+        [pscustomobject[]]  $Lines,
+
+        [Parameter()]
+        [int]       $LastYear = [int]::MaxValue
     )
 
     foreach ($line in $Lines) {
@@ -592,6 +668,8 @@ function ConvertFrom-TzDataRule {
             $toYear = ConvertFrom-TzDataYear -Value $fields[1] -FromYear $fromYear
             $month = ConvertFrom-TzDataMonth -Value $fields[3]
             $dayRule = ConvertFrom-TzDataDayRule -Value $fields[4] -Month $month
+            $lastResolvedYear = [System.Math]::Max($fromYear, [System.Math]::Min($toYear, $LastYear))
+            Assert-TzDataFebruary29 -Value $fields[4] -Month $month -DayRule $dayRule -FromYear $fromYear -ToYear $lastResolvedYear
             $at = ConvertFrom-TzDataTime -Value $fields[5]
             $save = ConvertFrom-TzDataSave -Value $fields[6]
 
@@ -649,7 +727,8 @@ function Get-TzDataUntilInstant {
             $anchor.AddDays(((([int]$until.DayOfWeek - [int]$anchor.DayOfWeek) + 7) % 7))
         }
         'WeekdayOnOrBefore' {
-            $anchor = [datetime]::new($until.Year, $until.Month, 1).AddDays($until.Day - 1)
+            # February 29 in a common year counts back from February 28, as zic does.
+            $anchor = [datetime]::new($until.Year, $until.Month, [System.Math]::Min($until.Day, [datetime]::DaysInMonth($until.Year, $until.Month)))
             $anchor.AddDays( - ((([int]$anchor.DayOfWeek - [int]$until.DayOfWeek) + 7) % 7))
         }
     }

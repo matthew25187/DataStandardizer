@@ -848,6 +848,8 @@ function Out-SourceCode {
         $referencedRuleSets = [System.Collections.Generic.SortedDictionary[string, string]]::new([System.StringComparer]::Ordinal)
         $zoneLineDataFieldNames = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
         $ruleSetFieldNames = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+        # The names of the rule sets referenced by the zone lines, mapped to the last year in which a zone line that uses them resolves their rules.
+        $ruleSetLastYears = [System.Collections.Generic.Dictionary[string, int]]::new([System.StringComparer]::Ordinal)
         $ruleSetNames = [string[]]@($TzDataSource.Rules.Keys)
 
         # The identifiers of the canonical timezones, and the path of the field of every timezone, from the struct.
@@ -1051,6 +1053,10 @@ function Out-SourceCode {
                         $referencedRuleSets[$zoneLine.RuleSetName] = $ruleSetFieldName
                     }
                     $ruleSetFieldName = $referencedRuleSets[$zoneLine.RuleSetName]
+                    $zoneLineLastYear = $null -ne $zoneLine.Until ? $zoneLine.Until.Year : [int]::MaxValue
+                    if (-not $ruleSetLastYears.ContainsKey($zoneLine.RuleSetName) -or $ruleSetLastYears[$zoneLine.RuleSetName] -lt $zoneLineLastYear) {
+                        $ruleSetLastYears[$zoneLine.RuleSetName] = $zoneLineLastYear
+                    }
                 }
                 Format-ZoneLineExpression -ZoneLine $zoneLine -RuleSetFieldName $ruleSetFieldName
             }
@@ -1197,7 +1203,7 @@ function Out-SourceCode {
         Write-Progress -Activity $activity -CurrentOperation 'Declaring rule sets' -PercentComplete -1
 
         foreach ($referencedRuleSet in $referencedRuleSets.GetEnumerator()) {
-            $rules = ConvertFrom-TzDataRule -Name $referencedRuleSet.Key -Lines $TzDataSource.Rules[$referencedRuleSet.Key]
+            $rules = ConvertFrom-TzDataRule -Name $referencedRuleSet.Key -Lines $TzDataSource.Rules[$referencedRuleSet.Key] -LastYear $ruleSetLastYears[$referencedRuleSet.Key]
             [string[]]$ruleExpressions = foreach ($rule in $rules) { Format-RuleExpression -Rule $rule }
             $ruleSetField = New-DataArrayFieldDeclaration -ElementTypeName 'TzDataRule' -FieldName $referencedRuleSet.Value -ElementExpressions $ruleExpressions
             @('<summary>', "Rule set $($referencedRuleSet.Key)", '</summary>') | ForEach-Object { [void]$ruleSetField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
