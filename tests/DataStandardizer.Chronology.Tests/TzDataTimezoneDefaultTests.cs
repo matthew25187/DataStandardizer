@@ -166,13 +166,13 @@ public class TzDataTimezoneDefaultTests
     }
 
     [Fact]
-    public void CompareTo_Null_ThrowsArgumentNullException()
+    public void CompareTo_NullObject_ReturnsPositive()
     {
         // act
-        Action testAction = () => TzDataTimezone.Europe.Zurich.CompareTo(null);
+        var testResult = TzDataTimezone.Europe.Zurich.CompareTo(null);
 
         // assert
-        testAction.Should().Throw<ArgumentNullException>().WithParameterName("obj");
+        testResult.Should().Be(1, "every instance compares greater than null under the IComparable.CompareTo contract");
     }
 
     [Fact]

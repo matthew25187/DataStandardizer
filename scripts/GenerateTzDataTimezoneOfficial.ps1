@@ -244,12 +244,12 @@ function Get-IdentifierMethodsSnippet {
         /// <summary>
         /// Compares the timezone with another, by the ordinal order of their identifiers.
         /// </summary>
-        /// <param name=`"obj`">The timezone to compare with.</param>
+        /// <param name=`"obj`">The timezone to compare with, or <see langword=`"null`"/>.</param>
         /// <returns>
         /// A negative number if the identifier of the timezone comes before that of <paramref name=`"obj`"/>; zero if they are equal; otherwise,
-        /// a positive number.
+        /// a positive number.  Every timezone compares greater than <see langword=`"null`"/>, so the result is a positive number when
+        /// <paramref name=`"obj`"/> is <see langword=`"null`"/>.
         /// </returns>
-        /// <exception cref=`"System.ArgumentNullException`"><paramref name=`"obj`"/> is <see langword=`"null`"/>.</exception>
         /// <exception cref=`"System.ArgumentException`"><paramref name=`"obj`"/> is not a <see cref=`"$TypeName`"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public int CompareTo(object? obj)
@@ -259,7 +259,7 @@ function Get-IdentifierMethodsSnippet {
         {
             if (obj == null)
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
             if (!(obj is DataStandardizer.Chronology.$TypeName other))
             {
