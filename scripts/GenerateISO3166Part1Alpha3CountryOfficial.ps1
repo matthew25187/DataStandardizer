@@ -101,7 +101,7 @@ function Out-SourceCode {
         # Add code attribute. ISO 3166-1 gives each code an English and a French short name.
         $frenchCountryNames = @($countryNamesCurrentSet | Where-Object -Property language -EQ 'fr')
         if ($frenchCountryNames.Count -ne 1) {
-            throw "Expected one French name for country code $countryAlpha2Code, found $($frenchCountryNames.Count)."
+            throw "Expected one French name for country code $countryAlpha3Code, found $($frenchCountryNames.Count)."
         }
         $codeAttributeArguments = @(
             [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($_.short_name_en)),

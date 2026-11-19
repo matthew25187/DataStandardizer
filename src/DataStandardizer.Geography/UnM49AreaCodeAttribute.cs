@@ -11,10 +11,11 @@ namespace DataStandardizer.Geography
     /// Describes a UN M49 code with metadata.
     /// </summary>
     /// <remarks>
-    /// The inherited <see cref="CodeAttributeBase.EnglishName"/> and <see cref="CodeAttributeBase.FrenchName"/> are the area's own name: the name of its
-    /// lowest level, so the country or area name for a country or area, the region name for a region, and so on. <see cref="CodeAttributeBase.EnglishNames"/>
-    /// and <see cref="CodeAttributeBase.FrenchNames"/> each hold that one name, or one empty string until a name in that language is set. The names of the
-    /// levels above the area are in the level properties, such as <see cref="EnglishRegionName"/>.
+    /// The inherited <see cref="CodeAttributeBase.EnglishName"/> and <see cref="CodeAttributeBase.FrenchName"/> are the area's own name: the name of the
+    /// lowest level that has a name in that language, so the country or area name for a country or area, the region name for a region, and so on. If the
+    /// area's own level has no name in a language, the name of the nearest level above it that has one is used. <see cref="CodeAttributeBase.EnglishNames"/>
+    /// and <see cref="CodeAttributeBase.FrenchNames"/> each hold that one name, or one empty string while no level has a name in that language. The names of
+    /// the levels above the area are in the level properties, such as <see cref="EnglishRegionName"/>.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class UnM49AreaCodeAttribute : CodeAttributeBase

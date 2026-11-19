@@ -27,10 +27,12 @@ through the [UnM49Extensions](UnM49Extensions.md) accessors rather than reading 
 attribute directly. The per-language name properties are read/write; an unset name
 reads as `null`. `CodeAttributeBase` is defined in `DataStandardizer.Core`.
 
-The inherited `EnglishName` and `FrenchName` are the area's own name: the name of its
-lowest level, so "Afghanistan" for Afghanistan, "Africa" for Africa, and "World" for
-the world. `EnglishNames` and `FrenchNames` each hold only that one name, or one empty
-string until a name in that language is set. The names of the levels above the area
+The inherited `EnglishName` and `FrenchName` are the area's own name: the name of the
+lowest level that has a name in that language, so "Afghanistan" for Afghanistan,
+"Africa" for Africa, and "World" for the world. If the area's own level has no name in
+a language, the nearest level above it that has one gives the name. `EnglishNames` and
+`FrenchNames` each hold only that one name, or one empty string while no level has a
+name in that language. The names of the levels above the area
 are in the level properties, such as `EnglishRegionName`.
 
 ## Constructors
