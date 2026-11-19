@@ -14,7 +14,9 @@ Namespace: `DataStandardizer.Geography`
 An ISO 3166-2 country subdivision code (for example `AD-07`). You don't construct
 these; instead use the predefined static members, grouped by country in nested
 static classes and accessed as `Iso3166Part2Subdivision.<country>.<member>` (for
-example `Iso3166Part2Subdivision.AD._07`).
+example `Iso3166Part2Subdivision.AD._07`). To get one from a code string, cast
+it: `(Iso3166Part2Subdivision)"AD-07"` gives `Iso3166Part2Subdivision.AD._07`, and a
+code that isn't in ISO 3166-2 throws `InvalidCastException`.
 
 ```csharp
 public readonly partial struct Iso3166Part2Subdivision : IComparable, IEquatable<Iso3166Part2Subdivision>
@@ -249,7 +251,7 @@ The subdivision members are grouped by ISO 3166-1 alpha-2 country code:
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Iso3166Part2Subdivision(string)` | Wraps a subdivision code string. |
+| Explicit | `explicit operator Iso3166Part2Subdivision(string)` | Converts a subdivision code, such as `AU-NSW`, to the predefined subdivision with that code. Codes are case-sensitive. Throws `InvalidCastException` for `null` or a code that isn't in ISO 3166-2. |
 | Implicit | `implicit operator string(Iso3166Part2Subdivision)` | Unwraps to the code string. |
 | Equality | `operator ==`, `!=` `(Iso3166Part2Subdivision, Iso3166Part2Subdivision)` | |
 

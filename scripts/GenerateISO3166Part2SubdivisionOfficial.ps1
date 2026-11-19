@@ -220,13 +220,21 @@ function Out-SourceCode {
     
             Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
     
-            $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+            $stringToStructConversionOperatorSnippet = "            /// <summary>
+            /// Converts an ISO 3166-2 subdivision code to the subdivision with that code.
+            /// </summary>
+            /// <param name=`"value`">The subdivision code, such as <c>AU-NSW</c>. Codes are case-sensitive.</param>
+            /// <returns>The predefined subdivision with the code.</returns>
+            /// <exception cref=`"System.InvalidCastException`">
+            /// <paramref name=`"value`"/> is <see langword=`"null`"/>, or is not the code of a subdivision in ISO 3166-2.
+            /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Geography.$TypeName(string value)
     #else
             public static explicit operator DataStandardizer.Geography.$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
-                return new DataStandardizer.Geography.$TypeName(value);
+                return DataStandardizer.Geography.$TypeName.ConvertFromCode(value);
             }"
             $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)
             [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))

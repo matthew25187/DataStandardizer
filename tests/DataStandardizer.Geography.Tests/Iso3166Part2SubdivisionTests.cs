@@ -9,6 +9,44 @@ public class Iso3166Part2SubdivisionTests
     /// </summary>
     private const string Iso3166Part2NewSouthWalesCode = "AU-NSW";
 
+    #region Test: explicit conversion from string
+
+    [Fact]
+    public void ExplicitOperator_SubdivisionCode_ReturnsSubdivision()
+    {
+        // act
+        var testResult = (Iso3166Part2Subdivision)Iso3166Part2NewSouthWalesCode;
+
+        // assert
+        testResult.Should().Be(Iso3166Part2Subdivision.AU._NSW);
+    }
+
+    [Theory]
+    [InlineData("XX-ZZZ")]
+    [InlineData("")]
+    [InlineData("AU-NSW\n")]
+    [InlineData("au-nsw")]
+    public void ExplicitOperator_CodeNotInIso3166Part2_ThrowsInvalidCastException(string value)
+    {
+        // act
+        Action testAction = () => _ = (Iso3166Part2Subdivision)value;
+
+        // assert
+        testAction.Should().Throw<InvalidCastException>();
+    }
+
+    [Fact]
+    public void ExplicitOperator_Null_ThrowsInvalidCastException()
+    {
+        // act
+        Action testAction = () => _ = (Iso3166Part2Subdivision)(string)null!;
+
+        // assert
+        testAction.Should().Throw<InvalidCastException>();
+    }
+
+    #endregion
+
     #region Test: CompareTo
 
     [Theory]
