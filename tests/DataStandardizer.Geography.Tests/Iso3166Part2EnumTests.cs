@@ -296,4 +296,76 @@ public class Iso3166Part2EnumTests
         // assert
         testResult.Should().BeEmpty();
     }
+
+    [Fact]
+    public void GetNames_Iso3166Part1Alpha2Country_ReturnsSubdivisionsInOrdinalCodeOrder()
+    {
+        // arrange
+        // AU-ACT, AU-NSW, AU-NT, AU-QLD, AU-SA, AU-TAS, AU-VIC, AU-WA: the AU codes sorted ordinally, not the order the generator declares them in
+        var expectedResult = new string[]
+            {
+                nameof(Iso3166Part2Subdivision.AU._ACT), nameof(Iso3166Part2Subdivision.AU._NSW), nameof(Iso3166Part2Subdivision.AU._NT), nameof(Iso3166Part2Subdivision.AU._QLD),
+                nameof(Iso3166Part2Subdivision.AU._SA), nameof(Iso3166Part2Subdivision.AU._TAS), nameof(Iso3166Part2Subdivision.AU._VIC), nameof(Iso3166Part2Subdivision.AU._WA)
+            };
+
+        // act
+        var testResult = Iso3166Part2Enum.GetNames(Iso3166Part1Alpha2Country.AU);
+
+        // assert
+        testResult.Should().Equal(expectedResult);
+    }
+
+    [Fact]
+    public void GetNames_Iso3166Part1Alpha3Country_ReturnsSubdivisionsInOrdinalCodeOrder()
+    {
+        // arrange
+        // AU-ACT, AU-NSW, AU-NT, AU-QLD, AU-SA, AU-TAS, AU-VIC, AU-WA: the AU codes sorted ordinally, not the order the generator declares them in
+        var expectedResult = new string[]
+            {
+                nameof(Iso3166Part2Subdivision.AU._ACT), nameof(Iso3166Part2Subdivision.AU._NSW), nameof(Iso3166Part2Subdivision.AU._NT), nameof(Iso3166Part2Subdivision.AU._QLD),
+                nameof(Iso3166Part2Subdivision.AU._SA), nameof(Iso3166Part2Subdivision.AU._TAS), nameof(Iso3166Part2Subdivision.AU._VIC), nameof(Iso3166Part2Subdivision.AU._WA)
+            };
+
+        // act
+        var testResult = Iso3166Part2Enum.GetNames(Iso3166Part1Alpha3Country.AUS);
+
+        // assert
+        testResult.Should().Equal(expectedResult);
+    }
+
+    [Fact]
+    public void GetValues_Iso3166Part1Alpha2Country_ReturnsSubdivisionsInOrdinalCodeOrder()
+    {
+        // arrange
+        // AU-ACT, AU-NSW, AU-NT, AU-QLD, AU-SA, AU-TAS, AU-VIC, AU-WA: the AU codes sorted ordinally, not the order the generator declares them in
+        var expectedResult = new Iso3166Part2Subdivision[]
+            {
+                Iso3166Part2Subdivision.AU._ACT, Iso3166Part2Subdivision.AU._NSW, Iso3166Part2Subdivision.AU._NT, Iso3166Part2Subdivision.AU._QLD, Iso3166Part2Subdivision.AU._SA,
+                Iso3166Part2Subdivision.AU._TAS, Iso3166Part2Subdivision.AU._VIC, Iso3166Part2Subdivision.AU._WA
+            };
+
+        // act
+        var testResult = Iso3166Part2Enum.GetValues(Iso3166Part1Alpha2Country.AU);
+
+        // assert
+        testResult.Should().Equal(expectedResult);
+    }
+
+    [Fact]
+    public void GetValues_Iso3166Part1Alpha3Country_ReturnsSubdivisionsInOrdinalCodeOrder()
+    {
+        // arrange
+        // AU-ACT, AU-NSW, AU-NT, AU-QLD, AU-SA, AU-TAS, AU-VIC, AU-WA: the AU codes sorted ordinally, not the order the generator declares them in
+        var expectedResult = new Iso3166Part2Subdivision[]
+            {
+                Iso3166Part2Subdivision.AU._ACT, Iso3166Part2Subdivision.AU._NSW, Iso3166Part2Subdivision.AU._NT, Iso3166Part2Subdivision.AU._QLD, Iso3166Part2Subdivision.AU._SA,
+                Iso3166Part2Subdivision.AU._TAS, Iso3166Part2Subdivision.AU._VIC, Iso3166Part2Subdivision.AU._WA
+            };
+
+        // act
+        var testResult = Iso3166Part2Enum.GetValues(Iso3166Part1Alpha3Country.AUS);
+
+        // assert
+        testResult.Should().Equal(expectedResult);
+    }
 }
