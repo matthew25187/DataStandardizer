@@ -218,10 +218,45 @@ public class SystemTimeWithGregorianCalendarTests
         testResult.Should().Be(expectedResult);
     }
 
+    // long.MaxValue is 15:30:07 and long.MinValue 08:29:52 on their days.
+    [Theory]
+    [InlineData(long.MaxValue, 15),
+     InlineData(long.MinValue, 8)]
+    public void Hour_OnUnixTimeFarFromEpoch_ReturnsTimeHour(long testUnixTime, int expectedResult)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
+
+        // act
+        var testResult = testValue.Hour;
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    // long.MaxValue is 15:30:07 and long.MinValue 08:29:52 on their days.
+    [Theory]
+    [InlineData(long.MaxValue, 30),
+     InlineData(long.MinValue, 29)]
+    public void Minute_OnUnixTimeFarFromEpoch_ReturnsTimeMinute(long testUnixTime, int expectedResult)
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new UnixTime(testUnixTime));
+
+        // act
+        var testResult = testValue.Minute;
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
     [Theory]
     [InlineData(-199998L, 42),
      InlineData(2L, 2),
-     InlineData(1700000000L, 20)]
+     InlineData(1700000000L, 20),
+     // long.MaxValue is 15:30:07 and long.MinValue 08:29:52 on their days.
+     InlineData(long.MaxValue, 7),
+     InlineData(long.MinValue, 52)]
     public void Second_OnUnixTime_ReturnsTimeSecond(long testUnixTime, int expectedResult)
     {
         // arrange

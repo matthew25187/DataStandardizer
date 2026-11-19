@@ -18,6 +18,10 @@ namespace DataStandardizer.Chronology
         private const int SecondsPerMinute = 60;
         private const int SubSecondDigits = 9;
 
+        // The Julian Day Numbers of 0001-01-01 and 9999-12-31, the first and last days that DateTime and DateOnly can hold.
+        private const int DateTimeDayNumberMinimum = 1721426;
+        private const int DateTimeDayNumberMaximum = 5373484;
+
         // The Julian Day Number of the day of the Unix epoch, 1970-01-01, and of the midnight that starts it.
         private const long UnixEpochDayNumber = 2440588;
         internal const decimal UnixEpochJdn = 2440587.5m;
@@ -47,22 +51,41 @@ namespace DataStandardizer.Chronology
             return jdn;
         }
 
+        /// <remarks>
+        /// A day too far from the epoch of the Julian Day Number to give a year, including one whose number doesn't fit an
+        /// <see cref="int"/>, throws <see cref="OverflowException"/>.
+        /// </remarks>
         internal static (int Year, int Month, int Day) ConvertJdnToGregorianCalendarDate(decimal jdn)
         {
             var (dayNumber, _) = SplitJdn(jdn);
-            return ConvertDayNumberToGregorianCalendarDate(dayNumber);
+            return ConvertDayNumberToGregorianCalendarDate(checked((int)dayNumber));
         }
 
+        /// <remarks>
+        /// Every Julian Day Number has a time of day, however far it is from the epoch.
+        /// </remarks>
         internal static (int Hour, int Minute, int Second) ConvertJdnToTimeOfDay(decimal jdn)
         {
             var (_, secondOfDay) = SplitJdn(jdn);
             return ConvertSecondOfDayToTimeOfDay(secondOfDay);
         }
 
-        internal static (int Year, int Month, int Day, int Hour, int Minute, int Second) ConvertJdnToGregorianCalendarDateTime(decimal jdn)
+        /// <summary>
+        /// Converts a Julian Day Number to a date and time in the range of <see cref="DateTime"/> and <c>DateOnly</c>,
+        /// 0001-01-01 to 9999-12-31.
+        /// </summary>
+        /// <param name="jdn">The Julian Day Number to convert.</param>
+        /// <param name="paramName">The name of the parameter that supplied <paramref name="jdn"/>, for the exception.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="jdn"/> falls on a day before 0001-01-01 or after 9999-12-31.
+        /// </exception>
+        internal static (int Year, int Month, int Day, int Hour, int Minute, int Second) ConvertJdnToDateTimeRangeGregorianCalendarDateTime(decimal jdn, string paramName)
         {
             var (dayNumber, secondOfDay) = SplitJdn(jdn);
-            var (year, month, day) = ConvertDayNumberToGregorianCalendarDate(dayNumber);
+            if (dayNumber < DateTimeDayNumberMinimum || dayNumber > DateTimeDayNumberMaximum)
+                throw new ArgumentOutOfRangeException(paramName, "The system time falls outside the range 0001-01-01 to 9999-12-31.");
+
+            var (year, month, day) = ConvertDayNumberToGregorianCalendarDate((int)dayNumber);
             var (hour, minute, second) = ConvertSecondOfDayToTimeOfDay(secondOfDay);
             return (year, month, day, hour, minute, second);
         }
@@ -127,15 +150,35 @@ namespace DataStandardizer.Chronology
         /// one tolerance: a value less than half a nanosecond below a whole second is taken as that second.
         /// </para>
         /// <para>
-        /// A day number that doesn't fit an <see cref="int"/> throws <see cref="OverflowException"/>.
+        /// The day is split off before the seconds are counted, so that the fraction of the day is multiplied by the number of
+        /// seconds in a day at full precision, however far the day is from the epoch. A fraction that rounds up to a whole day
+        /// moves to the start of the next day. The half day between noon, where a Julian Day Number starts, and midnight is
+        /// moved from the fraction to the day, not added to <paramref name="jdn"/>, so that no value of <paramref name="jdn"/>
+        /// overflows.
         /// </para>
         /// </remarks>
-        private static (int DayNumber, int SecondOfDay) SplitJdn(decimal jdn)
+        private static (decimal DayNumber, int SecondOfDay) SplitJdn(decimal jdn)
         {
-            var secondsSinceMidnight = decimal.Floor(Math.Round((jdn + 0.5m) * SecondsPerDay, SubSecondDigits));
-            var dayNumber = decimal.Floor(secondsSinceMidnight / SecondsPerDay);
-            var secondOfDay = secondsSinceMidnight - dayNumber * SecondsPerDay;
-            return (checked((int)dayNumber), (int)secondOfDay);
+            var dayNumber = decimal.Floor(jdn);
+            var fractionSinceMidnight = jdn - dayNumber;
+            if (fractionSinceMidnight >= 0.5m)
+            {
+                dayNumber++;
+                fractionSinceMidnight -= 0.5m;
+            }
+            else
+            {
+                fractionSinceMidnight += 0.5m;
+            }
+
+            var secondOfDay = decimal.Floor(Math.Round(fractionSinceMidnight * SecondsPerDay, SubSecondDigits));
+            if (secondOfDay == SecondsPerDay)
+            {
+                dayNumber++;
+                secondOfDay = 0;
+            }
+
+            return (dayNumber, (int)secondOfDay);
         }
 
         private static int ConvertTimeOfDayToSeconds(int hour, int minute, int second)

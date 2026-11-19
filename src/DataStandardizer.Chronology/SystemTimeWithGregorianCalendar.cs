@@ -40,14 +40,17 @@ namespace DataStandardizer.Chronology
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        /// <exception cref="OverflowException">The wrapped system time falls too far from the epoch of the Julian Day Number to give a year.</exception>
         public int Day => DoGetDay();
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        /// <exception cref="OverflowException">The wrapped system time falls too far from the epoch of the Julian Day Number to give a year.</exception>
         public int Month => DoGetMonth();
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        /// <exception cref="OverflowException">The wrapped system time falls too far from the epoch of the Julian Day Number to give a year.</exception>
         public int Year => DoGetYear();
 
         /// <inheritdoc/>
