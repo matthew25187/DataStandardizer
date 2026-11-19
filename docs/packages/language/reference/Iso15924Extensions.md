@@ -43,8 +43,9 @@ A project gets null warnings from them only on C# 8 or later with nullable enabl
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. Every method has the
-same signature on every target.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. Every method returns
+the same type on every target; only the nullable annotations differ, as described
+above.
 
 ## See also
 

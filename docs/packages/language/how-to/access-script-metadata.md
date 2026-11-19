@@ -38,8 +38,8 @@ var scriptDate = Iso15924Script.Egyp.GetDate();
 ```
 
 `GetDate()` returns a `DateTime?` on every target: the date at midnight, with a
-`Kind` of `DateTimeKind.Unspecified`. On .NET 6 and later, take a `DateOnly` from
-it with `DateOnly.FromDateTime`.
+`Kind` of `DateTimeKind.Unspecified`. On `net10.0`, take a `DateOnly` from it
+with `DateOnly.FromDateTime`.
 
 ## English name
 

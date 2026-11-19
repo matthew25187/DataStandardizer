@@ -40,8 +40,8 @@ Inherited from `CodeAttributeBase`: `EnglishName`, `EnglishNames`, `FrenchName`,
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. On the .NET Standard targets the
-`Alias` property is annotated with `[MaybeNull, AllowNull]` from
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. On the .NET Standard
+targets the `Alias` property is annotated with `[MaybeNull, AllowNull]` from
 `System.Diagnostics.CodeAnalysis` rather than a C# nullable reference type.
 A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
