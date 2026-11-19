@@ -12,7 +12,8 @@ nav_exclude: true
 Namespace: `DataStandardizer.Geography`
 
 Describes an ISO 3166-1 country code (`Iso3166Part1Alpha2Country` or
-`Iso3166Part1Alpha3Country`) with its English names and independence flag.
+`Iso3166Part1Alpha3Country`) with its English and French short names, its other
+English names, and its independence flag.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Field)]
@@ -25,6 +26,11 @@ This attribute is applied to each member of the ISO 3166-1 country code enums; i
 constructors are `internal`. You normally read the metadata through the
 [Iso3166Extensions](Iso3166Extensions.md) accessors rather than reading the
 attribute directly. `CodeAttributeBase` is defined in `DataStandardizer.Core`.
+
+The inherited `EnglishName` and `FrenchName` are the country's English and French
+short names from ISO 3166-1, such as "France" and "France (la)". `EnglishNames` and
+`FrenchNames` each hold only that one name. The upper-case and full English names are
+in `EnglishShortNameUpper` and `EnglishFullName`.
 
 ## Properties
 

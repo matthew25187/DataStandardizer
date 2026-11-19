@@ -10,6 +10,12 @@ namespace DataStandardizer.Geography
     /// <summary>
     /// Describes a UN M49 code with metadata.
     /// </summary>
+    /// <remarks>
+    /// The inherited <see cref="CodeAttributeBase.EnglishName"/> and <see cref="CodeAttributeBase.FrenchName"/> are the area's own name: the name of its
+    /// lowest level, so the country or area name for a country or area, the region name for a region, and so on. <see cref="CodeAttributeBase.EnglishNames"/>
+    /// and <see cref="CodeAttributeBase.FrenchNames"/> each hold that one name, or one empty string until a name in that language is set. The names of the
+    /// levels above the area are in the level properties, such as <see cref="EnglishRegionName"/>.
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class UnM49AreaCodeAttribute : CodeAttributeBase
     {
@@ -24,6 +30,10 @@ namespace DataStandardizer.Geography
             CountryOrArea
         }
 
+        private readonly string[] _englishNames;
+        private readonly string[] _englishAreaName;
+        private readonly string[] _frenchNames;
+        private readonly string[] _frenchAreaName;
         private readonly string[] _arabicNames;
         private readonly string[] _chineseNames;
         private readonly string[] _russianNames;
@@ -34,9 +44,19 @@ namespace DataStandardizer.Geography
         #region Constructors
 
         private UnM49AreaCodeAttribute()
-            : base(Enumerable.Repeat(string.Empty, Enum.GetValues(typeof(NameIndex)).Length).ToArray(), Enumerable.Repeat(string.Empty, Enum.GetValues(typeof(NameIndex)).Length).ToArray())
+            : this(new[] { string.Empty }, new[] { string.Empty })
         {
+        }
+
+        private UnM49AreaCodeAttribute(string[] englishAreaName, string[] frenchAreaName)
+            : base(englishAreaName, frenchAreaName)
+        {
+            _englishAreaName = englishAreaName;
+            _frenchAreaName = frenchAreaName;
+
             var nameCount = Enum.GetValues(typeof(NameIndex)).Length;
+            _englishNames = Enumerable.Repeat(string.Empty, nameCount).ToArray();
+            _frenchNames = Enumerable.Repeat(string.Empty, nameCount).ToArray();
             _chineseNames = Enumerable.Repeat(string.Empty, nameCount).ToArray();
             _russianNames = Enumerable.Repeat(string.Empty, nameCount).ToArray();
             _spanishNames = Enumerable.Repeat(string.Empty, nameCount).ToArray();
@@ -82,8 +102,8 @@ namespace DataStandardizer.Geography
         public string EnglishGlobalName
 #endif
         {
-            get => !string.IsNullOrEmpty(EnglishNames[(int)NameIndex.Global]) ? EnglishNames[(int)NameIndex.Global] : null;
-            set => EnglishNames[(int)NameIndex.Global] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_englishNames[(int)NameIndex.Global]) ? _englishNames[(int)NameIndex.Global] : null;
+            set => SetName(_englishNames, _englishAreaName, NameIndex.Global, value);
         }
 
         /// <summary>
@@ -124,8 +144,8 @@ namespace DataStandardizer.Geography
         public string FrenchGlobalName
 #endif
         {
-            get => !string.IsNullOrEmpty(FrenchNames[(int)NameIndex.Global]) ? FrenchNames[(int)NameIndex.Global] : null;
-            set => FrenchNames[(int)NameIndex.Global] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_frenchNames[(int)NameIndex.Global]) ? _frenchNames[(int)NameIndex.Global] : null;
+            set => SetName(_frenchNames, _frenchAreaName, NameIndex.Global, value);
         }
 
         /// <summary>
@@ -171,8 +191,8 @@ namespace DataStandardizer.Geography
         public string EnglishRegionName
 #endif
         {
-            get => !string.IsNullOrEmpty(EnglishNames[(int)NameIndex.Region]) ? EnglishNames[(int)NameIndex.Region] : null;
-            set => EnglishNames[(int)NameIndex.Region] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_englishNames[(int)NameIndex.Region]) ? _englishNames[(int)NameIndex.Region] : null;
+            set => SetName(_englishNames, _englishAreaName, NameIndex.Region, value);
         }
 
         /// <summary>
@@ -213,8 +233,8 @@ namespace DataStandardizer.Geography
         public string FrenchRegionName
 #endif
         {
-            get => !string.IsNullOrEmpty(FrenchNames[(int)NameIndex.Region]) ? FrenchNames[(int)NameIndex.Region] : null;
-            set => FrenchNames[(int)NameIndex.Region] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_frenchNames[(int)NameIndex.Region]) ? _frenchNames[(int)NameIndex.Region] : null;
+            set => SetName(_frenchNames, _frenchAreaName, NameIndex.Region, value);
         }
 
         /// <summary>
@@ -260,8 +280,8 @@ namespace DataStandardizer.Geography
         public string EnglishSubRegionName
 #endif
         {
-            get => !string.IsNullOrEmpty(EnglishNames[(int)NameIndex.SubRegion]) ? EnglishNames[(int)NameIndex.SubRegion] : null;
-            set => EnglishNames[(int)NameIndex.SubRegion] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_englishNames[(int)NameIndex.SubRegion]) ? _englishNames[(int)NameIndex.SubRegion] : null;
+            set => SetName(_englishNames, _englishAreaName, NameIndex.SubRegion, value);
         }
 
         /// <summary>
@@ -302,8 +322,8 @@ namespace DataStandardizer.Geography
         public string FrenchSubRegionName
 #endif
         {
-            get => !string.IsNullOrEmpty(FrenchNames[(int)NameIndex.SubRegion]) ? FrenchNames[(int)NameIndex.SubRegion] : null;
-            set => FrenchNames[(int)NameIndex.SubRegion] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_frenchNames[(int)NameIndex.SubRegion]) ? _frenchNames[(int)NameIndex.SubRegion] : null;
+            set => SetName(_frenchNames, _frenchAreaName, NameIndex.SubRegion, value);
         }
 
         /// <summary>
@@ -349,8 +369,8 @@ namespace DataStandardizer.Geography
         public string EnglishIntermediateRegionName
 #endif
         {
-            get => !string.IsNullOrEmpty(EnglishNames[(int)NameIndex.IntermediateRegion]) ? EnglishNames[(int)NameIndex.IntermediateRegion] : null;
-            set => EnglishNames[(int)NameIndex.IntermediateRegion] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_englishNames[(int)NameIndex.IntermediateRegion]) ? _englishNames[(int)NameIndex.IntermediateRegion] : null;
+            set => SetName(_englishNames, _englishAreaName, NameIndex.IntermediateRegion, value);
         }
 
         /// <summary>
@@ -391,8 +411,8 @@ namespace DataStandardizer.Geography
         public string FrenchIntermediateRegionName
 #endif
         {
-            get => !string.IsNullOrEmpty(FrenchNames[(int)NameIndex.IntermediateRegion]) ? FrenchNames[(int)NameIndex.IntermediateRegion] : null;
-            set => FrenchNames[(int)NameIndex.IntermediateRegion] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_frenchNames[(int)NameIndex.IntermediateRegion]) ? _frenchNames[(int)NameIndex.IntermediateRegion] : null;
+            set => SetName(_frenchNames, _frenchAreaName, NameIndex.IntermediateRegion, value);
         }
 
         /// <summary>
@@ -433,8 +453,8 @@ namespace DataStandardizer.Geography
         public string EnglishCountryOrAreaName
 #endif
         {
-            get => !string.IsNullOrEmpty(EnglishNames[(int)NameIndex.CountryOrArea]) ? EnglishNames[(int)NameIndex.CountryOrArea] : null;
-            set => EnglishNames[(int)NameIndex.CountryOrArea] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_englishNames[(int)NameIndex.CountryOrArea]) ? _englishNames[(int)NameIndex.CountryOrArea] : null;
+            set => SetName(_englishNames, _englishAreaName, NameIndex.CountryOrArea, value);
         }
 
         /// <summary>
@@ -475,8 +495,8 @@ namespace DataStandardizer.Geography
         public string FrenchCountryOrAreaName
 #endif
         {
-            get => !string.IsNullOrEmpty(FrenchNames[(int)NameIndex.CountryOrArea]) ? FrenchNames[(int)NameIndex.CountryOrArea] : null;
-            set => FrenchNames[(int)NameIndex.CountryOrArea] = value ?? string.Empty;
+            get => !string.IsNullOrEmpty(_frenchNames[(int)NameIndex.CountryOrArea]) ? _frenchNames[(int)NameIndex.CountryOrArea] : null;
+            set => SetName(_frenchNames, _frenchAreaName, NameIndex.CountryOrArea, value);
         }
 
         /// <summary>
@@ -526,6 +546,21 @@ namespace DataStandardizer.Geography
         [MaybeNull, AllowNull]
         public string Iso3166Part1Alpha3Code { get; set; }
 #endif
+
+        #endregion
+
+        #region Private Methods
+
+        // Sets one level's name, then makes the area's own name in the base class the name of the lowest level that has one.
+#if NETCOREAPP3_0_OR_GREATER
+        private static void SetName(string[] levelNames, string[] areaName, NameIndex index, string? value)
+#else
+        private static void SetName(string[] levelNames, string[] areaName, NameIndex index, [AllowNull] string value)
+#endif
+        {
+            levelNames[(int)index] = value ?? string.Empty;
+            areaName[0] = levelNames.LastOrDefault(name => name.Length > 0) ?? string.Empty;
+        }
 
         #endregion
     }
