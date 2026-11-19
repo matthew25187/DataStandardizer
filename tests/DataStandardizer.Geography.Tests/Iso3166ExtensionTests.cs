@@ -29,6 +29,14 @@ public class Iso3166ExtensionTests
     private const string Iso639Part2Turkish = "tur";
 
     // ISO 3166-1 country names.
+    private const string BelarusShortNameEnglish = "Belarus";
+    private const string BelarusFullNameEnglish = "the Republic of Belarus";
+    private const string BelarusShortNameFrench = "Bélarus (le)";
+    private const string BelarusFullNameFrench = "la République du Bélarus";
+    private const string MyanmarShortNameEnglish = "Myanmar";
+    private const string MyanmarFullNameEnglish = "the Republic of the Union of Myanmar";
+    private const string MyanmarShortNameFrench = "Myanmar (le)";
+    private const string MyanmarFullNameFrench = "la République de l'Union du Myanmar";
     private const string BoliviaShortNameEnglish = "Bolivia (Plurinational State of)";
     private const string BoliviaShortUpperNameEnglish = "BOLIVIA, PLURINATIONAL STATE OF";
     private const string BoliviaFullNameEnglish = "the Plurinational State of Bolivia";
@@ -142,6 +150,15 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part1Alpha2Country.BO, Iso639Part2French, Iso3166CountryName.Full, BoliviaFullNameFrench };
                 yield return new object?[] { Iso3166Part1Alpha2Country.BO, Iso639Part1Spanish, Iso3166CountryName.Full, null };
                 yield return new object?[] { Iso3166Part1Alpha2Country.BO, Iso639Part2Spanish, Iso3166CountryName.Full, null };
+                // A code that replaced another (BU, the Byelorussian SSR) has only its own names.
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part1English, Iso3166CountryName.Short, MyanmarShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part1English, Iso3166CountryName.Full, MyanmarFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part2French, Iso3166CountryName.Short, MyanmarShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part2French, Iso3166CountryName.Full, MyanmarFullNameFrench };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part1English, Iso3166CountryName.Short, BelarusShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part1English, Iso3166CountryName.Full, BelarusFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part2French, Iso3166CountryName.Short, BelarusShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part2French, Iso3166CountryName.Full, BelarusFullNameFrench };
             }
         }
     }
@@ -230,6 +247,15 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part1Alpha3Country.ITA, Iso639Part2French, Iso3166CountryName.Full, ItalyFullNameFrench };
                 yield return new object?[] { Iso3166Part1Alpha3Country.ITA, Iso639Part1Italian, Iso3166CountryName.Full, null };
                 yield return new object?[] { Iso3166Part1Alpha3Country.ITA, Iso639Part2Italian, Iso3166CountryName.Full, null };
+                // A code that replaced another (BUR, BYS) has only its own names.
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part1English, Iso3166CountryName.Short, MyanmarShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part1English, Iso3166CountryName.Full, MyanmarFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part2French, Iso3166CountryName.Short, MyanmarShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part2French, Iso3166CountryName.Full, MyanmarFullNameFrench };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part1English, Iso3166CountryName.Short, BelarusShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part1English, Iso3166CountryName.Full, BelarusFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part2French, Iso3166CountryName.Short, BelarusShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part2French, Iso3166CountryName.Full, BelarusFullNameFrench };
             }
         }
     }
