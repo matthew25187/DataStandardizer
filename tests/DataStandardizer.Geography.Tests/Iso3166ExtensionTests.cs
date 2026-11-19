@@ -150,7 +150,7 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part1Alpha2Country.BO, Iso639Part2French, Iso3166CountryName.Full, BoliviaFullNameFrench };
                 yield return new object?[] { Iso3166Part1Alpha2Country.BO, Iso639Part1Spanish, Iso3166CountryName.Full, null };
                 yield return new object?[] { Iso3166Part1Alpha2Country.BO, Iso639Part2Spanish, Iso3166CountryName.Full, null };
-                // A code that replaced another (BU, the Byelorussian SSR) has only its own names.
+                // A code that replaced another (BU, Burma; BY/BYS, the Byelorussian SSR) has only its own names.
                 yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part1English, Iso3166CountryName.Short, MyanmarShortNameEnglish };
                 yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part1English, Iso3166CountryName.Full, MyanmarFullNameEnglish };
                 yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part2French, Iso3166CountryName.Short, MyanmarShortNameFrench };
@@ -247,7 +247,7 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part1Alpha3Country.ITA, Iso639Part2French, Iso3166CountryName.Full, ItalyFullNameFrench };
                 yield return new object?[] { Iso3166Part1Alpha3Country.ITA, Iso639Part1Italian, Iso3166CountryName.Full, null };
                 yield return new object?[] { Iso3166Part1Alpha3Country.ITA, Iso639Part2Italian, Iso3166CountryName.Full, null };
-                // A code that replaced another (BUR, BYS) has only its own names.
+                // A code that replaced another (BUR, Burma; BYS, the Byelorussian SSR) has only its own names.
                 yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part1English, Iso3166CountryName.Short, MyanmarShortNameEnglish };
                 yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part1English, Iso3166CountryName.Full, MyanmarFullNameEnglish };
                 yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part2French, Iso3166CountryName.Short, MyanmarShortNameFrench };
