@@ -48,12 +48,12 @@ namespace DataStandardizer.Language
         
         #region Operators
         /// <summary>
-        /// Converts a string to the <see cref="Iso639Part5LanguageFamily"/> value that holds it, without checking that it is an ISO 639 code.
+        /// Converts an ISO 639-5 code to the <see cref="Iso639Part5LanguageFamily"/> member with that code.
         /// </summary>
-        /// <param name="value">The code.</param>
-        /// <returns>A value that holds <paramref name="value"/>.</returns>
+        /// <param name="value">The code, such as <c>gem</c>. Codes are case-sensitive.</param>
+        /// <returns>The predefined member with the code.</returns>
         /// <exception cref="System.InvalidCastException">
-        /// <paramref name="value"/> is <see langword="null"/>.
+        /// <paramref name="value"/> is <see langword="null"/>, or is not an ISO 639-5 code.
         /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator DataStandardizer.Language.Iso639Part5LanguageFamily(string value)
@@ -66,7 +66,12 @@ namespace DataStandardizer.Language
                 throw new System.InvalidCastException("A null string cannot be converted to Iso639Part5LanguageFamily.");
             }
 
-            return new DataStandardizer.Language.Iso639Part5LanguageFamily(value);
+            if (!MembersByCode.Value.TryGetValue(value, out var member))
+            {
+                throw new System.InvalidCastException("'" + value + "' is not an ISO 639-5 code.");
+            }
+
+            return member;
         }
         
 #if NETCOREAPP3_0_OR_GREATER
@@ -1351,6 +1356,23 @@ namespace DataStandardizer.Language
                         && (field.IsStatic 
                         && (field.GetValue(null) is DataStandardizer.Language.Iso639Part5LanguageFamily memberValue 
                         && (memberValue._value == this._value))));
+        }
+        
+        // Built on first use rather than in a static field initializer, which could run before the member fields it reads are assigned.
+        // PublicationOnly doesn't cache an exception thrown while building it, so a later cast tries again.
+        private static readonly System.Lazy<System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily>> MembersByCode = new System.Lazy<System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily>>(CreateMembersByCode, System.Threading.LazyThreadSafetyMode.PublicationOnly);
+
+        private static System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily> CreateMembersByCode()
+        {
+            var membersByCode = new System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily>(System.StringComparer.Ordinal);
+            foreach (var field in typeof(DataStandardizer.Language.Iso639Part5LanguageFamily).GetTypeInfo().DeclaredFields)
+            {
+                if (field.IsPublic && field.IsStatic && field.GetValue(null) is DataStandardizer.Language.Iso639Part5LanguageFamily member && member._value is string code)
+                {
+                    membersByCode[code] = member;
+                }
+            }
+            return membersByCode;
         }
         #endregion
     }

@@ -261,7 +261,7 @@ underlying `string` and is callable only through an `IConvertible` reference.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Iso639Part1Language(string)` | Wraps a code string. Throws `InvalidCastException` for `null`. |
+| Explicit | `explicit operator Iso639Part1Language(string)` | Gives the member with that code, such as `Iso639Part1Language.en` for `"en"`. Codes are case-sensitive. Throws `InvalidCastException` for `null` or a string that isn't an ISO 639-1 code. |
 | Implicit | `implicit operator string(Iso639Part1Language)` | Unwraps to the underlying code string. |
 | Equality | `operator ==`, `!=` `(Iso639Part1Language, Iso639Part1Language)` | |
 
