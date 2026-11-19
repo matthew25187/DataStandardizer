@@ -296,4 +296,56 @@ public class Iso3166Part2EnumTests
         // assert
         testResult.Should().BeEmpty();
     }
+
+    [Theory]
+    [MemberData(nameof(GetNamesAustraliaCalls))]
+    public void GetNames_Australia_ReturnsSubdivisionsInOrdinalCodeOrder(Func<string[]> testCall)
+    {
+        // arrange
+        // ISO 3166-2 codes for Australia in ordinal order: AU-ACT, AU-NSW, AU-NT, AU-QLD, AU-SA, AU-TAS, AU-VIC, AU-WA.
+        // The generator declares them in a different order (ACT, NT, NSW, TAS, VIC, WA, QLD, SA).
+        var expectedResult = new string[]
+            {
+                nameof(Iso3166Part2Subdivision.AU._ACT), nameof(Iso3166Part2Subdivision.AU._NSW), nameof(Iso3166Part2Subdivision.AU._NT), nameof(Iso3166Part2Subdivision.AU._QLD),
+                nameof(Iso3166Part2Subdivision.AU._SA), nameof(Iso3166Part2Subdivision.AU._TAS), nameof(Iso3166Part2Subdivision.AU._VIC), nameof(Iso3166Part2Subdivision.AU._WA)
+            };
+
+        // act
+        var testResult = testCall();
+
+        // assert
+        testResult.Should().Equal(expectedResult);
+    }
+
+    public static TheoryData<Func<string[]>> GetNamesAustraliaCalls => new TheoryData<Func<string[]>>
+        {
+            () => Iso3166Part2Enum.GetNames(Iso3166Part1Alpha2Country.AU),
+            () => Iso3166Part2Enum.GetNames(Iso3166Part1Alpha3Country.AUS)
+        };
+
+    [Theory]
+    [MemberData(nameof(GetValuesAustraliaCalls))]
+    public void GetValues_Australia_ReturnsSubdivisionsInOrdinalCodeOrder(Func<Iso3166Part2Subdivision[]> testCall)
+    {
+        // arrange
+        // ISO 3166-2 codes for Australia in ordinal order: AU-ACT, AU-NSW, AU-NT, AU-QLD, AU-SA, AU-TAS, AU-VIC, AU-WA.
+        // The generator declares them in a different order (ACT, NT, NSW, TAS, VIC, WA, QLD, SA).
+        var expectedResult = new Iso3166Part2Subdivision[]
+            {
+                Iso3166Part2Subdivision.AU._ACT, Iso3166Part2Subdivision.AU._NSW, Iso3166Part2Subdivision.AU._NT, Iso3166Part2Subdivision.AU._QLD, Iso3166Part2Subdivision.AU._SA,
+                Iso3166Part2Subdivision.AU._TAS, Iso3166Part2Subdivision.AU._VIC, Iso3166Part2Subdivision.AU._WA
+            };
+
+        // act
+        var testResult = testCall();
+
+        // assert
+        testResult.Should().Equal(expectedResult);
+    }
+
+    public static TheoryData<Func<Iso3166Part2Subdivision[]>> GetValuesAustraliaCalls => new TheoryData<Func<Iso3166Part2Subdivision[]>>
+        {
+            () => Iso3166Part2Enum.GetValues(Iso3166Part1Alpha2Country.AU),
+            () => Iso3166Part2Enum.GetValues(Iso3166Part1Alpha3Country.AUS)
+        };
 }
