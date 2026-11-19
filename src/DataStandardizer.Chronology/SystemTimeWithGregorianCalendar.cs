@@ -39,7 +39,7 @@ namespace DataStandardizer.Chronology
 
             // Store the system time a wrapper wraps, not the wrapper, so that nesting never hides it.
             _systemTime = systemTime is SystemTimeWithGregorianCalendar wrapper
-                ? wrapper._systemTime ?? throw new ArgumentException($"The {nameof(SystemTimeWithGregorianCalendar)} instance is not initialised.", nameof(systemTime))
+                ? wrapper._systemTime ?? throw new ArgumentException($"The {nameof(SystemTimeWithGregorianCalendar)} to wrap is a default instance, which wraps no system time.", nameof(systemTime))
                 : systemTime;
         }
 

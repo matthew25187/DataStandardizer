@@ -159,7 +159,7 @@ public class SystemTimeWithGregorianCalendarTests
         Action testAction = () => _ = new SystemTimeWithGregorianCalendar(testSystemTime);
 
         // assert
-        testAction.Should().Throw<ArgumentException>().WithParameterName("systemTime");
+        testAction.Should().ThrowExactly<ArgumentException>().WithParameterName("systemTime");
     }
 
     [Fact]
@@ -214,6 +214,21 @@ public class SystemTimeWithGregorianCalendarTests
 
         // assert
         testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetHashCode_NestedAndSingleWrapperOfSameValue_ReturnsSameHashCode()
+    {
+        // arrange
+        var testValue = new SystemTimeWithGregorianCalendar(new SystemTimeWithGregorianCalendar(new UnixTime(UnixEpoch)));
+        var testOther = new SystemTimeWithGregorianCalendar(new UnixTime(UnixEpoch));
+
+        // act
+        var testResult = testValue.GetHashCode();
+        var testOtherResult = testOther.GetHashCode();
+
+        // assert
+        testResult.Should().Be(testOtherResult);
     }
 
     [Theory]
