@@ -689,7 +689,12 @@ public class Iso3166ExtensionTests
     {
         { Iso639Part2BGerman, () => Iso3166Part1Alpha2Country.AT.GetNativeName(Iso639Part2BGerman, Iso3166CountryName.Short) },
         { Iso639TestCodes.SpanishCodeWithLongS, () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(Iso639TestCodes.SpanishCodeWithLongS) },
-        { "null", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null) },
+        { "GetNativeName(Iso3166Part1Alpha2Country, null)", () => Iso3166Part1Alpha2Country.DE.GetNativeName(null, Iso3166CountryName.Short) },
+        { "GetNativeName(Iso3166Part1Alpha3Country, null)", () => Iso3166Part1Alpha3Country.DEU.GetNativeName(null, Iso3166CountryName.Short) },
+        { "GetSubdivisionCategoryName(null)", () => Iso3166Part2Subdivision.CY._02.GetSubdivisionCategoryName(null) },
+        { "GetSubdivisionCategoryNamePlural(null)", () => Iso3166Part2Subdivision.FR._NOR.GetSubdivisionCategoryNamePlural(null) },
+        { "GetSubdivisionNativeName(null)", () => Iso3166Part2Subdivision.CA._NT.GetSubdivisionNativeName(null) },
+        { "GetSubdivisionNativeNameLocalVariant(null)", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null) },
     };
 
     [Theory]

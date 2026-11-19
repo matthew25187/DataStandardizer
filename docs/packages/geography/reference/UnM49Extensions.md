@@ -63,20 +63,20 @@ extension methods.
 
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
-| `GetCountryOrAreaName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Country or area name for the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
+| `GetCountryOrAreaName(string? languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Country or area name for the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
 | `GetGlobalCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Global code related to the M49 code. |
-| `GetGlobalName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the global code. |
+| `GetGlobalName(string? languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the global code. |
 | `GetIntermediateRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Intermediate region code related to the M49 code. |
-| `GetIntermediateRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the intermediate region code. |
+| `GetIntermediateRegionName(string? languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the intermediate region code. |
 | `GetIso3166Part1Alpha2Code()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | ISO 3166-1 alpha-2 country code related to the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
 | `GetIso3166Part1Alpha3Code()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | ISO 3166-1 alpha-3 country code related to the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
 | `GetLevel()` | `UnM49Area` | `UnM49AreaLevel?` | Level of the M49 hierarchy occupied by the code. |
-| `GetName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the area at whatever level of the hierarchy it occupies. |
+| `GetName(string? languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the area at whatever level of the hierarchy it occupies. |
 | `GetParent()` | `UnM49Area` | `UnM49Area?` | Parent area in the M49 hierarchy; `null` for the world. |
 | `GetRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Region code related to the M49 code. |
-| `GetRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the region code. |
+| `GetRegionName(string? languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the region code. |
 | `GetSubRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Sub-region code related to the M49 code. |
-| `GetSubRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the sub-region code. |
+| `GetSubRegionName(string? languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the sub-region code. |
 | `IsWithin(UnM49Area other)` | `UnM49Area` | `bool` | Whether the code falls within another area. An area does not fall within itself. |
 
 The `languageCode` parameter takes an ISO 639-1 or ISO 639-2/T code, such as `en` or `eng`, and matches it without regard to the case of its letters (RFC 5646 §2.1.1), so `EN` and `Eng` give the same name as `en`. A bibliographic ISO 639-2/B code, such as `fre` or `chi`, isn't matched, and a `null` code gives `null`. UN M49 gives names in Arabic, Chinese, English, French, Russian and Spanish; any other code gives `null`.

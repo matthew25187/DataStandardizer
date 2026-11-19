@@ -878,7 +878,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static UnM49Language DoGetLanguage(string? languageCode)
 #else
-        private static UnM49Language DoGetLanguage(string languageCode)
+        private static UnM49Language DoGetLanguage([AllowNull] string languageCode)
 #endif
         {
             foreach (var languageCodeEntry in LanguageCodes)

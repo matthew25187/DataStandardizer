@@ -27,7 +27,7 @@ is unavailable or the code is undefined. The ISO 3166-1 accessors
 extending both `Iso3166Part1Alpha2Country` and `Iso3166Part1Alpha3Country`.
 
 On .NET Standard targets the `string?` return and parameter types are `string`
-annotated with `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`.
+annotated with `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[AllowNull]`.
 A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## Methods
@@ -37,13 +37,13 @@ A project gets null warnings from them only on C# 8 or later with nullable enabl
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
 | `GetEnglishName(Iso3166CountryName nameType)` | `Iso3166Part1Alpha2Country` / `Iso3166Part1Alpha3Country` | `string?` | English name in the requested form. |
-| `GetNativeName(string iso639LanguageCode, Iso3166CountryName nameType)` | `Iso3166Part1Alpha2Country` / `Iso3166Part1Alpha3Country` | `string?` | Native name in the requested language and form. |
+| `GetNativeName(string? iso639LanguageCode, Iso3166CountryName nameType)` | `Iso3166Part1Alpha2Country` / `Iso3166Part1Alpha3Country` | `string?` | Native name in the requested language and form. |
 | `GetSubdivisionCategoryIdentifier()` | `Iso3166Part2Subdivision` | `ushort?` | Identifier of the subdivision's category. |
-| `GetSubdivisionCategoryName(string iso639LanguageCode)` | `Iso3166Part2Subdivision` | `string?` | Category name in the requested language. |
-| `GetSubdivisionCategoryNamePlural(string iso639LanguageCode)` | `Iso3166Part2Subdivision` | `string?` | Plural form of the category name. |
+| `GetSubdivisionCategoryName(string? iso639LanguageCode)` | `Iso3166Part2Subdivision` | `string?` | Category name in the requested language. |
+| `GetSubdivisionCategoryNamePlural(string? iso639LanguageCode)` | `Iso3166Part2Subdivision` | `string?` | Plural form of the category name. |
 | `GetSubdivisionCode()` | `Iso3166Part2Subdivision` | `string?` | The ISO 3166-2 code (e.g. `AU-NT`). |
-| `GetSubdivisionNativeName(string iso639LanguageCode, string? romanizationSystem = null)` | `Iso3166Part2Subdivision` | `string?` | Native name of the subdivision. With no `romanizationSystem`, when the language has several names, the one ISO 3166-2 lists first. |
-| `GetSubdivisionNativeNameLocalVariant(string iso639LanguageCode, string? romanizationSystem = null)` | `Iso3166Part2Subdivision` | `string?` | Local variant of the native name, of the same name `GetSubdivisionNativeName` selects. |
+| `GetSubdivisionNativeName(string? iso639LanguageCode, string? romanizationSystem = null)` | `Iso3166Part2Subdivision` | `string?` | Native name of the subdivision. With no `romanizationSystem`, when the language has several names, the one ISO 3166-2 lists first. |
+| `GetSubdivisionNativeNameLocalVariant(string? iso639LanguageCode, string? romanizationSystem = null)` | `Iso3166Part2Subdivision` | `string?` | Local variant of the native name, of the same name `GetSubdivisionNativeName` selects. |
 | `GetSubdivisionParentCode()` | `Iso3166Part2Subdivision` | `string?` | The parent subdivision code, if any. |
 | `IsIndependent()` | `Iso3166Part1Alpha2Country` / `Iso3166Part1Alpha3Country` | `bool` | Whether the country or territory is independent. |
 

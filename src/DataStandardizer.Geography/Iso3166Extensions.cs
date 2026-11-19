@@ -392,7 +392,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static bool MatchesLanguage(Iso3166LanguageAttributeBase attribute, string? iso639LanguageCode)
 #else
-        private static bool MatchesLanguage(Iso3166LanguageAttributeBase attribute, string iso639LanguageCode)
+        private static bool MatchesLanguage(Iso3166LanguageAttributeBase attribute, [AllowNull] string iso639LanguageCode)
 #endif
         {
             return Iso639LanguageCode.Matches(iso639LanguageCode, attribute.Iso639Part1Code) ||
