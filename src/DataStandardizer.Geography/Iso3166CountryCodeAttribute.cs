@@ -47,7 +47,11 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Gets the English short name.
         /// </summary>
-        public string EnglishShortName => EnglishNames[0];
+#if NETCOREAPP3_0_OR_GREATER
+        public string EnglishShortName => EnglishName!;
+#else
+        public string EnglishShortName => EnglishName;
+#endif
 
         /// <summary>
         /// Gets the English short name in uppercase.

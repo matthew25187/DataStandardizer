@@ -27,6 +27,9 @@ public class UnM49AreaCodeAttributeTests
     private const string UnM49FrenchSouthAmerica = "Am\x00E9rique du Sud";
     private const string UnM49FrenchAfghanistan = "Afghanistan";
 
+    // A value written over a name in an array that the attribute returned.
+    private const string ReplacementName = "Replacement";
+
     #region Test: EnglishNames_OnArea
 
     [Theory]
@@ -190,6 +193,42 @@ public class UnM49AreaCodeAttributeTests
 
         // assert
         testResult.Should().Equal(string.Empty);
+    }
+
+    #endregion
+
+    #region Test: EnglishName_AfterWritingToAReturnedEnglishNamesArray
+
+    [Fact]
+    public void EnglishName_AfterWritingToAReturnedEnglishNamesArray_IsUnchanged()
+    {
+        // arrange
+        var attribute = new UnM49AreaCodeAttribute(UnM49CodeWorld) { EnglishGlobalName = UnM49EnglishWorld };
+
+        // act
+        attribute.EnglishNames[0] = ReplacementName;
+        var testResult = attribute.EnglishName;
+
+        // assert
+        testResult.Should().Be(UnM49EnglishWorld);
+    }
+
+    #endregion
+
+    #region Test: FrenchName_AfterWritingToAReturnedFrenchNamesArray
+
+    [Fact]
+    public void FrenchName_AfterWritingToAReturnedFrenchNamesArray_IsUnchanged()
+    {
+        // arrange
+        var attribute = new UnM49AreaCodeAttribute(UnM49CodeWorld) { FrenchGlobalName = UnM49FrenchWorld };
+
+        // act
+        attribute.FrenchNames[0] = ReplacementName;
+        var testResult = attribute.FrenchName;
+
+        // assert
+        testResult.Should().Be(UnM49FrenchWorld);
     }
 
     #endregion

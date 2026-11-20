@@ -54,7 +54,10 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Gets a collection of all English names.
         /// </summary>
-        public string[] EnglishNames => _englishNames;
+        /// <value>
+        /// A copy of the attribute's names. Changing it doesn't change the attribute.
+        /// </value>
+        public string[] EnglishNames => CopyNames(_englishNames);
 
         /// <summary>
         /// Gets the first French name.
@@ -68,7 +71,31 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Gets a collection of all French names.
         /// </summary>
-        public string[] FrenchNames => _frenchNames;
+        /// <value>
+        /// A copy of the attribute's names. Changing it doesn't change the attribute.
+        /// </value>
+        public string[] FrenchNames => CopyNames(_frenchNames);
+
+        #endregion
+
+        #region Private Methods
+
+        private static string[] CopyNames(string[] names)
+        {
+            // A derived attribute outside this library may pass null to a protected constructor; return it as before.
+            if (names == null || names.Length == 0)
+            {
+#if NETCOREAPP3_0_OR_GREATER
+                return names!;
+#else
+                return names;
+#endif
+            }
+
+            var copy = new string[names.Length];
+            Array.Copy(names, copy, names.Length);
+            return copy;
+        }
 
         #endregion
     }
