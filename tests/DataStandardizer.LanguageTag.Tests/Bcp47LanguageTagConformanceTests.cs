@@ -146,7 +146,7 @@ namespace DataStandardizer.LanguageTag.Tests
             "File-Date: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: en\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: enochian\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPreferred-Value: yue\r\nPrefix: zh\r\n" +
             "%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: grandfathered\r\nTag: en-abcde\r\nDescription: T\r\nAdded: 2026-11-02\r\n";
 

@@ -22,7 +22,10 @@ namespace DataStandardizer.LanguageTag.Registry
     /// with another field, a tag or subtag record with no Description or Added field, and a field other than Description, Comments and Prefix that
     /// appears twice in a record. It throws as well for a field on a record type that may not have it: a Prefix field outside an extlang or variant
     /// record, or an extlang record without exactly one (§3.1.2, §3.1.8), and a Suppress-Script, Macrolanguage or Scope field outside a language or
-    /// extlang record (§3.1.2); for a Scope other than the four values §3.1.2 permits; for a Subtag that is not a subtag of its record's Type in the
+    /// extlang record (§3.1.2); for a Scope other than the four values §3.1.2 permits; for a Prefix that is not a well-formed language tag repeating
+    /// no variant subtag or extension singleton (§2.2.9, §3.1.8), a Suppress-Script that is not a script subtag, a Macrolanguage that is not a primary
+    /// language subtag, and a Preferred-Value not in the form §3.1.2 gives it for the record's Type, each in any case (§2.1.1), and for any of these
+    /// fields with no value; for an extlang record whose Preferred-Value is missing or not identical to its Subtag (§2.2.2); for a Subtag that is not a subtag of its record's Type in the
     /// form of §2.2.1 to §2.2.5 and the case of §3.1.4, at both ends of a range; for a Tag that is not formatted as §2.1.1 describes (§3.1.4); and for
     /// a character outside printable US-ASCII in a field that RFC 5646 defines, other than Description and Comments (§3.1.1). Fields that RFC 5646
     /// doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks; the File-Date record has the File-Date field
@@ -450,7 +453,8 @@ namespace DataStandardizer.LanguageTag.Registry
             if (string.IsNullOrEmpty(fieldBody))
             {
                 // the grammar allows an empty field body, but the fields that tell a record's kind and type, the fields every tag and subtag record
-                // has, the dates, Scope, whose values are listed, and Prefix, which holds a language tag, each need a value (ref. RFC 5646 §3.1.2, §3.1.8)
+                // has, the dates, Scope, whose values are listed, Prefix, which holds a language tag, and Suppress-Script, Macrolanguage and
+                // Preferred-Value, which hold a subtag or a language range, each need a value (ref. RFC 5646 §3.1.2, §3.1.8)
                 if (IsValueRequired(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
             }
             else
@@ -631,6 +635,92 @@ namespace DataStandardizer.LanguageTag.Registry
                     "The record at line {0} has the Scope '{1}', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits.",
                     recordLineNumber, scope);
             }
+
+            CheckFieldForms(record, typeName, recordLineNumber);
+        }
+
+        /// <summary>
+        /// Checks the Prefix, Suppress-Script, Macrolanguage and Preferred-Value fields of a record against the forms that RFC 5646 §3.1.2 gives them.
+        /// </summary>
+        private static void CheckFieldForms(SubtagRegistryTagRecordBase record, string typeName, int recordLineNumber)
+        {
+            // Prefix contains a valid language tag (ref. RFC 5646 §3.1.2, §3.1.8)
+            foreach (var prefix in record.Prefix)
+            {
+                if (!SubtagRegistryValueFormat.IsPrefix(prefix))
+                {
+                    throw CreateException(
+                        "The record at line {0} has the Prefix '{1}', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8).",
+                        recordLineNumber, prefix);
+                }
+            }
+
+            // Suppress-Script contains a script subtag (ref. RFC 5646 §3.1.2, §3.1.9)
+            var suppressScript = record.SuppressScript;
+            if (suppressScript != null && !SubtagRegistryValueFormat.IsScriptSubtag(suppressScript))
+            {
+                throw CreateException(
+                    "The record at line {0} has the Suppress-Script '{1}', which is not a script subtag of four letters (ref. RFC 5646 §2.2.3, §3.1.2, §3.1.9).",
+                    recordLineNumber, suppressScript);
+            }
+
+            // Macrolanguage contains a primary language subtag (ref. RFC 5646 §3.1.2, §3.1.10)
+            var macrolanguage = record.Macrolanguage;
+            if (macrolanguage != null && !SubtagRegistryValueFormat.IsPrimaryLanguageSubtag(macrolanguage))
+            {
+                throw CreateException(
+                    "The record at line {0} has the Macrolanguage '{1}', which is not a primary language subtag of two to eight letters (ref. RFC 5646 §2.2.1, §3.1.2, §3.1.10).",
+                    recordLineNumber, macrolanguage);
+            }
+
+            // an extlang record has a Preferred-Value identical to its Subtag (ref. RFC 5646 §2.2.2), which is also the extended language range that
+            // §3.1.2 gives it
+            var preferredValue = record.PreferredValue;
+            if (record is SubtagRegistrySubtagRecord subtagRecord && record.Type == SubtagRegistryRecordType.ExtendedLanguage)
+            {
+                if (preferredValue is null)
+                {
+                    throw CreateException(
+                        "The record at line {0} has no Preferred-Value field, which a record of the Type 'extlang' has (ref. RFC 5646 §2.2.2).", recordLineNumber);
+                }
+
+                if (!string.Equals(preferredValue, subtagRecord.Subtag, StringComparison.Ordinal))
+                {
+                    throw CreateException(
+                        "The record at line {0} has the Preferred-Value '{1}', which is not identical to its Subtag '{2}', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2).",
+                        recordLineNumber, preferredValue, subtagRecord.Subtag);
+                }
+
+                return;
+            }
+
+            // Preferred-Value takes a form that depends on the record's Type (ref. RFC 5646 §3.1.2, §3.1.7)
+            if (preferredValue != null && !SubtagRegistryValueFormat.IsPreferredValue(record.Type, preferredValue))
+            {
+                throw CreateException(
+                    "The record at line {0} has the Preferred-Value '{1}', which is not {2}, as a record of the Type '{3}' has (ref. RFC 5646 §3.1.2, §3.1.7).",
+                    recordLineNumber, preferredValue, GetPreferredValueForm(record.Type), typeName);
+            }
+        }
+
+        /// <summary>
+        /// Describes the form of the Preferred-Value of a record of a type (ref. RFC 5646 §3.1.2).
+        /// </summary>
+        private static string GetPreferredValueForm(SubtagRegistryRecordType type)
+        {
+            switch (type)
+            {
+                case SubtagRegistryRecordType.Language:
+                    return "a primary language subtag";
+                case SubtagRegistryRecordType.Script:
+                    return "a script subtag";
+                case SubtagRegistryRecordType.Region:
+                    return "a region subtag";
+                case SubtagRegistryRecordType.Variant:
+                    return "a variant subtag";
+                default:
+                    return "an extended language range of RFC 4647 §2.2";
+            }
         }
 
         private static void CheckFieldAbsent(int singleFieldFlags, int fieldFlag, string fieldName, string typeName, int recordLineNumber)
@@ -691,13 +781,16 @@ namespace DataStandardizer.LanguageTag.Registry
 
         /// <summary>
         /// Gets whether a field needs a value: the fields that tell a record's kind or type, the Description and Added fields every tag and subtag record
-        /// has, the dates, Scope, whose values §3.1.2 lists, and Prefix, which holds a language tag (ref. RFC 5646 §3.1.2, §3.1.8).
+        /// has, the dates, Scope, whose values §3.1.2 lists, Prefix, which holds a language tag, and Suppress-Script, Macrolanguage and Preferred-Value,
+        /// which each hold a subtag or a language range (ref. RFC 5646 §3.1.2, §3.1.8).
         /// </summary>
         private static bool IsValueRequired(string fieldName)
         {
             return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Subtag) || ReferenceEquals(fieldName, FieldName.Tag) ||
                 ReferenceEquals(fieldName, FieldName.Type) || ReferenceEquals(fieldName, FieldName.Description) || ReferenceEquals(fieldName, FieldName.Added) ||
-                ReferenceEquals(fieldName, FieldName.Deprecated) || ReferenceEquals(fieldName, FieldName.Scope) || ReferenceEquals(fieldName, FieldName.Prefix);
+                ReferenceEquals(fieldName, FieldName.Deprecated) || ReferenceEquals(fieldName, FieldName.Scope) || ReferenceEquals(fieldName, FieldName.Prefix) ||
+                ReferenceEquals(fieldName, FieldName.SuppressScript) || ReferenceEquals(fieldName, FieldName.Macrolanguage) ||
+                ReferenceEquals(fieldName, FieldName.PreferredValue);
         }
 
         /// <summary>

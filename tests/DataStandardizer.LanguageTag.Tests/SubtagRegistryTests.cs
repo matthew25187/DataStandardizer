@@ -1311,6 +1311,56 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The record at line 3 has the Scope 'Special', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope:\r\n",
                 "The Scope field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Prefix contains a valid language tag (§3.1.2, §3.1.8): well-formed, and repeating no variant subtag or extension singleton (§2.2.9)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: !!\r\n",
+                "The record at line 3 has the Prefix '!!', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar-\r\n",
+                "The record at line 3 has the Prefix 'ar-', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: biske\r\nDescription: The San Giorgio dialect of Resian\r\nAdded: 2007-07-05\r\nPrefix: sl-rozaj\r\nPrefix: sl-rozaj-rozaj\r\n",
+                "The record at line 3 has the Prefix 'sl-rozaj-rozaj', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: sl-a-bb-a-cc\r\n",
+                "The record at line 3 has the Prefix 'sl-a-bb-a-cc', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            // a Suppress-Script contains a script subtag, four letters (§2.2.3, §3.1.2, §3.1.9)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script: 12\r\n",
+                "The record at line 3 has the Suppress-Script '12', which is not a script subtag of four letters (ref. RFC 5646 §2.2.3, §3.1.2, §3.1.9)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script: Latin\r\n",
+                "The record at line 3 has the Suppress-Script 'Latin', which is not a script subtag of four letters (ref. RFC 5646 §2.2.3, §3.1.2, §3.1.9)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script:\r\n",
+                "The Suppress-Script field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Macrolanguage contains a primary language subtag, two to eight letters (§2.2.1, §3.1.2, §3.1.10)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage: a\r\n",
+                "The record at line 3 has the Macrolanguage 'a', which is not a primary language subtag of two to eight letters (ref. RFC 5646 §2.2.1, §3.1.2, §3.1.10)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage: ar-DZ\r\n",
+                "The record at line 3 has the Macrolanguage 'ar-DZ', which is not a primary language subtag of two to eight letters (ref. RFC 5646 §2.2.1, §3.1.2, §3.1.10)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage:\r\n",
+                "The Macrolanguage field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Preferred-Value takes the form §3.1.2 gives it for the record's Type: a primary language subtag for language, a subtag of the same
+            // type for script, region and variant, and an extended language range of RFC 4647 §2.2 for extlang, grandfathered and redundant
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: in\r\nDescription: Indonesian\r\nAdded: 2005-10-16\r\nDeprecated: 1989-01-01\r\nPreferred-Value: id-ID\r\n",
+                "The record at line 3 has the Preferred-Value 'id-ID', which is not a primary language subtag, as a record of the Type 'language' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Qaai\r\nDescription: Inherited\r\nAdded: 2005-10-16\r\nDeprecated: 2007-07-05\r\nPreferred-Value: Zin\r\n",
+                "The record at line 3 has the Preferred-Value 'Zin', which is not a script subtag, as a record of the Type 'script' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-05\r\nPreferred-Value: en-US\r\n",
+                "The record at line 3 has the Preferred-Value 'en-US', which is not a region subtag, as a record of the Type 'region' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-05\r\nPreferred-Value: M1\r\n",
+                "The record at line 3 has the Preferred-Value 'M1', which is not a region subtag, as a record of the Type 'region' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: heploc\r\nDescription: Hepburn romanization, Library of Congress method\r\nAdded: 2009-10-01\r\nDeprecated: 2010-02-07\r\nPreferred-Value: abcd\r\n",
+                "The record at line 3 has the Preferred-Value 'abcd', which is not a variant subtag, as a record of the Type 'variant' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            // an extlang record has a Preferred-Value, identical to its Subtag (§2.2.2)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\n",
+                "The record at line 3 has no Preferred-Value field, which a record of the Type 'extlang' has (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: ar-aao\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value 'ar-aao', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: AAO\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value 'AAO', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: *\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value '*', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: i-klingon\r\nDescription: Klingon\r\nAdded: 1999-05-26\r\nDeprecated: 2004-02-24\r\nPreferred-Value: tlh--x\r\n",
+                "The record at line 3 has the Preferred-Value 'tlh--x', which is not an extended language range of RFC 4647 §2.2, as a record of the Type 'grandfathered' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-cmn-Hans\r\nDescription: Mandarin Chinese (Simplified)\r\nAdded: 2005-07-15\r\nDeprecated: 2009-07-29\r\nPreferred-Value: cmn-Hansabcde\r\n",
+                "The record at line 3 has the Preferred-Value 'cmn-Hansabcde', which is not an extended language range of RFC 4647 §2.2, as a record of the Type 'redundant' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: in\r\nDescription: Indonesian\r\nAdded: 2005-10-16\r\nDeprecated: 1989-01-01\r\nPreferred-Value:\r\n",
+                "The Preferred-Value field at line 8 has no value (ref. RFC 5646 §3.1.2)."),
             // a Subtag has the form of its Type (§2.2.1 to §2.2.5) and the case of §3.1.4: titlecase for a script, upper case for a region, and lower
             // case for every other Type
             ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: en US!\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
@@ -1392,6 +1442,36 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             (await testAction.Should().ThrowAsync<FormatException>("{0} reads only the format of RFC 5646 §3.1.1", loaderName))
                 .Which.Message.Should().Be(expectedMessage);
+        }
+
+        /// <summary>
+        /// Registries whose Prefix, Suppress-Script, Macrolanguage or Preferred-Value field has the form RFC 5646 §3.1.2 gives it, in a case other than
+        /// the registry's own or with a wildcard, which RFC 5646 permits: §3.1.4 sets the case of the Subtag and Tag fields alone, and the case of a
+        /// language tag is not significant (§2.1.1); an extended language range may hold "*" (RFC 4647 §2.2).
+        /// </summary>
+        public static TheoryData<string> WellFormedFieldRegistries => new TheoryData<string>
+        {
+            "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: biske\r\nDescription: The San Giorgio dialect of Resian\r\nAdded: 2007-07-05\r\nPrefix: SL-Rozaj\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: i-klingon\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script: LATN\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage: AR\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-05\r\nPreferred-Value: mm\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: 062\r\nDescription: South-Central Asia\r\nAdded: 2005-10-16\r\nDeprecated: 2010-08-16\r\nPreferred-Value: 034\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: heploc\r\nDescription: Hepburn romanization, Library of Congress method\r\nAdded: 2009-10-01\r\nDeprecated: 2010-02-07\r\nPreferred-Value: ALALC97\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Qaai\r\nDescription: Inherited\r\nAdded: 2005-10-16\r\nDeprecated: 2007-07-05\r\nPreferred-Value: zinh\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-cmn-Hans\r\nDescription: Mandarin Chinese (Simplified)\r\nAdded: 2005-07-15\r\nDeprecated: 2009-07-29\r\nPreferred-Value: cmn-*-1994\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: aao\r\nPrefix: AR\r\n",
+        };
+
+        [Theory]
+        [MemberData(nameof(WellFormedFieldRegistries))]
+        public void CreateFromContent_WhenFieldHasTheFormOfItsField_ReturnsRegistry(string content)
+        {
+            // act
+            var testResult = SubtagRegistry.CreateFromContent(content);
+
+            // assert
+            testResult.Count.Should().Be(MinimalRegistryRecordCount, "the record's fields have the forms RFC 5646 §3.1.2 gives them, in any case");
         }
 
         #endregion

@@ -1,7 +1,11 @@
-﻿namespace DataStandardizer.LanguageTag.Registry
+﻿using System;
+using DataStandardizer.LanguageTag.InternalState;
+
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
-    /// Checks the bodies of the Subtag and Tag fields of a Subtag Registry record against the forms that RFC 5646 gives them.
+    /// Checks the bodies of the Subtag, Tag, Prefix, Suppress-Script, Macrolanguage and Preferred-Value fields of a Subtag Registry record against the
+    /// forms that RFC 5646 gives them.
     /// </summary>
     internal static class SubtagRegistryValueFormat
     {
@@ -61,6 +65,88 @@
             }
         }
 
+        /// <summary>
+        /// Gets whether a Prefix field body is a language tag in the form that a valid one has (ref. RFC 5646 §3.1.2, §3.1.8): well-formed, and with no
+        /// variant subtag or extension singleton that appears twice (ref. RFC 5646 §2.2.9), in any case (ref. RFC 5646 §2.1.1).
+        /// </summary>
+        /// <remarks>
+        /// Whether the tag's subtags appear in the registry, the other condition of validity (ref. RFC 5646 §2.2.9), is not checked here, as the records
+        /// that hold them may come later in the registry.
+        /// </remarks>
+        internal static bool IsPrefix(string value)
+        {
+            return Bcp47LanguageTagParser.Parse(value.AsSpan(), Bcp47SyntaxSubtagClassifier.Instance, out _) == Bcp47ParseStatus.Accepted;
+        }
+
+        /// <summary>
+        /// Gets whether a Suppress-Script field body is a script subtag (ref. RFC 5646 §3.1.2, §3.1.9): four letters (ref. RFC 5646 §2.2.3), in any
+        /// case (ref. RFC 5646 §2.1.1).
+        /// </summary>
+        internal static bool IsScriptSubtag(string value)
+        {
+            return value.Length == 4 && IsLetters(value, 0, value.Length);
+        }
+
+        /// <summary>
+        /// Gets whether a Macrolanguage field body is a primary language subtag (ref. RFC 5646 §3.1.2, §3.1.10): two to eight letters
+        /// (ref. RFC 5646 §2.2.1), in any case (ref. RFC 5646 §2.1.1).
+        /// </summary>
+        internal static bool IsPrimaryLanguageSubtag(string value)
+        {
+            return value.Length >= 2 && value.Length <= 8 && IsLetters(value, 0, value.Length);
+        }
+
+        /// <summary>
+        /// Gets whether a Preferred-Value field body has the form that RFC 5646 §3.1.2 gives it for the record's type, in any case
+        /// (ref. RFC 5646 §2.1.1): a primary language subtag for a language record, a subtag of the same type for a script, region or variant record
+        /// (ref. RFC 5646 §2.2.3 to §2.2.5), and an extended language range (ref. RFC 4647 §2.2) for a grandfathered or redundant record.
+        /// </summary>
+        /// <remarks>
+        /// An extlang record's Preferred-Value is identical to its Subtag (ref. RFC 5646 §2.2.2), which the reader checks instead.
+        /// </remarks>
+        internal static bool IsPreferredValue(SubtagRegistryRecordType type, string value)
+        {
+            var length = value.Length;
+            switch (type)
+            {
+                case SubtagRegistryRecordType.Language:
+                    return IsPrimaryLanguageSubtag(value);
+                case SubtagRegistryRecordType.Script:
+                    return IsScriptSubtag(value);
+                case SubtagRegistryRecordType.Region:
+                    return length == 2 && IsLetters(value, 0, length) || length == 3 && IsDigits(value, 0, length);
+                case SubtagRegistryRecordType.Variant:
+                    return (length >= 5 && length <= 8 || length == 4 && IsDigit(value[0])) && IsLettersOrDigits(value, 0, length);
+                case SubtagRegistryRecordType.Grandfathered:
+                case SubtagRegistryRecordType.Redundant:
+                    return IsExtendedLanguageRange(value);
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether a value is an extended language range (ref. RFC 4647 §2.2):
+        /// <c>(1*8ALPHA / "*") *("-" (1*8alphanum / "*"))</c>.
+        /// </summary>
+        private static bool IsExtendedLanguageRange(string value)
+        {
+            var start = 0;
+            while (true)
+            {
+                var end = value.IndexOf('-', start);
+                if (end < 0) end = value.Length;
+
+                var length = end - start;
+                var isWildcard = length == 1 && value[start] == '*';
+                var isSubtag = length >= 1 && length <= 8 && (start == 0 ? IsLetters(value, start, length) : IsLettersOrDigits(value, start, length));
+                if (!isWildcard && !isSubtag) return false;
+                if (end == value.Length) return true;
+
+                start = end + 1;
+            }
+        }
+
         private static bool IsSingleSubtag(SubtagRegistryRecordType type, string value, int start, int length)
         {
             switch (type)
@@ -96,6 +182,26 @@
             for (var index = start; index < start + length; index++)
             {
                 if (!IsLetter(value[index])) return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsLettersOrDigits(string value, int start, int length)
+        {
+            for (var index = start; index < start + length; index++)
+            {
+                if (!IsLetter(value[index]) && !IsDigit(value[index])) return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsDigits(string value, int start, int length)
+        {
+            for (var index = start; index < start + length; index++)
+            {
+                if (!IsDigit(value[index])) return false;
             }
 
             return true;

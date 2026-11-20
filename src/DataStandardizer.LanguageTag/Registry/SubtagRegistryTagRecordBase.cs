@@ -107,7 +107,9 @@ namespace DataStandardizer.LanguageTag.Registry
         public DateTime? Deprecated { get; }
 
         /// <summary>
-        /// Gets the Preferred-Value field value.
+        /// Gets the Preferred-Value field value: a primary language subtag on a language record, a subtag of the record's type on a script, region or
+        /// variant record, the record's Subtag on an extlang record, which always has one (ref. RFC 5646 §2.2.2), and an extended language range
+        /// (ref. RFC 4647 §2.2) on a grandfathered or redundant record (ref. RFC 5646 §3.1.2).
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? PreferredValue { get; }
@@ -122,7 +124,7 @@ namespace DataStandardizer.LanguageTag.Registry
         public IReadOnlyList<string> Prefix => GetValuesView(_prefix, ref _prefixView);
 
         /// <summary>
-        /// Gets the Suppress-Script field value.
+        /// Gets the Suppress-Script field value, a script subtag (ref. RFC 5646 §3.1.2, §3.1.9).
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? SuppressScript { get; }
@@ -131,7 +133,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #endif
 
         /// <summary>
-        /// Gets the Macrolanguage field value.
+        /// Gets the Macrolanguage field value, a primary language subtag (ref. RFC 5646 §3.1.2, §3.1.10).
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Macrolanguage { get; }
