@@ -82,9 +82,14 @@ namespace DataStandardizer.Core
 
         private static string[] CopyNames(string[] names)
         {
-            if (names.Length == 0)
+            // A derived attribute outside this library may pass null to a protected constructor; return it as before.
+            if (names == null || names.Length == 0)
             {
+#if NETCOREAPP3_0_OR_GREATER
+                return names!;
+#else
                 return names;
+#endif
             }
 
             var copy = new string[names.Length];

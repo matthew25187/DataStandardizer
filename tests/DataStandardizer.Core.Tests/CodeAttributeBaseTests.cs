@@ -94,6 +94,32 @@ namespace DataStandardizer.Core.Tests
             testResult.Should().BeEmpty();
         }
 
+        [Fact]
+        public void EnglishNames_WithNullNamesFromDerivedConstructor_IsNull()
+        {
+            // arrange
+            var attribute = TestCodeAttribute.CreateWithNullNames();
+
+            // act
+            var testResult = attribute.EnglishNames;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void FrenchNames_WithNullNamesFromDerivedConstructor_IsNull()
+        {
+            // arrange
+            var attribute = TestCodeAttribute.CreateWithNullNames();
+
+            // act
+            var testResult = attribute.FrenchNames;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
         private sealed class TestCodeAttribute : CodeAttributeBase
         {
             public TestCodeAttribute()
@@ -106,6 +132,8 @@ namespace DataStandardizer.Core.Tests
 
             public static TestCodeAttribute Create() =>
                 new TestCodeAttribute(new[] { FirstEnglishName, SecondEnglishName }, new[] { FirstFrenchName, SecondFrenchName });
+
+            public static TestCodeAttribute CreateWithNullNames() => new TestCodeAttribute(null!, null!);
         }
     }
 }

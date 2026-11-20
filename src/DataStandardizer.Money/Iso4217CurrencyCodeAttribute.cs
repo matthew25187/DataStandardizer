@@ -44,10 +44,10 @@ namespace DataStandardizer.Money
         /// Gets the name of the currency.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        public string CurrencyName => EnglishNames[0];
+        public string CurrencyName => EnglishName!;
 #else
         [NotNull]
-        public string CurrencyName => EnglishNames[0];
+        public string CurrencyName => EnglishName;
 #endif
         /// <summary>
         /// Gets or sets a flag indicating if the code is a funds code.

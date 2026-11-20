@@ -33,7 +33,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part1Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -66,7 +66,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language codes.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part2BLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -99,7 +99,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part2TLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -149,7 +149,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part5LanguageFamily languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -182,7 +182,7 @@ namespace DataStandardizer.Language
         /// Gets the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part1Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -215,7 +215,7 @@ namespace DataStandardizer.Language
         /// Gets the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part2BLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -248,7 +248,7 @@ namespace DataStandardizer.Language
         /// Gets the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part2TLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -281,7 +281,7 @@ namespace DataStandardizer.Language
         /// Get the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part5LanguageFamily languageCode)
         {
             var memberField = GetMemberField(languageCode);
