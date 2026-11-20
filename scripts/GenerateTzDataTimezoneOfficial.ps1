@@ -872,7 +872,7 @@ function Out-SourceCode {
 
         if (-not [string]::IsNullOrEmpty($TypeComment)) {
             $enumTypeOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($TypeComment, $true)
+            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($TypeComment -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
             $enumTypeCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
             $structType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
         }
@@ -1110,7 +1110,7 @@ function Out-SourceCode {
         $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", $constructorArguments)
 
         $summaryOpenComment = [System.CodeDom.CodeComment]::new('<summary>', $true)
-        $summaryContentComment = [System.CodeDom.CodeComment]::new($_.TZ, $true)
+        $summaryContentComment = [System.CodeDom.CodeComment]::new(($_.TZ -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $summaryCloseComment = [System.CodeDom.CodeComment]::new('</summary>', $true)
         @($summaryOpenComment, $summaryContentComment, $summaryCloseComment) | ForEach-Object { [void]$enumField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_)) }
 

@@ -176,7 +176,7 @@ function Out-SourceCode {
         [void]$enumField.CustomAttributes.Add($codeAttribute)
     
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($currencyName, $true)
+        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($currencyName -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $enumFieldCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
         $enumField.Comments.AddRange(@($enumFieldOpenSummaryComment, $enumFieldSummaryContentComment, $enumFieldCloseSummaryComment))
 

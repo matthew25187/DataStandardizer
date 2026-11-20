@@ -191,7 +191,7 @@ function Out-SourceCode {
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($_.CcyNm, $true)
+        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($_.CcyNm -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $enumFieldCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
         $enumField.Comments.AddRange(@($enumFieldOpenSummaryComment, $enumFieldSummaryContentComment, $enumFieldCloseSummaryComment))
 
@@ -202,7 +202,7 @@ function Out-SourceCode {
             $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new('<list type="bullet">', $true)
             foreach ($currencyCountryName in $currencyCountryNames) {
                 $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t<item>", $true)
-                $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`t<description>$currencyCountryName</description>", $true)
+                $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`t<description>$($currencyCountryName -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')</description>", $true)
                 $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</item>", $true)
             }
             $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new('</list>', $true)

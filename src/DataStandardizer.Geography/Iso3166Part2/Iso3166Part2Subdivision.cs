@@ -153,7 +153,13 @@ namespace DataStandardizer.Geography
             return (obj is DataStandardizer.Geography.Iso3166Part2Subdivision other && this.Equals(other));
         }
         
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns the name of the predefined member that holds this value.
+        /// </summary>
+        /// <returns>
+        /// The name of the field that holds this value in its country's nested class, such as <c>_02</c> for <c>AD-02</c>; the code, if no
+        /// field holds it; or the full name of the type, for the default value.
+        /// </returns>
         public override string ToString()
         {
             System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> nestedTypes = this.GetType().GetTypeInfo().DeclaredNestedTypes;
@@ -212,7 +218,13 @@ namespace DataStandardizer.Geography
             return (obj is DataStandardizer.Geography.Iso3166Part2Subdivision other && this.Equals(other));
         }
         
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns the name of the predefined member that holds this value.
+        /// </summary>
+        /// <returns>
+        /// The name of the field that holds this value in its country's nested class, such as <c>_02</c> for <c>AD-02</c>; the code, if no
+        /// field holds it; or the full name of the type, for the default value.
+        /// </returns>
         public override string ToString()
         {
             System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> nestedTypes = this.GetType().GetTypeInfo().DeclaredNestedTypes;
@@ -354,7 +366,12 @@ namespace DataStandardizer.Geography
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns the code.  The format provider is not used.
+        /// </summary>
+        /// <param name="provider">Not used.</param>
+        /// <returns>The code.</returns>
+        /// <exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider? provider)
@@ -513,7 +530,12 @@ namespace DataStandardizer.Geography
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns the code.  The format provider is not used.
+        /// </summary>
+        /// <param name="provider">Not used.</param>
+        /// <returns>The code.</returns>
+        /// <exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider provider)
