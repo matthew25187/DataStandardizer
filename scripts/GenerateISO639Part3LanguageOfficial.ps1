@@ -353,11 +353,11 @@ function Out-SourceCode {
                 (Get-EqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName -UseNullableReferenceTypes),
+                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName -UseNullableReferenceTypes),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName -UseNullableReferenceTypes),
                 (Get-InheritedToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName),
+                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-InheritedToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
@@ -435,7 +435,10 @@ function Out-SourceCode {
             $writer = [System.IO.StringWriter]::new($sourceCodeCuBuilder)
             try {
                 $provider.GenerateCodeFromCompileUnit($cu, $writer, $options)
-                Write-Output $sourceCodeCuBuilder.ToString()
+
+                # IStringEnum doesn't extend IConvertible, so the struct declares it on the targets that have it.
+                $structDeclarationPattern = [regex]::new("(?m)^(\s*public (?:partial )?struct $([regex]::Escape($GenerateTypeName)) : [^\r\n]*)(\r?\n)")
+                Write-Output $structDeclarationPattern.Replace($sourceCodeCuBuilder.ToString(), '$1$2#if NETSTANDARD1_3_OR_GREATER||NET$2, System.IConvertible$2#endif$2', 1)
             }
             finally {
                 $writer.Close()

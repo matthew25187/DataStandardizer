@@ -20,6 +20,9 @@ namespace DataStandardizer.Language
     /// Codes for the representation of names of languages -- Part 1: Alpha-2 code
     /// </summary>
     public readonly struct Iso639Part1Language : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.Language.Iso639Part1Language>
+#if NETSTANDARD1_3_OR_GREATER||NET
+, System.IConvertible
+#endif
     {
         
         #region Declarations
