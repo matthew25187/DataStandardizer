@@ -67,7 +67,12 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Creates a field from what a reader read.
         /// </summary>
+        /// <param name="name">The field name.</param>
+        /// <param name="rawBytes">The bytes of the whole field as read.</param>
+        /// <param name="value">The bytes of the field body.</param>
         /// <param name="valueText">The body as a string, if it had to be decoded with the fallback character set; otherwise empty, for it to be decoded as UTF-8 when asked for.</param>
+        /// <param name="bytePosition">The position of the field's first byte in the source.</param>
+        /// <param name="lineNumber">The number of the field's first line in the source.</param>
         internal ImfHeaderField(string name, byte[] rawBytes, byte[] value, string valueText, long bytePosition, long lineNumber)
         {
             Name = name;

@@ -76,8 +76,18 @@ namespace DataStandardizer.LanguageTag
         }
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Convert a keyed subtag to a string.
+        /// </summary>
+        /// <param name="value">Keyed subtag to convert.</param>
+        /// <returns>The subtag, in the case it was written in; <c>null</c> if <paramref name="value"/> is a default instance.</returns>
         public static implicit operator string?(Bcp47KeyedSubtag value)
 #else
+        /// <summary>
+        /// Convert a keyed subtag to a string.
+        /// </summary>
+        /// <param name="value">Keyed subtag to convert.</param>
+        /// <returns>The subtag, in the case it was written in; <c>null</c> if <paramref name="value"/> is a default instance.</returns>
         [return: MaybeNull]
         public static implicit operator string(Bcp47KeyedSubtag value)
 #endif
@@ -85,11 +95,23 @@ namespace DataStandardizer.LanguageTag
             return value._subtag;
         }
 
+        /// <summary>
+        /// Determine whether two keyed subtags are equal, ignoring case.
+        /// </summary>
+        /// <param name="left">The first keyed subtag to compare.</param>
+        /// <param name="right">The second keyed subtag to compare.</param>
+        /// <returns><c>true</c> if the subtags are the same apart from the case of their letters, or both are default instances; otherwise <c>false</c>.</returns>
         public static bool operator ==(Bcp47KeyedSubtag left, Bcp47KeyedSubtag right)
         {
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Determine whether two keyed subtags are not equal, ignoring case.
+        /// </summary>
+        /// <param name="left">The first keyed subtag to compare.</param>
+        /// <param name="right">The second keyed subtag to compare.</param>
+        /// <returns><c>true</c> if the subtags differ other than in the case of their letters, or only one is a default instance; otherwise <c>false</c>.</returns>
         public static bool operator !=(Bcp47KeyedSubtag left, Bcp47KeyedSubtag right)
         {
             return !left.Equals(right);
@@ -99,28 +121,45 @@ namespace DataStandardizer.LanguageTag
 
         #region Public Methods
 
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Subtags are compared ordinally, ignoring case (RFC 5646 §2.1.1), so <c>u-ca-buddhist</c> equals <c>U-CA-Buddhist</c>.
+        /// </remarks>
         public bool Equals(Bcp47KeyedSubtag other)
         {
             return string.Equals(_subtag, other._subtag, StringComparison.OrdinalIgnoreCase);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Subtags are compared ordinally, ignoring case (RFC 5646 §2.1.1).
+        /// </remarks>
         public override bool Equals(object? obj)
         {
             return obj is Bcp47KeyedSubtag other && Equals(other);
         }
 #else
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Subtags are compared ordinally, ignoring case (RFC 5646 §2.1.1).
+        /// </remarks>
         public override bool Equals(object obj)
         {
             return obj is Bcp47KeyedSubtag other && Equals(other);
         }
 #endif
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return (_subtag != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(_subtag) : 0);
         }
 
+        /// <summary>
+        /// Returns the subtag.
+        /// </summary>
+        /// <returns>The subtag, in the case it was written in; the name of the type if this is a default instance.</returns>
         public override string ToString()
         {
             return _subtag ?? base.ToString() ?? this.GetType().FullName ?? this.GetType().Name;

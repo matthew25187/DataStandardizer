@@ -4,7 +4,7 @@ using System.Globalization;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// A conformance problem found by <see cref="VcardCard.Validate"/>, or by a reader or writer.
+    /// A conformance problem found by <see cref="VcardCard.Validate()"/>, or by a reader or writer.
     /// </summary>
     public sealed class VcardDiagnostic
     {

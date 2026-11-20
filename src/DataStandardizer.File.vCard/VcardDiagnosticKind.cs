@@ -1,7 +1,7 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The kinds of conformance problem that <see cref="VcardCard.Validate"/>, <see cref="VcardReader"/> and <see cref="VcardWriter"/> report.
+    /// The kinds of conformance problem that <see cref="VcardCard.Validate()"/>, <see cref="VcardReader"/> and <see cref="VcardWriter"/> report.
     /// </summary>
     /// <remarks>
     /// <see cref="UnsupportedVersion"/> and <see cref="InvalidStructure"/> are never accepted.  They break a requirement that says how the data is read, or that keeps its structure,

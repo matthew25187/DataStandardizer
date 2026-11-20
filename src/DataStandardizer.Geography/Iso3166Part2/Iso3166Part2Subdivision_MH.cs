@@ -14,6 +14,9 @@ namespace DataStandardizer.Geography
     public readonly partial struct Iso3166Part2Subdivision
     {
         
+        /// <summary>
+        /// The ISO 3166-2 subdivisions of <see cref="Iso3166Part1Alpha2Country.MH"/>.
+        /// </summary>
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 162, "chain (of islands)", "chains (of islands)")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("fr", "fra", 162, "chaîne d’îles")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 378, "municipality", "municipalities")]
@@ -141,7 +144,7 @@ namespace DataStandardizer.Geography
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _UJA = new DataStandardizer.Geography.Iso3166Part2Subdivision("MH-UJA");
             
             /// <summary>
-            /// Enewetak & Ujelang
+            /// Enewetak &amp; Ujelang
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(378, "MH-ENI", "MH-L")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("en", "eng", 378, "Enewetak & Ujelang")]
@@ -197,7 +200,7 @@ namespace DataStandardizer.Geography
             public static readonly DataStandardizer.Geography.Iso3166Part2Subdivision _NMK = new DataStandardizer.Geography.Iso3166Part2Subdivision("MH-NMK");
             
             /// <summary>
-            /// Bikini & Kili
+            /// Bikini &amp; Kili
             /// </summary>
             [DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute(378, "MH-KIL", "MH-L")]
             [DataStandardizer.Geography.Iso3166SubdivisionNameAttribute("en", "eng", 378, "Bikini & Kili")]

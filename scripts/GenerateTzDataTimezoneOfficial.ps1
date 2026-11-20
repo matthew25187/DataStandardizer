@@ -1006,6 +1006,7 @@ function Out-SourceCode {
             $memberHostType = [System.CodeDom.CodeTypeDeclaration]::new($hostTypeName)
             $memberHostType.IsClass = $true
             $memberHostType.TypeAttributes = [System.Reflection.TypeAttributes]::NestedPublic -bor [System.Reflection.TypeAttributes]::Sealed -bor [System.Reflection.TypeAttributes]::Abstract
+            @('<summary>', "The timezones directly under <c>$hostIdentifier/</c> in the TZ Database's naming hierarchy.", '</summary>') | ForEach-Object { [void]$memberHostType.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
             $memberHostTypes[$hostIdentifier] = $memberHostType
         }
 
@@ -1133,7 +1134,7 @@ function Out-SourceCode {
 
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<item>", $true)
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>$_</term>", $true)
-                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$countryName</description>", $true)
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$($countryName -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')</description>", $true)
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</item>", $true)
             }
             $remarksComments += [System.CodeDom.CodeComment]::new("`t</list>", $true)

@@ -2,6 +2,9 @@
 
 namespace DataStandardizer.Chronology
 {
+    /// <summary>
+    /// Provides extension methods that convert system times, such as <see cref="DosDateTime"/> and <see cref="UnixTime"/>, to .NET date and time types.
+    /// </summary>
     public static class SystemTimeExtensions
     {
         /// <summary>

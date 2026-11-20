@@ -8,6 +8,10 @@ namespace DataStandardizer.File.CSV
     [AttributeUsage(AttributeTargets.Property)]
     public sealed class CsvFieldAttribute : Attribute
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFieldAttribute"/> class.
+        /// </summary>
+        /// <param name="fieldName">The name of the field accessed by the property.</param>
         public CsvFieldAttribute(string fieldName)
         {
             FieldName = fieldName;

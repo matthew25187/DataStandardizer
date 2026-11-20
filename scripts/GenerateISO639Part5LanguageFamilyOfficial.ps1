@@ -141,7 +141,12 @@ function Out-SourceCode {
         [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
         [void]$structType.Members.Add($stringToStructConversionOperatorSnippetMember)
 
-        $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+        $structToStringConversionOperatorSnippet = "        /// <summary>
+        /// Converts a <see cref=`"$TypeName`"/> to its code.
+        /// </summary>
+        /// <param name=`"value`">The value to convert.</param>
+        /// <returns>The code, or <see langword=`"null`"/> for the default value.</returns>
+#if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName value)
 #else
         [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
@@ -152,13 +157,25 @@ function Out-SourceCode {
         }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
 
-        $equalityOperatorSnippet = "        public static bool operator ==($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
+        $equalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$TypeName`"/> values have the same code.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator ==($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
         {
             return left.Equals(right);
         }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
 
-        $inequalityOperatorSnippet = "        public static bool operator !=($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
+        $inequalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$TypeName`"/> values have different codes.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes differ; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator !=($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
         {
             return !left.Equals(right);
         }"

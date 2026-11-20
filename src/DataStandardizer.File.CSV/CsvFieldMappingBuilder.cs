@@ -4,12 +4,22 @@ using System.Reflection;
 
 namespace DataStandardizer.File.CSV
 {
+    /// <summary>
+    /// The first step of a field mapping, which can identify the CSV field, give the mapping a constant or generated value, a converter, or
+    /// make the field optional.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingInitialBuilder<TModel, in T>
         : ICsvFieldMappingIdentityBuilder<TModel, T>, ICsvFieldMappingConstantBuilder<T>, ICsvFieldMappingVariableBuilder<T>, ICsvFieldMappingTransformationBuilder<TModel, T>, ICsvFieldMappingOptionalBuilder
         where TModel : class
     {
     }
 
+    /// <summary>
+    /// A step of a field mapping that gives the field a constant value.
+    /// </summary>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingConstantBuilder<in T>
     {
         /// <summary>
@@ -19,6 +29,11 @@ namespace DataStandardizer.File.CSV
         void HasConstantValue(T value);
     }
 
+    /// <summary>
+    /// A step of a field mapping that identifies the CSV field by its index or name.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingIdentityBuilder<TModel, in T> where TModel : class
     {
         /// <summary>
@@ -36,12 +51,23 @@ namespace DataStandardizer.File.CSV
         ICsvFieldMappingIdentityNextBuilder<TModel, T> HasFieldName(string fieldName);
     }
 
+    /// <summary>
+    /// The step of a field mapping after the CSV field is identified, which can rename the field, give the mapping a constant or generated
+    /// value or a converter, or make the field optional.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingIdentityNextBuilder<TModel, in T>
         : ICsvFieldMappingLogicalNameBuilder<TModel, T>, ICsvFieldMappingConstantBuilder<T>, ICsvFieldMappingTransformationBuilder<TModel, T>,
             ICsvFieldMappingVariableBuilder<T>, ICsvFieldMappingOptionalBuilder where TModel : class
     {
     }
 
+    /// <summary>
+    /// A step of a field mapping that gives the field the name it is known by once read.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingLogicalNameBuilder<TModel, in T> where TModel : class
     {
         /// <summary>
@@ -68,12 +94,21 @@ namespace DataStandardizer.File.CSV
         ICsvFieldMappingLogicalNameNextBuilder<TModel, T> UseFieldName(string fieldName);
     }
 
+    /// <summary>
+    /// The step of a field mapping after the field is renamed, which can give the mapping a constant or generated value or a converter, or
+    /// make the field optional.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingLogicalNameNextBuilder<TModel, in T>
         : ICsvFieldMappingConstantBuilder<T>, ICsvFieldMappingTransformationBuilder<TModel, T>, ICsvFieldMappingVariableBuilder<T>, ICsvFieldMappingOptionalBuilder
         where TModel : class
     {
     }
 
+    /// <summary>
+    /// A step of a field mapping that makes the CSV field optional.
+    /// </summary>
     public interface ICsvFieldMappingOptionalBuilder
     {
         /// <summary>
@@ -82,6 +117,11 @@ namespace DataStandardizer.File.CSV
         void IsOptional();
     }
 
+    /// <summary>
+    /// A step of a field mapping that gives the mapping a converter between the field's text and the property's value.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingTransformationBuilder<TModel, in T> where TModel : class
     {
         /// <summary>
@@ -113,11 +153,19 @@ namespace DataStandardizer.File.CSV
         ICsvFieldMappingTransformationNextBuilder<TModel> ConvertUsing<TConverter>() where TConverter : TypeConverter;
     }
 
+    /// <summary>
+    /// The step of a field mapping after a converter is given, which can give the mapping a validator, or make the field optional.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
     public interface ICsvFieldMappingTransformationNextBuilder<TModel>
         : ICsvFieldMappingValidationBuilder<TModel>, ICsvFieldMappingOptionalBuilder where TModel : class
     {
     }
 
+    /// <summary>
+    /// A step of a field mapping that gives the mapping a validator for the field values it reads.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
     public interface ICsvFieldMappingValidationBuilder<TModel> where TModel : class
     {
         /// <summary>
@@ -128,10 +176,17 @@ namespace DataStandardizer.File.CSV
         ICsvFieldMappingValidationNextBuilder ValidateUsing(CsvFieldValidate<TModel> validator);
     }
 
+    /// <summary>
+    /// The step of a field mapping after a validator is given, which can make the field optional.
+    /// </summary>
     public interface ICsvFieldMappingValidationNextBuilder : ICsvFieldMappingOptionalBuilder
     {
     }
 
+    /// <summary>
+    /// A step of a field mapping that gives the field a value generated for each line.
+    /// </summary>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public interface ICsvFieldMappingVariableBuilder<in T>
     {
         /// <summary>
@@ -141,12 +196,21 @@ namespace DataStandardizer.File.CSV
         void HasVariableValue(CsvFieldGenerate<T> valueGenerator);
     }
 
+    /// <summary>
+    /// Builds a field mapping, one step at a time, through the field mapping builder interfaces it implements.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
+    /// <typeparam name="T">The type of the mapped property.</typeparam>
     public sealed class CsvFieldMappingBuilder<TModel, T> : ICsvFieldMappingInitialBuilder<TModel,T>, ICsvFieldMappingIdentityNextBuilder<TModel, T>,
         ICsvFieldMappingLogicalNameNextBuilder<TModel, T>, ICsvFieldMappingTransformationNextBuilder<TModel>, ICsvFieldMappingValidationNextBuilder
         where TModel : class
     {
         private readonly CsvFieldMapping _fieldMapping;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFieldMappingBuilder{TModel, T}"/> class that builds a field mapping.
+        /// </summary>
+        /// <param name="fieldMapping">The field mapping that each step sets details of.</param>
         public CsvFieldMappingBuilder(CsvFieldMapping fieldMapping)
         {
             _fieldMapping = fieldMapping;

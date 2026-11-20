@@ -7,6 +7,13 @@ using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.Money
 {
+    /// <summary>
+    /// Provides culture-specific information for formatting and parsing <see cref="Money"/> values.
+    /// </summary>
+    /// <remarks>
+    /// It holds the currency formatting information of a culture, <see cref="CurrencyFormat"/>, and the number formatting the host
+    /// gives the culture. Use <see cref="InvariantMoney"/> for culture-independent information.
+    /// </remarks>
     public class MoneyInfo : IFormatProvider
     {
 #if NETCOREAPP3_0_OR_GREATER
@@ -308,7 +315,7 @@ namespace DataStandardizer.Money
         /// Gets the read-only monetary formatting information for the culture of the current thread.
         /// </summary>
         /// <remarks>
-        /// This is <see cref="CurrentMoney"/> on every target, including .NET Standard 1.1, where that property
+        /// This is <see cref="P:DataStandardizer.Money.MoneyInfo.CurrentMoney"/> on every target, including .NET Standard 1.1, where that property
         /// is not part of the public API, so that the default formatting is the same on every target.
         /// </remarks>
         internal static MoneyInfo GetCurrentMoney()

@@ -23,7 +23,7 @@ namespace DataStandardizer.LanguageTag
         private const int StreamReaderBufferSize = 16384;
 
         /// <summary>
-        /// The <see cref="FileStream"/> default, given explicitly by the constructor that takes <see cref="FileOptions"/>.
+        /// The <see cref="T:System.IO.FileStream"/> default, given explicitly by the constructor that takes <see cref="T:System.IO.FileOptions"/>.
         /// </summary>
         private const int FileStreamBufferSize = 4096;
 
@@ -623,6 +623,7 @@ namespace DataStandardizer.LanguageTag
 
         #region Implementation of IReadOnlyCollection<out ISubtagRegistryRecord>
 
+        /// <inheritdoc/>
         public int Count => _records.Length;
 
         #endregion

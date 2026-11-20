@@ -240,7 +240,12 @@ function Out-SourceCode {
             [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
             [void]$structType.Members.Add($stringToStructConversionOperatorSnippetMember)
     
-            $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+            $structToStringConversionOperatorSnippet = "            /// <summary>
+            /// Converts a <see cref=`"$TypeName`"/> to its code.
+            /// </summary>
+            /// <param name=`"value`">The value to convert.</param>
+            /// <returns>The code, or <see langword=`"null`"/> for the default value.</returns>
+#if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Geography.$TypeName value)
     #else
             [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
@@ -251,13 +256,25 @@ function Out-SourceCode {
             }"
             [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
     
-            $equalityOperatorSnippet = "        public static bool operator ==(DataStandardizer.Geography.$TypeName left, DataStandardizer.Geography.$TypeName right)
+            $equalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$TypeName`"/> values have the same code.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator ==(DataStandardizer.Geography.$TypeName left, DataStandardizer.Geography.$TypeName right)
             {
                 return left.Equals(right);
             }"
             [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
     
-            $inequalityOperatorSnippet = "        public static bool operator !=(DataStandardizer.Geography.$TypeName left, DataStandardizer.Geography.$TypeName right)
+            $inequalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$TypeName`"/> values have different codes.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes differ; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator !=(DataStandardizer.Geography.$TypeName left, DataStandardizer.Geography.$TypeName right)
             {
                 return !left.Equals(right);
             }"
@@ -273,6 +290,7 @@ function Out-SourceCode {
             $subdivisionCodesNestedClassType = [System.CodeDom.CodeTypeDeclaration]::new($IncludeFieldsForCountryCode)
             $subdivisionCodesNestedClassType.Attributes = ($subdivisionCodesNestedClassType.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
             $subdivisionCodesNestedClassType.Attributes = ($subdivisionCodesNestedClassType.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Static
+            @('<summary>', "The ISO 3166-2 subdivisions of <see cref=""Iso3166Part1Alpha2Country.$IncludeFieldsForCountryCode""/>.", '</summary>') | ForEach-Object { [void]$subdivisionCodesNestedClassType.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
 
             # Add subdivision category attributes.
             $subdivisionCategoriesCurrentSet = $SubdivisionCategoriesSet | Where-Object -Property alpha_2_code -EQ $IncludeFieldsForCountryCode
@@ -377,7 +395,7 @@ function Out-SourceCode {
         $preferredName = $subdivisionNamesCurrentSet | Where-Object -Property language_alpha_3_code -EQ $preferredLanguage | Select-Object -ExpandProperty subdivision_name | ForEach-Object { (-not [string]::IsNullOrWhiteSpace($_))?($_):$null }
         $fallbackName = $subdivisionNamesCurrentSet | Select-Object -First 1 -ExpandProperty subdivision_name | ForEach-Object { (-not [string]::IsNullOrWhiteSpace($_))?($_):$null }
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($englishName ?? $preferredName ?? $fallbackName, $true)
+        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($englishName ?? $preferredName ?? $fallbackName) -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;', $true)
         $enumFieldCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
         $enumField.Comments.AddRange(@($enumFieldOpenSummaryComment, $enumFieldSummaryContentComment, $enumFieldCloseSummaryComment))
 

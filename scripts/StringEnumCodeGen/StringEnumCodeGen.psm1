@@ -34,6 +34,8 @@ function Get-EqualsMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([bool])
@@ -62,6 +64,8 @@ function Get-GetHashCodeMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([int])
@@ -182,6 +186,8 @@ function Get-InheritedToStringMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([string])
@@ -248,6 +254,8 @@ function Get-CompareToMethodDefinition {
     $typeReference = Get-TypeFullName $TypeNamespace $TypeName
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     [void]$method.ImplementationTypes.Add([System.CodeDom.CodeTypeReference]::new([System.IComparable]))
@@ -318,6 +326,8 @@ function Get-InheritedEqualsMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([bool])
@@ -344,6 +354,8 @@ function Get-GetTypeCodeMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([System.TypeCode])
@@ -736,6 +748,8 @@ function Get-ToStringMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([string])

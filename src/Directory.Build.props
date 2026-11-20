@@ -24,6 +24,8 @@
     <DebugType>embedded</DebugType>
     <!-- Generated files, such as AssemblyInfo.cs, aren't in git, so Source Link can't fetch them.  Their source goes in the PDB instead. -->
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- The XML file goes in the package beside each assembly, so consumers see the docs in IntelliSense.  It also turns on CS1591 for any public member without docs. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <!--

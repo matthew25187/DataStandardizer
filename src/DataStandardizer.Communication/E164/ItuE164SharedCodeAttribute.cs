@@ -12,6 +12,10 @@ namespace DataStandardizer.Communication.E164
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class ItuE164SharedCodeAttribute : Attribute
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ItuE164SharedCodeAttribute"/> class with the shared ITU E.164 country code.
+        /// </summary>
+        /// <param name="countryCode">The ITU E.164 country code that the annotated field shares.</param>
         public ItuE164SharedCodeAttribute(ushort countryCode)
         {
             CountryCode = countryCode;

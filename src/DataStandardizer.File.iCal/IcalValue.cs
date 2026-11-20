@@ -639,7 +639,7 @@ namespace DataStandardizer.File.iCal
         /// The value is written as <see cref="Uri.OriginalString"/>, which must be a URI that <see cref="TryParseUri"/> accepts.  It
         /// starts with the URI's scheme, and every character is one that RFC 3986 §2 allows: printable US-ASCII other than space and
         /// <c>" &lt; &gt; \ ^ ` { | }</c>.  Percent-encode any other character before creating the <see cref="Uri"/>, for example
-        /// with <see cref="Uri.EscapeDataString"/>, and give an internationalized host name in its ASCII form.  A <see cref="Uri"/>
+        /// with <see cref="Uri.EscapeDataString(string)"/>, and give an internationalized host name in its ASCII form.  A <see cref="Uri"/>
         /// made from a file path, such as <c>C:/temp/file.txt</c>, is not written; create it from a <c>file</c> URI instead.
         /// </remarks>
         /// <param name="value">The URI, which must be absolute.</param>

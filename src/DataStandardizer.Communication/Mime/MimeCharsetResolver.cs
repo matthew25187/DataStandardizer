@@ -18,7 +18,7 @@ namespace DataStandardizer.Communication.Mime
     /// <c>UTF-8</c>, <c>UTF-16</c>, <c>UTF-16BE</c>, <c>UTF-16LE</c>, <c>UTF-32</c>, <c>UTF-32BE</c> and <c>UTF-32LE</c>, and their
     /// aliases in the IANA registry, such as <c>latin1</c> and <c>csUTF8</c>.</item>
     /// <item><see cref="Encoding.GetEncoding(string)"/>, which knows the encodings of the runtime, and those of any
-    /// <see cref="EncodingProvider"/> registered with <see cref="Encoding.RegisterProvider(EncodingProvider)"/>.</item>
+    /// <see cref="T:System.Text.EncodingProvider"/> registered with <see cref="M:System.Text.Encoding.RegisterProvider(System.Text.EncodingProvider)"/>.</item>
     /// <item>The resolver passed to <see cref="MimeCharsetResolver(IMimeCharsetResolver)"/>, if any.</item>
     /// </list>
     /// <para>

@@ -6,6 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Chronology
 {
+    /// <summary>
+    /// Provides extension methods that look up the zone line, offsets, abbreviations and transitions of a TZ Database timezone at an instant or local time.
+    /// </summary>
     public static class TzDataExtensions
     {
         private static readonly TimeSpan MaximumDateTimeOffsetOffset = TimeSpan.FromHours(14);

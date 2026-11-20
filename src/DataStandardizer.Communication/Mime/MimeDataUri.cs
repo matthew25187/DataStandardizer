@@ -196,7 +196,7 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <returns>The URI.</returns>
         /// <exception cref="InvalidOperationException">The <see cref="MimeDataUri"/> is not initialised.</exception>
-        /// <exception cref="UriFormatException">The URI is longer than <see cref="Uri"/> allows on this platform.</exception>
+        /// <exception cref="T:System.UriFormatException">The URI is longer than <see cref="Uri"/> allows on this platform.</exception>
         public Uri ToUri()
         {
             if (_value is null) throw new InvalidOperationException(UninitializedMessage);

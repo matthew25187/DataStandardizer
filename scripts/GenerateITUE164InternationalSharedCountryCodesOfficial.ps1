@@ -1,6 +1,6 @@
 #############################################################################
 # Title: ITU-T E.164 International Shared Country Codes Generator           #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.           #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.      #
 #                                                                           #
 # Purpose: Generate shared codes for ITU-T E.164.                           #
 # Source: ITU-T E.164 International Shared Country Codes Database.          #
@@ -115,7 +115,7 @@ function Out-SourceCode {
         [void]$enumField.CustomAttributes.Add($codeAttribute)
         
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($_.Network, $true)
+        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($_.Network -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;', $true)
         $enumFieldCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
         $enumField.Comments.AddRange(@($enumFieldOpenSummaryComment, $enumFieldSummaryContentComment, $enumFieldCloseSummaryComment))
 

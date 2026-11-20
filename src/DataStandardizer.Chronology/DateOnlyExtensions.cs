@@ -3,6 +3,9 @@
 namespace DataStandardizer.Chronology
 {
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Provides extension methods that convert a <see cref="DateOnly"/> to a DOS or Unix system time.
+    /// </summary>
     public static class DateOnlyExtensions
     {
         /// <summary>

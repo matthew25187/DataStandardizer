@@ -64,21 +64,43 @@ namespace DataStandardizer.Geography
             _arabicNames = Enumerable.Repeat(string.Empty, nameCount).ToArray();
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="UnM49AreaCodeAttribute"/> class for an area at the global level.
+        /// </summary>
+        /// <param name="globalCode">The M49 global code, 001 for the World.</param>
         public UnM49AreaCodeAttribute(ushort globalCode) : this()
         {
             GlobalCode = globalCode;
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="UnM49AreaCodeAttribute"/> class for an area in a region.
+        /// </summary>
+        /// <param name="globalCode">The M49 global code, 001 for the World.</param>
+        /// <param name="regionCode">The M49 code of the region.</param>
         public UnM49AreaCodeAttribute(ushort globalCode, ushort regionCode) : this(globalCode)
         {
             RegionCode = regionCode;
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="UnM49AreaCodeAttribute"/> class for an area in a sub-region.
+        /// </summary>
+        /// <param name="globalCode">The M49 global code, 001 for the World.</param>
+        /// <param name="regionCode">The M49 code of the region.</param>
+        /// <param name="subRegionCode">The M49 code of the sub-region.</param>
         public UnM49AreaCodeAttribute(ushort globalCode, ushort regionCode, ushort subRegionCode) : this(globalCode, regionCode)
         {
             SubRegionCode = subRegionCode;
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="UnM49AreaCodeAttribute"/> class for an area in an intermediate region.
+        /// </summary>
+        /// <param name="globalCode">The M49 global code, 001 for the World.</param>
+        /// <param name="regionCode">The M49 code of the region.</param>
+        /// <param name="subRegionCode">The M49 code of the sub-region.</param>
+        /// <param name="intermediateRegionCode">The M49 code of the intermediate region.</param>
         public UnM49AreaCodeAttribute(ushort globalCode, ushort regionCode, ushort subRegionCode, ushort intermediateRegionCode) : this(globalCode, regionCode, subRegionCode)
         {
             IntermediateRegionCode = intermediateRegionCode;

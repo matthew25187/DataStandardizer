@@ -126,7 +126,7 @@ function Out-SourceCode {
 
     if (-not [string]::IsNullOrEmpty($TypeComment)) {
         $enumTypeOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-        $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($TypeComment, $true)
+        $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($TypeComment -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $enumTypeCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
         $enumType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
     }

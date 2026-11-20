@@ -10,6 +10,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.File.CSV
 {
+    /// <summary>
+    /// Options to configure the behaviour of a CSV reader or writer.
+    /// </summary>
     public interface ICsvFileOptions
     {
         /// <summary>
@@ -149,6 +152,7 @@ namespace DataStandardizer.File.CSV
     {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 
+        /// <inheritdoc/>
         public Delegate? BadValueHandler
         {
             get;
@@ -159,9 +163,11 @@ namespace DataStandardizer.File.CSV
 #endif
         }
 #else
+        /// <inheritdoc/>
         public Delegate BadValueHandler { get; set; }
 #endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
         public CultureInfo? Culture
         {
             get;
@@ -172,9 +178,11 @@ set;
 #endif
         }
 #else
+        /// <inheritdoc/>
         public CultureInfo Culture { get; set; }
 #endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
         public string? EmbeddedLineBreak
         {
             get;
@@ -185,9 +193,11 @@ set;
 #endif
         }
 #else
+        /// <inheritdoc/>
         public string EmbeddedLineBreak { get; set; }
 #endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
         public Encoding? Encoding
         {
             get;
@@ -198,8 +208,10 @@ set;
 #endif
         }
 #else
+        /// <inheritdoc/>
         public Encoding Encoding { get; set; }
 #endif
+        /// <inheritdoc/>
         public char FieldDelimiterCharacter
         {
             get;
@@ -212,6 +224,7 @@ set;
 
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
         public Delegate? HeaderHandler
         {
             get;
@@ -222,8 +235,10 @@ set;
 #endif
         }
 #else
+        /// <inheritdoc/>
         public Delegate HeaderHandler { get; set; }
 #endif
+        /// <inheritdoc/>
         public CsvFileHeaderHandling HeaderHandling
         {
             get;
@@ -235,6 +250,7 @@ set;
         } = CsvFileHeaderHandling.None;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
         public Delegate? InconsistentFieldCountHandler
         {
             get;
@@ -245,9 +261,11 @@ set;
 #endif
         }
 #else
+        /// <inheritdoc/>
         public Delegate InconsistentFieldCountHandler { get; set; }
 #endif
 
+        /// <inheritdoc/>
         public CsvFieldQuoteHandling QuoteHandling
         {
             get;
@@ -258,6 +276,7 @@ set;
 #endif
         } = CsvFieldQuoteHandling.Required;
 
+        /// <inheritdoc/>
         public bool SuppressTrailingBlankFields
         {
             get;
@@ -268,6 +287,7 @@ set;
 #endif
         } = false;
 
+        /// <inheritdoc/>
         public string TerminatorLineBreak
         {
             get;

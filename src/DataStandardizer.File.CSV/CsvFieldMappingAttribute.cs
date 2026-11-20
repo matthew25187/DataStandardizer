@@ -17,10 +17,18 @@ namespace DataStandardizer.File.CSV
         [MaybeNull] private string _useFieldName;
 #endif
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFieldMappingAttribute"/> class that maps the property to the field named after it.
+        /// </summary>
         public CsvFieldMappingAttribute()
         {
             
         }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFieldMappingAttribute"/> class that maps the property to the field at a position.
+        /// </summary>
+        /// <param name="fieldIndex">The zero-based index of the CSV field.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="fieldIndex"/> is less than zero.</exception>
         public CsvFieldMappingAttribute(int fieldIndex)
         {
             if (fieldIndex < 0)
@@ -31,6 +39,10 @@ namespace DataStandardizer.File.CSV
             FieldIndex = fieldIndex;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFieldMappingAttribute"/> class that maps the property to the field with a name.
+        /// </summary>
+        /// <param name="fieldName">The name of the CSV field.</param>
         public CsvFieldMappingAttribute(string fieldName)
         {
             FieldName = fieldName;

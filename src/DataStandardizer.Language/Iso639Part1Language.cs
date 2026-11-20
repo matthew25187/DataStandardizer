@@ -77,6 +77,11 @@ namespace DataStandardizer.Language
             return member;
         }
         
+        /// <summary>
+        /// Converts a <see cref="Iso639Part1Language"/> to its code.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The code, or <see langword="null"/> for the default value.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(DataStandardizer.Language.Iso639Part1Language value)
 #else
@@ -87,11 +92,23 @@ namespace DataStandardizer.Language
             return value._value;
         }
         
+        /// <summary>
+        /// Determines whether two <see cref="Iso639Part1Language"/> values have the same code.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the codes are equal; otherwise, <see langword="false"/>.</returns>
         public static bool operator ==(DataStandardizer.Language.Iso639Part1Language left, DataStandardizer.Language.Iso639Part1Language right)
         {
             return left.Equals(right);
         }
         
+        /// <summary>
+        /// Determines whether two <see cref="Iso639Part1Language"/> values have different codes.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the codes differ; otherwise, <see langword="false"/>.</returns>
         public static bool operator !=(DataStandardizer.Language.Iso639Part1Language left, DataStandardizer.Language.Iso639Part1Language right)
         {
             return !left.Equals(right);
@@ -1307,11 +1324,13 @@ namespace DataStandardizer.Language
         #endregion
         
         #region Public Methods
+        /// <inheritdoc/>
         public bool Equals(DataStandardizer.Language.Iso639Part1Language other)
         {
             return (this._value == other._value);
         }
         
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             if ((this._value == null))
@@ -1323,6 +1342,7 @@ namespace DataStandardizer.Language
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <inheritdoc/>
         public int CompareTo(object? obj)
         {
             if ((this._value == null))
@@ -1344,11 +1364,13 @@ namespace DataStandardizer.Language
             return string.CompareOrdinal(this._value, other._value);
         }
         
+        /// <inheritdoc/>
         public override bool Equals(object? obj)
         {
             return (obj is DataStandardizer.Language.Iso639Part1Language other && this.Equals(other));
         }
         
+        /// <inheritdoc/>
         public override string ToString()
         {
             var memberField = System.Linq.Enumerable.FirstOrDefault(this.GetType().GetTypeInfo().DeclaredFields, this.MemberFieldPredicate);
@@ -1378,6 +1400,7 @@ namespace DataStandardizer.Language
         
 #else
         
+        /// <inheritdoc/>
         public int CompareTo(object obj)
         {
             if ((this._value == null))
@@ -1399,11 +1422,13 @@ namespace DataStandardizer.Language
             return string.CompareOrdinal(this._value, other._value);
         }
         
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return (obj is DataStandardizer.Language.Iso639Part1Language other && this.Equals(other));
         }
         
+        /// <inheritdoc/>
         public override string ToString()
         {
             var memberField = System.Linq.Enumerable.FirstOrDefault(this.GetType().GetTypeInfo().DeclaredFields, this.MemberFieldPredicate);
@@ -1435,6 +1460,7 @@ namespace DataStandardizer.Language
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <inheritdoc/>
         public System.TypeCode GetTypeCode()
         {
             if ((this._value == null))
@@ -1543,6 +1569,7 @@ namespace DataStandardizer.Language
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
+        /// <inheritdoc/>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider? provider)
@@ -1592,6 +1619,7 @@ namespace DataStandardizer.Language
         
 #elif NETSTANDARD1_3_OR_GREATER||NET
         
+        /// <inheritdoc/>
         public System.TypeCode GetTypeCode()
         {
             if ((this._value == null))
@@ -1700,6 +1728,7 @@ namespace DataStandardizer.Language
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
+        /// <inheritdoc/>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider provider)

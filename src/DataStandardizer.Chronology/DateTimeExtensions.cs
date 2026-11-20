@@ -2,6 +2,9 @@
 
 namespace DataStandardizer.Chronology
 {
+    /// <summary>
+    /// Provides extension methods that convert a <see cref="DateTime"/> to a DOS or Unix system time, or to a <see cref="DateTimeOffset"/> in a TZ Database timezone.
+    /// </summary>
     public static class DateTimeExtensions
     {
         /// <summary>

@@ -5,27 +5,13 @@ namespace DataStandardizer.Communication.E164
     /// <summary>
     /// Specifies the styles that can be used when parsing ITU E.164 international numbers.
     /// </summary>
-    /// <summary>
-    /// No styles are allowed. Parsing will be strict.
-    /// </summary>
-    /// <summary>
-    /// Allows the presence of an international prefix symbol in the number.
-    /// </summary>
-    /// <summary>
-    /// Allows leading whitespace characters in the number.
-    /// </summary>
-    /// <summary>
-    /// Allows trailing whitespace characters in the number.
-    /// </summary>
-    /// <summary>
-    /// Specifies that the number is in an international format, allowing an international prefix symbol.
-    /// </summary>
-    /// <summary>
-    /// Allows any combination of international prefix symbols, leading whitespace, and trailing whitespace.
-    /// </summary>
     [Flags]
     public enum ItuE164InternationalNumberStyles : uint
     {
+        /// <summary>
+        /// No styles are allowed: the number is parsed strictly, with no international prefix symbol and no leading or
+        /// trailing white space.
+        /// </summary>
         None,
 
         /// <summary>

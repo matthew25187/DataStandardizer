@@ -6,6 +6,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Core
 {
+    /// <summary>
+    /// Base class of the attributes that describe a member of a standards code enumeration, giving the code's English and French names.
+    /// </summary>
+    /// <remarks>
+    /// A code may have more than one name in a language. <see cref="EnglishName"/> and <see cref="FrenchName"/> give the first of each.
+    /// </remarks>
     public abstract class CodeAttributeBase : Attribute
     {
         #region Declarations
@@ -17,6 +23,9 @@ namespace DataStandardizer.Core
 
         #region Constructors
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="CodeAttributeBase"/> class with no English or French names.
+        /// </summary>
         protected CodeAttributeBase()
         {
 #if NETSTANDARD1_3_OR_GREATER||NET
@@ -28,11 +37,20 @@ namespace DataStandardizer.Core
 #endif
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="CodeAttributeBase"/> class with English names and no French names.
+        /// </summary>
+        /// <param name="englishNames">The English names of the code, the first of which is <see cref="EnglishName"/>.</param>
         protected CodeAttributeBase(string[] englishNames) : this()
         {
             _englishNames = englishNames;
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="CodeAttributeBase"/> class with English and French names.
+        /// </summary>
+        /// <param name="englishNames">The English names of the code, the first of which is <see cref="EnglishName"/>.</param>
+        /// <param name="frenchNames">The French names of the code, the first of which is <see cref="FrenchName"/>.</param>
         protected CodeAttributeBase(string[] englishNames, string[] frenchNames) : this(englishNames)
         {
             _frenchNames = frenchNames;

@@ -5,16 +5,29 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.File.CSV
 {
+    /// <summary>
+    /// The base of a mapper that maps the properties of a record line to CSV fields.  A derived class declares its mappings in its constructor
+    /// with <see cref="Map"/>.
+    /// </summary>
+    /// <typeparam name="TRecordLine">The type of the record line.</typeparam>
     public abstract class CsvFileMapperBase<TRecordLine> : ICsvFileMapper where TRecordLine : CsvFileRecordLine
     {
         private readonly IDictionary<string, CsvFieldMapping> _propertyFieldMappings = new Dictionary<string, CsvFieldMapping>();
         private readonly IReadOnlyDictionary<string, CsvFieldMapping> _propertyFieldMappingsWrapper;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileMapperBase{TRecordLine}"/> class with no mappings.
+        /// </summary>
         protected CsvFileMapperBase()
         {
             _propertyFieldMappingsWrapper = new ReadOnlyDictionary<string, CsvFieldMapping>(_propertyFieldMappings);
         }
 
+        /// <summary>
+        /// Starts a mapping of a property of the record line to a CSV field.  The mapping is added to the mapper when its property is chosen with
+        /// <see cref="CsvFileMappingBuilder{TModel}.Property{T}"/>.
+        /// </summary>
+        /// <returns>A builder that chooses the property to map.</returns>
         protected CsvFileMappingBuilder<TRecordLine> Map()
         {
             var fieldMappingBuilder = new CsvFileMappingBuilder<TRecordLine>(AddFieldMapping);
