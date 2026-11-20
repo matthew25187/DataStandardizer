@@ -35,6 +35,16 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string ChannelIslandsRegion = "830";
 
         /// <summary>
+        /// A repeated variant subtag, which matches the ABNF (RFC 5646 §2.1) and is not valid (§2.2.9).
+        /// </summary>
+        private const string RepeatedVariant = "de-1901-1901";
+
+        /// <summary>
+        /// A repeated extension singleton, which matches the ABNF (RFC 5646 §2.1) and is not valid (§2.2.9).
+        /// </summary>
+        private const string RepeatedSingleton = "en-a-bb-a-cc";
+
+        /// <summary>
         /// English as used in the United States, an example from RFC 5646 Appendix A.
         /// </summary>
         private const string EnglishUnitedStates = "en-US";
@@ -59,7 +69,8 @@ namespace DataStandardizer.LanguageTag.Tests
         private const LanguageTagConformance UndefinedConformance = (LanguageTagConformance)99;
 
         private const string ConformanceParameterName = "conformance";
-        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, is not in the ISO code lists, or repeats a variant subtag or extension singleton.";
+        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
+        private const string RepeatedSubtagMessage = "The language tag repeats a variant subtag or extension singleton.";
         private const string NotValidMessage = "The language tag is not valid against the subtag registry.";
 
         #endregion
@@ -175,6 +186,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("the whole-tag step applies the chosen conformance too").WithMessage(NotInIsoCodeListsMessage);
+        }
+
+        [Theory]
+        [InlineData(RepeatedVariant)]
+        [InlineData(RepeatedSingleton)]
+        public void Build_WithIsoCodeListsAndLanguageTagThatRepeatsASubtag_ThrowsLanguageTagFormatExceptionNamingTheRepeat(string testLanguageTag)
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().WithConformance(LanguageTagConformance.IsoCodeLists).UsingLanguageTag(testLanguageTag);
+
+            // act
+            Action testAction = () => builder.Build();
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>().WithMessage(RepeatedSubtagMessage);
         }
 
         [Fact]

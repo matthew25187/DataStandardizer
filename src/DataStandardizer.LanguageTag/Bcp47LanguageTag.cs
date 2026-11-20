@@ -27,10 +27,11 @@ namespace DataStandardizer.LanguageTag
         internal static class ErrorMessage
         {
             internal const string ConformanceValidNeedsRegistry = "Validity needs a subtag registry. Use the overload that takes a SubtagRegistry.";
-            internal const string LanguageTagNotInIsoCodeLists = "The language tag is not well-formed, is not in the ISO code lists, or repeats a variant subtag or extension singleton.";
+            internal const string LanguageTagNotInIsoCodeLists = "The language tag is not well-formed, or is not in the ISO code lists.";
             internal const string LanguageTagNotValid = "The language tag is not valid against the subtag registry.";
             internal const string LanguageTagNotWellFormed = "The language tag is not well-formed.";
             internal const string LanguageTagNull = "The language tag must not be null.";
+            internal const string LanguageTagRepeatsSubtag = "The language tag repeats a variant subtag or extension singleton.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47LanguageTag) + " instance is not initialised.";
         }
 
@@ -204,13 +205,13 @@ namespace DataStandardizer.LanguageTag
             }
 
             var classifier = GetClassifier(conformance);
-            var parts = ParseToParts(languageTag, classifier, conformance);
-            if (parts is null)
+            var status = Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), classifier, out var ranges);
+            if (!Satisfies(status, conformance))
             {
-                throw new LanguageTagFormatException(conformance == LanguageTagConformance.WellFormed ? ErrorMessage.LanguageTagNotWellFormed : ErrorMessage.LanguageTagNotInIsoCodeLists, languageTag);
+                throw new LanguageTagFormatException(GetFailureMessage(status, conformance), languageTag);
             }
 
-            return new Bcp47LanguageTag(languageTag, parts);
+            return new Bcp47LanguageTag(languageTag, Bcp47LanguageTagParts.FromRanges(languageTag, ranges, conformance));
         }
 
         /// <summary>
@@ -1212,6 +1213,19 @@ namespace DataStandardizer.LanguageTag
         private static bool Satisfies(Bcp47ParseStatus status, LanguageTagConformance conformance)
         {
             return status == Bcp47ParseStatus.Accepted || (status == Bcp47ParseStatus.RepeatedSubtag && conformance == LanguageTagConformance.WellFormed);
+        }
+
+        /// <summary>
+        /// Gets the message for a parse outcome that does not satisfy a conformance that needs no Subtag Registry.
+        /// </summary>
+        /// <remarks>
+        /// The parser reports a repeat only when the classifier accepted every subtag, so a repeat is then the only fault (ref. RFC 5646 §2.2.9).
+        /// </remarks>
+        private static string GetFailureMessage(Bcp47ParseStatus status, LanguageTagConformance conformance)
+        {
+            if (status == Bcp47ParseStatus.RepeatedSubtag) return ErrorMessage.LanguageTagRepeatsSubtag;
+
+            return conformance == LanguageTagConformance.WellFormed ? ErrorMessage.LanguageTagNotWellFormed : ErrorMessage.LanguageTagNotInIsoCodeLists;
         }
 
         /// <summary>
