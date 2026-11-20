@@ -20,6 +20,9 @@ static members and compare them with `==` — but it wraps a `string`.
 
 ```csharp
 public readonly struct Iso639Part5LanguageFamily : DataStandardizer.Core.IStringEnum, IEquatable<Iso639Part5LanguageFamily>
+#if NETSTANDARD1_3_OR_GREATER || NET
+    , IConvertible
+#endif
 ```
 
 ## Remarks

@@ -2676,7 +2676,38 @@ namespace DataStandardizer.Core.Tests
 
         #endregion
 
+        #region Test: Parse of a string enumeration that isn't IConvertible
+
+        [Fact]
+        public void ParseGeneric_WithEnumThatIsNotIConvertible_ReturnsEnumMember()
+        {
+            // act
+            var testResult = StringEnum.Parse<ComparableOnlyEnum>(nameof(ComparableOnlyEnum.A));
+
+            // assert
+            testResult.Should().Be(ComparableOnlyEnum.A);
+        }
+
+        #endregion
+
         #region Test Types
+
+        // It implements IStringEnum and nothing else, as a struct built against any build of Core can.
+        public readonly struct ComparableOnlyEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private ComparableOnlyEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static implicit operator string(ComparableOnlyEnum value) => value._value;
+
+            public static readonly ComparableOnlyEnum A = new ComparableOnlyEnum(AValue);
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+        }
 
         public readonly struct SimpleEnum : IStringEnum, IConvertible, IEquatable<SimpleEnum>
         {

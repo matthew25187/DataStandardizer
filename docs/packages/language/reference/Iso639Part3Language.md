@@ -19,6 +19,9 @@ this type is not a C# enum: it is a `readonly struct` implementing
 
 ```csharp
 public readonly partial struct Iso639Part3Language : DataStandardizer.Core.IStringEnum, IEquatable<Iso639Part3Language>
+#if NETSTANDARD1_3_OR_GREATER || NET
+    , IConvertible
+#endif
 ```
 
 ## Remarks

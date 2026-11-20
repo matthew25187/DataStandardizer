@@ -49,7 +49,7 @@ The string-backed structs all implement `IStringEnum`, declared in
 its own beyond requiring `IComparable`, on every target, so an `IStringEnum`
 value can be compared like any ordinary value. The ISO 639 structs also
 implement `IConvertible` themselves on .NET Standard 1.3+ and modern .NET.
-Its real job is to *identify* a type as a string enumeration
+The real job of `IStringEnum` is to *identify* a type as a string enumeration
 — `Core`'s helper code recognises a string enum precisely by whether it is a
 value type implementing this interface.
 
