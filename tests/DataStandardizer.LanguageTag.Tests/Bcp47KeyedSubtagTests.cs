@@ -115,7 +115,8 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData(" u-ca"), InlineData("ab-cd"), InlineData("u"), InlineData("x"), InlineData("u-toolongsubtag"), InlineData(""), InlineData("x-abc "), InlineData("u-ca-")]
+        [InlineData(" u-ca"), InlineData("ab-cd"), InlineData("u"), InlineData("x"), InlineData("u-toolongsubtag"), InlineData(""), InlineData("x-abc "), InlineData("u-ca-"),
+         InlineData("x-abcdefghi"), InlineData("u-c"), InlineData("u-ca\x00E9"), InlineData("\x00E9-ca")]
         public void ExplicitOperator_WithStringThatIsNeitherExtensionNorPrivateUse_ThrowsInvalidCastException(string testSubtag)
         {
             // act
@@ -126,7 +127,7 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData(GregorianCalendarExtension), InlineData(PrivateUseSequence), InlineData(PhonebookCollationExtensionUpperCase)]
+        [InlineData(GregorianCalendarExtension), InlineData(PrivateUseSequence), InlineData(PhonebookCollationExtensionUpperCase), InlineData("1-abc")]
         public void ExplicitOperator_WithExtensionOrPrivateUseSequence_DoesNotThrow(string testSubtag)
         {
             // act
@@ -139,11 +140,8 @@ namespace DataStandardizer.LanguageTag.Tests
         [Fact]
         public void ExplicitOperator_WithValidSubtag_KeepsTheSubtagAsWritten()
         {
-            // arrange
-            var keyedSubtag = (Bcp47KeyedSubtag)PhonebookCollationExtensionUpperCase;
-
             // act
-            string testResult = keyedSubtag;
+            string testResult = (Bcp47KeyedSubtag)PhonebookCollationExtensionUpperCase;
 
             // assert
             testResult.Should().Be(PhonebookCollationExtensionUpperCase);

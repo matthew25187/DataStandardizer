@@ -45,7 +45,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Singleton` | `char? Singleton { get; }` | The singleton: the extension's leading character, or `x` for a private use sequence. Never `null`. |
+| `Singleton` | `char? Singleton { get; }` | The singleton, in the case it was written in: the extension's leading character, or `x` or `X` for a private use sequence. Never `null`. |
 | `Subtags` | `IReadOnlyList<string> Subtags { get; }` | The remaining hyphen-separated parts. Each read splits the subtag again and returns a new list. |
 
 ## Methods
