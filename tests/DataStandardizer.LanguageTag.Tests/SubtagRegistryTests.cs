@@ -930,11 +930,11 @@ namespace DataStandardizer.LanguageTag.Tests
         [Theory]
         [InlineData(MinimalRecordSubtag)]
         [InlineData("AA")]
-        public void TryGetSubtag_WhenTwoRecordsHaveSubtagsThatDifferOnlyInCase_ReturnsTheFirst(string subtag)
+        public void TryGetSubtag_WhenTwoRecordsHaveTheSameSubtag_ReturnsTheFirst(string subtag)
         {
             // arrange
             var registry = SubtagRegistry.CreateFromContent(
-                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: AA\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\n" +
+                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\n" +
                 "Type: language\r\nSubtag: aa\r\nDescription: Second\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Other\r\nAdded: 2005-10-16\r\n");
 
             // act
@@ -1125,6 +1125,25 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFromContent_WhenDescriptionCommentsOrUndefinedFieldHoldsNonAsciiCharacter_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
+        {
+            // arrange
+            const string content = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: vo\r\nDescription: Volap\x00FCk\r\nComments: \x00E9\r\nFuture-Field: \x00F1\r\nAdded: 2005-10-16\r\n";
+
+            // act
+            var testResult = await load(content);
+
+            // assert
+            var record = testResult.Languages.Should().ContainSingle(
+                "{0} restricts only the fields that RFC 5646 defines, other than Description and Comments, to printable US-ASCII (ref. RFC 5646 §3.1.1, §3.1.2, §3.1.5, §3.1.12)",
+                loaderName).Subject;
+            record.Description.Should().Equal("Volap\x00FCk");
+            record.Comments.Should().Equal("\x00E9");
+            record.Fields.Should().Contain(new KeyValuePair<string, string>("Future-Field", "\x00F1"));
+        }
+
+        [Theory]
+        [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
         public async Task CreateFromContent_WhenFieldSeparatorHasSpaces_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
@@ -1247,6 +1266,77 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The record at line 3 has a Subtag field, but its Type 'grandfathered' is one whose records have a Tag field (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nTag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The record at line 3 has a Tag field, but its Type 'language' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2)."),
+            // Prefix appears only in extlang and variant records (§3.1.2), with or without a value, and exactly once in an extlang record (§3.1.8)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nPrefix: en\r\n",
+                "The record at line 3 has a Prefix field, which only records of the Type 'extlang' or 'variant' may have, but its Type is 'region' (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nPrefix:\r\n",
+                "The record at line 3 has a Prefix field, which only records of the Type 'extlang' or 'variant' may have, but its Type is 'language' (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\n",
+                "The record at line 3 has 0 Prefix fields, but a record of the Type 'extlang' has exactly one (ref. RFC 5646 §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\nPrefix: aao\r\n",
+                "The record at line 3 has 2 Prefix fields, but a record of the Type 'extlang' has exactly one (ref. RFC 5646 §3.1.8)."),
+            // Suppress-Script, Macrolanguage and Scope appear only in language and extlang records (§3.1.2, §3.1.9, §3.1.10)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Latn\r\nDescription: Latin\r\nAdded: 2005-10-16\r\nSuppress-Script: Latn\r\n",
+                "The record at line 3 has a Suppress-Script field, which only records of the Type 'language' or 'extlang' may have, but its Type is 'script' (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Hans\r\nDescription: Han (Simplified variant)\r\nAdded: 2005-10-16\r\nMacrolanguage: zh\r\n",
+                "The record at line 3 has a Macrolanguage field, which only records of the Type 'language' or 'extlang' may have, but its Type is 'script' (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nScope: special\r\n",
+                "The record at line 3 has a Scope field, which only records of the Type 'language' or 'extlang' may have, but its Type is 'variant' (ref. RFC 5646 §3.1.2)."),
+            // Scope permits "macrolanguage", "collection", "special" and "private-use" alone (§3.1.2)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope: individual\r\n",
+                "The record at line 3 has the Scope 'individual', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope: Special\r\n",
+                "The record at line 3 has the Scope 'Special', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope:\r\n",
+                "The Scope field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Subtag has the form of its Type (§2.2.1 to §2.2.5) and the case of §3.1.4: titlecase for a script, upper case for a region, and lower
+            // case for every other Type
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: en US!\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'en US!', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: EN\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'EN', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aaoo\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Subtag 'aaoo', which is not a subtag of the Type 'extlang', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: latn\r\nDescription: Latin\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'latn', which is not a subtag of the Type 'script', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: 12\r\nDescription: Twelve\r\nAdded: 2025-01-01\r\n",
+                "The record at line 3 has the Subtag '12', which is not a subtag of the Type 'region', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: us\r\nDescription: United States\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'us', which is not a subtag of the Type 'region', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: abcd\r\nDescription: Four letters\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'abcd', which is not a subtag of the Type 'variant', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: Rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'Rozaj', which is not a subtag of the Type 'variant', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            // a range has the form and case of its Type at both ends, which have the same length, with the first not after the second (§3.1.1)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qaa..QTZ\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'qaa..QTZ', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qtz..qaa\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'qtz..qaa', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qaa..qtzz\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'qaa..qtzz', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: QM..\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'QM..', which is not a subtag of the Type 'region', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            // a Tag is formatted as §2.1.1 describes (§3.1.4)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: foo bar\r\nDescription: Foo\r\nAdded: 1999-05-25\r\n",
+                "The record at line 3 has the Tag 'foo bar', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-hans\r\nDescription: simplified Chinese\r\nAdded: 2005-04-11\r\n",
+                "The record at line 3 has the Tag 'zh-hans', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: en-gb-oed\r\nDescription: English, Oxford English Dictionary spelling\r\nAdded: 2003-07-09\r\n",
+                "The record at line 3 has the Tag 'en-gb-oed', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: I-ami\r\nDescription: Amis\r\nAdded: 1999-05-25\r\n",
+                "The record at line 3 has the Tag 'I-ami', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: en--US\r\nDescription: Empty subtag\r\nAdded: 2005-04-11\r\n",
+                "The record at line 3 has the Tag 'en--US', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            // the fields that RFC 5646 defines, except Description and Comments, hold printable US-ASCII characters alone (§3.1.1)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: \x00E9n\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
+                "The Subtag field at line 4 holds the character U+00E9, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: r\x00E9gion\r\nSubtag: US\r\nDescription: United States\r\nAdded: 2005-10-16\r\n",
+                "The Type field at line 3 holds the character U+00E9, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: sl\x00E9\r\n",
+                "The Prefix field at line 7 holds the character U+00E9, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
+            // DEL, U+007F, is one of CHARS but not a printable US-ASCII character
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nPreferred-Value: a\x007F\r\n",
+                "The Preferred-Value field at line 7 holds the character U+007F, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
         };
 
         /// <summary>

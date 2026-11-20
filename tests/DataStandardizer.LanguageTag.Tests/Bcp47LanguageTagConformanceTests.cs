@@ -139,24 +139,14 @@ namespace DataStandardizer.LanguageTag.Tests
         private const LanguageTagConformance UndefinedConformance = (LanguageTagConformance)99;
 
         /// <summary>
-        /// A registry with records that have the shape RFC 5646 §2.1 gives their type (<c>en</c>, <c>enochian</c>, <c>yue</c>), and records that don't, which can't make a tag valid.
+        /// A registry whose records have the shape RFC 5646 §2.2 gives their type, as every record of a registry that loads does (§3.1.4), and grandfathered
+        /// records whose tags §2.1 doesn't list, which can't make a tag valid where the ABNF of §2.1 doesn't allow the subtag.
         /// </summary>
         private const string RegistryWithRecordsOutsideTheAbnf =
             "File-Date: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: en\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: enochian\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: a\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: ab1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
-            "%%\r\nType: extlang\r\nSubtag: yuee\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
-            "%%\r\nType: script\r\nSubtag: Lat\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: script\r\nSubtag: Latin\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: region\r\nSubtag: U\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: region\r\nSubtag: USA\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abc\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abcd\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: grandfathered\r\nTag: en-abcde\r\nDescription: T\r\nAdded: 2026-11-02\r\n";
 
@@ -199,13 +189,14 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
-        /// Tags that <see cref="RegistryWithRecordsOutsideTheAbnf"/> has records for only in a position whose shape they don't have (RFC 5646 §2.1), or as a grandfathered tag that §2.1 doesn't list.
-        /// The tags in the first row aren't well-formed. Those in the second are, as a different kind of subtag, for which the registry has no record.
+        /// Tags that <see cref="RegistryWithRecordsOutsideTheAbnf"/> has records for only in a position that the ABNF of RFC 5646 §2.1 doesn't allow them in, or as a
+        /// grandfathered tag that §2.1 doesn't list. The tags in the first row aren't well-formed. The one in the second is, as a language and a variant, for which the
+        /// registry has no variant record.
         /// </summary>
         public static TheoryData<string> LanguageTagsWithRecordOutsideTheAbnf => new TheoryData<string>
         {
-            "a", "ab1", "abcdefghi", "enochian-yue", "en-U", "en-abcdefghi", "a-bb",
-            "en-yuee", "en-Lat", "en-Latin", "en-USA", "en-abc", "en-abcd", "en-abcde"
+            "enochian-yue", "a-bb",
+            "en-abcde"
         };
 
         /// <summary>

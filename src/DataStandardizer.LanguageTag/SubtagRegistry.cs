@@ -162,7 +162,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="subtagRegistryContent">Content of the Subtag Registry.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The subtag registry content is <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// A line that ends with a line feed alone, as every line of the registry that IANA publishes does, throws a <see cref="FormatException"/>. To load
         /// that registry, call <see cref="CreateFromContent(string, SubtagRegistryLoadOptions)"/> with <see cref="SubtagRegistryLoadOptions.AcceptBareLineFeed"/>.
@@ -181,7 +181,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The subtag registry content is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> holds a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         public static SubtagRegistry CreateFromContent(string subtagRegistryContent, SubtagRegistryLoadOptions options)
         {
             if (subtagRegistryContent is null)
@@ -202,7 +202,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="subtagRegistryContent">Content of the Subtag Registry.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The subtag registry content is <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// A line that ends with a line feed alone, as every line of the registry that IANA publishes does, throws a <see cref="FormatException"/>. To load
         /// that registry, call <see cref="CreateFromContentAsync(string, SubtagRegistryLoadOptions, CancellationToken)"/> with
@@ -220,7 +220,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The subtag registry content is <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
         /// <remarks>
         /// A line that ends with a line feed alone, as every line of the registry that IANA publishes does, throws a <see cref="FormatException"/>. To load
@@ -242,7 +242,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The subtag registry content is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> holds a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
         public static async Task<SubtagRegistry> CreateFromContentAsync(string subtagRegistryContent, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)
         {
@@ -265,7 +265,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="subtagRegistryFilePath">Path to the Subtag Registry file.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The path to the subtag registry is <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// A line that ends with a line feed alone, as every line of the registry that IANA publishes does, throws a <see cref="FormatException"/>. To load
         /// that registry, call <see cref="CreateFromFile(string, SubtagRegistryLoadOptions)"/> with <see cref="SubtagRegistryLoadOptions.AcceptBareLineFeed"/>.
@@ -284,7 +284,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The path to the subtag registry is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> holds a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         public static SubtagRegistry CreateFromFile(string subtagRegistryFilePath, SubtagRegistryLoadOptions options)
         {
             if (subtagRegistryFilePath is null)
@@ -306,7 +306,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="subtagRegistryFilePath">Path to the Subtag Registry file.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The path to the subtag registry is <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// A line that ends with a line feed alone, as every line of the registry that IANA publishes does, throws a <see cref="FormatException"/>. To load
         /// that registry, call <see cref="CreateFromFileAsync(string, SubtagRegistryLoadOptions, CancellationToken)"/> with
@@ -324,7 +324,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The path to the subtag registry is <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
         /// <remarks>
         /// A line that ends with a line feed alone, as every line of the registry that IANA publishes does, throws a <see cref="FormatException"/>. To load
@@ -346,7 +346,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The path to the subtag registry is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> holds a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
         public static async Task<SubtagRegistry> CreateFromFileAsync(string subtagRegistryFilePath, SubtagRegistryLoadOptions options, CancellationToken cancellationToken)
         {
@@ -369,7 +369,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="stream">Stream pointing to the Subtag Registry content.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// <para>
         /// The content is read from the stream's current position. The stream is left open; the caller remains responsible for disposing it.
@@ -393,7 +393,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> holds a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// The content is read from the stream's current position. The stream is left open; the caller remains responsible for disposing it.
         /// </remarks>
@@ -417,7 +417,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="stream">Stream pointing to the Subtag Registry content.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <remarks>
         /// <para>
         /// The content is read from the stream's current position. The stream is left open; the caller remains responsible for disposing it.
@@ -440,7 +440,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
         /// <remarks>
         /// <para>
@@ -467,7 +467,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> holds a value that <see cref="SubtagRegistryLoadOptions"/> doesn't define.</exception>
-        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record is not one that §3.1.2 defines. The message names the line.</exception>
+        /// <exception cref="FormatException">The registry is not in the record-jar format of RFC 5646 §3.1.1, or a record or field breaks the rules of §3.1.2 to §3.1.11. The message names the line.</exception>
         /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
         /// <remarks>
         /// The content is read from the stream's current position. The stream is left open; the caller remains responsible for disposing it.

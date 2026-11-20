@@ -20,8 +20,13 @@ namespace DataStandardizer.LanguageTag.Registry
     /// or more than one of the File-Date, Subtag and Tag fields, or has no Type that RFC 5646 §3.1.3 defines for its kind of record. It also throws for
     /// a record that breaks the rules of RFC 5646 §3.1.2: a first record that is not the File-Date record, a second File-Date record, a File-Date record
     /// with another field, a tag or subtag record with no Description or Added field, and a field other than Description, Comments and Prefix that
-    /// appears twice in a record. Fields that RFC 5646 doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks;
-    /// the File-Date record has the File-Date field alone.
+    /// appears twice in a record. It throws as well for a field on a record type that may not have it: a Prefix field outside an extlang or variant
+    /// record, or an extlang record without exactly one (§3.1.2, §3.1.8), and a Suppress-Script, Macrolanguage or Scope field outside a language or
+    /// extlang record (§3.1.2); for a Scope other than the four values §3.1.2 permits; for a Subtag that is not a subtag of its record's Type in the
+    /// form of §2.2.1 to §2.2.5 and the case of §3.1.4, at both ends of a range; for a Tag that is not formatted as §2.1.1 describes (§3.1.4); and for
+    /// a character outside printable US-ASCII in a field that RFC 5646 defines, other than Description and Comments (§3.1.1). Fields that RFC 5646
+    /// doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks; the File-Date record has the File-Date field
+    /// alone.
     /// <para>
     /// Every line, the last one included, ends with CRLF (ref. RFC 5646 §3.1.1). A line that ends with a line feed alone, and a last line with no line
     /// break, also throw, unless <see cref="SubtagRegistryLoadOptions.AcceptBareLineFeed"/> or
@@ -35,6 +40,12 @@ namespace DataStandardizer.LanguageTag.Registry
     internal class SubtagRegistryReader
     {
         private const string RecordSeparator = "%%";
+
+        // the flags of the fields that appear only in records of the Type 'language' or 'extlang' (ref. RFC 5646 §3.1.2), among those of the fields
+        // that may appear only once
+        private const int SuppressScriptFlag = 1 << 7;
+        private const int MacrolanguageFlag = 1 << 8;
+        private const int ScopeFlag = 1 << 9;
 
         /// <summary>
         /// The number of characters read from the source at a time, which is the size of the buffer of the <see cref="StreamReader"/> that
@@ -59,6 +70,8 @@ namespace DataStandardizer.LanguageTag.Registry
         // that may appear only once
         private int _recordFieldCount;
         private int _singleFieldFlags;
+        // the Prefix fields of the record being read, with or without a value, which only some types of record may have (ref. RFC 5646 §3.1.2, §3.1.8)
+        private int _prefixFieldCount;
 
         private int _recordCount;
 
@@ -416,11 +429,28 @@ namespace DataStandardizer.LanguageTag.Registry
                 _singleFieldFlags |= singleFieldFlag;
             }
 
+            var isPrefix = ReferenceEquals(_fieldName, FieldName.Prefix);
+            if (isPrefix) _prefixFieldCount++;
+
             var fieldBody = _foldedFieldBody?.Length > 0 ? _foldedFieldBody.ToString() : _fieldBody;
+
+            // the fields that RFC 5646 defines hold printable US-ASCII characters alone, except Description and Comments, which may hold any Unicode
+            // character (ref. RFC 5646 §3.1.1, §3.1.5, §3.1.12); fields that it doesn't define are ignored, as §3.1.2 asks
+            if ((singleFieldFlag != 0 || isPrefix) && fieldBody != null)
+            {
+                var nonAsciiIndex = IndexOfNonPrintableAscii(fieldBody);
+                if (nonAsciiIndex >= 0)
+                {
+                    throw CreateException(
+                        "The {1} field at line {0} holds the character U+{2:X4}, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1).",
+                        _fieldStartLineNumber, _fieldName, (int)fieldBody[nonAsciiIndex]);
+                }
+            }
+
             if (string.IsNullOrEmpty(fieldBody))
             {
                 // the grammar allows an empty field body, but the fields that tell a record's kind and type, the fields every tag and subtag record
-                // has, and the dates, each need a value (ref. RFC 5646 §3.1.2)
+                // has, the dates, and Scope, whose values are listed, each need a value (ref. RFC 5646 §3.1.2)
                 if (IsValueRequired(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
             }
             else
@@ -460,12 +490,15 @@ namespace DataStandardizer.LanguageTag.Registry
             var added = _added;
             var deprecated = _deprecated;
             var recordFieldCount = _recordFieldCount;
+            var singleFieldFlags = _singleFieldFlags;
+            var prefixFieldCount = _prefixFieldCount;
             var isFirstRecord = _recordCount == 0;
             _recordCount++;
             _recordLineNumber = 0;
             _fields.Clear();
             _recordFieldCount = 0;
             _singleFieldFlags = 0;
+            _prefixFieldCount = 0;
             _fileDate = null;
             _added = null;
             _deprecated = null;
@@ -520,7 +553,93 @@ namespace DataStandardizer.LanguageTag.Registry
                 throw CreateException("The record at line {0} has a Tag field, but its Type '{1}' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2).", recordLineNumber, SubtagRegistryRecordBase.GetFirstValue(fields, FieldName.Type));
             }
 
+            var typeName = SubtagRegistryRecordBase.GetFirstValue(fields, FieldName.Type) ?? string.Empty;
+            CheckSubtagOrTag(record, fields, typeName, recordLineNumber);
+            CheckFieldsOfType(record, typeName, recordLineNumber, singleFieldFlags, prefixFieldCount);
+
             return record;
+        }
+
+        /// <summary>
+        /// Checks the Subtag or Tag field of a record against the form that RFC 5646 §3.1.4 gives it.
+        /// </summary>
+        private static void CheckSubtagOrTag(SubtagRegistryTagRecordBase record, KeyValuePair<string, string>[] fields, string typeName, int recordLineNumber)
+        {
+            if (record is SubtagRegistrySubtagRecord subtagRecord)
+            {
+                // a subtag has the form of its type (ref. RFC 5646 §2.2.1 to §2.2.5) in the case of its type (ref. RFC 5646 §3.1.4), and a range has it
+                // at both ends (ref. RFC 5646 §3.1.1)
+                if (!SubtagRegistryValueFormat.IsSubtag(record.Type, subtagRecord.Subtag))
+                {
+                    throw CreateException(
+                        "The record at line {0} has the Subtag '{1}', which is not a subtag of the Type '{2}', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4.",
+                        recordLineNumber, subtagRecord.Subtag, typeName);
+                }
+
+                return;
+            }
+
+            // a grandfathered or redundant record has a Tag field, as the record's kind was told by it
+            var tag = SubtagRegistryRecordBase.GetFirstValue(fields, FieldName.Tag);
+            if (tag != null && !SubtagRegistryValueFormat.IsTag(tag))
+            {
+                throw CreateException("The record at line {0} has the Tag '{1}', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4).", recordLineNumber, tag);
+            }
+        }
+
+        /// <summary>
+        /// Checks that a record has only the fields its type may have, as often as it may have them, and that its Scope has one of the values that
+        /// RFC 5646 §3.1.2 permits.
+        /// </summary>
+        /// <param name="record">The record.</param>
+        /// <param name="typeName">The body of the record's Type field.</param>
+        /// <param name="recordLineNumber">The record's first line.</param>
+        /// <param name="singleFieldFlags">The flags of the fields that may appear only once that the record has, with or without a value.</param>
+        /// <param name="prefixFieldCount">The number of Prefix fields the record has, with or without a value.</param>
+        private static void CheckFieldsOfType(SubtagRegistryTagRecordBase record, string typeName, int recordLineNumber, int singleFieldFlags, int prefixFieldCount)
+        {
+            var type = record.Type;
+
+            // Prefix MAY appear in extlang and variant records, and MUST NOT appear in any other (ref. RFC 5646 §3.1.2), and appears exactly once in an
+            // extlang record (ref. RFC 5646 §3.1.8)
+            if (prefixFieldCount > 0 && type != SubtagRegistryRecordType.ExtendedLanguage && type != SubtagRegistryRecordType.Variant)
+            {
+                throw CreateException(
+                    "The record at line {0} has a Prefix field, which only records of the Type 'extlang' or 'variant' may have, but its Type is '{1}' (ref. RFC 5646 §3.1.2).",
+                    recordLineNumber, typeName);
+            }
+
+            if (type == SubtagRegistryRecordType.ExtendedLanguage && prefixFieldCount != 1)
+            {
+                throw CreateException(
+                    "The record at line {0} has {1} Prefix fields, but a record of the Type 'extlang' has exactly one (ref. RFC 5646 §3.1.8).", recordLineNumber, prefixFieldCount);
+            }
+
+            // Suppress-Script, Macrolanguage and Scope appear only in language and extlang records (ref. RFC 5646 §3.1.2, §3.1.9, §3.1.10)
+            if (type != SubtagRegistryRecordType.Language && type != SubtagRegistryRecordType.ExtendedLanguage)
+            {
+                CheckFieldAbsent(singleFieldFlags, SuppressScriptFlag, FieldName.SuppressScript, typeName, recordLineNumber);
+                CheckFieldAbsent(singleFieldFlags, MacrolanguageFlag, FieldName.Macrolanguage, typeName, recordLineNumber);
+                CheckFieldAbsent(singleFieldFlags, ScopeFlag, FieldName.Scope, typeName, recordLineNumber);
+            }
+
+            // Scope has a value, as an empty one fails when it is read, and the value is one of the four that RFC 5646 §3.1.2 permits
+            var scope = record.Scope;
+            if (scope != null && scope != ScopeValue.Macrolanguage && scope != ScopeValue.Collection && scope != ScopeValue.Special && scope != ScopeValue.PrivateUse)
+            {
+                throw CreateException(
+                    "The record at line {0} has the Scope '{1}', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits.",
+                    recordLineNumber, scope);
+            }
+        }
+
+        private static void CheckFieldAbsent(int singleFieldFlags, int fieldFlag, string fieldName, string typeName, int recordLineNumber)
+        {
+            if ((singleFieldFlags & fieldFlag) == 0) return;
+
+            throw CreateException(
+                "The record at line {0} has a {1} field, which only records of the Type 'language' or 'extlang' may have, but its Type is '{2}' (ref. RFC 5646 §3.1.2).",
+                recordLineNumber, fieldName, typeName);
         }
 
         /// <summary>
@@ -572,13 +691,13 @@ namespace DataStandardizer.LanguageTag.Registry
 
         /// <summary>
         /// Gets whether a field needs a value: the fields that tell a record's kind or type, the Description and Added fields every tag and subtag record
-        /// has, and the dates (ref. RFC 5646 §3.1.2).
+        /// has, the dates, and Scope, whose values §3.1.2 lists (ref. RFC 5646 §3.1.2).
         /// </summary>
         private static bool IsValueRequired(string fieldName)
         {
             return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Subtag) || ReferenceEquals(fieldName, FieldName.Tag) ||
                 ReferenceEquals(fieldName, FieldName.Type) || ReferenceEquals(fieldName, FieldName.Description) || ReferenceEquals(fieldName, FieldName.Added) ||
-                ReferenceEquals(fieldName, FieldName.Deprecated);
+                ReferenceEquals(fieldName, FieldName.Deprecated) || ReferenceEquals(fieldName, FieldName.Scope);
         }
 
         /// <summary>
@@ -595,11 +714,29 @@ namespace DataStandardizer.LanguageTag.Registry
             if (ReferenceEquals(fieldName, FieldName.Added)) return 1 << 4;
             if (ReferenceEquals(fieldName, FieldName.Deprecated)) return 1 << 5;
             if (ReferenceEquals(fieldName, FieldName.PreferredValue)) return 1 << 6;
-            if (ReferenceEquals(fieldName, FieldName.SuppressScript)) return 1 << 7;
-            if (ReferenceEquals(fieldName, FieldName.Macrolanguage)) return 1 << 8;
-            if (ReferenceEquals(fieldName, FieldName.Scope)) return 1 << 9;
+            if (ReferenceEquals(fieldName, FieldName.SuppressScript)) return SuppressScriptFlag;
+            if (ReferenceEquals(fieldName, FieldName.Macrolanguage)) return MacrolanguageFlag;
+            if (ReferenceEquals(fieldName, FieldName.Scope)) return ScopeFlag;
 
             return 0;
+        }
+
+        /// <summary>
+        /// Finds the first character that is not a printable US-ASCII character, the space among them, which most fields are restricted to
+        /// (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        private static int IndexOfNonPrintableAscii(string fieldBody)
+        {
+#if NET
+            return fieldBody.AsSpan().IndexOfAnyExceptInRange(' ', '~');
+#else
+            for (var index = 0; index < fieldBody.Length; index++)
+            {
+                if (fieldBody[index] < ' ' || fieldBody[index] > '~') return index;
+            }
+
+            return -1;
+#endif
         }
 
 #if NETCOREAPP3_0_OR_GREATER

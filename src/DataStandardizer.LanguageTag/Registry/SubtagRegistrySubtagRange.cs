@@ -36,7 +36,11 @@ namespace DataStandardizer.LanguageTag.Registry
             return ExpandRange(first, last);
         }
 
-        private static bool IsRange(string first, string last)
+        /// <summary>
+        /// Gets whether two subtags form a range: of the same length, with a letter or a digit in the same places, and the first not after the second
+        /// when compared case-insensitively.
+        /// </summary>
+        internal static bool IsRange(string first, string last)
         {
             if (first.Length == 0 || first.Length != last.Length)
             {
