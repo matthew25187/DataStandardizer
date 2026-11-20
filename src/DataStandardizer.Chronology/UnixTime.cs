@@ -44,10 +44,11 @@
         }
 
         /// <summary>
-        /// Gets the Julian date of the time: the number of days, with a fraction for the time of day, since noon UTC on January 1, 4713 BC in the proleptic Julian calendar.
+        /// Gets the Julian day number of the time, with a fraction for the time of day: the number of days since noon UTC on January 1, 4713 BC in the proleptic Julian calendar.
         /// </summary>
         /// <value>
-        /// The Unix time in days, plus 2440587.5, the Julian date of the Unix epoch. A time at midnight UTC has a fraction of .5.
+        /// The Unix time in days, plus 2440587.5, the Julian day number of the Unix epoch. A Julian day starts at noon UTC, so a time at midnight UTC,
+        /// the start of a calendar date, has a fraction of .5.
         /// </value>
         public decimal JulianDayNumber => decimal.Divide(_value, JulianDayNumberHelper.SecondsPerDay) + JulianDayNumberHelper.UnixEpochJdn;
 
