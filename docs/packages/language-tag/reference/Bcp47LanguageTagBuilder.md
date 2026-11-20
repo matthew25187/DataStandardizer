@@ -39,6 +39,13 @@ optional extended-language, script, region, variant, extension, and private-use
 steps, ending with `Build()`. See
 [The language-tag builder pipeline](../concepts/builder-pipeline.md) for the flow.
 
+An instance can build more than one tag. `UsingLanguageTag` and
+`UsingPrimaryLanguageSubtag` each start a new tag, discarding everything given for
+an earlier one. The registry or conformance chosen stays for later tags. Every
+step returns the builder itself, so start each tag from one of those two steps,
+not from a step saved earlier. The builder is not thread-safe. See
+[Reusing a builder](../concepts/builder-pipeline.md#reusing-a-builder).
+
 The order is enforced by 20 step interfaces in the `DataStandardizer.LanguageTag`
 namespace (`IBcp47LanguageTagBuilderStep…` and the companion `…Next` interfaces).
 Each `…Next` interface inherits exactly the stages that may follow its stage; you

@@ -111,6 +111,21 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: WithConformance
 
         [Fact]
+        public void Build_AfterEarlierBuildWithIsoCodeLists_KeepsConformance()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder();
+            builder.WithConformance(LanguageTagConformance.IsoCodeLists).UsingPrimaryLanguageSubtag(EnglishPrimaryLanguage).Build();
+            var secondBuilder = builder.UsingPrimaryLanguageSubtag(UnlistedPrimaryLanguage);
+
+            // act
+            Action testAction = () => secondBuilder.Build();
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("the conformance chosen for an earlier tag still applies (#1057)").WithMessage(NotInIsoCodeListsMessage);
+        }
+
+        [Fact]
         public void Build_WithIsoCodeListsAndUnlistedStringSubtags_ThrowsLanguageTagFormatException()
         {
             // arrange
@@ -232,6 +247,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("the shape is right, but Build checks validity against the registry").WithMessage(NotValidMessage);
+        }
+
+        [Fact]
+        public void Build_AfterEarlierBuildWithRegistry_KeepsRegistry()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder();
+            builder.WithLanguageSubtagRegistry(SubtagRegistry.CreateFromContent(RegistryOfUnlistedSubtags)).UsingPrimaryLanguageSubtag(UnlistedPrimaryLanguage).Build();
+            var secondBuilder = builder.UsingPrimaryLanguageSubtag(EnglishPrimaryLanguage);
+
+            // act
+            Action testAction = () => secondBuilder.Build();
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("the registry chosen for an earlier tag still applies, and it doesn't have en (#1057)").WithMessage(NotValidMessage);
         }
 
         #endregion
