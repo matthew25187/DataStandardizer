@@ -64,8 +64,10 @@ type from a language code:
 var languageType = Iso639Part3Language.slk.GetLanguageType();
 ```
 
-Language types indicate whether the language is living, ancient, historical,
-extinct, constructed or special.
+Language types indicate whether the language is living, historical, extinct,
+constructed or special. ISO 639:2023 merged the ancient language type into
+historical, so no code has the obsolete `Iso639LanguageType.Ancient`: Latin
+(`lat`), for example, is `Historical`.
 
 ## Macrolanguage
 

@@ -54,12 +54,14 @@ namespace DataStandardizer.Language
         #region Public Properties
 
         /// <summary>
-        /// Gets the age of the script code.
+        /// Gets the age of the script code: the Unicode version in which the script was added (the
+        /// "Unicode Version" column of the ISO 15924 code table), or <c>null</c> if the script isn't in Unicode.
         /// </summary>
         public double? Age { get; }
 
         /// <summary>
-        /// Gets the alias for the script code.
+        /// Gets or sets the alias for the script code: the Unicode Property Value Alias of the script, or
+        /// <c>null</c> if it has none.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Alias { get; set; }

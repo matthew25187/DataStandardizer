@@ -512,6 +512,8 @@ public class Iso639ExtensionTests
             {
                 yield return new object[] { Iso639Part3Language.deu, Iso639LanguageType.Living };
                 yield return new object[] { Iso639Part3Language.arc, Iso639LanguageType.Historical };
+                yield return new object[] { Iso639Part3Language.lat, Iso639LanguageType.Historical };
+                yield return new object[] { Iso639Part3Language.sux, Iso639LanguageType.Historical };
                 yield return new object[] { Iso639Part3Language.chh, Iso639LanguageType.Extinct };
                 yield return new object[] { Iso639Part3Language.epo, Iso639LanguageType.Constructed };
                 yield return new object[] { Iso639Part3Language.und, Iso639LanguageType.Special };

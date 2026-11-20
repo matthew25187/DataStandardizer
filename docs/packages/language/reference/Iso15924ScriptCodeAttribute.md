@@ -31,7 +31,7 @@ attribute yourself.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Age` | `double? Age { get; }` | The Unicode version in which the script was encoded, or `null`. |
+| `Age` | `double? Age { get; }` | The Unicode version in which the script was added (the code table's "Unicode Version" column), or `null` if the script isn't in Unicode. |
 | `Alias` | `string? Alias { get; set; }` | The alias for the script code, or `null`. |
 | `Date` | `DateTime? Date { get; }` | The script code's date at midnight (`DateTimeKind.Unspecified`), or `null`. |
 

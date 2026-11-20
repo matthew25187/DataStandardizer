@@ -6,6 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Language
 {
+    /// <summary>
+    /// Extension methods that read the metadata of ISO 15924 script codes.
+    /// </summary>
     public static class Iso15924Extensions
     {
         /// <summary>

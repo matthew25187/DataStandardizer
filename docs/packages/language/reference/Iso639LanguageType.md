@@ -28,13 +28,13 @@ when the type is not recorded; an undefined value corresponds to `Unknown`.
 
 | Field | Value | Notes |
 | --- | --- | --- |
-| `Unknown` | 0 | |
-| `Living` | 1 | |
-| `Ancient` | 2 | Ancient languages (extinct since ancient times). |
+| `Unknown` | 0 | The language type isn't known. |
+| `Living` | 1 | Living languages. |
+| `Ancient` | 2 | Obsolete. Ancient languages (extinct since ancient times). ISO 639:2023 merged the ancient type into `Historical`, and no ISO 639-3 code has it: languages such as Latin (`lat`) and Sumerian (`sux`) are `Historical`. |
 | `Historical` | 3 | Historical languages (distinct from their modern form). |
 | `Extinct` | 4 | Extinct languages in recent times. |
 | `Constructed` | 5 | Constructed languages. |
-| `Special` | 6 | |
+| `Special` | 6 | Special codes, which don't identify a language (for example `und`, `mul` and `zxx`). |
 
 ## Applies to
 
