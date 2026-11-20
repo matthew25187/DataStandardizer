@@ -8,6 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Language
 {
+    /// <summary>
+    /// Extension methods that read the metadata of ISO 639 language codes.
+    /// </summary>
     public static class Iso639Extensions
     {
         #region Public Methods

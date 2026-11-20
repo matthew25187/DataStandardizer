@@ -5,6 +5,9 @@
     /// </summary>
     public enum Iso639LanguageScope
     {
+        /// <summary>
+        /// The scope isn't known.
+        /// </summary>
         Unknown,
 
         /// <summary>
@@ -21,6 +24,10 @@
         /// Macrolanguages.
         /// </summary>
         Macrolanguage,
+
+        /// <summary>
+        /// Special codes, which don't identify a language (for example <c>und</c>, <c>mul</c> and <c>zxx</c>).
+        /// </summary>
         Special
     }
 }

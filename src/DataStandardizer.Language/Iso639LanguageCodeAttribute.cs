@@ -15,50 +15,113 @@ namespace DataStandardizer.Language
         #region Constructors
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with an English name.
+        /// </summary>
+        /// <param name="englishName">English name of the language code.</param>
         public Iso639LanguageCodeAttribute(string englishName) : base([englishName])
         {
 
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with an English name and a
+        /// French name.
+        /// </summary>
+        /// <param name="englishName">English name of the language code.</param>
+        /// <param name="frenchName">French name of the language code.</param>
         public Iso639LanguageCodeAttribute(string englishName, string frenchName) : base([englishName], [frenchName])
         {
 
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with an English name, a
+        /// scope and a language type.
+        /// </summary>
+        /// <param name="englishName">English name of the language code.</param>
+        /// <param name="scope">Scope of the language code.</param>
+        /// <param name="languageType">Type of language the code represents.</param>
         public Iso639LanguageCodeAttribute(string englishName, Iso639LanguageScope scope, Iso639LanguageType languageType):this(englishName)
         {
             Scope = scope;
             LanguageType = languageType;
         }
 #else
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with an English name.
+        /// </summary>
+        /// <param name="englishName">English name of the language code.</param>
         public Iso639LanguageCodeAttribute([DisallowNull] string englishName) : base(new[] { englishName })
         {
 
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with an English name and a
+        /// French name.
+        /// </summary>
+        /// <param name="englishName">English name of the language code.</param>
+        /// <param name="frenchName">French name of the language code.</param>
         public Iso639LanguageCodeAttribute([DisallowNull] string englishName, [DisallowNull] string frenchName) : base(new[] { englishName }, new[] { frenchName })
         {
 
         }
 
-        public Iso639LanguageCodeAttribute(string englishName, Iso639LanguageScope scope, Iso639LanguageType languageType) : this(englishName)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with an English name, a
+        /// scope and a language type.
+        /// </summary>
+        /// <param name="englishName">English name of the language code.</param>
+        /// <param name="scope">Scope of the language code.</param>
+        /// <param name="languageType">Type of language the code represents.</param>
+        public Iso639LanguageCodeAttribute([DisallowNull] string englishName, Iso639LanguageScope scope, Iso639LanguageType languageType) : this(englishName)
         {
             Scope = scope;
             LanguageType = languageType;
         }
 #endif
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with English names.
+        /// </summary>
+        /// <param name="englishNames">English names of the language code.</param>
+#if NETCOREAPP3_0_OR_GREATER
         public Iso639LanguageCodeAttribute(string[] englishNames) : base(englishNames)
+#else
+        public Iso639LanguageCodeAttribute([DisallowNull] string[] englishNames) : base(englishNames)
+#endif
         {
 
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with English names and
+        /// French names.
+        /// </summary>
+        /// <param name="englishNames">English names of the language code.</param>
+        /// <param name="frenchNames">French names of the language code.</param>
+#if NETCOREAPP3_0_OR_GREATER
         public Iso639LanguageCodeAttribute(string[] englishNames, string[] frenchNames) : base(englishNames, frenchNames)
+#else
+        public Iso639LanguageCodeAttribute([DisallowNull] string[] englishNames, [DisallowNull] string[] frenchNames) : base(englishNames, frenchNames)
+#endif
         {
 
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Iso639LanguageCodeAttribute"/> class with English names, a
+        /// scope and a language type.
+        /// </summary>
+        /// <param name="englishNames">English names of the language code.</param>
+        /// <param name="scope">Scope of the language code.</param>
+        /// <param name="languageType">Type of language the code represents.</param>
+#if NETCOREAPP3_0_OR_GREATER
         public Iso639LanguageCodeAttribute(string[] englishNames, Iso639LanguageScope scope, Iso639LanguageType languageType) : this(englishNames)
+#else
+        public Iso639LanguageCodeAttribute([DisallowNull] string[] englishNames, Iso639LanguageScope scope, Iso639LanguageType languageType) : this(englishNames)
+#endif
         {
             Scope = scope;
             LanguageType = languageType;
@@ -96,12 +159,12 @@ namespace DataStandardizer.Language
         public string Part2TCode { get; set; }
 #endif
         /// <summary>
-        /// Gets or sets the scope for the language code.
+        /// Gets the scope for the language code, or <c>null</c> if it has none.
         /// </summary>
         public Iso639LanguageScope? Scope { get; }
 
         /// <summary>
-        /// Gets or sets the type for the language code.
+        /// Gets the type for the language code, or <c>null</c> if it has none.
         /// </summary>
         public Iso639LanguageType? LanguageType { get; }
 

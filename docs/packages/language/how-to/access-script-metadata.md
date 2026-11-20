@@ -12,8 +12,9 @@ extension methods on the `Iso15924Script` enum.
 
 ## Age
 
-The ISO 15924 standard defines an age for each script code. This age can be
-retrieved from a script code:
+The ISO 15924 code table gives each script code an age: the Unicode version in
+which the script was added. Scripts that aren't in Unicode have no age, and
+`GetAge()` returns `null` for them. To get the age of a script code:
 
 ```csharp
 var age = Iso15924Script.Arab.GetAge();
