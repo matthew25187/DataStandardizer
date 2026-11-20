@@ -31,7 +31,7 @@ methods throw `ArgumentNullException` for a `null` argument, and
 format of RFC 5646 §3.1.1: a line that doesn't end with CRLF, a blank line, a
 tab, carriage return or other control character, a line that is neither a field nor a folded line starting with a space, a field
 that ends with a space, a `File-Date`, `Subtag`, `Tag`, `Type`,
-`Description`, `Added` or `Deprecated` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
+`Description`, `Added`, `Deprecated`, `Prefix` or `Scope` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
 RFC 3339 full-date (or is one in the year 0000, before the first year a
 `DateTime` holds), or a record that is empty, has none or more than one
 of the `File-Date`, `Subtag` and `Tag` fields, or has no `Type` that
@@ -40,7 +40,18 @@ registry that breaks the record rules of RFC 5646 §3.1.2: the first record
 isn't the `File-Date` record, there's a second `File-Date` record, the
 `File-Date` record has another field, a tag or subtag record has no
 `Description` or `Added` field, or a field other than `Description`,
-`Comments` and `Prefix` appears twice in a record. In a tag or subtag record,
+`Comments` and `Prefix` appears twice in a record. They throw it too for a
+field on a record type that may not have it, or a value in a form RFC 5646
+doesn't allow: a `Prefix` field outside an `extlang` or `variant` record, or an
+`extlang` record without exactly one (§3.1.2, §3.1.8); a `Suppress-Script`,
+`Macrolanguage` or `Scope` field outside a `language` or `extlang` record
+(§3.1.2); a `Scope` other than `macrolanguage`, `collection`, `special` and
+`private-use` (§3.1.2); a `Subtag` that isn't a subtag of its record's `Type`
+(§2.2.1 to §2.2.5) in the case of §3.1.4 (titlecase for a script, upper case
+for a region, lower case for the rest), at both ends of a range; a `Tag` that
+isn't formatted as §2.1.1 describes (§3.1.4); and a character outside printable
+US-ASCII in any field that RFC 5646 defines except `Description` and
+`Comments` (§3.1.1). In a tag or subtag record,
 fields that RFC 5646 doesn't define are kept in `Fields`, and these rules
 ignore them, as §3.1.2 asks. The `File-Date` record has the `File-Date` field
 alone. Pass a loaded registry

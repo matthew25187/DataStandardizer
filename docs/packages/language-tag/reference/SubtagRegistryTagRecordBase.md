@@ -36,6 +36,11 @@ one appears twice fails to load.
 `FormatException`. `Deprecated` is `null` when the record has no `Deprecated`
 field.
 
+A loaded registry has `Prefix` only on `extlang` and `variant` records, with
+exactly one on each `extlang` record, and `SuppressScript`, `Macrolanguage` and
+`Scope` only on `language` and `extlang` records. `Scope` is one of
+`macrolanguage`, `collection`, `special` and `private-use` (RFC 5646 §3.1.2).
+
 ## Properties
 
 | Property | Signature | Registry field |

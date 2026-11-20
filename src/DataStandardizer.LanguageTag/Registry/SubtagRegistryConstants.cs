@@ -39,5 +39,16 @@
             internal const string Grandfathered = "grandfathered";
             internal const string Redundant = "redundant";
         }
+
+        /// <summary>
+        /// The values that RFC 5646 §3.1.2 permits in the Scope field.
+        /// </summary>
+        internal static class ScopeValue
+        {
+            internal const string Macrolanguage = "macrolanguage";
+            internal const string Collection = "collection";
+            internal const string Special = "special";
+            internal const string PrivateUse = "private-use";
+        }
     }
 }

@@ -116,7 +116,8 @@ namespace DataStandardizer.LanguageTag.Registry
 #endif
 
         /// <summary>
-        /// Gets the Prefix field values, in the order they appear.
+        /// Gets the Prefix field values, in the order they appear: exactly one on an extlang record, any number on a variant record, and none on any
+        /// other record (ref. RFC 5646 §3.1.2, §3.1.8).
         /// </summary>
         public IReadOnlyList<string> Prefix => GetValuesView(_prefix, ref _prefixView);
 
@@ -139,7 +140,8 @@ namespace DataStandardizer.LanguageTag.Registry
 #endif
 
         /// <summary>
-        /// Gets the Scope field value.
+        /// Gets the Scope field value: <c>macrolanguage</c>, <c>collection</c>, <c>special</c> or <c>private-use</c> (ref. RFC 5646 §3.1.2), on a
+        /// language or extlang record alone.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Scope { get; }
