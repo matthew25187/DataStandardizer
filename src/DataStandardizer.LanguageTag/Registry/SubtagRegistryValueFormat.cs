@@ -27,8 +27,8 @@
 
         /// <summary>
         /// Gets whether a Tag field body is formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4): subtags of 1 to 8 letters and digits
-        /// separated by hyphens (ref. RFC 5646 §2.1), in lower case, except that a subtag that is neither the first nor after a singleton is in upper
-        /// case when it has two letters and in titlecase when it has four.
+        /// separated by hyphens (ref. RFC 5646 §2.1), in lower case, except that a subtag of letters alone that is neither the first nor after a
+        /// singleton is in upper case when it has two letters and in titlecase when it has four.
         /// </summary>
         internal static bool IsTag(string value)
         {
@@ -42,14 +42,15 @@
                 var length = end - start;
                 if (length < 1 || length > 8) return false;
 
-                var isFirst = start == 0;
+                // only a subtag of two or four letters has a capital (ref. RFC 5646 §2.1.1), so one with a digit is lower case
+                var hasCapital = start != 0 && !isAfterSingleton && (length == 2 || length == 4) && IsLetters(value, start, length);
                 for (var index = start; index < end; index++)
                 {
                     var character = value[index];
                     if (IsDigit(character)) continue;
                     if (!IsLetter(character)) return false;
 
-                    var isUpper = !isFirst && !isAfterSingleton && (length == 2 || length == 4 && index == start);
+                    var isUpper = hasCapital && (length == 2 || index == start);
                     if (IsUpperLetter(character) != isUpper) return false;
                 }
 
@@ -85,6 +86,16 @@
             for (var index = start; index < start + length; index++)
             {
                 if (!IsLowerLetter(value[index])) return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsLetters(string value, int start, int length)
+        {
+            for (var index = start; index < start + length; index++)
+            {
+                if (!IsLetter(value[index])) return false;
             }
 
             return true;

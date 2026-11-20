@@ -70,7 +70,7 @@ namespace DataStandardizer.LanguageTag.Registry
         // that may appear only once
         private int _recordFieldCount;
         private int _singleFieldFlags;
-        // the Prefix fields of the record being read, with or without a value, which only some types of record may have (ref. RFC 5646 §3.1.2, §3.1.8)
+        // the Prefix fields of the record being read, each with a value, which only some types of record may have (ref. RFC 5646 §3.1.2, §3.1.8)
         private int _prefixFieldCount;
 
         private int _recordCount;
@@ -450,7 +450,7 @@ namespace DataStandardizer.LanguageTag.Registry
             if (string.IsNullOrEmpty(fieldBody))
             {
                 // the grammar allows an empty field body, but the fields that tell a record's kind and type, the fields every tag and subtag record
-                // has, the dates, and Scope, whose values are listed, each need a value (ref. RFC 5646 §3.1.2)
+                // has, the dates, Scope, whose values are listed, and Prefix, which holds a language tag, each need a value (ref. RFC 5646 §3.1.2, §3.1.8)
                 if (IsValueRequired(_fieldName)) throw CreateException("The {1} field at line {0} has no value (ref. RFC 5646 §3.1.2).", _fieldStartLineNumber, _fieldName);
             }
             else
@@ -595,7 +595,7 @@ namespace DataStandardizer.LanguageTag.Registry
         /// <param name="typeName">The body of the record's Type field.</param>
         /// <param name="recordLineNumber">The record's first line.</param>
         /// <param name="singleFieldFlags">The flags of the fields that may appear only once that the record has, with or without a value.</param>
-        /// <param name="prefixFieldCount">The number of Prefix fields the record has, with or without a value.</param>
+        /// <param name="prefixFieldCount">The number of Prefix fields the record has.</param>
         private static void CheckFieldsOfType(SubtagRegistryTagRecordBase record, string typeName, int recordLineNumber, int singleFieldFlags, int prefixFieldCount)
         {
             var type = record.Type;
@@ -691,13 +691,13 @@ namespace DataStandardizer.LanguageTag.Registry
 
         /// <summary>
         /// Gets whether a field needs a value: the fields that tell a record's kind or type, the Description and Added fields every tag and subtag record
-        /// has, the dates, and Scope, whose values §3.1.2 lists (ref. RFC 5646 §3.1.2).
+        /// has, the dates, Scope, whose values §3.1.2 lists, and Prefix, which holds a language tag (ref. RFC 5646 §3.1.2, §3.1.8).
         /// </summary>
         private static bool IsValueRequired(string fieldName)
         {
             return ReferenceEquals(fieldName, FieldName.FileDate) || ReferenceEquals(fieldName, FieldName.Subtag) || ReferenceEquals(fieldName, FieldName.Tag) ||
                 ReferenceEquals(fieldName, FieldName.Type) || ReferenceEquals(fieldName, FieldName.Description) || ReferenceEquals(fieldName, FieldName.Added) ||
-                ReferenceEquals(fieldName, FieldName.Deprecated) || ReferenceEquals(fieldName, FieldName.Scope);
+                ReferenceEquals(fieldName, FieldName.Deprecated) || ReferenceEquals(fieldName, FieldName.Scope) || ReferenceEquals(fieldName, FieldName.Prefix);
         }
 
         /// <summary>

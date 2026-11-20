@@ -31,7 +31,7 @@ methods throw `ArgumentNullException` for a `null` argument, and
 format of RFC 5646 §3.1.1: a line that doesn't end with CRLF, a blank line, a
 tab, carriage return or other control character, a line that is neither a field nor a folded line starting with a space, a field
 that ends with a space, a `File-Date`, `Subtag`, `Tag`, `Type`,
-`Description`, `Added` or `Deprecated` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
+`Description`, `Added`, `Deprecated`, `Prefix` or `Scope` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
 RFC 3339 full-date (or is one in the year 0000, before the first year a
 `DateTime` holds), or a record that is empty, has none or more than one
 of the `File-Date`, `Subtag` and `Tag` fields, or has no `Type` that

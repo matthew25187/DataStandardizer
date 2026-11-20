@@ -934,8 +934,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var registry = SubtagRegistry.CreateFromContent(
-                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\n" +
-                "Type: language\r\nSubtag: aa\r\nDescription: Second\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Other\r\nAdded: 2005-10-16\r\n");
+                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Second\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Other\r\nAdded: 2005-10-16\r\n");
 
             // act
             var testResult = registry.TryGetSubtag(SubtagRegistryRecordType.Language, subtag, out var record);
@@ -1123,12 +1122,32 @@ namespace DataStandardizer.LanguageTag.Tests
                 new KeyValuePair<string, string>("Future-Field", "three"));
         }
 
+        /// <summary>
+        /// A Description with a character outside US-ASCII, U+00FC, which a Description may hold (ref. RFC 5646 §3.1.5).
+        /// </summary>
+        private const string NonAsciiDescription = "Volap\x00FCk";
+
+        /// <summary>
+        /// A Comments value outside US-ASCII, U+00E9, which Comments may hold (ref. RFC 5646 §3.1.12).
+        /// </summary>
+        private const string NonAsciiComment = "\x00E9";
+
+        /// <summary>
+        /// A value outside US-ASCII, U+00F1, of a field that RFC 5646 doesn't define, which the rules ignore (ref. RFC 5646 §3.1.2).
+        /// </summary>
+        private const string NonAsciiUndefinedFieldValue = "\x00F1";
+
+        /// <summary>
+        /// A registry whose Description, Comments and undefined field hold characters outside US-ASCII.
+        /// </summary>
+        private const string NonAsciiFieldsRegistry = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: vo\r\nDescription: " + NonAsciiDescription + "\r\nComments: " + NonAsciiComment + "\r\nFuture-Field: " + NonAsciiUndefinedFieldValue + "\r\nAdded: 2005-10-16\r\n";
+
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
         public async Task CreateFromContent_WhenDescriptionCommentsOrUndefinedFieldHoldsNonAsciiCharacter_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
-            const string content = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: vo\r\nDescription: Volap\x00FCk\r\nComments: \x00E9\r\nFuture-Field: \x00F1\r\nAdded: 2005-10-16\r\n";
+            const string content = NonAsciiFieldsRegistry;
 
             // act
             var testResult = await load(content);
@@ -1137,9 +1156,9 @@ namespace DataStandardizer.LanguageTag.Tests
             var record = testResult.Languages.Should().ContainSingle(
                 "{0} restricts only the fields that RFC 5646 defines, other than Description and Comments, to printable US-ASCII (ref. RFC 5646 §3.1.1, §3.1.2, §3.1.5, §3.1.12)",
                 loaderName).Subject;
-            record.Description.Should().Equal("Volap\x00FCk");
-            record.Comments.Should().Equal("\x00E9");
-            record.Fields.Should().Contain(new KeyValuePair<string, string>("Future-Field", "\x00F1"));
+            record.Description.Should().Equal(NonAsciiDescription);
+            record.Comments.Should().Equal(NonAsciiComment);
+            record.Fields.Should().Contain(new KeyValuePair<string, string>("Future-Field", NonAsciiUndefinedFieldValue));
         }
 
         [Theory]
@@ -1269,8 +1288,11 @@ namespace DataStandardizer.LanguageTag.Tests
             // Prefix appears only in extlang and variant records (§3.1.2), with or without a value, and exactly once in an extlang record (§3.1.8)
             ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nPrefix: en\r\n",
                 "The record at line 3 has a Prefix field, which only records of the Type 'extlang' or 'variant' may have, but its Type is 'region' (ref. RFC 5646 §3.1.2)."),
+            // a Prefix holds a language tag, so it has a value, whatever the Type of its record (§3.1.2, §3.1.8)
             ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nPrefix:\r\n",
-                "The record at line 3 has a Prefix field, which only records of the Type 'extlang' or 'variant' may have, but its Type is 'language' (ref. RFC 5646 §3.1.2)."),
+                "The Prefix field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix:\r\n",
+                "The Prefix field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\n",
                 "The record at line 3 has 0 Prefix fields, but a record of the Type 'extlang' has exactly one (ref. RFC 5646 §3.1.8)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\nPrefix: aao\r\n",
@@ -1325,6 +1347,9 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The record at line 3 has the Tag 'en-gb-oed', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: I-ami\r\nDescription: Amis\r\nAdded: 1999-05-25\r\n",
                 "The record at line 3 has the Tag 'I-ami', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            // only a subtag of two or four letters has a capital, so one with a digit is lower case (§2.1.1)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: en-A1\r\nDescription: Digit\r\nAdded: 1999-05-25\r\n",
+                "The record at line 3 has the Tag 'en-A1', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: en--US\r\nDescription: Empty subtag\r\nAdded: 2005-04-11\r\n",
                 "The record at line 3 has the Tag 'en--US', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
             // the fields that RFC 5646 defines, except Description and Comments, hold printable US-ASCII characters alone (§3.1.1)
