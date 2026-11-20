@@ -98,6 +98,23 @@ this stage — for example, no more than three extended language subtags are
 permitted — and the resulting tag is checked as it is created, so a tag that fails
 surfaces as a `LanguageTagFormatException`.
 
+## Reusing a builder
+
+A builder can build more than one tag. `UsingLanguageTag(...)` and
+`UsingPrimaryLanguageSubtag(...)` each start a new tag, so nothing given for an
+earlier tag carries over into the next one:
+
+```csharp
+var builder = new Bcp47LanguageTagBuilder();
+builder.UsingPrimaryLanguageSubtag("de").UsingRegionSubtag("DE").Build(); // de-DE
+builder.UsingPrimaryLanguageSubtag("fr").Build();                         // fr
+```
+
+The registry or conformance chosen with `WithLanguageSubtagRegistry(...)` or
+`WithConformance(...)` is not part of a tag. It stays for every later tag, until
+you call one of those steps again. A builder is not thread-safe, so don't share
+one instance between threads that build at the same time.
+
 ## Related
 
 - [Create language tags using the builder](../how-to/create-language-tags-using-builder.md)

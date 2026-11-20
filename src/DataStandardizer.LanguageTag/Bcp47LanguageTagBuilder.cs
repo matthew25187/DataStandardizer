@@ -18,6 +18,10 @@ namespace DataStandardizer.LanguageTag
     /// <see cref="WithLanguageSubtagRegistry"/>, the conformance from <see cref="WithConformance"/>, or otherwise well-formedness. The last of the two steps called applies.
     /// The steps that take a code are ISO by construction. The Variant and Extension steps refuse a repeated variant subtag or extension singleton whichever is chosen:
     /// RFC 5646 §2.2.9 allows one in a well-formed language tag, but a builder has no reason to compose a tag that could never be valid.
+    /// <para>
+    /// An instance can be used for more than one tag. <c>UsingLanguageTag</c> and <c>UsingPrimaryLanguageSubtag</c> each start a new tag, discarding every subtag and language tag given for an earlier one.
+    /// The Subtag Registry or conformance chosen with <see cref="WithLanguageSubtagRegistry"/> or <see cref="WithConformance"/> stays until the other step is called. An instance is not thread-safe.
+    /// </para>
     /// </remarks>
     public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithConformance, IBcp47LanguageTagBuilderStepWithConformanceNext, IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext, IBcp47LanguageTagBuilderStepUsingScriptSubtagNext, IBcp47LanguageTagBuilderStepUsingRegionSubtagNext, IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext,
@@ -101,7 +105,10 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="ArgumentNullException">The <paramref name="languageTag"/> is <c>null</c>.</exception>
         public IBcp47LanguageTagBuilderStepBuild UsingLanguageTag(string languageTag)
         {
-            _languageTag = languageTag ?? throw new ArgumentNullException(nameof(languageTag));
+            if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
+
+            ClearLanguageTag();
+            _languageTag = languageTag;
 
             return this;
         }
@@ -118,6 +125,7 @@ namespace DataStandardizer.LanguageTag
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-1"), nameof(primaryLanguageSubtag));
             if (!StringEnum.IsDefined<Iso639Part1Language>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-1", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
+            ClearLanguageTag();
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
             return this;
@@ -135,6 +143,7 @@ namespace DataStandardizer.LanguageTag
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-2T"), nameof(primaryLanguageSubtag));
             if (!StringEnum.IsDefined<Iso639Part2TLanguage>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-2T", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
+            ClearLanguageTag();
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
             return this;
@@ -152,6 +161,7 @@ namespace DataStandardizer.LanguageTag
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-3"), nameof(primaryLanguageSubtag));
             if (!StringEnum.IsDefined<Iso639Part3Language>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-3", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
+            ClearLanguageTag();
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
             return this;
@@ -169,6 +179,7 @@ namespace DataStandardizer.LanguageTag
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-5"), nameof(primaryLanguageSubtag));
             if (!StringEnum.IsDefined<Iso639Part5LanguageFamily>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-5", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
+            ClearLanguageTag();
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
             return this;
@@ -183,6 +194,7 @@ namespace DataStandardizer.LanguageTag
             if (!Bcp47LanguageTag.CheckPrimaryLanguageSubtag(primaryLanguageSubtag))
                 throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, primaryLanguageSubtag, "Primary Language subtag"), nameof(primaryLanguageSubtag));
 
+            ClearLanguageTag();
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
             return this;
@@ -459,6 +471,27 @@ namespace DataStandardizer.LanguageTag
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Discard what was given for an earlier tag, so that a new tag starts from no subtags.
+        /// </summary>
+        private void ClearLanguageTag()
+        {
+            _languageTag = null;
+            _primaryLanguageSubtag = null;
+#if NETSTANDARD1_3_OR_GREATER||NET
+            _extendedLanguageSubtags = Array.Empty<string>();
+            _extensionSubtags = Array.Empty<string>();
+            _variantSubtags = Array.Empty<string>();
+#else
+            _extendedLanguageSubtags = new string[0];
+            _extensionSubtags = new string[0];
+            _variantSubtags = new string[0];
+#endif
+            _scriptSubtag = null;
+            _regionSubtag = null;
+            _privateUseSubtag = null;
+        }
 
         /// <summary>
         /// Number of digits in a UN M.49 Region subtag (ref. RFC 5646 §2.2.4¶4).

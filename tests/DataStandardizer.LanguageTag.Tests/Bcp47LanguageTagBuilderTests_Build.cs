@@ -513,5 +513,69 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         #endregion
+
+        #region Test: Build_AfterEarlierBuild
+
+        /// <summary>
+        /// The Primary Language subtag of the second tag built with each builder, which is also the whole of that tag.
+        /// </summary>
+        private const string SecondPrimaryLanguageSubtag = "fr";
+
+        /// <summary>
+        /// Builders that have each built a tag, with a whole language tag or with one subtag of each kind after the Primary Language subtag (#1057).
+        /// </summary>
+        public static TheoryData<Bcp47LanguageTagBuilder> UsedBuilders
+        {
+            get
+            {
+                var data = new TheoryData<Bcp47LanguageTagBuilder>();
+                data.Add(BuildFirst(builder => builder.UsingLanguageTag(DefaultPrimaryLanguageSubtag).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("zh").UsingExtendedLanguageSubtags("yue").Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("sr").UsingScriptSubtag("Cyrl").Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("de").UsingRegionSubtag("DE").Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("es").UsingRegionSubtag(UnM49Area._419).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("sl").UsingVariantSubtags("rozaj").Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag).UsingExtensionSubtags("u-ca-hebrew").Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag).UsingPrivateUseSubtag(PrivateUseSubtag).Build()));
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(UsedBuilders), DisableDiscoveryEnumeration = true)]
+        public void Build_AfterEarlierBuildWithPrimaryLanguageSubtag_ProducesOnlyNewSubtags(Bcp47LanguageTagBuilder testBuilder)
+        {
+            // arrange
+            var builder = testBuilder.UsingPrimaryLanguageSubtag(SecondPrimaryLanguageSubtag);
+
+            // act
+            string testResult = builder.Build();
+
+            // assert
+            testResult.Should().Be(SecondPrimaryLanguageSubtag, "UsingPrimaryLanguageSubtag starts a new tag, discarding what was given for the earlier one");
+        }
+
+        [Theory]
+        [MemberData(nameof(UsedBuilders), DisableDiscoveryEnumeration = true)]
+        public void Build_AfterEarlierBuildWithLanguageTag_ProducesNewLanguageTag(Bcp47LanguageTagBuilder testBuilder)
+        {
+            // arrange
+            var builder = testBuilder.UsingLanguageTag(SecondPrimaryLanguageSubtag);
+
+            // act
+            string testResult = builder.Build();
+
+            // assert
+            testResult.Should().Be(SecondPrimaryLanguageSubtag, "UsingLanguageTag starts a new tag, discarding what was given for the earlier one");
+        }
+
+        private static Bcp47LanguageTagBuilder BuildFirst(Action<Bcp47LanguageTagBuilder> build)
+        {
+            var builder = new Bcp47LanguageTagBuilder();
+            build(builder);
+            return builder;
+        }
+
+        #endregion
     }
 }
