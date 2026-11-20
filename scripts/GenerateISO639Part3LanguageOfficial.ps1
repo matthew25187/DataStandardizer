@@ -291,7 +291,8 @@ function Out-SourceCode {
         }
         [System.CodeDom.CodeFieldReferenceExpression]$languageCodeType = $null
         switch ($codeLanguageType) {
-            'A' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Ancient') }
+            # ISO 639:2023 merged the ancient language type into historical, and Iso639LanguageType.Ancient is obsolete.
+            'A' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Historical') }
             'C' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Constructed') }
             'E' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Extinct') }
             'H' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Historical') }
