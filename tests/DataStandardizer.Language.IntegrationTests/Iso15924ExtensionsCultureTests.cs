@@ -19,7 +19,7 @@ public class Iso15924ExtensionsCultureTests
     // Values for Bopo from the ISO 15924 code list of the ISO 15924 Registration Authority (Unicode, Inc.):
     // https://www.unicode.org/iso15924/iso15924-codes.html
     // "Date" column: the date the entry was last changed.
-    private static readonly DateOnly BopomofoDate = new(2004, 5, 1);
+    private static readonly DateTime BopomofoDate = new(2004, 5, 1);
 
     // "Unicode Version" column: the Unicode version in which the script was added.
     private const double BopomofoUnicodeVersion = 1.1;

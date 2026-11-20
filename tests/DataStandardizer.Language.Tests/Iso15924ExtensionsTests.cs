@@ -19,8 +19,12 @@ public class Iso15924ExtensionsTests
     private const string CaucasianAlbanianPropertyValueAlias = "Caucasian_Albanian";
 
     // "Date" column: the date the entry was last changed.
-    private static readonly DateOnly ChisoiDate = new(2023, 9, 12);
-    private static readonly DateOnly BopomofoDate = new(2004, 5, 1);
+    private static readonly DateTime ChisoiDate = new(2023, 9, 12);
+    private static readonly DateTime BopomofoDate = new(2004, 5, 1);
+    private static readonly DateTime EgyptianHieroglyphsDate = new(2009, 6, 1);
+
+    // ISO 15924 numeric codes are 000-999; 1 isn't assigned to any script.
+    private const Iso15924Script UndefinedScriptCode = (Iso15924Script)1;
 
     // "English Name" column.
     private const string ChamEnglishName = "Cham";
@@ -95,7 +99,7 @@ public class Iso15924ExtensionsTests
 
     [Theory]
     [MemberData(nameof(GetDate_OnScriptCode_TestCaseGenerator.TestCases), MemberType = typeof(GetDate_OnScriptCode_TestCaseGenerator))]
-    public void GetDate_OnScriptCode_ReturnsScriptDate(Iso15924Script testCode, DateOnly expectedResult)
+    public void GetDate_OnScriptCode_ReturnsScriptDate(Iso15924Script testCode, DateTime expectedResult)
     {
         // act
         var testResult = testCode.GetDate();
@@ -112,8 +116,38 @@ public class Iso15924ExtensionsTests
             {
                 yield return new object[] { Iso15924Script.Chis, ChisoiDate };
                 yield return new object[] { Iso15924Script.Bopo, BopomofoDate };
+                yield return new object[] { Iso15924Script.Egyp, EgyptianHieroglyphsDate };
             }
         }
+    }
+
+    #endregion
+
+    #region Test: GetDate_OnScriptCode_ReturnsUnspecifiedKind
+
+    [Fact]
+    public void GetDate_OnScriptCode_ReturnsUnspecifiedKind()
+    {
+        // act
+        var testResult = Iso15924Script.Egyp.GetDate();
+
+        // assert
+        testResult.Should().HaveValue();
+        testResult!.Value.Kind.Should().Be(DateTimeKind.Unspecified);
+    }
+
+    #endregion
+
+    #region Test: GetDate_OnUndefinedScriptCode
+
+    [Fact]
+    public void GetDate_OnUndefinedScriptCode_ReturnsNull()
+    {
+        // act
+        var testResult = UndefinedScriptCode.GetDate();
+
+        // assert
+        testResult.Should().BeNull();
     }
 
     #endregion

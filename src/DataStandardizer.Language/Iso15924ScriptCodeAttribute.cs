@@ -33,17 +33,10 @@ namespace DataStandardizer.Language
 #endif
             : this(englishName, frenchName)
         {
-#if NET6_0_OR_GREATER
-            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
-                throw new ArgumentException($"'{date}' is not a valid date.", nameof(date));
-
-            Date = dateValue;
-#else
             if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
                 throw new ArgumentException($"'{date}' is not a valid date.", nameof(date));
 
             Date = dateValue;
-#endif
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -75,13 +68,10 @@ namespace DataStandardizer.Language
         public string Alias { get; set; }
 #endif
         /// <summary>
-        /// Gets the date of the script code.
+        /// Gets the date of the script code at midnight, with a <see cref="DateTime.Kind"/> of
+        /// <see cref="DateTimeKind.Unspecified"/>, or <c>null</c> if it has none.
         /// </summary>
-#if NET6_0_OR_GREATER
-        public DateOnly? Date { get; }
-#else
         public DateTime? Date { get; }
-#endif
 
         #endregion
     }
