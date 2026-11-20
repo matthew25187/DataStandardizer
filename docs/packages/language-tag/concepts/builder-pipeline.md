@@ -112,8 +112,20 @@ builder.UsingPrimaryLanguageSubtag("fr").Build();                         // fr
 
 The registry or conformance chosen with `WithLanguageSubtagRegistry(...)` or
 `WithConformance(...)` is not part of a tag. It stays for every later tag, until
-you call one of those steps again. A builder is not thread-safe, so don't share
-one instance between threads that build at the same time.
+you call one of those steps again.
+
+Every step returns the builder itself, not a copy. Start each tag from
+`UsingLanguageTag(...)` or `UsingPrimaryLanguageSubtag(...)`. If you continue a
+chain from a step you saved during an earlier tag, that tag's subtags are kept:
+
+```csharp
+var step = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("de");
+step.UsingRegionSubtag("DE").Build();   // de-DE
+step.UsingScriptSubtag("Latn").Build(); // de-Latn-DE, not de-Latn
+```
+
+A builder is not thread-safe, so don't share one instance between threads that
+build at the same time.
 
 ## Related
 

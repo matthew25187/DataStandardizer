@@ -522,6 +522,56 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string SecondPrimaryLanguageSubtag = "fr";
 
         /// <summary>
+        /// The ISO 639-2/T and ISO 639-3 code for French, the three-letter form of <see cref="SecondPrimaryLanguageSubtag"/>.
+        /// </summary>
+        private const string SecondPrimaryLanguageThreeLetterSubtag = "fra";
+
+        /// <summary>
+        /// The ISO 639-5 code for Germanic languages, a collection code that may be a Primary Language subtag (RFC 5646 §2.2.1).
+        /// </summary>
+        private const string GermanicLanguagesSubtag = "gem";
+
+        /// <summary>
+        /// The Primary Language and Extended Language subtags of <c>zh-yue</c>, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string ChinesePrimaryLanguageSubtag = "zh";
+        private const string CantoneseExtendedLanguageSubtag = "yue";
+
+        /// <summary>
+        /// The subtags of <c>sr-Cyrl</c>, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string SerbianPrimaryLanguageSubtag = "sr";
+        private const string CyrillicScriptSubtag = "Cyrl";
+
+        /// <summary>
+        /// German as used in Germany, an example from RFC 5646 Appendix A, and its subtags.
+        /// </summary>
+        private const string GermanyGermanLanguageTag = "de-DE";
+        private const string GermanPrimaryLanguageSubtag = "de";
+        private const string GermanyRegionSubtag = "DE";
+
+        /// <summary>
+        /// The Primary Language subtag of <c>es-419</c>, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string SpanishPrimaryLanguageSubtag = "es";
+
+        /// <summary>
+        /// The subtags of <c>sl-rozaj</c>, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string SlovenianPrimaryLanguageSubtag = "sl";
+        private const string ResianVariantSubtag = "rozaj";
+
+        /// <summary>
+        /// An Extension subtag (RFC 5646 §2.2.6), from the RFC 5646 Appendix A example <c>de-DE-u-co-phonebk</c>.
+        /// </summary>
+        private const string PhonebookCollationExtensionSubtag = "u-co-phonebk";
+
+        /// <summary>
+        /// A Primary Language subtag that is not two to eight letters (RFC 5646 §2.1).
+        /// </summary>
+        private const string MalformedPrimaryLanguageSubtag = "1";
+
+        /// <summary>
         /// Builders that have each built a tag, with a whole language tag or with one subtag of each kind after the Primary Language subtag (#1057).
         /// </summary>
         public static TheoryData<Bcp47LanguageTagBuilder> UsedBuilders
@@ -530,13 +580,29 @@ namespace DataStandardizer.LanguageTag.Tests
             {
                 var data = new TheoryData<Bcp47LanguageTagBuilder>();
                 data.Add(BuildFirst(builder => builder.UsingLanguageTag(DefaultPrimaryLanguageSubtag).Build()));
-                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("zh").UsingExtendedLanguageSubtags("yue").Build()));
-                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("sr").UsingScriptSubtag("Cyrl").Build()));
-                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("de").UsingRegionSubtag("DE").Build()));
-                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("es").UsingRegionSubtag(UnM49Area._419).Build()));
-                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag("sl").UsingVariantSubtags("rozaj").Build()));
-                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag).UsingExtensionSubtags("u-ca-hebrew").Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(ChinesePrimaryLanguageSubtag).UsingExtendedLanguageSubtags(CantoneseExtendedLanguageSubtag).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(SerbianPrimaryLanguageSubtag).UsingScriptSubtag(CyrillicScriptSubtag).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(GermanPrimaryLanguageSubtag).UsingRegionSubtag(GermanyRegionSubtag).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(SpanishPrimaryLanguageSubtag).UsingRegionSubtag(UnM49Area._419).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(SlovenianPrimaryLanguageSubtag).UsingVariantSubtags(ResianVariantSubtag).Build()));
+                data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag).UsingExtensionSubtags(PhonebookCollationExtensionSubtag).Build()));
                 data.Add(BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag).UsingPrivateUseSubtag(PrivateUseSubtag).Build()));
+                return data;
+            }
+        }
+
+        /// <summary>
+        /// Each code overload of <c>UsingPrimaryLanguageSubtag</c>, started on a builder that has built <see cref="GermanyGermanLanguageTag"/>, with the tag it should build.
+        /// </summary>
+        public static TheoryData<Func<IBcp47LanguageTagBuilderStepBuild>, string> CodeOverloadsAfterEarlierBuild
+        {
+            get
+            {
+                var data = new TheoryData<Func<IBcp47LanguageTagBuilderStepBuild>, string>();
+                data.Add(() => BuildGermanyGerman().UsingPrimaryLanguageSubtag(Iso639Part1Language.fr), SecondPrimaryLanguageSubtag);
+                data.Add(() => BuildGermanyGerman().UsingPrimaryLanguageSubtag(Iso639Part2TLanguage.fra), SecondPrimaryLanguageThreeLetterSubtag);
+                data.Add(() => BuildGermanyGerman().UsingPrimaryLanguageSubtag(Iso639Part3Language.fra), SecondPrimaryLanguageThreeLetterSubtag);
+                data.Add(() => BuildGermanyGerman().UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily.gem), GermanicLanguagesSubtag);
                 return data;
             }
         }
@@ -569,11 +635,45 @@ namespace DataStandardizer.LanguageTag.Tests
             testResult.Should().Be(SecondPrimaryLanguageSubtag, "UsingLanguageTag starts a new tag, discarding what was given for the earlier one");
         }
 
+        [Theory]
+        [MemberData(nameof(CodeOverloadsAfterEarlierBuild), DisableDiscoveryEnumeration = true)]
+        public void Build_AfterEarlierBuildWithPrimaryLanguageCode_ProducesOnlyNewSubtags(Func<IBcp47LanguageTagBuilderStepBuild> startSecondTag, string expectedLanguageTag)
+        {
+            // arrange
+            var builder = startSecondTag();
+
+            // act
+            string testResult = builder.Build();
+
+            // assert
+            testResult.Should().Be(expectedLanguageTag, "every UsingPrimaryLanguageSubtag overload starts a new tag, discarding what was given for the earlier one");
+        }
+
+        [Fact]
+        public void Build_AfterRejectedPrimaryLanguageSubtag_ProducesEarlierLanguageTag()
+        {
+            // arrange
+            var bcp47LanguageTagBuilder = new Bcp47LanguageTagBuilder();
+            var builder = bcp47LanguageTagBuilder.UsingPrimaryLanguageSubtag(GermanPrimaryLanguageSubtag).UsingRegionSubtag(GermanyRegionSubtag);
+            _ = Record.Exception(() => bcp47LanguageTagBuilder.UsingPrimaryLanguageSubtag(MalformedPrimaryLanguageSubtag));
+
+            // act
+            string testResult = builder.Build();
+
+            // assert
+            testResult.Should().Be(GermanyGermanLanguageTag, "a step that throws leaves the builder as it was");
+        }
+
         private static Bcp47LanguageTagBuilder BuildFirst(Action<Bcp47LanguageTagBuilder> build)
         {
             var builder = new Bcp47LanguageTagBuilder();
             build(builder);
             return builder;
+        }
+
+        private static Bcp47LanguageTagBuilder BuildGermanyGerman()
+        {
+            return BuildFirst(builder => builder.UsingPrimaryLanguageSubtag(GermanPrimaryLanguageSubtag).UsingRegionSubtag(GermanyRegionSubtag).Build());
         }
 
         #endregion

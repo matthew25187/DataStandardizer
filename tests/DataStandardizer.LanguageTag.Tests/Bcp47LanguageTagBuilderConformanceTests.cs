@@ -249,6 +249,21 @@ namespace DataStandardizer.LanguageTag.Tests
             testAction.Should().Throw<LanguageTagFormatException>("the shape is right, but Build checks validity against the registry").WithMessage(NotValidMessage);
         }
 
+        [Fact]
+        public void Build_AfterEarlierBuildWithRegistry_KeepsRegistry()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder();
+            builder.WithLanguageSubtagRegistry(SubtagRegistry.CreateFromContent(RegistryOfUnlistedSubtags)).UsingPrimaryLanguageSubtag(UnlistedPrimaryLanguage).Build();
+            var secondBuilder = builder.UsingPrimaryLanguageSubtag(EnglishPrimaryLanguage);
+
+            // act
+            Action testAction = () => secondBuilder.Build();
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("the registry chosen for an earlier tag still applies, and it doesn't have en (#1057)").WithMessage(NotValidMessage);
+        }
+
         #endregion
 
         #region Test: the last of the two steps applies

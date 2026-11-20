@@ -20,7 +20,9 @@ namespace DataStandardizer.LanguageTag
     /// RFC 5646 §2.2.9 allows one in a well-formed language tag, but a builder has no reason to compose a tag that could never be valid.
     /// <para>
     /// An instance can be used for more than one tag. <c>UsingLanguageTag</c> and <c>UsingPrimaryLanguageSubtag</c> each start a new tag, discarding every subtag and language tag given for an earlier one.
-    /// The Subtag Registry or conformance chosen with <see cref="WithLanguageSubtagRegistry"/> or <see cref="WithConformance"/> stays until the other step is called. An instance is not thread-safe.
+    /// The Subtag Registry or conformance chosen stays for later tags, until <see cref="WithLanguageSubtagRegistry"/> or <see cref="WithConformance"/> is called again.
+    /// Each step returns this instance, not a copy, so start every tag from <c>UsingLanguageTag</c> or <c>UsingPrimaryLanguageSubtag</c>: a chain continued from a step saved from an earlier tag keeps that tag's subtags.
+    /// An instance is not thread-safe.
     /// </para>
     /// </remarks>
     public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithConformance, IBcp47LanguageTagBuilderStepWithConformanceNext, IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
@@ -49,9 +51,11 @@ namespace DataStandardizer.LanguageTag
         private string[] _extensionSubtags = Array.Empty<string>();
         private string[] _variantSubtags = Array.Empty<string>();
 #else
-        private string[] _extendedLanguageSubtags = { };
-        private string[] _extensionSubtags = { };
-        private string[] _variantSubtags = { };
+        private static readonly string[] NoSubtags = { };
+
+        private string[] _extendedLanguageSubtags = NoSubtags;
+        private string[] _extensionSubtags = NoSubtags;
+        private string[] _variantSubtags = NoSubtags;
 #endif
         private LanguageTagConformance _conformance = LanguageTagConformance.WellFormed;
 #if NETCOREAPP3_0_OR_GREATER
@@ -484,9 +488,9 @@ namespace DataStandardizer.LanguageTag
             _extensionSubtags = Array.Empty<string>();
             _variantSubtags = Array.Empty<string>();
 #else
-            _extendedLanguageSubtags = new string[0];
-            _extensionSubtags = new string[0];
-            _variantSubtags = new string[0];
+            _extendedLanguageSubtags = NoSubtags;
+            _extensionSubtags = NoSubtags;
+            _variantSubtags = NoSubtags;
 #endif
             _scriptSubtag = null;
             _regionSubtag = null;
