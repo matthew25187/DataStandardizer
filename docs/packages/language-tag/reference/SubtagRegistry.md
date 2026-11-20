@@ -31,7 +31,7 @@ methods throw `ArgumentNullException` for a `null` argument, and
 format of RFC 5646 §3.1.1: a line that doesn't end with CRLF, a blank line, a
 tab, carriage return or other control character, a line that is neither a field nor a folded line starting with a space, a field
 that ends with a space, a `File-Date`, `Subtag`, `Tag`, `Type`,
-`Description`, `Added`, `Deprecated`, `Prefix` or `Scope` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
+`Description`, `Added`, `Deprecated`, `Prefix`, `Scope`, `Suppress-Script`, `Macrolanguage` or `Preferred-Value` field with no value, a `File-Date`, `Added` or `Deprecated` field that isn't an
 RFC 3339 full-date (or is one in the year 0000, before the first year a
 `DateTime` holds), or a record that is empty, has none or more than one
 of the `File-Date`, `Subtag` and `Tag` fields, or has no `Type` that
@@ -46,7 +46,15 @@ doesn't allow: a `Prefix` field outside an `extlang` or `variant` record, or an
 `extlang` record without exactly one (§3.1.2, §3.1.8); a `Suppress-Script`,
 `Macrolanguage` or `Scope` field outside a `language` or `extlang` record
 (§3.1.2); a `Scope` other than `macrolanguage`, `collection`, `special` and
-`private-use` (§3.1.2); a `Subtag` that isn't a subtag of its record's `Type`
+`private-use` (§3.1.2); a `Prefix` that isn't a well-formed language tag, or
+repeats a variant subtag or extension singleton, as a valid one doesn't
+(§2.2.9, §3.1.8); a `Suppress-Script` that isn't a script subtag of four
+letters (§3.1.9); a `Macrolanguage` that isn't a primary language subtag of two
+to eight letters (§3.1.10); a `Preferred-Value` that isn't a primary language
+subtag in a `language` record, a subtag of the record's type in a `script`,
+`region` or `variant` record, or an extended language range (RFC 4647 §2.2) in
+an `extlang`, `grandfathered` or `redundant` record (§3.1.2, §3.1.7), any of
+these in any case, as §3.1.4 sets the case of `Subtag` and `Tag` alone; a `Subtag` that isn't a subtag of its record's `Type`
 (§2.2.1 to §2.2.5) in the case of §3.1.4 (titlecase for a script, upper case
 for a region, lower case for the rest), at both ends of a range; a `Tag` that
 isn't formatted as §2.1.1 describes (§3.1.4); and a character outside printable
