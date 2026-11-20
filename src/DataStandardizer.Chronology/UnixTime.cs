@@ -44,7 +44,8 @@
         }
 
         /// <summary>
-        /// Gets the Julian day number of the time, with a fraction for the time of day: the number of days since noon UTC on January 1, 4713 BC in the proleptic Julian calendar.
+        /// Gets the Julian day number of the time, with a fraction for the time of day: the number of days since noon UTC on
+        /// November 24, 4714 BC in the proleptic Gregorian calendar (January 1, 4713 BC in the proleptic Julian calendar).
         /// </summary>
         /// <value>
         /// The Unix time in days, plus 2440587.5, the Julian day number of the Unix epoch. A Julian day starts at noon UTC, so a time at midnight UTC,
