@@ -59,7 +59,7 @@ namespace DataStandardizer.LanguageTag.Tests
         private const LanguageTagConformance UndefinedConformance = (LanguageTagConformance)99;
 
         private const string ConformanceParameterName = "conformance";
-        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
+        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, is not in the ISO code lists, or repeats a variant subtag or extension singleton.";
         private const string NotValidMessage = "The language tag is not valid against the subtag registry.";
 
         #endregion

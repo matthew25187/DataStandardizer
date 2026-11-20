@@ -406,7 +406,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// The message of the exception thrown for a string that the ISO code lists opt-in rejects.
         /// </summary>
-        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
+        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, is not in the ISO code lists, or repeats a variant subtag or extension singleton.";
 
         private static readonly char[] TestCharacters;
         private static readonly char[] TestDigits;

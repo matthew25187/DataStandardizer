@@ -27,7 +27,7 @@ namespace DataStandardizer.LanguageTag
         internal static class ErrorMessage
         {
             internal const string ConformanceValidNeedsRegistry = "Validity needs a subtag registry. Use the overload that takes a SubtagRegistry.";
-            internal const string LanguageTagNotInIsoCodeLists = "The language tag is not well-formed, or is not in the ISO code lists.";
+            internal const string LanguageTagNotInIsoCodeLists = "The language tag is not well-formed, is not in the ISO code lists, or repeats a variant subtag or extension singleton.";
             internal const string LanguageTagNotValid = "The language tag is not valid against the subtag registry.";
             internal const string LanguageTagNotWellFormed = "The language tag is not well-formed.";
             internal const string LanguageTagNull = "The language tag must not be null.";
