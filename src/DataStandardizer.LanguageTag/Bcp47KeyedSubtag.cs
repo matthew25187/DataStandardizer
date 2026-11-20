@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DataStandardizer.LanguageTag.InternalState;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -16,6 +17,7 @@ namespace DataStandardizer.LanguageTag
         private static class ErrorMessage
         {
             internal const string SubtagNull = "The subtag must not be null.";
+            internal const string SubtagNotKeyed = "The subtag is neither one extension (RFC 5646 §2.2.6) nor one private use sequence (RFC 5646 §2.2.7).";
             internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialised.";
         }
 #if NETCOREAPP3_0_OR_GREATER
@@ -44,8 +46,15 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Convert a string to a keyed subtag.
         /// </summary>
-        /// <param name="value">Subtag string.</param>
-        /// <exception cref="InvalidCastException">The subtag is <c>null</c>.</exception>
+        /// <param name="value">
+        /// Subtag string: one extension, a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.2.6),
+        /// or one private use sequence, <c>x</c> followed by one or more subtags of one to eight letters or digits (<c>privateuse</c>, RFC 5646 §2.2.7).
+        /// Letters may be in either case, and the subtag keeps the case it is written in.
+        /// </param>
+        /// <exception cref="InvalidCastException">The subtag is <c>null</c>, or is neither one extension nor one private use sequence.</exception>
+        /// <remarks>
+        /// This checks the shape of the subtag only, and looks nothing up: the extension's singleton may be one that nothing has assigned.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47KeyedSubtag(string value)
 #else
@@ -55,6 +64,12 @@ namespace DataStandardizer.LanguageTag
             if (value is null)
             {
                 throw new InvalidCastException(ErrorMessage.SubtagNull);
+            }
+
+            var span = value.AsSpan();
+            if (!Bcp47LanguageTagParser.IsExtension(span) && !Bcp47LanguageTagParser.IsPrivateUse(span))
+            {
+                throw new InvalidCastException(ErrorMessage.SubtagNotKeyed);
             }
 
             return new Bcp47KeyedSubtag(value);
@@ -116,8 +131,11 @@ namespace DataStandardizer.LanguageTag
         #region Public Properties
 
         /// <summary>
-        /// Gets the single character that identifies the subtag.
+        /// Gets the single character that identifies the subtag: the extension's singleton (RFC 5646 §2.2.6), or <c>x</c> for a private use sequence (§2.2.7).
         /// </summary>
+        /// <remarks>
+        /// The value is never <c>null</c>.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialised.</exception>
         public char? Singleton
         {
@@ -125,15 +143,8 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_subtag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                // The singleton is the first character of the first segment, or null when that segment is empty or whitespace.
-                var segmentEnd = _subtag.IndexOf('-');
-                if (segmentEnd < 0) segmentEnd = _subtag.Length;
-                for (var i = 0; i < segmentEnd; i++)
-                {
-                    if (!char.IsWhiteSpace(_subtag[i])) return _subtag[0];
-                }
-
-                return null;
+                // Every instance holds one extension or one private use sequence, whose first subtag is its one-character singleton.
+                return _subtag[0];
             }
         }
 
