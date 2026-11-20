@@ -54,7 +54,10 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Gets a collection of all English names.
         /// </summary>
-        public string[] EnglishNames => _englishNames;
+        /// <value>
+        /// A copy of the attribute's names. Changing it doesn't change the attribute.
+        /// </value>
+        public string[] EnglishNames => CopyNames(_englishNames);
 
         /// <summary>
         /// Gets the first French name.
@@ -68,7 +71,26 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Gets a collection of all French names.
         /// </summary>
-        public string[] FrenchNames => _frenchNames;
+        /// <value>
+        /// A copy of the attribute's names. Changing it doesn't change the attribute.
+        /// </value>
+        public string[] FrenchNames => CopyNames(_frenchNames);
+
+        #endregion
+
+        #region Private Methods
+
+        private static string[] CopyNames(string[] names)
+        {
+            if (names.Length == 0)
+            {
+                return names;
+            }
+
+            var copy = new string[names.Length];
+            Array.Copy(names, copy, names.Length);
+            return copy;
+        }
 
         #endregion
     }

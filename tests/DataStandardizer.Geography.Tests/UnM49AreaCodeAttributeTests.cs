@@ -193,4 +193,40 @@ public class UnM49AreaCodeAttributeTests
     }
 
     #endregion
+
+    #region Test: EnglishName_AfterWritingToAReturnedEnglishNamesArray
+
+    [Fact]
+    public void EnglishName_AfterWritingToAReturnedEnglishNamesArray_IsUnchanged()
+    {
+        // arrange
+        var attribute = new UnM49AreaCodeAttribute(UnM49CodeWorld) { EnglishGlobalName = UnM49EnglishWorld };
+
+        // act
+        attribute.EnglishNames[0] = UnM49EnglishAfrica;
+        var testResult = attribute.EnglishName;
+
+        // assert
+        testResult.Should().Be(UnM49EnglishWorld);
+    }
+
+    #endregion
+
+    #region Test: FrenchName_AfterWritingToAReturnedFrenchNamesArray
+
+    [Fact]
+    public void FrenchName_AfterWritingToAReturnedFrenchNamesArray_IsUnchanged()
+    {
+        // arrange
+        var attribute = new UnM49AreaCodeAttribute(UnM49CodeWorld) { FrenchGlobalName = UnM49FrenchWorld };
+
+        // act
+        attribute.FrenchNames[0] = UnM49FrenchAfrica;
+        var testResult = attribute.FrenchName;
+
+        // assert
+        testResult.Should().Be(UnM49FrenchWorld);
+    }
+
+    #endregion
 }
