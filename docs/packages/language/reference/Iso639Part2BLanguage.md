@@ -24,9 +24,9 @@ public readonly struct Iso639Part2BLanguage : DataStandardizer.Core.IStringEnum,
 
 ## Remarks
 
-`IStringEnum` derives from `IComparable` on all targets and additionally from
-`IConvertible` on the `netstandard2.0` and `net10.0` targets, but not on
-`netstandard1.0`. The constructor is private; obtain a value from a static code
+`IStringEnum` derives from `IComparable` on all targets. The struct also
+implements `IConvertible` itself on the `netstandard2.0` and `net10.0` targets,
+but not on `netstandard1.0`. The constructor is private; obtain a value from a static code
 member or the explicit `string` conversion. Per-member metadata is read through the
 [Iso639Extensions](Iso639Extensions.md) accessors. See
 [Understanding the ISO 639 parts](../concepts/iso639-parts.md).

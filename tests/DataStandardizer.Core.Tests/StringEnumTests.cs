@@ -2678,7 +2678,7 @@ namespace DataStandardizer.Core.Tests
 
         #region Test Types
 
-        public readonly struct SimpleEnum : IStringEnum, IEquatable<SimpleEnum>
+        public readonly struct SimpleEnum : IStringEnum, IConvertible, IEquatable<SimpleEnum>
         {
             private readonly string _value;
 
@@ -2851,7 +2851,7 @@ namespace DataStandardizer.Core.Tests
             #endregion
         }
 
-        public readonly struct ComplexEnum : IStringEnum, IEquatable<ComplexEnum>
+        public readonly struct ComplexEnum : IStringEnum, IConvertible, IEquatable<ComplexEnum>
         {
             private readonly string _value;
 
@@ -3034,7 +3034,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // A public nested class holds an instance field of the enumeration's type, which isn't a member.
-        public readonly struct InstanceFieldEnum : IStringEnum
+        public readonly struct InstanceFieldEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3082,7 +3082,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // A lambda captures a value of the enumeration, so the compiler generates a nested closure class with an instance field of its type.
-        public readonly struct ClosureEnum : IStringEnum
+        public readonly struct ClosureEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3133,7 +3133,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // A non-public nested class holds a non-public static field of the enumeration's type, which isn't a member.
-        public readonly struct NonPublicNestedFieldEnum : IStringEnum
+        public readonly struct NonPublicNestedFieldEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3182,7 +3182,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // Members are declared on the struct, one level down and two levels down.
-        public readonly struct DeeplyNestedEnum : IStringEnum
+        public readonly struct DeeplyNestedEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3234,7 +3234,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // Two members share the name Red, which makes the enumeration malformed.
-        public readonly struct DuplicateNameEnum : IStringEnum
+        public readonly struct DuplicateNameEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3282,7 +3282,7 @@ namespace DataStandardizer.Core.Tests
 
         // Two member names, and two member values, differ only by case, and one member's value matches another member's name ignoring case.
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        public readonly struct CaseVariantNameEnum : IStringEnum
+        public readonly struct CaseVariantNameEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3334,7 +3334,7 @@ namespace DataStandardizer.Core.Tests
 
         // One member's value is another member's value with white space before it, one differs from that by case, one is another member's name with white space before it,
         // and one is the empty string.
-        public readonly struct WhiteSpaceValueEnum : IStringEnum
+        public readonly struct WhiteSpaceValueEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3386,7 +3386,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // Its members are declared out of value order, and two of them share a value. Alpha is declared before Alias, but Alias sorts first by name.
-        public readonly struct UnorderedEnum : IStringEnum
+        public readonly struct UnorderedEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3436,7 +3436,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // A public nested generic class declares a field of the enumeration's type, which has no single value, so it isn't a member.
-        public readonly struct GenericNestedClassEnum : IStringEnum
+        public readonly struct GenericNestedClassEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3483,7 +3483,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // Its conversion to string throws, so StringEnum fails while it caches its members.
-        public readonly struct StringConversionThrowingEnum : IStringEnum
+        public readonly struct StringConversionThrowingEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3525,7 +3525,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // Its conversion from string rejects every value, as a conversion operator does for a value the enumeration doesn't accept.
-        public readonly struct RejectingEnum : IStringEnum
+        public readonly struct RejectingEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3563,7 +3563,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // It has a conversion from string, but no conversion to string.
-        public readonly struct NoStringConversionEnum : IStringEnum
+        public readonly struct NoStringConversionEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3599,7 +3599,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // It has a public constructor that takes a string, but no conversion from string.
-        public readonly struct NoOperatorEnum : IStringEnum
+        public readonly struct NoOperatorEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3635,7 +3635,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // A generic definition has open type parameters, so its static fields have no values to read.
-        public readonly struct OpenGenericEnum<T> : IStringEnum
+        public readonly struct OpenGenericEnum<T> : IStringEnum, IConvertible
         {
             private readonly string _value;
 
@@ -3673,7 +3673,7 @@ namespace DataStandardizer.Core.Tests
         }
 
         // A class that implements IStringEnum isn't a string enumeration, which has to be a struct.
-        public sealed class ClassEnum : IStringEnum
+        public sealed class ClassEnum : IStringEnum, IConvertible
         {
             private readonly string _value;
 

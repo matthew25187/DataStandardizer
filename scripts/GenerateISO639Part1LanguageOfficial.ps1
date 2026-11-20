@@ -316,7 +316,10 @@ function Out-SourceCode {
             $writer = [System.IO.StringWriter]::new($sourceCodeCuBuilder)
             try {
                 $provider.GenerateCodeFromCompileUnit($cu, $writer, $options)
-                Write-Output $sourceCodeCuBuilder.ToString()
+
+                # IStringEnum doesn't extend IConvertible, so the struct declares it on the targets that have it.
+                $structDeclarationPattern = [regex]::new("(?m)^(\s*public (?:partial )?struct $([regex]::Escape($TypeName)) : [^\r\n]*)(\r?\n)")
+                Write-Output $structDeclarationPattern.Replace($sourceCodeCuBuilder.ToString(), '$1$2#if NETSTANDARD1_3_OR_GREATER||NET$2, System.IConvertible$2#endif$2', 1)
             }
             finally {
                 $writer.Close()

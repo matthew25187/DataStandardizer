@@ -23,6 +23,9 @@ namespace DataStandardizer.Language
     /// Based on official ISO 639 Part 3 language codes as at 2025-04-15.
     /// </remarks>
     public readonly partial struct Iso639Part3Language : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.Language.Iso639Part3Language>
+#if NETSTANDARD1_3_OR_GREATER||NET
+, System.IConvertible
+#endif
     {
         
         #region Declarations
