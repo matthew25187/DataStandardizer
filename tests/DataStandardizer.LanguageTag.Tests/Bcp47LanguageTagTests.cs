@@ -407,6 +407,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// The message of the exception thrown for a string that the ISO code lists opt-in rejects.
         /// </summary>
         private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
+        private const string RepeatedSubtagMessage = "The language tag repeats a variant subtag or extension singleton.";
 
         private static readonly char[] TestCharacters;
         private static readonly char[] TestDigits;
@@ -3161,7 +3162,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, LanguageTagConformance.IsoCodeLists);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the ISO code lists approximate validity, so a variant subtag or extension singleton must not repeat (RFC 5646 §2.2.9)").WithMessage(NotInIsoCodeListsMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the ISO code lists approximate validity, so a variant subtag or extension singleton must not repeat (RFC 5646 §2.2.9)").WithMessage(RepeatedSubtagMessage);
         }
 
         #endregion

@@ -153,6 +153,7 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string NotWellFormedMessage = "The language tag is not well-formed.";
         private const string NotValidMessage = "The language tag is not valid against the subtag registry.";
         private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
+        private const string RepeatedSubtagMessage = "The language tag repeats a variant subtag or extension singleton.";
         private const string NeedsRegistryMessagePattern = "Validity needs a subtag registry. Use the overload that takes a SubtagRegistry.*";
         private const string LanguageTagNotInitialisedMessage = "The Bcp47LanguageTag instance is not initialised.";
         private const string KeyedSubtagNotInitialisedMessage = "The Bcp47KeyedSubtag instance is not initialised.";
@@ -213,6 +214,22 @@ namespace DataStandardizer.LanguageTag.Tests
         public static TheoryData<string> NotInIsoCodeListsLanguageTags => new TheoryData<string>
         {
             UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, RepeatedVariant, RepeatedSingleton, EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode
+        };
+
+        /// <summary>
+        /// Tags that the ISO code lists opt-in rejects for a code that is not in the lists, although they are well-formed.
+        /// </summary>
+        public static TheoryData<string> UnlistedCodeLanguageTags => new TheoryData<string>
+        {
+            UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode
+        };
+
+        /// <summary>
+        /// Tags whose only fault under the ISO code lists opt-in is a repeated variant subtag or extension singleton (RFC 5646 §2.2.9).
+        /// </summary>
+        public static TheoryData<string> RepeatedSubtagLanguageTags => new TheoryData<string>
+        {
+            RepeatedVariant, RepeatedSingleton
         };
 
         /// <summary>
@@ -662,7 +679,7 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(NotInIsoCodeListsLanguageTags))]
+        [MemberData(nameof(UnlistedCodeLanguageTags))]
         public void Create_WithIsoCodeListsAndUnlistedLanguageTag_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
@@ -670,6 +687,17 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>().WithMessage(NotInIsoCodeListsMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatedSubtagLanguageTags))]
+        public void Create_WithIsoCodeListsAndRepeatedSubtag_ThrowsLanguageTagFormatExceptionNamingTheRepeat(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>().WithMessage(RepeatedSubtagMessage);
         }
 
         [Theory]

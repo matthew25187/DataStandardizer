@@ -30,6 +30,7 @@ The message names the class that failed:
 | Well-formedness | `The language tag is not well-formed.` |
 | Validity against a registry | `The language tag is not valid against the subtag registry.` |
 | The ISO code lists | `The language tag is not well-formed, or is not in the ISO code lists.` |
+| The ISO code lists, when the tag repeats a variant subtag or extension singleton and has no other fault (RFC 5646 §2.2.9) | `The language tag repeats a variant subtag or extension singleton.` |
 
 ## Constructors
 
