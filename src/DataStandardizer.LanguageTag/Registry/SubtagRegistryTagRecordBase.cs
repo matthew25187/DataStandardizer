@@ -108,7 +108,8 @@ namespace DataStandardizer.LanguageTag.Registry
 
         /// <summary>
         /// Gets the Preferred-Value field value: a primary language subtag on a language record, a subtag of the record's type on a script, region or
-        /// variant record, and an extended language range (ref. RFC 4647 §2.2) on an extlang, grandfathered or redundant record (ref. RFC 5646 §3.1.2).
+        /// variant record, the record's Subtag on an extlang record, which always has one (ref. RFC 5646 §2.2.2), and an extended language range
+        /// (ref. RFC 4647 §2.2) on a grandfathered or redundant record (ref. RFC 5646 §3.1.2).
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? PreferredValue { get; }

@@ -99,8 +99,11 @@ namespace DataStandardizer.LanguageTag.Registry
         /// <summary>
         /// Gets whether a Preferred-Value field body has the form that RFC 5646 §3.1.2 gives it for the record's type, in any case
         /// (ref. RFC 5646 §2.1.1): a primary language subtag for a language record, a subtag of the same type for a script, region or variant record
-        /// (ref. RFC 5646 §2.2.3 to §2.2.5), and an extended language range (ref. RFC 4647 §2.2) for an extlang, grandfathered or redundant record.
+        /// (ref. RFC 5646 §2.2.3 to §2.2.5), and an extended language range (ref. RFC 4647 §2.2) for a grandfathered or redundant record.
         /// </summary>
+        /// <remarks>
+        /// An extlang record's Preferred-Value is identical to its Subtag (ref. RFC 5646 §2.2.2), which the reader checks instead.
+        /// </remarks>
         internal static bool IsPreferredValue(SubtagRegistryRecordType type, string value)
         {
             var length = value.Length;
@@ -114,7 +117,6 @@ namespace DataStandardizer.LanguageTag.Registry
                     return length == 2 && IsLetters(value, 0, length) || length == 3 && IsDigits(value, 0, length);
                 case SubtagRegistryRecordType.Variant:
                     return (length >= 5 && length <= 8 || length == 4 && IsDigit(value[0])) && IsLettersOrDigits(value, 0, length);
-                case SubtagRegistryRecordType.ExtendedLanguage:
                 case SubtagRegistryRecordType.Grandfathered:
                 case SubtagRegistryRecordType.Redundant:
                     return IsExtendedLanguageRange(value);

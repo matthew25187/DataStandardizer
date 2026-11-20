@@ -25,7 +25,7 @@ namespace DataStandardizer.LanguageTag.Registry
     /// extlang record (§3.1.2); for a Scope other than the four values §3.1.2 permits; for a Prefix that is not a well-formed language tag repeating
     /// no variant subtag or extension singleton (§2.2.9, §3.1.8), a Suppress-Script that is not a script subtag, a Macrolanguage that is not a primary
     /// language subtag, and a Preferred-Value not in the form §3.1.2 gives it for the record's Type, each in any case (§2.1.1), and for any of these
-    /// fields with no value; for a Subtag that is not a subtag of its record's Type in the
+    /// fields with no value; for an extlang record whose Preferred-Value is missing or not identical to its Subtag (§2.2.2); for a Subtag that is not a subtag of its record's Type in the
     /// form of §2.2.1 to §2.2.5 and the case of §3.1.4, at both ends of a range; for a Tag that is not formatted as §2.1.1 describes (§3.1.4); and for
     /// a character outside printable US-ASCII in a field that RFC 5646 defines, other than Description and Comments (§3.1.1). Fields that RFC 5646
     /// doesn't define are kept, and the rules for tag and subtag records ignore them, as §3.1.2 asks; the File-Date record has the File-Date field
@@ -673,8 +673,28 @@ namespace DataStandardizer.LanguageTag.Registry
                     recordLineNumber, macrolanguage);
             }
 
-            // Preferred-Value takes a form that depends on the record's Type (ref. RFC 5646 §3.1.2, §3.1.7)
+            // an extlang record has a Preferred-Value identical to its Subtag (ref. RFC 5646 §2.2.2), which is also the extended language range that
+            // §3.1.2 gives it
             var preferredValue = record.PreferredValue;
+            if (record is SubtagRegistrySubtagRecord subtagRecord && record.Type == SubtagRegistryRecordType.ExtendedLanguage)
+            {
+                if (preferredValue is null)
+                {
+                    throw CreateException(
+                        "The record at line {0} has no Preferred-Value field, which a record of the Type 'extlang' has (ref. RFC 5646 §2.2.2).", recordLineNumber);
+                }
+
+                if (!string.Equals(preferredValue, subtagRecord.Subtag, StringComparison.Ordinal))
+                {
+                    throw CreateException(
+                        "The record at line {0} has the Preferred-Value '{1}', which is not identical to its Subtag '{2}', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2).",
+                        recordLineNumber, preferredValue, subtagRecord.Subtag);
+                }
+
+                return;
+            }
+
+            // Preferred-Value takes a form that depends on the record's Type (ref. RFC 5646 §3.1.2, §3.1.7)
             if (preferredValue != null && !SubtagRegistryValueFormat.IsPreferredValue(record.Type, preferredValue))
             {
                 throw CreateException(

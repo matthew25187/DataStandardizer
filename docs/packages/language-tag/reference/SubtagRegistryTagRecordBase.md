@@ -40,6 +40,17 @@ A loaded registry has `Prefix` only on `extlang` and `variant` records, with
 exactly one on each `extlang` record, and `SuppressScript`, `Macrolanguage` and
 `Scope` only on `language` and `extlang` records. `Scope` is one of
 `macrolanguage`, `collection`, `special` and `private-use` (RFC 5646 §3.1.2).
+Each `Prefix` is a well-formed language tag that repeats no variant subtag or
+extension singleton (§2.2.9, §3.1.8), `SuppressScript` is a script subtag of
+four letters (§3.1.9), and `Macrolanguage` is a primary language subtag of two to
+eight letters (§3.1.10). `PreferredValue` is a primary language subtag on a
+`language` record, a subtag of the record's type on a `script`, `region` or
+`variant` record, the record's own `Subtag` on an `extlang` record, which always
+has one (§2.2.2), and an extended language range (RFC 4647 §2.2) on a
+`grandfathered` or `redundant` record (§3.1.2, §3.1.7). Apart from the
+`extlang` `PreferredValue`, these fields may be in any case, as §3.1.4 sets the
+case of `Subtag` and `Tag` alone. Whether the subtags they name have records
+in the registry is not checked.
 
 ## Properties
 

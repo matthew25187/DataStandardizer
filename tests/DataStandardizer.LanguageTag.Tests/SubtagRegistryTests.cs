@@ -1346,8 +1346,15 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The record at line 3 has the Preferred-Value 'M1', which is not a region subtag, as a record of the Type 'region' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: heploc\r\nDescription: Hepburn romanization, Library of Congress method\r\nAdded: 2009-10-01\r\nDeprecated: 2010-02-07\r\nPreferred-Value: abcd\r\n",
                 "The record at line 3 has the Preferred-Value 'abcd', which is not a variant subtag, as a record of the Type 'variant' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
-            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: 1aao\r\nPrefix: ar\r\n",
-                "The record at line 3 has the Preferred-Value '1aao', which is not an extended language range of RFC 4647 §2.2, as a record of the Type 'extlang' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            // an extlang record has a Preferred-Value, identical to its Subtag (§2.2.2)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\n",
+                "The record at line 3 has no Preferred-Value field, which a record of the Type 'extlang' has (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: ar-aao\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value 'ar-aao', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: AAO\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value 'AAO', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: *\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value '*', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: i-klingon\r\nDescription: Klingon\r\nAdded: 1999-05-26\r\nDeprecated: 2004-02-24\r\nPreferred-Value: tlh--x\r\n",
                 "The record at line 3 has the Preferred-Value 'tlh--x', which is not an extended language range of RFC 4647 §2.2, as a record of the Type 'grandfathered' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-cmn-Hans\r\nDescription: Mandarin Chinese (Simplified)\r\nAdded: 2005-07-15\r\nDeprecated: 2009-07-29\r\nPreferred-Value: cmn-Hansabcde\r\n",
@@ -1453,6 +1460,7 @@ namespace DataStandardizer.LanguageTag.Tests
             "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: heploc\r\nDescription: Hepburn romanization, Library of Congress method\r\nAdded: 2009-10-01\r\nDeprecated: 2010-02-07\r\nPreferred-Value: ALALC97\r\n",
             "File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Qaai\r\nDescription: Inherited\r\nAdded: 2005-10-16\r\nDeprecated: 2007-07-05\r\nPreferred-Value: zinh\r\n",
             "File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-cmn-Hans\r\nDescription: Mandarin Chinese (Simplified)\r\nAdded: 2005-07-15\r\nDeprecated: 2009-07-29\r\nPreferred-Value: cmn-*-1994\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: aao\r\nPrefix: AR\r\n",
         };
 
         [Theory]
