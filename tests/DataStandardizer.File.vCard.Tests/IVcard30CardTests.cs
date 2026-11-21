@@ -17,6 +17,11 @@ namespace DataStandardizer.File.vCard.Tests
         private const string OwnSortString = "Own";
         private const string OwnSortStringProperty = "SORT-STRING:" + OwnSortString;
         private const string UnsortedName = "N:Doe;;;;";
+        private const string SecondSortedOrganization = "ORG;SORT-AS=Bolt:Bolt";
+        private const string NameSortKey = "Chan";
+        private const string SortedName = "N;ALTID=1;SORT-AS=" + NameSortKey + ":Chan;;;;";
+        // ref. RFC 9554 §4.6: PHONETIC marks an N as the pronunciation of another, which vCard 3.0 can't hold.
+        private const string PhoneticName = "N;ALTID=1;PHONETIC=ipa:chan;;;;";
         private static readonly byte[] Data = { 1, 2, 3 };
         private static readonly Uri ExampleUri = new Uri("http://example.com/a,b");
 
@@ -374,7 +379,7 @@ namespace DataStandardizer.File.vCard.Tests
             return new TheoryData<string[]>
             {
                 new[] { Vcard30TestData.FormattedName, UnsortedName, SortedOrganization },
-                new[] { Vcard30TestData.FormattedName, "ORG:Acme", "ORG;SORT-AS=Bolt:Bolt" }
+                new[] { Vcard30TestData.FormattedName, "ORG:Acme", SecondSortedOrganization }
             };
         }
 
@@ -410,7 +415,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void SortString_SortKeyOnFirstOrganizationOfCardWithNoName_GivesIt()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, SortedOrganization, "ORG;SORT-AS=Bolt:Bolt"));
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, SortedOrganization, SecondSortedOrganization));
 
             // act
             var testResult = card.AsVersion30().SortString;
@@ -430,6 +435,46 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().Be(OwnSortString);
+        }
+
+        [Fact]
+        public void SortString_SortStringOfItsOwnBeforeSortedName_GivesTheSortString()
+        {
+            // arrange: a reader of vCard 3.0 gives the first SORT-STRING to the first N, so a writer leaves out the sort key of an N after one.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, OwnSortStringProperty, SortedName));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OwnSortString);
+        }
+
+        [Fact]
+        public void SortString_PhoneticNameBeforeSortedName_GivesTheSortKeyOfTheSortedName()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, PhoneticName, SortedName));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(NameSortKey);
+        }
+
+        [Fact]
+        public void SortString_PhoneticNameOnlyAndSortedOrganization_GivesTheSortKeyOfTheOrganization()
+        {
+            // arrange: RFC 9554 §4.6 requires an N without PHONETIC, which AllowInvalidValues waives.
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, PhoneticName, SortedOrganization), options);
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OrganizationSortKey);
         }
 
         [Fact]

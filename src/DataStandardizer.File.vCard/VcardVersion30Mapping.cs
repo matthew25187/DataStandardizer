@@ -111,6 +111,41 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the sort key that a writer of vCard 3.0 writes as the first <c>SORT-STRING</c> of the card, from the line a reader of vCard 3.0 gives it back to (see
+        /// <see cref="Downgrade.AddSortStrings"/>): the first <c>N</c> it writes, or on a card with no such <c>N</c> the first <c>ORG</c>.  Gives <c>null</c> if that line has no
+        /// sort key, or if a <c>SORT-STRING</c> of the card's own that the reader would give to the line comes before it, since the writer then leaves the line's sort key out.
+        /// </summary>
+        internal static string GetWrittenSortKey(VcardCard card)
+        {
+            var targetIndex = -1;
+            var ownSortStringIndex = int.MaxValue;
+            for (var index = 0; index < card.Properties.Count; index++)
+            {
+                var line = card.Properties[index];
+                string text;
+                if (ownSortStringIndex == int.MaxValue && IsName(line, VcardPropertyNames.SortString) && IsAttachableSortString(line, out text))
+                {
+                    ownSortStringIndex = index;
+                }
+
+                // ref. RFC 9554 §4.6: a writer of vCard 3.0 leaves out an N with PHONETIC, which is the pronunciation of another.
+                if (IsName(line, VcardPropertyNames.Name) && line.GetParameter(VcardParameterNames.Phonetic) is null && (targetIndex < 0 || !IsName(card.Properties[targetIndex], VcardPropertyNames.Name)))
+                {
+                    targetIndex = index;
+                }
+                else if (IsName(line, VcardPropertyNames.Organization) && targetIndex < 0)
+                {
+                    targetIndex = index;
+                }
+            }
+
+            if (targetIndex < 0 || targetIndex > ownSortStringIndex) return null;
+
+            var sortAs = VcardPropertyParameterReader.GetListValues(card.Properties[targetIndex], VcardParameterNames.SortAs);
+            return sortAs.Count == 0 ? null : sortAs[0];
+        }
+
+        /// <summary>
         /// Gets the lowest <c>PREF</c> among the instances of a property.
         /// </summary>
         internal static int GetLowestPreference(IEnumerable<VcardContentLine> lines, string name)
