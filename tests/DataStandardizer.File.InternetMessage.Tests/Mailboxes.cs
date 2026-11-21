@@ -16,6 +16,33 @@ namespace DataStandardizer.File.InternetMessage.Tests
     internal static class Mailboxes
     {
         /// <summary>
+        /// Reads the events of the first message of a file as far as its first header field, and gives that field's view to <paramref name="use"/> while the reader is on it.
+        /// </summary>
+        public static void WithFirstField(string mailbox, Action<ImfHeaderFieldView> use)
+        {
+            using (var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox))))
+            {
+                var events = reader.ReadEntityEvents();
+                events.ReadEvent();
+                use(events.ReadEvent().Value.Field);
+            }
+        }
+
+        /// <summary>
+        /// Reads the events of the first message of a file as far as its first header field, and gives that field's view to <paramref name="use"/>, which the reader stays on
+        /// until the task completes.
+        /// </summary>
+        public static async Task WithFirstFieldAsync(string mailbox, Func<ImfHeaderFieldView, Task> use)
+        {
+            using (var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox))))
+            {
+                var events = await reader.ReadEntityEventsAsync();
+                await events.ReadEventAsync();
+                await use((await events.ReadEventAsync()).Value.Field);
+            }
+        }
+
+        /// <summary>
         /// Describes a message, with the line breaks it was read with.
         /// </summary>
         public static string Describe(ImfMessage message)

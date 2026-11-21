@@ -347,7 +347,8 @@ namespace DataStandardizer.File.InternetMessage
         /// Adds a field to the header of the entity, copying what a reader has just read, to be written byte for byte.
         /// </summary>
         /// <remarks>
-        /// The rules that <see cref="AddField(string, string, ImfHeaderFieldKind)"/> gives for the fields a writer adds itself apply here too.
+        /// The rules that <see cref="AddField(string, string, ImfHeaderFieldKind)"/> gives for the fields a writer adds itself apply here too.  A field read with other line breaks
+        /// than the writer's, such as one from an mbox file, is written with those of the writer (RFC 5322 §2.1).
         /// </remarks>
         /// <param name="field">The field.</param>
         /// <returns>This object.</returns>
@@ -358,7 +359,7 @@ namespace DataStandardizer.File.InternetMessage
         public ImfEntitySource AddField(ImfHeaderFieldView field)
         {
             CheckHasFields();
-            _fields.Add(new FieldEntry(field.RawBytes.ToArray(), false));
+            _fields.Add(new FieldEntry(field.RawBytes.ToArray(), false, lineFeedIsLineBreak: field.LineFeedIsLineBreak));
             return this;
         }
 
@@ -427,10 +428,12 @@ namespace DataStandardizer.File.InternetMessage
                 IsText = isText;
                 NeedsCheck = false;
                 IsModelField = false;
+                LineFeedIsLineBreak = null;
             }
 
-            internal FieldEntry(byte[] rawBytes, bool needsCheck, bool isModelField = false)
+            internal FieldEntry(byte[] rawBytes, bool needsCheck, bool isModelField = false, bool? lineFeedIsLineBreak = null)
             {
+                LineFeedIsLineBreak = lineFeedIsLineBreak;
                 Name = rawBytes;
                 Value = rawBytes;
                 Kind = ImfHeaderFieldKind.Unstructured;
@@ -454,6 +457,12 @@ namespace DataStandardizer.File.InternetMessage
             internal bool IsText { get; }
 
             internal bool NeedsCheck { get; }
+
+            /// <summary>
+            /// Gets a flag indicating if a line feed is the line break of raw bytes that a reader read, or <c>false</c> if it is CRLF, or <c>null</c> if the bytes already have
+            /// the line breaks of the writer, or are checked against them.
+            /// </summary>
+            internal bool? LineFeedIsLineBreak { get; }
 
             /// <summary>
             /// Gets a flag indicating that the field comes from an entity of the object model, whose media type is read from it, so that they can't disagree.
