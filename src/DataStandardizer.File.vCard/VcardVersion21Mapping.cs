@@ -45,9 +45,6 @@ namespace DataStandardizer.File.vCard
         // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters", which a longer line is broken into instead of folded.
         private const int MaxPlainLineLength = 75;
 
-        // Nothing sets a limit.  It matches that of a nested card read from text.
-        private const int MaxNestingDepth = 8;
-
         private const string HexDigits = "0123456789ABCDEF";
 
         private static readonly MimeMediaType OctetStream = new MimeMediaType("application", "octet-stream");
@@ -82,7 +79,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="lines">The lines.</param>
         /// <param name="options">The options.</param>
-        internal static List<VcardContentLine> ExpandHeldCards(List<VcardContentLine> lines, VcardOptions options)
+        /// <param name="depth">How many cards the card of the lines is nested in.</param>
+        internal static List<VcardContentLine> ExpandHeldCards(List<VcardContentLine> lines, VcardOptions options, int depth)
         {
             if (!lines.Exists(line => line.HeldCard != null)) return lines;
 
@@ -93,9 +91,10 @@ namespace DataStandardizer.File.vCard
                 if (line.HeldCard is null) continue;
 
                 // What it can't hold has been reported on the AGENT, so it isn't reported again.
-                var held = new Downgrade(line.HeldCard, options, new List<VcardDiagnostic>(), 1).Run();
+                // It is downgraded at its own depth, as it was to report what it can't hold, so an AGENT that is nested too deeply is left out here too.
+                var held = new Downgrade(line.HeldCard, options, new List<VcardDiagnostic>(), depth + 1).Run();
                 result.Add(new VcardContentLine(VcardPropertyNames.Version, VcardVersionMapping.Version21.VersionText));
-                result.AddRange(ExpandHeldCards(held, options));
+                result.AddRange(ExpandHeldCards(held, options, depth + 1));
                 result.Add(new VcardContentLine(VcardPropertyNames.End, VcardCardBuilder.CardValue));
             }
 
@@ -876,7 +875,7 @@ namespace DataStandardizer.File.vCard
                         return;
                     }
 
-                    if (_depth + 1 >= MaxNestingDepth)
+                    if (_depth + 1 >= VcardNestedCards.MaxDepth)
                     {
                         ReportLostProperty(agent, "its card is nested too deeply");
                         return;

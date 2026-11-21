@@ -16,8 +16,13 @@ namespace DataStandardizer.File.vCard
     /// </remarks>
     internal static class VcardNestedCards
     {
-        // Nothing sets a limit.  Each level doubles the backslashes of the one inside it, so a real card never gets near this.
-        private const int MaxDepth = 8;
+        /// <summary>
+        /// The depth of nesting past which a card isn't read or written, whether it is held as text or follows the line of a vCard 2.1 <c>AGENT</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nothing sets a limit.  Each level of a card held as text doubles the backslashes of the one inside it, so a real card never gets near this.
+        /// </remarks>
+        internal const int MaxDepth = 8;
 
         private const int NoFolding = int.MaxValue / 2;
 

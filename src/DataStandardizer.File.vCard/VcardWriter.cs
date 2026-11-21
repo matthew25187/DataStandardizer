@@ -618,7 +618,7 @@ namespace DataStandardizer.File.vCard
             var lines = new List<VcardContentLine>(properties.Count + 3);
             lines.Add(new VcardContentLine(VcardPropertyNames.Begin, VcardCardBuilder.CardValue));
             lines.Add(new VcardContentLine(VcardPropertyNames.Version, _mapping.VersionText));
-            lines.AddRange(_mapping.Version == VcardVersion.V2_1 ? VcardVersion21Mapping.ExpandHeldCards(properties, _options) : properties);
+            lines.AddRange(_mapping.Version == VcardVersion.V2_1 ? VcardVersion21Mapping.ExpandHeldCards(properties, _options, 0) : properties);
             lines.Add(new VcardContentLine(VcardPropertyNames.End, VcardCardBuilder.CardValue));
             return lines;
         }

@@ -18,9 +18,6 @@ namespace DataStandardizer.File.vCard
         // ref. vCard 2.1 §2.9: "AGENT" [params] ":" vcard CRLF, where vcard starts with "BEGIN" ":" "VCARD".
         private const string InlineCardValue = "BEGIN:VCARD";
 
-        // Nothing sets a limit.  It matches that of a card held as text.
-        private const int MaxDepth = 8;
-
         private readonly VcardOptions _options;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -148,7 +145,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="beginLine">The <c>BEGIN:VCARD</c> line of the card.</param>
         private void StartHeldCard(VcardContentLine beginLine)
         {
-            if (_depth + 1 >= MaxDepth)
+            if (_depth + 1 >= VcardNestedCards.MaxDepth)
                 throw BuildStructureException("The card of an AGENT is nested too deeply.", beginLine);
 
             var card = _card;
