@@ -236,6 +236,81 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Value.Should().Be(expectedValue);
         }
 
+        // ref. vCard 2.1 §2.4.5: "Hour values are from 00 to 24", where RFC 6350 §4.7 allows 00 to 23.
+        private const string ExtendedOffsetOfHour24 = "TZ:+24:00";
+        private const string BasicOffsetOfHour24 = "TZ:-2400";
+
+        // ref. vCard 2.1 §2.6.2 and ISO 8601: 24:00:00 is the end of a day, which RFC 6350 §4.3.2 doesn't have.
+        private const string RevisionAtHour24 = "REV:19951031T240000";
+
+        public static TheoryData<string, string[], string> NoVersion40FormData()
+        {
+            return new TheoryData<string, string[], string>
+            {
+                { ExtendedOffsetOfHour24, new[] { "VALUE=utc-offset" }, "+24:00" },
+                { BasicOffsetOfHour24, new[] { "VALUE=utc-offset" }, "-2400" },
+                { RevisionAtHour24, NoParameters, "19951031T240000" }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormData))]
+        public void ReadCard_Version21ValueWithNoVersion40Form_KeepsTheValueAsItIs(string line, string[] expectedParameters, string expectedValue)
+        {
+            // arrange
+            var text = Vcard21TestData.Card(line);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Properties.Last();
+
+            // assert
+            Vcard30TestData.ParametersOf(testResult).Should().Equal(expectedParameters);
+            testResult.Value.Should().Be(expectedValue);
+        }
+
+        // The N of Vcard21TestData.Card with every component of vCard 2.1 §2.2.2, as the writer gives it.
+        private const string WrittenName = "N:Doe;Jane;;;";
+
+        public static TheoryData<string> NoVersion40FormCardData()
+        {
+            return new TheoryData<string>
+            {
+                Vcard21TestData.BareCard(WrittenName, ExtendedOffsetOfHour24),
+                Vcard21TestData.BareCard(WrittenName, BasicOffsetOfHour24),
+                Vcard21TestData.BareCard(WrittenName, RevisionAtHour24)
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormCardData))]
+        public void WriteCard_Version21ValueWithNoVersion40FormAsVersion21_RoundTrips(string text)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(text);
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormCardData))]
+        public void WriteCard_Version21ValueWithNoVersion40FormAsVersion40_ThrowsInvalidValue(string text)
+        {
+            // arrange
+            // The card has no FN, which vCard 2.1 doesn't require, so its absence isn't what is tested.
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
+            var card = VcardCardTestData.Read(text);
+
+            // act
+            Action testAction = () => VcardCardTestData.Write(card, options);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
         [Fact]
         public void ReadCard_LabelWithTheTypesOfAnAddress_GoesOnThatAddress()
         {

@@ -293,11 +293,12 @@ namespace DataStandardizer.File.vCard
                 ConvertPreferredType(parameters);
             }
 
+            // A value that vCard 4.0 has no form for, such as a date-time with a time-secfrac (RFC 2425 §5.8.4), stays as it is, like one that isn't valid.
             switch (line.Name.ToUpperInvariant())
             {
                 case VcardPropertyNames.Name:
                     VcardName name;
-                    if (VcardName.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out name))
+                    if (VcardName.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out name) && name.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = name.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                     }
@@ -305,7 +306,7 @@ namespace DataStandardizer.File.vCard
                     break;
                 case VcardPropertyNames.Address:
                     VcardAddress address;
-                    if (VcardAddress.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out address))
+                    if (VcardAddress.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out address) && address.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = address.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                     }
@@ -313,7 +314,7 @@ namespace DataStandardizer.File.vCard
                     break;
                 case VcardPropertyNames.Birthday:
                     VcardDateAndOrTime date;
-                    if (VcardDateAndOrTime.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date))
+                    if (VcardDateAndOrTime.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date) && date.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = date.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                         Remove(parameters, VcardParameterNames.Value);
@@ -328,7 +329,7 @@ namespace DataStandardizer.File.vCard
                     break;
                 case VcardPropertyNames.Geo:
                     VcardGeo geo;
-                    if (VcardGeo.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out geo))
+                    if (VcardGeo.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out geo) && geo.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = geo.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                     }
@@ -384,13 +385,15 @@ namespace DataStandardizer.File.vCard
             VcardTimestamp timestamp;
             if (VcardTimestamp.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out timestamp))
             {
+                if (!timestamp.IsDefinedIn(VcardVersion.V4_0)) return value;
+
                 Remove(parameters, VcardParameterNames.Value);
                 return timestamp.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
             }
 
             // ref. RFC 6350 §6.7.4: REV is a timestamp, which has a time, so a date becomes its first moment in UTC.
             VcardDate date;
-            if (!VcardDate.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date)) return value;
+            if (!VcardDate.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date) || !date.IsDefinedIn(VcardVersion.V4_0)) return value;
 
             Remove(parameters, VcardParameterNames.Value);
             return date.ToString(VcardValueFormat.Text, VcardVersion.V4_0) + "T000000Z";
@@ -408,8 +411,9 @@ namespace DataStandardizer.File.vCard
             VcardUtcOffset offset;
             if (!VcardUtcOffset.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out offset)) return value;
 
+            // An offset that vCard 4.0 has no form for stays as it was read, and still says it is an offset rather than text.
             parameters.Add(new VcardContentLineParameter(VcardParameterNames.Value, VcardValueTypeRegistry.GetValueTypeName(VcardValueType.UtcOffset)));
-            return offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
+            return offset.IsDefinedIn(VcardVersion.V4_0) ? offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : value;
         }
 
         private static string UidToCanonical(string value, List<VcardContentLineParameter> parameters)

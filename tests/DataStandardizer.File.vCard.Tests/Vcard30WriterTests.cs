@@ -613,6 +613,21 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Convert_InvalidValueOfVersion40ThatVersion30Allows_KeepsItAsItIs()
+        {
+            // arrange
+            // ref. RFC 2425 §5.8.4: a date-time of vCard 3.0 can have a time-secfrac, which RFC 6350 §4.3.2 forbids.
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(MinimalVersion40Name, "BDAY:19960415T231000,5Z"), options);
+
+            // act
+            var testResult = VcardVersionConverter.Convert(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.GetProperties(VcardPropertyNames.Birthday).Single().Value.Should().Be("19960415T231000,5Z");
+        }
+
+        [Fact]
         public void Convert_AnyCardToVersion40_KeepsEveryProperty()
         {
             // arrange
