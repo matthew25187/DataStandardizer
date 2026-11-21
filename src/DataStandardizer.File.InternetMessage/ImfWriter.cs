@@ -147,23 +147,11 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Creates a writer with a line break setting and a source of boundaries, for the writer of a container format that changes the line breaks of what it writes.  So that the
-        /// change doesn't alter any data, the writer labels no entity <c>binary</c> (RFC 2045 §2.9), and refuses a message that has one.
+        /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules, or for the writer of a container format that changes
+        /// the line breaks of what it writes.  When <paramref name="lineBreaksChange"/> is <c>true</c>, so that the change doesn't alter any data, the writer labels no entity
+        /// <c>binary</c> (RFC 2045 §2.9), and refuses a message that has one.
         /// </summary>
-        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator)
-            : this(messageStream, options, lineFeedIsLineBreak, lineBreaksChange, boundaryGenerator, ImfConformanceProfile.Message)
-        {
-        }
-
-        /// <summary>
-        /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules.
-        /// </summary>
-        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
-            : this(messageStream, options, lineFeedIsLineBreak, false, boundaryGenerator, profile)
-        {
-        }
-
-        private ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator, ImfConformanceProfile profile)
+        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator, ImfConformanceProfile profile)
             : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, lineBreaksChange, boundaryGenerator, profile)
         {
         }

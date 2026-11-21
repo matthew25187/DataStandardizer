@@ -538,7 +538,7 @@ namespace DataStandardizer.File.InternetMessage
                 var output = new MemoryStream();
                 var hasLineFeedBreaks = message.LineFeedIsLineBreak;
                 var lineBreaksChange = hasLineFeedBreaks == _isCrLf;
-                using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, lineBreaksChange, _boundaryGenerator))
+                using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, lineBreaksChange, _boundaryGenerator, ImfConformanceProfile.Message))
                 {
                     writer.WriteMessage(message);
                     diagnostics.AddRange(writer.Diagnostics);

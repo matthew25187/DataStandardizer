@@ -86,7 +86,7 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal MhtmlWriter(Stream messageStream, ImfOptions options, Func<string> boundaryGenerator)
         {
-            _writer = new ImfWriter(messageStream, options, false, boundaryGenerator, ImfConformanceProfile.Mhtml);
+            _writer = new ImfWriter(messageStream, options, false, false, boundaryGenerator, ImfConformanceProfile.Mhtml);
         }
 
         /// <summary>

@@ -401,7 +401,7 @@ namespace DataStandardizer.File.InternetMessage
             var message = entry.Message;
             var hasLineFeedBreaks = message.LineFeedIsLineBreak;
             var output = new MemoryStream();
-            using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, !hasLineFeedBreaks, _boundaryGenerator))
+            using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, !hasLineFeedBreaks, _boundaryGenerator, ImfConformanceProfile.Message))
             {
                 writer.WriteMessage(message);
                 diagnostics.AddRange(writer.Diagnostics);
