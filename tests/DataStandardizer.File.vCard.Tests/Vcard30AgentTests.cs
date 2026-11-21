@@ -346,6 +346,19 @@ namespace DataStandardizer.File.vCard.Tests
         private static readonly VcardOptions AcceptUndecodableLine = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true, AllowInvalidValues = true };
 
         [Fact]
+        public void ReadCard_NestedCardWithAnUndecodableValueByDefault_ThrowsInvalidValue()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(AgentWithUndecodableLine);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
         public void ReadCard_NestedCardWithAnUndecodableValueUnderItsOptions_HoldsTheLineAsItIs()
         {
             // arrange

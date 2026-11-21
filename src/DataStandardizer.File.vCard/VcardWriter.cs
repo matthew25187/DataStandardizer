@@ -145,13 +145,17 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a writer of the text of a card that an <c>AGENT</c> holds, which writes each of its lines as the model holds it, the forms of vCard 2.1 included.
+        /// Creates a writer of the text of a card that an <c>AGENT</c> holds, which writes each of its lines as the model holds it, the forms of vCard 2.1 included, since the card was
+        /// judged as it was read or added.
         /// </summary>
         /// <param name="writer">The writer.</param>
         /// <param name="options">The options.</param>
-        /// <param name="writesHeldCard"><c>true</c>, since the card has been judged already, as it was read or added, and what it can't hold in the version it is written in is reported on
-        /// the property it is in.</param>
-        internal VcardWriter(TextWriter writer, VcardOptions options, bool writesHeldCard) : this(writer, options)
+        internal static VcardWriter ForHeldCard(TextWriter writer, VcardOptions options)
+        {
+            return new VcardWriter(writer, options, true);
+        }
+
+        private VcardWriter(TextWriter writer, VcardOptions options, bool writesHeldCard) : this(writer, options)
         {
             _writesHeldCard = writesHeldCard;
         }

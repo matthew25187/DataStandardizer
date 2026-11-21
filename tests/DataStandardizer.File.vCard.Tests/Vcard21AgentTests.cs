@@ -357,8 +357,9 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         // ref. vCard 2.1 §2.1.8 and §2.5.1: a TEL at a URL, which RFC 6350 has no form for with a TYPE without a name, so a reader keeps the line as it is.
-        private const string KeptLegacyLine = "TEL;WORK;VALUE=URL:" + TelephoneUrl;
+        private const string KeptLegacyLine = "TEL;WORK;VALUE=URL:http://example.com/tel";
 
+        // The value of KeptLegacyLine.
         private const string TelephoneUrl = "http://example.com/tel";
 
         // ref. vCard 2.1 §2.1.4: "=ZZ" isn't a quoted-printable octet, so only AllowInvalidValues keeps the line, as it is.
@@ -369,8 +370,8 @@ namespace DataStandardizer.File.vCard.Tests
         private static readonly string AgentWithUndecodableLine = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", UndecodableLine, "END:VCARD");
 
         // The cards in canonical form, with the line as it was read: a TYPE in vCard 4.0 is a parameter with a name (RFC 6350 §5.6), so the writer of the text names it.
-        private const string CanonicalAgentWithKeptLegacyLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nTEL;TYPE=WORK;VALUE=URL:" + TelephoneUrl + "\\nEND:VCARD\\n";
-        private const string CanonicalAgentWithUndecodableLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\n" + UndecodableLine + "\\nEND:VCARD\\n";
+        private const string CanonicalAgentWithKeptLegacyLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nTEL;TYPE=WORK;VALUE=URL:http://example.com/tel\\nEND:VCARD\\n";
+        private const string CanonicalAgentWithUndecodableLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nNOTE;ENCODING=QUOTED-PRINTABLE:=ZZ\\nEND:VCARD\\n";
 
         // What a writer of vCard 2.1 writes for the card with the kept line.
         private static readonly string WrittenAgentWithKeptLegacyLine = VcardTestData.Crlf(

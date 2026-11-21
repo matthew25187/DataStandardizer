@@ -101,7 +101,8 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the text of a nested card, with no escaping as a value yet, which each line break becomes.
         /// </summary>
-        /// <param name="card">The card, which is written with whatever it holds, since what it can't hold is reported on the property it is in.</param>
+        /// <param name="card">The card, which is written with whatever it holds.  Writing a vCard 3.0 or 2.1 card reports what the held card can't hold on the <c>AGENT</c> it is in.  In
+        /// vCard 4.0 it is the value of a <c>RELATED</c> with <c>VALUE=text</c> (RFC 6350 §6.6.6), which isn't checked as a card.</param>
         /// <param name="version">The version to write.</param>
         internal static string Write(VcardCard card, VcardVersion version)
         {
@@ -120,7 +121,7 @@ namespace DataStandardizer.File.vCard
             var output = new StringWriter();
             // A line of vCard 2.1 that a reader kept as it was, since vCard 4.0 or 3.0 has no form for it, is written as it is, as it is at the top of a card.  The text is read again with
             // HeldCardOptions, which accept it.
-            using (var writer = new VcardWriter(output, options, true))
+            using (var writer = VcardWriter.ForHeldCard(output, options))
             {
                 writer.WriteCard(card);
             }
