@@ -574,7 +574,10 @@ namespace DataStandardizer.File.vCard
             if (!double.TryParse(value.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out result)) return false;
 #endif
 
-            return !double.IsInfinity(result);
+            if (!double.IsInfinity(result)) return true;
+
+            result = 0;
+            return false;
         }
 
         /// <summary>
@@ -623,7 +626,10 @@ namespace DataStandardizer.File.vCard
             if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
 #endif
 
-            return !double.IsInfinity(result);
+            if (!double.IsInfinity(result)) return true;
+
+            result = 0;
+            return false;
         }
 
         /// <summary>
@@ -672,7 +678,10 @@ namespace DataStandardizer.File.vCard
             if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
 #endif
 
-            return !double.IsInfinity(result);
+            if (!double.IsInfinity(result)) return true;
+
+            result = 0;
+            return false;
         }
 
         /// <summary>

@@ -163,6 +163,46 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().BeFalse();
         }
 
+        // A numeral of 1e400, past double.MaxValue (about 1.8e308), so it parses to infinity, which isn't a FLOAT.
+        private const string FloatBeyondDoubleWithExponent = "1e400";
+        private const string NegativeFloatBeyondDoubleWithExponent = "-1e400";
+
+        // The digit count of a numeral with no exponent that is past double.MaxValue, which has 309 integer digits.
+        private const int FloatBeyondDoubleDigitCount = 310;
+
+        public static TheoryData<VcardValueFormat, string> FloatsBeyondDouble() => new TheoryData<VcardValueFormat, string>
+        {
+            { VcardValueFormat.Text, new string('9', FloatBeyondDoubleDigitCount) },
+            { VcardValueFormat.Text, "-" + new string('9', FloatBeyondDoubleDigitCount) },
+            { VcardValueFormat.Json, FloatBeyondDoubleWithExponent },
+            { VcardValueFormat.Json, NegativeFloatBeyondDoubleWithExponent },
+            { VcardValueFormat.Xml, FloatBeyondDoubleWithExponent },
+            { VcardValueFormat.Xml, NegativeFloatBeyondDoubleWithExponent },
+        };
+
+        [Theory]
+        [MemberData(nameof(FloatsBeyondDouble))]
+        public void TryParseFloat_BeyondTheRangeOfDouble_ReturnsFalse(VcardValueFormat format, string value)
+        {
+            // act
+            var testResult = VcardValue.TryParseFloat(value.AsSpan(), format, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(FloatsBeyondDouble))]
+        public void TryParseFloat_BeyondTheRangeOfDouble_GivesZero(VcardValueFormat format, string value)
+        {
+            // act
+            double result;
+            VcardValue.TryParseFloat(value.AsSpan(), format, out result);
+
+            // assert
+            result.Should().Be(0);
+        }
+
         [Theory]
         [InlineData(1000000.0000001, VcardValueExamples.FloatPrecise)]
         [InlineData(1e21, "1000000000000000000000")]

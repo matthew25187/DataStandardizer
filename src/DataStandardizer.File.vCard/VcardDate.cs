@@ -233,7 +233,13 @@ namespace DataStandardizer.File.vCard
             if (format == VcardValueFormat.Json) return TryParseJson(value, out result);
 
             // ref. RFC 6351 Appendix A: value-date = "\d{8}|\d{4}-\d\d|--\d\d(\d\d)?|---\d\d", which has no year alone.
-            if (format == VcardValueFormat.Xml) return TryParseVersion40(value, out result) && !result.IsYearAlone;
+            if (format == VcardValueFormat.Xml)
+            {
+                if (TryParseVersion40(value, out result) && !result.IsYearAlone) return true;
+
+                result = default;
+                return false;
+            }
 
             return version == VcardVersion.V4_0 ? TryParseVersion40(value, out result) : TryParseLegacy(value, version, out result);
         }
