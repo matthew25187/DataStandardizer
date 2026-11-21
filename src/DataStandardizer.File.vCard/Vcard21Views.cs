@@ -255,7 +255,7 @@ namespace DataStandardizer.File.vCard
             {
                 if (string.Equals(line.Name, VcardPropertyNames.Address, StringComparison.OrdinalIgnoreCase) && line.GetParameter(VcardParameterNames.Label) != null)
                 {
-                    var text = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Label).Replace("\\n", "\n");
+                    var text = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Label);
                     result.Add(new Vcard21Property<string>(line, VcardPropertyNames.PostalLabel, text, Vcard21Views.IsPreferred(_card, line)));
                 }
                 else if (string.Equals(line.Name, VcardPropertyNames.PostalLabel, StringComparison.OrdinalIgnoreCase))

@@ -1195,7 +1195,8 @@ namespace DataStandardizer.File.vCard
             {
                 if (label is null) return;
 
-                // ref. RFC 6350 §6.3.1: its example writes a line break in a LABEL as "\n", where RFC 6868 would write it "^n".
+                // ref. RFC 6350 §5.1 and RFC 6868 §3: a param-value has no backslash escapes, so a backslash followed by "n" in a LABEL is
+                // those two characters, whatever the example in RFC 6350 §6.3.1 suggests.  Only "^n" stands for a line break.
                 var labelParameters = new List<VcardContentLineParameter>();
                 foreach (var parameter in parameters)
                 {
@@ -1205,15 +1206,14 @@ namespace DataStandardizer.File.vCard
                     }
                 }
 
-                var labelText = label.Replace("\\n", "\n");
-                if (!VcardText.IsValidUnescapedText(labelText.AsSpan()))
+                if (!VcardText.IsValidUnescapedText(label.AsSpan()))
                 {
                     // ref. RFC 2426 §3.2.1: a LABEL is a text value, which can't hold a control character, as a parameter value of vCard 4.0 can.
                     ReportLoss(address, "a label that holds a control character");
                     return;
                 }
 
-                var text = VcardValue.FormatText(labelText, VcardValueFormat.Text, VcardVersion.V3_0);
+                var text = VcardValue.FormatText(label, VcardValueFormat.Text, VcardVersion.V3_0);
                 _lines.Add(address.With(VcardPropertyNames.PostalLabel, labelParameters.ToArray(), text));
             }
 

@@ -346,7 +346,9 @@ namespace DataStandardizer.File.vCard.Tests
                 { "RELATED;TYPE=agent:http://example.com/a\\,b", "AGENT;VALUE=uri:http://example.com/a,b" },
                 { "RELATED;VALUE=text;TYPE=agent:Jim", "AGENT;VALUE=text:Jim" },
                 { "ADR;LABEL=\"a^nb\":;;1 First St;;;;", "ADR:;;1 First St;;;;\r\nLABEL:a\\nb" },
-                { "ADR;LABEL=\"a\\nb\":;;1 First St;;;;", "ADR:;;1 First St;;;;\r\nLABEL:a\\nb" },
+                { "ADR;LABEL=\"a\\nb\":;;1 First St;;;;", "ADR:;;1 First St;;;;\r\nLABEL:a\\\\nb" },
+                { "ADR;LABEL=\"C:\\new\":;;a;;;;", "ADR:;;a;;;;\r\nLABEL:C:\\\\new" },
+                { "ADR;LABEL=\"a\\\\nb\":;;1 First St;;;;", "ADR:;;1 First St;;;;\r\nLABEL:a\\\\\\\\nb" },
                 { "X-UNKNOWN:a,b;c", "X-UNKNOWN:a,b;c" }
             };
         }
