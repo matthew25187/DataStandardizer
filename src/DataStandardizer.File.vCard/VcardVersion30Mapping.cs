@@ -964,8 +964,7 @@ namespace DataStandardizer.File.vCard
                     return true;
                 }
 
-                Uri uri;
-                if (!VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri)) return true;
+                if (!VcardValue.IsValidUriValue(value.AsSpan())) return true;
 
                 ReportLostProperty(line, "only a latitude and a longitude can be written");
                 return false;
@@ -980,10 +979,9 @@ namespace DataStandardizer.File.vCard
                 }
 
                 // ref. RFC 2426 §3.3.1: "A single phone-number value", which RFC 3966 §3 writes after its scheme.
-                Uri uri;
-                if (!VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri)) return true;
+                string text;
+                if (!VcardValue.TryGetUriText(value, out text)) return true;
 
-                var text = uri.OriginalString;
                 if (!text.StartsWith(TelPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     ReportLostProperty(line, "its value is a URI other than a telephone number");
@@ -1094,10 +1092,10 @@ namespace DataStandardizer.File.vCard
                 }
                 else
                 {
-                    Uri uri;
-                    if (VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri))
+                    string text;
+                    if (VcardValue.TryGetUriText(value, out text))
                     {
-                        value = uri.OriginalString;
+                        value = text;
                     }
 
                     parameters.Insert(0, new VcardContentLineParameter(VcardParameterNames.Value, Vcard30Conformance.UriValueName));

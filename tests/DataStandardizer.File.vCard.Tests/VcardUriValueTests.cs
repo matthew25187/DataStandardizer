@@ -67,6 +67,64 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().BeFalse();
         }
 
+        // ref. RFC 3986 §3.1: scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ), so a URI's scheme can be one letter.  Uri on Windows takes this text for a drive path.
+        private const string OneLetterSchemeUri = "c:/dir/file";
+
+        private const string OneLetterSchemeUrlLine = "URL:c:/dir/file";
+
+        [Theory]
+        [InlineData(VcardValueFormat.Text)]
+        [InlineData(VcardValueFormat.Json)]
+        [InlineData(VcardValueFormat.Xml)]
+        public void TryParseUri_OneLetterScheme_ReturnsFalse(VcardValueFormat format)
+        {
+            // act: ref. #867.
+            var testResult = VcardValue.TryParseUri(OneLetterSchemeUri.AsSpan(), format, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Validate_UrlWithOneLetterScheme_FindsNoProblem()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(OneLetterSchemeUrlLine));
+
+            // act
+            var testResult = card.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void WriteCard_UrlWithOneLetterScheme_KeepsItAsWritten()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(OneLetterSchemeUrlLine));
+
+            // act
+            var testResult = VcardCardTestData.Write(card);
+
+            // assert
+            testResult.Should().Be(VcardCardTestData.Card(OneLetterSchemeUrlLine));
+        }
+
+        [Fact]
+        public void TryFormatUri_UriMadeFromADrivePath_ThrowsArgumentException()
+        {
+            // arrange
+            var uri = new Uri("C:/dir/file");
+            var destination = new char[OneLetterSchemeUri.Length];
+
+            // act
+            Action testAction = () => VcardValue.TryFormatUri(uri, destination, out _, VcardValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
         [Fact]
         public void TryFormatUri_UriWithComma_EscapesIt()
         {
