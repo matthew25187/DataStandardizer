@@ -53,6 +53,11 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a line break is LF, or <c>false</c> if it is CRLF.
+        /// </summary>
+        internal bool LineFeedIsLineBreak => _lineFeedIsLineBreak;
+
+        /// <summary>
         /// Gets the transfer encoding that limits a body, given what limits the entity that holds it (RFC 2045 §6.4).
         /// </summary>
         internal static MimeDataDomain GetAllowedDomain(MimeTransferEncoding encoding, MimeDataDomain enclosing)

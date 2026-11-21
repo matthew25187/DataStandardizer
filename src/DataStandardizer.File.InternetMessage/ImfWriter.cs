@@ -43,6 +43,7 @@ namespace DataStandardizer.File.InternetMessage
     /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), whose line breaks may not be line breaks, can't change like that, which causes an
     /// <see cref="ImfFileException"/>.  The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when
     /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body that would have had it is encoded instead.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
+    /// A message from such a file that another message holds, in a <c>message/rfc822</c> or <c>message/global</c> entity such as one being forwarded, changes in the same way, under the same rules.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
