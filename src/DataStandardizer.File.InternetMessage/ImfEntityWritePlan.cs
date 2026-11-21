@@ -95,6 +95,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private readonly List<ImfBoundary> _boundaries = new List<ImfBoundary>();
         private readonly Func<string> _boundaryGenerator;
+        private readonly bool _lineBreaksChange;
         private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _lineBreak;
         private readonly ImfOptions _options;
@@ -104,16 +105,32 @@ namespace DataStandardizer.File.InternetMessage
         private bool _isFirstPass = true;
         private int _partCount;
 
-        internal ImfEntityWritePlan(ImfEntitySource source, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
+        /// <summary>
+        /// Creates a plan for an entity.
+        /// </summary>
+        /// <param name="source">The entity.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="lineFeedIsLineBreak"><c>true</c> if a line break is LF, or <c>false</c> if it is CRLF.</param>
+        /// <param name="lineBreaksChange"><c>true</c> if the line breaks of the output will be changed after it is written, which no entity labelled <c>binary</c>
+        /// can have (RFC 2045 §2.9), so the plan doesn't choose that label, and refuses an entity that gets it.</param>
+        /// <param name="boundaryGenerator">The source of boundaries.</param>
+        internal ImfEntityWritePlan(ImfEntitySource source, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator)
         {
             _options = options;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
+            _lineBreaksChange = lineBreaksChange;
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
             _boundaryGenerator = boundaryGenerator;
             _root = Walk(source, EntityPathOfMessage, 0, true, NoBoundaries);
             ResolveBoundaryConflicts();
             PendingScans = new List<ImfBodyScan>(_scans);
         }
+
+        /// <summary>
+        /// Gets a flag indicating if an entity may be labelled <c>binary</c>.  A line break in a binary body is data (RFC 2045 §2.9), so it can't be when the line breaks of
+        /// the output will be changed.
+        /// </summary>
+        private bool MayUseBinary => _options.AllowBinaryTransferEncoding && !_lineBreaksChange;
 
         /// <summary>
         /// Gets the scans to read in this pass.  Each is read between <see cref="BeginScan"/> and <see cref="ImfBodyScan.Complete"/>.
@@ -140,6 +157,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 _isFirstPass = false;
                 ChooseEncodings(_root);
+                CheckLineBreaksCanChange();
                 SetBodyChecks();
             }
 
@@ -566,7 +584,7 @@ namespace DataStandardizer.File.InternetMessage
         private void CheckRawEntity(Node node)
         {
             var scan = node.BodyScan;
-            if (scan is null || node.Source.IsPreserved || _options.AllowBinaryTransferEncoding) return;
+            if (scan is null || node.Source.IsPreserved || MayUseBinary) return;
 
             // ref. RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7 and §2.8.  Only the binary label of §2.9 covers these, which has to be asked for.
             if (scan.HasLongLine && !_options.AllowLongLines)
@@ -612,14 +630,15 @@ namespace DataStandardizer.File.InternetMessage
                 return domain;
             }
 
-            if (domain == MimeDataDomain.EightBit && (_options.AllowEightBitTransferEncoding || _options.AllowBinaryTransferEncoding))
+            // A body whose line breaks will be changed is given another encoding than binary.
+            if (domain == MimeDataDomain.EightBit && (_options.AllowEightBitTransferEncoding || MayUseBinary))
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = _options.AllowEightBitTransferEncoding ? MimeTransferEncoding.EightBit : MimeTransferEncoding.Binary;
                 return node.Encoding.Domain;
             }
 
-            if (_options.AllowBinaryTransferEncoding)
+            if (MayUseBinary)
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = MimeTransferEncoding.Binary;
@@ -633,6 +652,21 @@ namespace DataStandardizer.File.InternetMessage
                 ? MimeTransferEncoding.QuotedPrintable
                 : MimeTransferEncoding.Base64;
             return MimeDataDomain.SevenBit;
+        }
+
+        /// <summary>
+        /// Refuses an entity labelled <c>binary</c> when the line breaks of the output will be changed, as that would change its data (RFC 2045 §2.9).
+        /// </summary>
+        private void CheckLineBreaksCanChange()
+        {
+            if (!_lineBreaksChange) return;
+
+            // The nodes are in the order they were walked, an entity before what it holds, so the last one labelled binary is one whose own content is.
+            for (var index = _nodes.Count - 1; index >= 0; index--)
+            {
+                if (_nodes[index].Encoding == MimeTransferEncoding.Binary)
+                    throw BuildError(ImfLineBreaks.OpaqueEntityMessage, _nodes[index].Path);
+            }
         }
 
         private MimeDataDomain ChooseCompositeEncoding(Node node)
@@ -677,8 +711,8 @@ namespace DataStandardizer.File.InternetMessage
             if (scan is null) return MimeDataDomain.SevenBit;
 
             var domain = scan.Domain;
-            if (domain == MimeDataDomain.Binary ? !_options.AllowBinaryTransferEncoding
-                : domain == MimeDataDomain.EightBit && !_options.AllowEightBitTransferEncoding && !_options.AllowBinaryTransferEncoding)
+            if (domain == MimeDataDomain.Binary ? !MayUseBinary
+                : domain == MimeDataDomain.EightBit && !_options.AllowEightBitTransferEncoding && !MayUseBinary)
                 throw BuildError("A preamble or epilogue must be lines of text (RFC 2046 §5.1.1), which the options must allow if they have octets above 127.", node.Path);
 
             return domain;
@@ -873,9 +907,12 @@ namespace DataStandardizer.File.InternetMessage
             return true;
         }
 
-        private static ImfFileException BuildCompositeEncodingError(Node node)
+        private ImfFileException BuildCompositeEncodingError(Node node)
         {
-            return BuildError($"A {node.Source.ContentType.Type}/{node.Source.ContentType.Subtype} entity can have only an identity transfer encoding, 7bit, 8bit or binary (RFC 2045 §6.4), which the options or its TransferEncoding must allow.", node.Path);
+            var reason = _options.AllowBinaryTransferEncoding && _lineBreaksChange
+                ? "  The binary transfer encoding can't be used here, as the line breaks of the message are changed, and a line break in a binary body is data (RFC 2045 §2.9)."
+                : string.Empty;
+            return BuildError($"A {node.Source.ContentType.Type}/{node.Source.ContentType.Subtype} entity can have only an identity transfer encoding, 7bit, 8bit or binary (RFC 2045 §6.4), which the options or its TransferEncoding must allow.{reason}", node.Path);
         }
 
         private static ImfFileException BuildError(string message, string path)

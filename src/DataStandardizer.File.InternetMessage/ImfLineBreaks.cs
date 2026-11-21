@@ -13,7 +13,7 @@ namespace DataStandardizer.File.InternetMessage
         private const byte CarriageReturn = 0x0D;
         private const byte LineFeed = 0x0A;
 
-        private const string OpaqueEntityMessage = "An entity with the binary transfer encoding or an extension mechanism can't change its line breaks, as a line break in it may not be one (RFC 2045 §2.9 and §6.3).";
+        internal const string OpaqueEntityMessage = "An entity with the binary transfer encoding or an extension mechanism can't change its line breaks, as a line break in it may not be one (RFC 2045 §2.9 and §6.3).";
 
         private static readonly byte[] CrLf = { CarriageReturn, LineFeed };
         private static readonly byte[] Lf = { LineFeed };

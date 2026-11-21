@@ -24,6 +24,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Message.</b>  The message is checked and written as an <see cref="ImfWriter"/> does, under the same options, so a message that it refuses leaves nothing in the output.  It is written with LF
     /// line breaks, so one read from an <c>.eml</c> file changes in that way.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism
     /// (§6.3), as a line break in it may not be one, which causes an <see cref="ImfFileException"/>.
+    /// The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body
+    /// that would have had it is encoded instead.
     /// </para>
     /// <para>
     /// <b>Metadata.</b>  Metadata that was read and hasn't changed is written byte for byte.  A property list that was missing or not well formed when read causes an
@@ -399,7 +401,7 @@ namespace DataStandardizer.File.InternetMessage
             var message = entry.Message;
             var hasLineFeedBreaks = message.LineFeedIsLineBreak;
             var output = new MemoryStream();
-            using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, _boundaryGenerator))
+            using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, !hasLineFeedBreaks, _boundaryGenerator, ImfConformanceProfile.Message))
             {
                 writer.WriteMessage(message);
                 diagnostics.AddRange(writer.Diagnostics);

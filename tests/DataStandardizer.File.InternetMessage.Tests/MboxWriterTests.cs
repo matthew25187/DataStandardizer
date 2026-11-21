@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
 
@@ -23,6 +24,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // A body with lines that each variant treats differently, of 43 octets as it stands, and 44 with the quote that mboxo adds to its first line.
         private const string QuotableBody = "From here\n>From there\n>>From far\n\nnot From\n";
 
+        // ref. PNG (ISO/IEC 15948) §5.2: the PNG signature, which holds CRLF, LF and control octets, followed by more of each, as content that is not text.
+        private static readonly byte[] AttachmentWithLineBreaks = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01, 0x0A, 0x0D, 0x0A, 0xFF };
+
         private const string BinaryEml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\nx\r\n";
 
         private const string CrLfSeparator = SeparatorLine + "\r\n";
@@ -30,6 +34,19 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string BinaryInLineFeedFile = Separator + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\nx\n\n";
         private const string EmlInCrLfFile = CrLfSeparator + Eml + "\r\n";
         private const string MessageInFile = Separator + Message + "\n";
+        private const string MultipartInFile = Separator + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\n\n--b\n\nx\n--b--\n\n";
+        private const string AttachmentFileName = "a.png";
+        private const string AttachmentMediaType = "image/png";
+        private const int AttachmentPartIndex = 1;
+
+        // The attachment of a message built with no text part, which is the first part.
+        private const int OnlyAttachmentPartIndex = 0;
+        private const string BuiltDate = "Thu, 1 Jan 2026 00:00:00 +0000";
+        private const string BuiltFrom = "a@b.test";
+
+        // ref. RFC 3501 §6.4.5: the parts of a multipart message body are numbered from 1.
+        private const string FirstPartPath = "1";
+        private const string SecondPartPath = "2";
         private const string SecondMessageInFile = Separator + Header + "\ntwo\n\n";
         private const string TwoDistinctMessagesInFile = MessageInFile + SecondMessageInFile;
         private const string ExtensionEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: x-private\r\n\r\nx\r\n";
@@ -530,8 +547,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var builder = new ImfMessageBuilder().SetText(BuiltText);
-            builder.Header.Date = ImfDateTime.Parse("Thu, 1 Jan 2026 00:00:00 +0000");
-            builder.Header.From = ImfAddressList.Parse("a@b.test");
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
             var written = Mailboxes.WriteOne(Envelope, builder.Build());
 
             // act
@@ -539,6 +556,92 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Message.Body.GetText().Should().Be(BuiltText);
+        }
+
+        [Fact]
+        public void WriteMessage_BuiltAttachmentWithBinaryAllowed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).SetText("hi").AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var written = Mailboxes.WriteOne(Envelope, builder.Build(), options: options);
+            var body = (ImfMultipart)Mailboxes.ReadFirst(written, options: options).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(AttachmentWithLineBreaks);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithABinaryPartAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var message = Mailboxes.ReadFirst(MultipartInFile, options: options).Message;
+            var part = new ImfEntity(options) { ContentType = MimeMediaType.Parse(AttachmentMediaType) };
+            part.SetContent(AttachmentWithLineBreaks);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, options))
+            {
+                writer.WriteMessage(message);
+            }
+
+            var body = (ImfMultipart)Mailboxes.ReadMessage(Octets.ToText(output.ToArray()), options).Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(AttachmentWithLineBreaks);
+        }
+
+        [Fact]
+        public void WriteMessage_BuiltPartLabelledBinary_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = MimeTransferEncoding.Binary;
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartLabelledBinaryAddedToAMessageFromAMailbox_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var message = Mailboxes.ReadFirst(MultipartInFile, options: options).Message;
+            var part = new ImfEntity(options) { ContentType = MimeMediaType.Parse(AttachmentMediaType) };
+            part.SetContent(AttachmentWithLineBreaks);
+            part.ContentTransferEncoding = MimeTransferEncoding.Binary;
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+                output.Length.Should().Be(0);
+            }
         }
 
         [Fact]
