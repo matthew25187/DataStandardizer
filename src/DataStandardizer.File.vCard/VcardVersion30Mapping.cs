@@ -259,6 +259,24 @@ namespace DataStandardizer.File.vCard
             }
         }
 
+        /// <summary>
+        /// Splits each value of a <c>TYPE</c> parameter that holds a comma into the values it lists, keeping the parameters where they are.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6350 §5.6 allows a quoted list, such as <c>TYPE="voice,home"</c>, but in RFC 2426 §4 the types are separated by unquoted commas,
+        /// so the quoted value would be read as one type.
+        /// </remarks>
+        internal static void SplitQuotedTypes(List<VcardContentLineParameter> parameters)
+        {
+            for (var index = 0; index < parameters.Count; index++)
+            {
+                var parameter = parameters[index];
+                if (!IsParameterName(parameter, VcardParameterNames.Type) || !parameter.ValueArray.Any(value => value.IndexOf(',') >= 0)) continue;
+
+                parameters[index] = new VcardContentLineParameter(parameter.Name, parameter.ValueArray.SelectMany(value => value.Split(',')).ToList());
+            }
+        }
+
         private static bool ContainsIgnoringCase(IEnumerable<string> values, string value)
         {
             return values.Any(candidate => string.Equals(candidate, value, StringComparison.OrdinalIgnoreCase));
@@ -723,6 +741,7 @@ namespace DataStandardizer.File.vCard
                 }
 
                 RemoveVersion40Parameters(line, parameters);
+                SplitQuotedTypes(parameters);
                 if (!TryConvertValue(line, parameters, mediaType, ref value)) return;
 
                 ConvertPreference(line, parameters);
