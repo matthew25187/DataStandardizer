@@ -173,10 +173,10 @@ namespace DataStandardizer.LanguageTag
         /// Gets the single character that identifies the subtag: the extension's singleton (RFC 5646 §2.2.6), or <c>x</c> for a private use sequence (§2.2.7).
         /// </summary>
         /// <remarks>
-        /// The value is never <c>null</c>. It keeps the case the subtag was written in, so a private use sequence written <c>X-ABC</c> gives <c>X</c>.
+        /// It keeps the case the subtag was written in, so a private use sequence written <c>X-ABC</c> gives <c>X</c>.
         /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialised.</exception>
-        public char? Singleton
+        public char Singleton
         {
             get
             {
