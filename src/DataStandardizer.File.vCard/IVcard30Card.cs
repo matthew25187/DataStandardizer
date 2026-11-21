@@ -290,7 +290,8 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>BDAY</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <exception cref="ArgumentException">vCard 3.0 can't write <paramref name="value"/>, or it is not initialised.</exception>
+        /// <exception cref="ArgumentException">vCard 3.0 can't write <paramref name="value"/>, vCard 4.0, the canonical form, has no form for it, such as a time with a fraction of a
+        /// second, or it is not initialised.</exception>
         /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetBirthday(VcardDateAndOrTime value);
 
@@ -331,7 +332,8 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>REV</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="ArgumentException">vCard 4.0, the canonical form, has no form for <paramref name="value"/>, such as a time with a fraction of a second, or it is not
+        /// initialised.</exception>
         /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetRevision(VcardTimestamp value);
 

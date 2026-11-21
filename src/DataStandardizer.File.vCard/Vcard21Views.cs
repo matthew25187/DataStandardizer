@@ -159,7 +159,7 @@ namespace DataStandardizer.File.vCard
         private List<IVcard21Property<TValue>> GetInstances()
         {
             var result = new List<IVcard21Property<TValue>>();
-            foreach (var property in _list)
+            foreach (var property in _list.GetInstancesInSourceForm())
             {
                 var view = Vcard21Views.Create(_card, property, _toVersion);
                 if (view != null)

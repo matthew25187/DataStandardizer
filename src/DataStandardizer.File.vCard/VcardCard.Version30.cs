@@ -358,6 +358,13 @@ namespace DataStandardizer.File.vCard
             }
         }
 
+        private static bool GetRevisionValue(VcardProperty<VcardTimestamp> property, out VcardTimestamp value)
+        {
+            // A card read from vCard 2.1 can keep a timestamp with an hour of 24, which RFC 2425 §5.8.4 doesn't have.
+            value = property.Value;
+            return value.IsDefinedIn(VcardVersion.V3_0);
+        }
+
         private static bool GetBirthdayValue(VcardProperty<VcardTypedValue> property, out VcardDateAndOrTime value)
         {
             value = default(VcardDateAndOrTime);
@@ -446,7 +453,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard30Property<VcardName> IVcard30Card.Name => Vcard30Views.Create<VcardName, VcardName>(this, Name, GetNameValue);
 
-        IVcard30Property<VcardDateAndOrTime> IVcard30Card.Birthday => Vcard30Views.Create<VcardTypedValue, VcardDateAndOrTime>(this, Birthday, GetBirthdayValue);
+        IVcard30Property<VcardDateAndOrTime> IVcard30Card.Birthday => Vcard30Views.Create<VcardTypedValue, VcardDateAndOrTime>(this, GetSingle(BirthdayCodec, SourceVersion), GetBirthdayValue);
 
         IVcard30Property<string> IVcard30Card.Mailer => Vcard30Views.Create<string, string>(this, Mailer, GetSame);
 
@@ -478,7 +485,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard30Property<string> IVcard30Card.ProductId => Vcard30Views.Create<string, string>(this, ProductId, GetSame);
 
-        IVcard30Property<VcardTimestamp> IVcard30Card.Revision => Vcard30Views.Create<VcardTimestamp, VcardTimestamp>(this, Revision, GetSame);
+        IVcard30Property<VcardTimestamp> IVcard30Card.Revision => Vcard30Views.Create<VcardTimestamp, VcardTimestamp>(this, GetSingle(RevisionCodec, SourceVersion), GetRevisionValue);
 
         string IVcard30Card.SortString
         {
