@@ -326,6 +326,8 @@ namespace DataStandardizer.File.vCard.Tests
                 { "EMAIL;TYPE=work;PREF=7:a@example.com", "EMAIL;TYPE=work,pref:a@example.com" },
                 { "TEL;TYPE=\"voice,home\":+1 555", "TEL;TYPE=voice,home:+1 555" },
                 { "ADR;TYPE=\"home,work\":;;1 First St;;;;", "ADR;TYPE=home,work:;;1 First St;;;;" },
+                { "TEL;TYPE=\"voice,home\";PREF=1:+1 555", "TEL;TYPE=voice,home,pref:+1 555" },
+                { "TEL;TYPE=work;TYPE=voice:+1 555", "TEL;TYPE=work;TYPE=voice:+1 555" },
                 { "GEO:geo:37.386013\\,-122.082932", "GEO:37.386013;-122.082932" },
                 { "TZ;VALUE=utc-offset:-05", "TZ:-05:00" },
                 { "TZ:Raleigh/North America", "TZ;VALUE=text:Raleigh/North America" },
