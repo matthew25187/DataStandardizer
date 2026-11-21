@@ -402,6 +402,23 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void WriteCard_SecondSortStringOnCardWithName_WritesItAsItWasRead()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  A reader of vCard 3.0 gives the first SORT-STRING to the N and keeps the second as a property of its own.
+            const string name = "N:Doe;John;;;";
+            const string organization = "ORG:Acme";
+            const string firstSortString = "SORT-STRING:d";
+            const string secondSortString = "SORT-STRING:x";
+            var card = VcardCardTestData.Read(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, name, organization, firstSortString, secondSortString));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, name, firstSortString, organization, secondSortString));
+        }
+
+        [Fact]
         public void WriteCard_SortKeysOfSeveralOrganizationsOnCardWithNoName_WritesASortStringAfterEach()
         {
             // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 gives each SORT-STRING in turn to the next ORG.

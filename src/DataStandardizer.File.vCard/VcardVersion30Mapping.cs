@@ -620,8 +620,9 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Puts a <c>SORT-STRING</c> line on the <c>N</c>, or if there is none the <c>ORG</c>, as a <c>SORT-AS</c>.  One with parameters, or a comma that a <c>SORT-AS</c> would take for
-        /// a separator (RFC 6350 §5.9), stays a property of its own.
+        /// Puts a <c>SORT-STRING</c> line on the first <c>N</c>, or on a card with no <c>N</c> the first <c>ORG</c> that has none yet, as a <c>SORT-AS</c>.  One with parameters, or a
+        /// comma that a <c>SORT-AS</c> would take for a separator (RFC 6350 §5.9), stays a property of its own.  So does one on a card whose first <c>N</c> already has a sort string,
+        /// since a <c>SORT-STRING</c> sorts the name (RFC 2426 §3.6.5).
         /// </summary>
         private static bool TryAttachSortString(VcardCard card, int index)
         {
@@ -629,8 +630,14 @@ namespace DataStandardizer.File.vCard
             string text;
             if (!IsAttachableSortString(line, out text)) return false;
 
-            var targetIndex = FindSortTarget(card, VcardPropertyNames.Name);
-            if (targetIndex < 0)
+            // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types; "A single text value."
+            int targetIndex;
+            var nameIndex = FindFirst(card, VcardPropertyNames.Name);
+            if (nameIndex >= 0)
+            {
+                targetIndex = card.Properties[nameIndex].GetParameter(VcardParameterNames.SortAs) is null ? nameIndex : -1;
+            }
+            else
             {
                 targetIndex = FindSortTarget(card, VcardPropertyNames.Organization);
             }
@@ -651,6 +658,16 @@ namespace DataStandardizer.File.vCard
         {
             text = null;
             return line.ParameterArray.Length == 0 && TryUnescape(line.Value, out text) && text.IndexOf(',') < 0;
+        }
+
+        private static int FindFirst(VcardCard card, string name)
+        {
+            for (var index = 0; index < card.Properties.Count; index++)
+            {
+                if (IsName(card.Properties[index], name)) return index;
+            }
+
+            return -1;
         }
 
         private static int FindSortTarget(VcardCard card, string name)
