@@ -105,6 +105,13 @@ namespace DataStandardizer.File.vCard
         internal TextWriter UnderlyingWriter => _writer;
 
         /// <summary>
+        /// Gets or sets whether a <c>QUOTED-PRINTABLE</c> value of a vCard 2.1 card that can't be decoded is written as it is, without soft line breaks, rather than
+        /// refused.  <see cref="VcardWriter"/> sets it under <see cref="VcardOptions.AllowInvalidValues"/>, which has checked the value already; the content line writer
+        /// alone ignores that option.
+        /// </summary>
+        internal bool WritesUndecodableQuotedPrintableAsIs { get; set; }
+
+        /// <summary>
         /// Creates a writer of vCard data to a stream, as UTF-8 without a byte order mark.
         /// </summary>
         /// <param name="vcardStream">The stream.  It is left open when the writer is disposed.</param>
@@ -594,6 +601,10 @@ namespace DataStandardizer.File.vCard
             if (VcardLegacyTokens.EqualsIgnoreCase(encodingName.AsSpan(), VcardLegacyTokens.QuotedPrintable))
             {
                 if (MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out _)) return ContentLineFoldMode.QuotedPrintableSoftBreak;
+
+                // A value that isn't quoted-printable can't be broken with soft line breaks, so it is written as it is, unless it ends with what a reader takes
+                // for a soft line break (vCard 2.1 §2.1.3), which would join the next line to it.
+                if (WritesUndecodableQuotedPrintableAsIs && !MimeQuotedPrintable.EndsWithSoftLineBreak(value, out _)) return ContentLineFoldMode.None;
             }
             else if (VcardLegacyTokens.EqualsIgnoreCase(encodingName.AsSpan(), VcardLegacyTokens.Base64))
             {

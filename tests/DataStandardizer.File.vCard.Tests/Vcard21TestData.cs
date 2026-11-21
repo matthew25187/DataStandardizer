@@ -37,7 +37,7 @@ namespace DataStandardizer.File.vCard.Tests
         /// <summary>
         /// Writes a card as vCard 2.1.
         /// </summary>
-        public static string Write(VcardCard card, bool allowLossy = false, bool allowMissingRequired = false, bool writeNamedTypes = false)
+        public static string Write(VcardCard card, bool allowLossy = false, bool allowMissingRequired = false, bool writeNamedTypes = false, bool allowInvalidValues = false)
         {
             var options = new VcardOptions
             {
@@ -45,7 +45,8 @@ namespace DataStandardizer.File.vCard.Tests
                 WriteVersion = VcardVersion.V2_1,
                 AllowLossyVersionConversion = allowLossy,
                 AllowMissingRequiredProperties = allowMissingRequired,
-                WriteNamedTypesInVersion21 = writeNamedTypes
+                WriteNamedTypesInVersion21 = writeNamedTypes,
+                AllowInvalidValues = allowInvalidValues
             };
 
             var output = new StringWriter();

@@ -606,6 +606,8 @@ namespace DataStandardizer.File.vCard
         private List<VcardContentLine> PrepareCard(VcardCard card)
         {
             // Gather the lines first, so that a card changed by another thread cannot fail part way through for that reason.
+            // Before the checks, so that the content line writer and the checks agree, even on a target where the options can be changed.
+            _writer.WritesUndecodableQuotedPrintableAsIs = _options.AllowInvalidValues;
             var diagnostics = new List<VcardDiagnostic>();
             var properties = _mapping.FromCanonical(card, _options, diagnostics);
             _mapping.Validate(properties, card, _options, 0, diagnostics);
