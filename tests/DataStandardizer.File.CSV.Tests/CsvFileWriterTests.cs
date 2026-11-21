@@ -195,6 +195,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const int NamedAtSharedIndexId = 1;
 
         private const string OptionsParameterName = "options";
+        private const string CsvStreamParameterName = "csvStream";
 
         // Keys of the CsvFileException data items that describe a record line with a field the first record line doesn't have, and the field
         // count of the first record line of the tests that check them.
@@ -2739,6 +2740,37 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void Constructor_ReadOnlyStream_ThrowsArgumentExceptionForCsvStream()
+        {
+            // arrange
+            using (var stream = new MemoryStream(new byte[0], false))
+            {
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(stream);
+
+                // assert
+                testAction.Should().Throw<ArgumentException>().WithParameterName(CsvStreamParameterName);
+            }
+        }
+
+        [Fact]
+        public void Constructor_ReadOnlyStreamWithOptions_ThrowsArgumentExceptionForCsvStream()
+        {
+            // arrange
+            using (var stream = new MemoryStream(new byte[0], false))
+            {
+                var options = new CsvFileOptions();
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(stream, options);
+
+                // assert
+                testAction.Should().Throw<ArgumentException>().WithParameterName(CsvStreamParameterName);
+            }
+        }
+
+        [Fact]
         public void WriteLine_AfterDisposeWithStream_ThrowsObjectDisposedException()
         {
             // arrange
@@ -5018,6 +5050,22 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<ArgumentNullException>().WithParameterName(OptionsParameterName);
+            }
+        }
+
+        [Fact]
+        public void Constructor_TextWriterWithEncodingOption_ThrowsArgumentExceptionForOptions()
+        {
+            // arrange
+            using (var stringWriter = new StringWriter())
+            {
+                var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
+
+                // act
+                Action testAction = () => _ = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+                // assert
+                testAction.Should().Throw<ArgumentException>().WithParameterName(OptionsParameterName);
             }
         }
 

@@ -103,6 +103,8 @@ namespace DataStandardizer.File.CSV
         {
             if (csvStream is null)
                 throw new ArgumentNullException(nameof(csvStream));
+            if (!csvStream.CanWrite)
+                throw new ArgumentException("Expected a stream supporting write.", nameof(csvStream));
 
             _writer = CreateStreamWriter(csvStream, DefaultEncoding);
             _isInternalWriter = true;
@@ -128,6 +130,8 @@ namespace DataStandardizer.File.CSV
         {
             if (csvStream is null)
                 throw new ArgumentNullException(nameof(csvStream));
+            if (!csvStream.CanWrite)
+                throw new ArgumentException("Expected a stream supporting write.", nameof(csvStream));
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
@@ -239,7 +243,7 @@ namespace DataStandardizer.File.CSV
 
             if (_options.Encoding != null)
             {
-                throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(writer));
+                throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(options));
             }
         }
 
