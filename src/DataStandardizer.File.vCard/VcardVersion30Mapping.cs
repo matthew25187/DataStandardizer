@@ -627,7 +627,7 @@ namespace DataStandardizer.File.vCard
         {
             var line = card.Properties[index];
             string text;
-            if (line.ParameterArray.Length != 0 || !TryUnescape(line.Value, out text) || text.IndexOf(',') >= 0) return false;
+            if (!IsAttachableSortString(line, out text)) return false;
 
             var targetIndex = FindSortTarget(card, VcardPropertyNames.Name);
             if (targetIndex < 0)
@@ -642,6 +642,15 @@ namespace DataStandardizer.File.vCard
             card.Properties[targetIndex] = target.With(target.Name, parameters.ToArray(), target.Value);
             card.Properties.RemoveAt(index);
             return true;
+        }
+
+        /// <summary>
+        /// Gets whether a reader of vCard 3.0 puts a <c>SORT-STRING</c> line on what it sorts.
+        /// </summary>
+        private static bool IsAttachableSortString(VcardContentLine line, out string text)
+        {
+            text = null;
+            return line.ParameterArray.Length == 0 && TryUnescape(line.Value, out text) && text.IndexOf(',') < 0;
         }
 
         private static int FindSortTarget(VcardCard card, string name)
@@ -1219,16 +1228,18 @@ namespace DataStandardizer.File.vCard
             /// Writes a <c>SORT-STRING</c> for each sort key that a reader of vCard 3.0 gives back to the same line (see <see cref="TryAttachSortString"/>).  The reader gives the first
             /// <c>SORT-STRING</c> to the first <c>N</c>, so on a card with an <c>N</c> only the sort key of that <c>N</c> is written.  On a card with no <c>N</c>, it gives each one in
             /// turn to the next <c>ORG</c>, so the sort key of each <c>ORG</c> is written after it, up to the first <c>ORG</c> that has none.  A sort key of any other line would move to
-            /// a line it doesn't belong to, so it is reported as lost, among the diagnostics of its own line.
+            /// a line it doesn't belong to, so it is reported as lost, among the diagnostics of its own line.  So is the sort key of a line after a <c>SORT-STRING</c> that the card
+            /// holds as a property of its own, which the reader would give to that line instead.
             /// </summary>
             private void AddSortStrings()
             {
                 if (_sortKeys.Count == 0) return;
 
                 var kept = new HashSet<int>();
+                var firstSortStringIndex = FindWrittenAttachableSortString();
                 foreach (var targetIndex in FindWrittenSortTargets())
                 {
-                    if (!HasSortKey(targetIndex)) break;
+                    if (targetIndex >= firstSortStringIndex || !HasSortKey(targetIndex)) break;
 
                     kept.Add(targetIndex);
                 }
@@ -1273,6 +1284,20 @@ namespace DataStandardizer.File.vCard
                 }
 
                 return targets;
+            }
+
+            /// <summary>
+            /// Gets where the first <c>SORT-STRING</c> of the card's own was written that a reader of vCard 3.0 would put on what it sorts, or <see cref="int.MaxValue"/> if none was.
+            /// </summary>
+            private int FindWrittenAttachableSortString()
+            {
+                for (var index = 0; index < _lines.Count; index++)
+                {
+                    string text;
+                    if (IsName(_lines[index], VcardPropertyNames.SortString) && IsAttachableSortString(_lines[index], out text)) return index;
+                }
+
+                return int.MaxValue;
             }
 
             private bool HasSortKey(int lineIndex)

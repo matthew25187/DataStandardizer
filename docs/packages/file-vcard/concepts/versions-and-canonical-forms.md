@@ -68,7 +68,7 @@ Writing a card as vCard 3.0 throws `VcardFileException`, and writes nothing of t
 | The added components of `N` and `ADR`, once they are in the older components, a whole line with `PHONETIC`, and `TYPE=billing` and `TYPE=delivery` | RFC 9554 |
 | A parameter that the type doesn't allow in RFC 2426 §4, such as `TYPE` on a `NOTE` | RFC 2426 |
 | A language tag that isn't one of RFC 1766, and a double quote or a line break in a parameter | RFC 2426 |
-| A `SORT-AS` on any line but the first `N`, and every `SORT-AS` value after the first. A `SORT-STRING` sorts the name (§3.6.5), so a reader would give it to that line. On a card with no `N`, a reader gives each `SORT-STRING` in turn to the next `ORG`, so each `ORG` keeps its `SORT-AS` up to the first `ORG` that has none, and the `SORT-AS` of every `ORG` after that is lost. | RFC 2426 |
+| A `SORT-AS` on any line but the first `N`, or, on a card with no `N`, on an `ORG` after the first `ORG` that has none; a `SORT-AS` on a line after a `SORT-STRING` the card holds as a property of its own; and every `SORT-AS` value after the first. A `SORT-STRING` sorts the name (§3.6.5), so a reader gives the first one to the `N`, or with no `N` each one in turn to the next `ORG`, and a sort key on any other line would move. | RFC 2426 |
 
 `AllowInvalidValues` keeps a parameter that the type doesn't allow, rather than leaving it out.
 
