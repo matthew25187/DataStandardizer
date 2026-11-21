@@ -1090,7 +1090,8 @@ namespace DataStandardizer.File.vCard
 
             private void AddLabel(VcardContentLine address, string label)
             {
-                // ref. RFC 6350 §6.3.1: its example writes a line break in a LABEL as "\n", where RFC 6868 would write it "^n".
+                // ref. RFC 6350 §5.1 and RFC 6868 §3: a param-value has no backslash escapes, so a backslash followed by "n" in a LABEL is
+                // those two characters, whatever the example in RFC 6350 §6.3.1 suggests.  Only "^n" stands for a line break.
                 var parameters = new List<VcardContentLineParameter>();
                 foreach (var parameter in address.ParameterArray)
                 {
@@ -1101,7 +1102,7 @@ namespace DataStandardizer.File.vCard
                 }
 
                 var labelLine = address.With(VcardPropertyNames.PostalLabel, parameters.ToArray(), string.Empty);
-                _lines.Add(Encode(labelLine, parameters, label.Replace("\\n", "\n"), false));
+                _lines.Add(Encode(labelLine, parameters, label, false));
             }
         }
     }

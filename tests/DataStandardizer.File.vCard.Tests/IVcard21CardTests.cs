@@ -460,6 +460,19 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Labels_LabelParameterWithABackslashAndN_GivesThemUnchanged()
+        {
+            // arrange: ref. RFC 6350 §5.1 and RFC 6868 §3.  A param-value has no backslash escapes, so "\n" in a LABEL is two characters.
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("ADR;LABEL=\"C:\\new\":;;1 Main St;Town;;;"));
+
+            // act
+            var testResult = card.AsVersion21().Labels.Single().Value;
+
+            // assert
+            testResult.Should().Be("C:\\new");
+        }
+
+        [Fact]
         public void Birthday_Date_GivesIt()
         {
             // act

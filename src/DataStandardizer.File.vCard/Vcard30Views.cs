@@ -247,7 +247,7 @@ namespace DataStandardizer.File.vCard
 
             foreach (var line in labelled)
             {
-                var text = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Label).Replace("\\n", "\n");
+                var text = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Label);
                 result.Add(new Vcard30Property<string>(line, VcardPropertyNames.PostalLabel, text, Vcard30Views.IsPreferred(_card, line)));
             }
 

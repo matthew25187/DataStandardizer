@@ -139,6 +139,19 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nADR;HOME:;;1 Main St;Town;;;\r\nLABEL;HOME;ENCODING=QUOTED-PRINTABLE:1 Main St=0D=0ATown\r\nEND:VCARD\r\n");
         }
 
+        [Fact]
+        public void WriteCard_AddressWithABackslashAndNInItsLabel_WritesThemUnchanged()
+        {
+            // arrange: ref. RFC 6350 §5.1 and RFC 6868 §3.  A param-value has no backslash escapes, so "\n" in a LABEL is two characters.
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:Doe;Jane;;;", "ADR;TYPE=home;LABEL=\"C:\\new\":;;1 Main St;Town;;;"));
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nADR;HOME:;;1 Main St;Town;;;\r\nLABEL;HOME:C:\\new\r\nEND:VCARD\r\n");
+        }
+
         public static TheoryData<string> LossyLineData()
         {
             return new TheoryData<string>
