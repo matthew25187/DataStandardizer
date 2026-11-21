@@ -13,7 +13,7 @@ namespace DataStandardizer.File.vCard
     /// <remarks>
     /// An instance whose value isn't valid, which <see cref="VcardOptions.AllowInvalidValues"/> lets a reader accept, is not here, but it is still in
     /// <see cref="VcardCard.Properties"/>.  Nor is one that a card read from vCard 3.0 or 2.1 keeps in the form of that version, because vCard 4.0 has no form for its value, such as
-    /// a <c>REV</c> with a fraction of a second; <see cref="IVcard30Card"/> or <see cref="IVcard21Card"/> shows it.  Each member reads the properties of the card, so it takes time
+    /// a vCard 2.1 <c>TZ</c> with an hour of 24; <see cref="IVcard30Card"/> or <see cref="IVcard21Card"/> shows it.  Each member reads the properties of the card, so it takes time
     /// in proportion to their number.
     /// </remarks>
     /// <typeparam name="TValue">The type of the value.</typeparam>

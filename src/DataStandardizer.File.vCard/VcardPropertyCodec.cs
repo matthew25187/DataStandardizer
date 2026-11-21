@@ -119,10 +119,22 @@ namespace DataStandardizer.File.vCard
 
             string text;
             TValue value;
-            if (!VcardConformance.TryGetValueText(line, out text) || !ParseSourceForm(text, VcardValueTypeRegistry.GetValueType(line), sourceVersion.Value, out value)) return false;
+            if (!VcardConformance.TryGetValueText(line, out text) || !ParseSourceForm(text, GetSourceValueType(line, sourceVersion.Value), sourceVersion.Value, out value)) return false;
 
             property = new VcardProperty<TValue>(line, value);
             return true;
+        }
+
+        /// <summary>
+        /// Gets the value type of a line kept in the form of an older version.  ref. vCard 2.1 §2.1.8: a <c>VALUE</c> is where the value is, and <c>INLINE</c>, its default, says that
+        /// it is on the line, so the property has its default type.
+        /// </summary>
+        private static VcardValueType GetSourceValueType(VcardContentLine line, VcardVersion sourceVersion)
+        {
+            var valueParameter = line.GetParameter(VcardParameterNames.Value);
+            return sourceVersion == VcardVersion.V2_1 && valueParameter != null && string.Equals(valueParameter.ValueArray[0], VcardLegacyTokens.InlineValue, StringComparison.OrdinalIgnoreCase)
+                ? VcardValueTypeRegistry.GetDefaultValueType(line.Name.AsSpan())
+                : VcardValueTypeRegistry.GetValueType(line);
         }
 
         /// <summary>
@@ -305,7 +317,7 @@ namespace DataStandardizer.File.vCard
         internal static VcardPropertyCodec<VcardTimestamp> Timestamp(string name)
         {
             return new VcardPropertyCodec<VcardTimestamp>(name, (string text, VcardValueType valueType, out VcardTimestamp value) =>
-                VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Timestamp);
+                VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), FormatTimestamp, value => VcardValueType.Timestamp);
         }
 
         /// <summary>
@@ -494,7 +506,32 @@ namespace DataStandardizer.File.vCard
 
         private static string FormatTyped(VcardTypedValue value)
         {
+            switch (value.ValueType)
+            {
+                case VcardValueType.DateAndOrTime:
+                    CheckDefinedInVersion40(value.DateAndOrTime.IsDefinedIn(VcardVersion.V4_0));
+                    break;
+                case VcardValueType.UtcOffset:
+                    CheckDefinedInVersion40(value.UtcOffset.IsDefinedIn(VcardVersion.V4_0));
+                    break;
+            }
+
             return value.ToString();
+        }
+
+        private static string FormatTimestamp(VcardTimestamp value)
+        {
+            CheckDefinedInVersion40(value.IsDefinedIn(VcardVersion.V4_0));
+            return value.ToString(VcardValueFormat.Text);
+        }
+
+        /// <summary>
+        /// A card holds a value in canonical form, which is that of vCard 4.0, so one that vCard 4.0 has no form for, such as a time with a fraction of a second, can't be written to it.
+        /// </summary>
+        private static void CheckDefinedInVersion40(bool isDefined)
+        {
+            if (!isDefined)
+                throw new ArgumentException("vCard 4.0, the canonical form of a card, has no form for this value.", "value");
         }
 
         /// <summary>
