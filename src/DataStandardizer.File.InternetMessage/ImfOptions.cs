@@ -78,7 +78,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// RFC 2045 §2.9 and §6.2 define the encoding, but a transport can carry it only if it supports RFC 3030 BINARYMIME, so when <c>false</c> (the default)
-        /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.
+        /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.  A line break in a <c>binary</c> body is data,
+        /// so a writer that changes the line breaks of a message, such as an <see cref="EmlxWriter"/>, doesn't use the encoding there.
         /// </remarks>
         public bool AllowBinaryTransferEncoding
         {

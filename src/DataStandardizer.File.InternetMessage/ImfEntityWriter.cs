@@ -82,6 +82,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly int _blockSize;
         private readonly ArrayPool<byte> _bufferPool;
         private readonly Func<string> _boundaryGenerator;
+        private readonly bool _lineBreaksChange;
         private readonly bool _lineFeedIsLineBreak;
         private readonly ImfOptions _options;
         private readonly ImfOutput _output;
@@ -133,7 +134,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ArgumentNullException"><paramref name="messageFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="options"/> has a limit that is less than 1.</exception>
         public ImfEntityWriter(string messageFilePath, ImfOptions options)
-            : this(CheckOptions(options), new ImfOutput(OpenFile(messageFilePath), true, nameof(ImfEntityWriter)), DefaultBlockSize, false, GenerateBoundary)
+            : this(CheckOptions(options), new ImfOutput(OpenFile(messageFilePath), true, nameof(ImfEntityWriter)), DefaultBlockSize, false, false, GenerateBoundary)
         {
         }
 #endif
@@ -150,20 +151,21 @@ namespace DataStandardizer.File.InternetMessage
         internal ImfEntityWriter(Stream messageStream, ImfOptions options, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
             ArrayPool<byte> bufferPool = null)
 #endif
-            : this(CheckOptions(options), new ImfOutput(ImfOutput.ValidateStream(messageStream), false, nameof(ImfEntityWriter)), blockSize, lineFeedIsLineBreak, boundaryGenerator,
+            : this(CheckOptions(options), new ImfOutput(ImfOutput.ValidateStream(messageStream), false, nameof(ImfEntityWriter)), blockSize, lineFeedIsLineBreak, false, boundaryGenerator,
                 bufferPool)
         {
         }
 
         /// <summary>
         /// Creates a writer on an output, which an <see cref="ImfWriter"/> shares, and which owns the operation that <see cref="WriteEntities"/> runs in.  The options come first, so
-        /// that bad options are found before a file is opened.
+        /// that bad options are found before a file is opened.  <paramref name="lineBreaksChange"/> is <c>true</c> if the line breaks of the output will be changed after it is
+        /// written, so that no entity may be labelled <c>binary</c>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
+        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator,
             ArrayPool<byte>? bufferPool = null)
 #else
-        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
+        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator,
             ArrayPool<byte> bufferPool = null)
 #endif
         {
@@ -175,6 +177,7 @@ namespace DataStandardizer.File.InternetMessage
             _blockSize = blockSize;
             _bufferPool = bufferPool ?? ArrayPool<byte>.Shared;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
+            _lineBreaksChange = lineBreaksChange;
             _boundaryGenerator = boundaryGenerator;
         }
 
@@ -326,7 +329,7 @@ namespace DataStandardizer.File.InternetMessage
             var encodedBlock = _bufferPool.Rent(EncodedBlockSize);
             try
             {
-                var plan = new ImfEntityWritePlan(message, _options, _lineFeedIsLineBreak, _boundaryGenerator);
+                var plan = new ImfEntityWritePlan(message, _options, _lineFeedIsLineBreak, _lineBreaksChange, _boundaryGenerator);
                 do
                 {
                     foreach (var scan in plan.PendingScans)
@@ -485,7 +488,7 @@ namespace DataStandardizer.File.InternetMessage
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var plan = new ImfEntityWritePlan(message, _options, _lineFeedIsLineBreak, _boundaryGenerator);
+                var plan = new ImfEntityWritePlan(message, _options, _lineFeedIsLineBreak, _lineBreaksChange, _boundaryGenerator);
                 do
                 {
                     foreach (var scan in plan.PendingScans)

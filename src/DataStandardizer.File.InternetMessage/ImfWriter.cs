@@ -41,7 +41,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
     /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), whose line breaks may not be line breaks, can't change like that, which causes an
-    /// <see cref="ImfFileException"/>.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
+    /// <see cref="ImfFileException"/>.  The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when
+    /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body that would have had it is encoded instead.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
@@ -67,6 +68,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private readonly Func<string> _boundaryGenerator;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
+        private readonly bool _lineBreaksChange;
         private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _lineBreak;
         private readonly ImfOptions _options;
@@ -130,7 +132,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Creates a writer of messages to a file, for a format with its own conformance rules.
         /// </summary>
         internal ImfWriter(string messageFilePath, ImfOptions options, ImfConformanceProfile profile)
-            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, ImfEntityWriter.GenerateBoundary, profile)
+            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, false, ImfEntityWriter.GenerateBoundary, profile)
         {
         }
 #endif
@@ -140,7 +142,16 @@ namespace DataStandardizer.File.InternetMessage
         /// to choose the boundaries.
         /// </summary>
         internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
-            : this(messageStream, options, lineFeedIsLineBreak, boundaryGenerator, ImfConformanceProfile.Message)
+            : this(messageStream, options, lineFeedIsLineBreak, false, boundaryGenerator, ImfConformanceProfile.Message)
+        {
+        }
+
+        /// <summary>
+        /// Creates a writer with a line break setting and a source of boundaries, for the writer of a container format that changes the line breaks of what it writes.  So that the
+        /// change doesn't alter any data, the writer labels no entity <c>binary</c> (RFC 2045 §2.9), and refuses a message that has one.
+        /// </summary>
+        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator)
+            : this(messageStream, options, lineFeedIsLineBreak, lineBreaksChange, boundaryGenerator, ImfConformanceProfile.Message)
         {
         }
 
@@ -148,17 +159,24 @@ namespace DataStandardizer.File.InternetMessage
         /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules.
         /// </summary>
         internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
-            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, boundaryGenerator, profile)
+            : this(messageStream, options, lineFeedIsLineBreak, false, boundaryGenerator, profile)
+        {
+        }
+
+        private ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator, ImfConformanceProfile profile)
+            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, lineBreaksChange, boundaryGenerator, profile)
         {
         }
 
         // The options come first, so that bad options are found before a file is opened.
-        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
+        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator,
+            ImfConformanceProfile profile)
         {
             _options = options;
             _profile = profile;
             _boundaryGenerator = boundaryGenerator;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
+            _lineBreaksChange = lineBreaksChange;
             _output = new ImfOutput(stream, ownsStream, GetType().Name);
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
             _readOnlyDiagnostics = new ReadOnlyCollection<ImfDiagnostic>(_diagnostics);
@@ -322,7 +340,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
-                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
+                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _lineBreaksChange, _boundaryGenerator);
                     writer.WriteEntities(source, CreateProgress(progress));
                     CompleteChangedBody(writer, diagnostics, progress);
                     _output.ThrowIfDisposed();
@@ -477,7 +495,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
-                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
+                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _lineBreaksChange, _boundaryGenerator);
                     await writer.WriteEntitiesAsync(source, CreateProgress(progress), cancellationToken).ConfigureAwait(false);
                     CompleteChangedBody(writer, diagnostics, progress);
                     _output.ThrowIfDisposed();
@@ -555,7 +573,7 @@ namespace DataStandardizer.File.InternetMessage
         private byte[] PlanConverted(ImfMessage message, out List<ImfDiagnostic> diagnostics, out long fieldCount)
         {
             var output = new MemoryStream();
-            using (var writer = new ImfWriter(output, _options, true, _boundaryGenerator, _profile))
+            using (var writer = new ImfWriter(output, _options, true, true, _boundaryGenerator, _profile))
             {
                 writer.WriteMessage(message);
                 diagnostics = new List<ImfDiagnostic>(writer.Diagnostics);

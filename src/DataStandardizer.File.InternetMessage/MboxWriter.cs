@@ -28,6 +28,8 @@ namespace DataStandardizer.File.InternetMessage
     /// given.  So one read from an <c>.eml</c> file changes when written here.  A line that still ends in CRLF in a file of LF, from a file read with
     /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>, causes an <see cref="ImfFileException"/> unless that option is set.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism (§6.3), as a line break in it may not be
     /// one, which causes an <see cref="ImfFileException"/>.
+    /// The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body
+    /// that would have had it is encoded instead.
     /// </para>
     /// <para>
     /// <b>Seven bits.</b>  RFC 4155 Appendix A requires seven-bit characters, so an octet above 127 causes an <see cref="ImfFileException"/>, unless
@@ -535,7 +537,8 @@ namespace DataStandardizer.File.InternetMessage
                 // A message is written in the line breaks it has, so that what hasn't changed stays as it is, and then they are changed all at once if the file has others.
                 var output = new MemoryStream();
                 var hasLineFeedBreaks = message.LineFeedIsLineBreak;
-                using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, _boundaryGenerator))
+                var lineBreaksChange = hasLineFeedBreaks == _isCrLf;
+                using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, lineBreaksChange, _boundaryGenerator))
                 {
                     writer.WriteMessage(message);
                     diagnostics.AddRange(writer.Diagnostics);
@@ -543,7 +546,7 @@ namespace DataStandardizer.File.InternetMessage
                 }
 
                 var bytes = new ReadOnlySpan<byte>(output.ToArray());
-                if (hasLineFeedBreaks == _isCrLf) bytes = ImfLineBreaks.Convert(message, bytes, _isCrLf);
+                if (lineBreaksChange) bytes = ImfLineBreaks.Convert(message, bytes, _isCrLf);
 
                 var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf, out var fieldChange);
                 fieldCount += fieldChange;

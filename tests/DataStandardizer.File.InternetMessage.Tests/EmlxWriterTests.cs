@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
 
@@ -77,6 +78,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string RepeatedSubjectFile = "57\n" + Message + EmlxFiles.PlistStart + "<dict>\n\t<key>subject</key>\n\t<string>one</string>\n\t<key>flags</key>\n\t<integer>1</integer>\n\t<key>subject</key>\n\t<string>two</string>\n</dict>\n" + EmlxFiles.PlistEnd;
         private const string BinaryEml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\nx\r\n";
         private const string ChangedSubject = "Hi";
+        private const string AttachmentFileName = "a.png";
+        private const string AttachmentMediaType = "image/png";
+        private const int AttachmentPartIndex = 1;
+
+        // ref. RFC 3501 §6.4.5: the first part of a multipart message body is part 1.
+        private const string FirstPartPath = "1";
+        private const string BuiltDate = "Thu, 1 Jan 2026 00:00:00 +0000";
+        private const string BuiltFrom = "a@b.test";
+
+        // ref. PNG (ISO/IEC 15948) §5.2: the PNG signature, which holds CRLF, LF and control octets, followed by more of each, as content that is not text.
+        private static readonly byte[] AttachmentWithLineBreaks = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01, 0x0A, 0x0D, 0x0A, 0xFF };
 
         // A property list of 22 octets.
         private const string ShortMetadataFile = "57\n" + Message + "<plist><dict/></plist>";
@@ -308,6 +320,43 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ImfFileException>();
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentWithBinaryAllowed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).SetText("hi").AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var file = EmlxFiles.Write(new EmlxEntry(builder.Build(), new EmlxMetadata()), options);
+            var body = (ImfMultipart)EmlxFiles.Read(file, options).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(AttachmentWithLineBreaks);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltPartLabelledBinary_Throws()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[0].ContentTransferEncoding = MimeTransferEncoding.Binary;
+            var entry = new EmlxEntry(message, new EmlxMetadata());
+
+            // act
+            Action testAction = () => EmlxFiles.Write(entry, options);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
         }
 
         [Fact]
