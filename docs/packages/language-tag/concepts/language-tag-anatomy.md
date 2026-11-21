@@ -74,8 +74,8 @@ Extension and private-use subtags share a structure: a single-character key (the
 *singleton*) followed by one or more further subtags. The `Bcp47KeyedSubtag`
 struct captures both halves:
 
-- `Singleton` — the single character that leads the subtag, as written (e.g.
-  `'u'` or `'x'`). It is never `null`.
+- `Singleton` — the single character that leads the subtag, as a `char` in the
+  case it was written (e.g. `'u'` or `'x'`).
 - `Subtags` — the remaining hyphen-separated parts as a read-only list of strings.
 
 So an extension subtag `u-sd-chzh` exposes a `Singleton` of `'u'` and `Subtags`
