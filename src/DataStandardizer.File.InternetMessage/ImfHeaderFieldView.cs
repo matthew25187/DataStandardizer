@@ -140,6 +140,11 @@ namespace DataStandardizer.File.InternetMessage
             return GetScanner().GetDecodedValue();
         }
 
+        /// <summary>
+        /// Gets a flag indicating if a line feed is the line break of the data, as in mbox and EMLX files, or <c>false</c> if it is CRLF.
+        /// </summary>
+        internal bool LineFeedIsLineBreak => GetScanner().LineFeedIsLineBreak;
+
         private ImfHeaderScanner GetScanner()
         {
             if (_source is null)

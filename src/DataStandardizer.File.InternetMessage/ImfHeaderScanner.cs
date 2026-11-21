@@ -115,6 +115,11 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a line feed is the line break, as in the messages inside mbox and EMLX files, or <c>false</c> if it is CRLF.
+        /// </summary>
+        internal bool LineFeedIsLineBreak => _lineFeedIsLineBreak;
+
+        /// <summary>
         /// Gets the block a driver reads input into, at the position given by <see cref="PrepareRefill"/>.
         /// </summary>
         internal byte[] Buffer => _buffer;
@@ -490,7 +495,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal ImfHeaderField ToField()
         {
-            return new ImfHeaderField(GetName(), RawBytes.ToArray(), Value.ToArray(), _needsFallbackCharset ? GetValue() : string.Empty, _fieldBytePosition, _fieldLineNumber);
+            return new ImfHeaderField(GetName(), RawBytes.ToArray(), Value.ToArray(), _needsFallbackCharset ? GetValue() : string.Empty, _fieldBytePosition, _fieldLineNumber,
+                _lineFeedIsLineBreak);
         }
 
         /// <summary>
