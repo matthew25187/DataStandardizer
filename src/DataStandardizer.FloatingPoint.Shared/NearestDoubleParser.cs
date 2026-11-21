@@ -23,6 +23,7 @@ namespace DataStandardizer.FloatingPoint
     /// faster.  Otherwise the value is worked out here in exact integer arithmetic.
     /// </para>
     /// </remarks>
+    // File.iCal has its own copy of this parser, IcalFloatParser, since File.iCal v1 takes bug fixes only.  A fix to one belongs in the other.
     internal static class NearestDoubleParser
     {
         /// <summary>

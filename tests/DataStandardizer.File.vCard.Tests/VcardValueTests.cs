@@ -42,6 +42,11 @@ namespace DataStandardizer.File.vCard.Tests
         private const double TwoToTheSixtieth = 1152921504606846976.0;
         private const double TwoToTheMinusTwentieth = 9.5367431640625E-07;
 
+        // Negative zero as text, and the bits of positive and negative zero (IEEE 754 binary64: negative zero has only the sign bit set).
+        private const string NegativeZeroText = "-0";
+        private const long PositiveZeroBits = 0;
+        private const long NegativeZeroBits = long.MinValue;
+
         // Long enough for the smallest subnormal double written without an exponent.
         private const int LongFloatDestinationLength = 400;
 
@@ -51,7 +56,7 @@ namespace DataStandardizer.File.vCard.Tests
             { "needs 16 digits", () => SixteenDigitDouble, "901.7426589977661" },
             { "needs 16 digits, below 1", () => SumOfOneTenthAndSevenTenths, "0.7999999999999999" },
             { "GEO coordinate", () => GeoCoordinateWithSixteenDigits, "0.8455124082255701" },
-            { "negative zero", () => -0.0, "-0" },
+            { "negative zero", () => -0.0, NegativeZeroText },
             { "whole number of 17 digits", () => 1E+16, "10000000000000000" },
             { "whole number of 18 digits", () => 1E+17, "100000000000000000" },
             { "decimal point four places before the first digit", () => 0.00001, "0.00001" },
@@ -242,9 +247,9 @@ namespace DataStandardizer.File.vCard.Tests
         // serialize a double in a theory row with that runtime's "R".
         public static TheoryData<string, string, VcardValueFormat, long> NearestDoubleCases => new TheoryData<string, string, VcardValueFormat, long>
         {
-            { "negative zero", "-0", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(-0.0) },
-            { "negative zero, jCard", "-0", VcardValueFormat.Json, BitConverter.DoubleToInt64Bits(-0.0) },
-            { "negative zero with a fraction, xCard", "-0.0E0", VcardValueFormat.Xml, BitConverter.DoubleToInt64Bits(-0.0) },
+            { "negative zero", NegativeZeroText, VcardValueFormat.Text, NegativeZeroBits },
+            { "negative zero, jCard", NegativeZeroText, VcardValueFormat.Json, NegativeZeroBits },
+            { "negative zero with a fraction, xCard", "-0.0E0", VcardValueFormat.Xml, NegativeZeroBits },
             { "needs 16 digits", "901.7426589977661", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(SixteenDigitDouble) },
             { "16 digits and an exponent", "5.882948112288285E-204", VcardValueFormat.Json, BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
             { "smallest normal", SmallestNormalDoubleText, VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
@@ -253,9 +258,9 @@ namespace DataStandardizer.File.vCard.Tests
             { "just above halfway", JustAboveHalfwayText, VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
             { "exactly halfway, odd neighbour above", "9007199254740993", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53) },
             { "just above halfway, in more digits than a halfway value can have", "9007199254740993." + new string('0', ZerosPastTheHalfwayDigits) + "1", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
-            { "just below half the smallest subnormal", "2.4703282292062327E-324", VcardValueFormat.Json, BitConverter.DoubleToInt64Bits(0.0) },
+            { "just below half the smallest subnormal", "2.4703282292062327E-324", VcardValueFormat.Json, PositiveZeroBits },
             { "just above half the smallest subnormal", JustAboveHalfTheSmallestSubnormalText, VcardValueFormat.Json, BitConverter.DoubleToInt64Bits(double.Epsilon) },
-            { "far below the smallest subnormal", "1E-99999999999", VcardValueFormat.Xml, BitConverter.DoubleToInt64Bits(0.0) },
+            { "far below the smallest subnormal", "1E-99999999999", VcardValueFormat.Xml, PositiveZeroBits },
             { "just below halfway above the largest", JustBelowHalfwayAboveTheLargestText, VcardValueFormat.Xml, BitConverter.DoubleToInt64Bits(double.MaxValue) },
         };
 

@@ -333,6 +333,22 @@ namespace DataStandardizer.File.vCard.Tests
             result.ToString().Should().Be(VcardValueExamples.UriHttp);
         }
 
+        // A geo URI (RFC 5870 §3.3) at negative zero latitude, and the bits of negative zero (IEEE 754 binary64: only the sign bit set).
+        private const string GeoUriAtNegativeZeroLatitude = "geo:-0\\,0";
+        private const long NegativeZeroBits = long.MinValue;
+
+        [Fact]
+        public void TryParse_GeoAtNegativeZero_KeepsTheSignOnEveryTarget()
+        {
+            // act
+            VcardGeo result;
+            var testResult = VcardGeo.TryParse(GeoUriAtNegativeZeroLatitude.AsSpan(), VcardValueFormat.Text, out result);
+
+            // assert
+            testResult.Should().BeTrue();
+            BitConverter.DoubleToInt64Bits(result.Latitude.GetValueOrDefault()).Should().Be(NegativeZeroBits);
+        }
+
         [Fact]
         public void TryParse_GeoInAnotherCoordinateSystem_IsValidWithNoCoordinates()
         {
