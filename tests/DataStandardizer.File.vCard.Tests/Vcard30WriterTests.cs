@@ -384,6 +384,119 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void WriteCard_SortStringsOfSeveralOrganizationsWithNoName_WritesThemAsTheyWereRead()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 gives each SORT-STRING in turn to the next ORG.
+            const string firstOrganization = "ORG:A";
+            const string secondOrganization = "ORG:B";
+            const string firstSortString = "SORT-STRING:a";
+            const string secondSortString = "SORT-STRING:b";
+            var options = new VcardOptions { MaxLineLength = null, AllowMissingRequiredProperties = true };
+            var card = VcardCardTestData.Read(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, firstOrganization, secondOrganization, firstSortString, secondSortString), options);
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, allowMissingRequired: true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, firstOrganization, firstSortString, secondOrganization, secondSortString));
+        }
+
+        [Fact]
+        public void WriteCard_SortKeysOfSeveralOrganizationsOnCardWithNoName_WritesASortStringAfterEach()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 gives each SORT-STRING in turn to the next ORG.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=a:A", "ORG;SORT-AS=b:B"));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, allowMissingRequired: true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "ORG:A", "SORT-STRING:a", "ORG:B", "SORT-STRING:b"));
+        }
+
+        [Fact]
+        public void WriteCard_SortKeyOfOrganizationAfterOneWithNoneUnderAllowLossyVersionConversion_LeavesItOut()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 would give the SORT-STRING to the first ORG.
+            const string organizationWithNoSortKey = "ORG:A";
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, organizationWithNoSortKey, "ORG;SORT-AS=b:B"));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, true, true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, organizationWithNoSortKey, "ORG:B"));
+        }
+
+        [Fact]
+        public void Analyze_SortKeyOfOrganizationAfterOneWithNone_ReportsItAsLost()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 would give the SORT-STRING to the first ORG.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG:A", "ORG;SORT-AS=b:B"));
+
+            // act
+            var testResult = VcardVersionConverter.Analyze(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().ContainSingle(diagnostic => diagnostic.Kind == VcardDiagnosticKind.Lossy).Which.PropertyName.Should().Be(VcardPropertyNames.Organization);
+        }
+
+        [Fact]
+        public void WriteCard_SortKeyOfOrganizationAfterSortStringOfItsOwnUnderAllowLossyVersionConversion_LeavesItOut()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 would give the SORT-STRING the card holds as a property of its own to the second ORG.
+            const string sortStringOfItsOwn = "SORT-STRING:z";
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=a:A", sortStringOfItsOwn, "ORG;SORT-AS=b:B"));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, true, true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "ORG:A", "SORT-STRING:a", sortStringOfItsOwn, "ORG:B"));
+        }
+
+        [Fact]
+        public void Analyze_SortKeyOfOrganizationAfterSortStringOfItsOwn_ReportsItAsLost()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 would give the SORT-STRING the card holds as a property of its own to the second ORG.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=a:A", "SORT-STRING:z", "ORG;SORT-AS=b:B"));
+
+            // act
+            var testResult = VcardVersionConverter.Analyze(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().ContainSingle(diagnostic => diagnostic.Kind == VcardDiagnosticKind.Lossy).Which.PropertyName.Should().Be(VcardPropertyNames.Organization);
+        }
+
+        [Fact]
+        public void WriteCard_SecondOrganizationWithTwoSortValuesUnderAllowLossyVersionConversion_WritesItsFirstSortValue()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: "A single text value."
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=a:A", "ORG;SORT-AS=b,c:B;Unit"));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, true, true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "ORG:A", "SORT-STRING:a", "ORG:B;Unit", "SORT-STRING:b"));
+        }
+
+        [Fact]
+        public void Analyze_SecondOrganizationWithTwoSortValues_ReportsItsOtherSortValueAsLost()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: "A single text value."
+            const int secondOrganizationLineNumber = 5;
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=a:A", "ORG;SORT-AS=b,c:B;Unit"));
+
+            // act
+            var testResult = VcardVersionConverter.Analyze(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().ContainSingle(diagnostic => diagnostic.Kind == VcardDiagnosticKind.Lossy).Which.Should().BeEquivalentTo(new { PropertyName = VcardPropertyNames.Organization, LineNumber = secondOrganizationLineNumber });
+        }
+
+
+        [Fact]
         public void WriteCard_OrganizationSortKeyBeforeNameSortKeyUnderAllowLossyVersionConversion_KeepsTheNameSortKey()
         {
             // arrange: ref. RFC 2426 §3.6.5: a SORT-STRING sorts the N.
