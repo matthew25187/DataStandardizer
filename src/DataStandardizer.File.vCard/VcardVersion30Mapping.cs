@@ -409,10 +409,11 @@ namespace DataStandardizer.File.vCard
             }
 
             VcardUtcOffset offset;
-            if (!VcardUtcOffset.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out offset) || !offset.IsDefinedIn(VcardVersion.V4_0)) return value;
+            if (!VcardUtcOffset.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out offset)) return value;
 
+            // An offset that vCard 4.0 has no form for stays as it was read, and still says it is an offset rather than text.
             parameters.Add(new VcardContentLineParameter(VcardParameterNames.Value, VcardValueTypeRegistry.GetValueTypeName(VcardValueType.UtcOffset)));
-            return offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
+            return offset.IsDefinedIn(VcardVersion.V4_0) ? offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : value;
         }
 
         private static string UidToCanonical(string value, List<VcardContentLineParameter> parameters)

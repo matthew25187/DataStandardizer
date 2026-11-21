@@ -224,10 +224,11 @@ namespace DataStandardizer.File.vCard
                 case VcardPropertyNames.TimeZone:
                     // ref. vCard 2.1 §2.4.5: an offset from UTC; RFC 6350 §6.5.1: 'The default is a single text value', so an offset says what it is.
                     VcardUtcOffset offset;
-                    if (!VcardUtcOffset.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out offset) || !offset.IsDefinedIn(VcardVersion.V4_0)) return null;
+                    if (!VcardUtcOffset.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out offset)) return null;
 
+                    // An offset that vCard 4.0 has no form for, such as +24:00, stays as it was read, and still says it is an offset rather than text.
                     parameters.Insert(0, new VcardContentLineParameter(VcardParameterNames.Value, VcardValueTypeRegistry.GetValueTypeName(VcardValueType.UtcOffset)));
-                    return offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
+                    return offset.IsDefinedIn(VcardVersion.V4_0) ? offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : text;
                 case VcardPropertyNames.Geo:
                     VcardGeo geo;
                     return VcardGeo.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out geo) && geo.IsDefinedIn(VcardVersion.V4_0)
@@ -716,6 +717,8 @@ namespace DataStandardizer.File.vCard
                     return false;
                 }
 
+                // ref. vCard 2.1 §2.1.8: VALUE says where a value is, not its type, so it goes even from an offset that stays as it is, such as one read from vCard 2.1 that vCard 4.0 has no form for.
+                VcardVersion30Mapping.Remove(parameters, VcardParameterNames.Value);
                 if (!VcardUtcOffset.TryParse(value.AsSpan(), VcardValueFormat.Text, out offset)) return true;
 
                 if (!offset.IsDefinedIn(VcardVersion.V2_1))
@@ -725,7 +728,6 @@ namespace DataStandardizer.File.vCard
                 }
 
                 value = offset.ToString(VcardValueFormat.Text, VcardVersion.V2_1);
-                VcardVersion30Mapping.Remove(parameters, VcardParameterNames.Value);
                 return true;
             }
 

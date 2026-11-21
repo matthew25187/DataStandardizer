@@ -222,14 +222,50 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Value.Should().Be(expectedValue);
         }
 
+        // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which RFC 6350 §4.3.2 forbids.
+        private const string RevisionWithSecondFraction = "REV:1995-10-31T22:27:10,5Z";
+        private const string BirthdayWithSecondFraction = "BDAY;VALUE=date-time:1996-04-15T10:22:00,5Z";
+
         public static TheoryData<string, string[], string> NoVersion40FormData()
         {
             return new TheoryData<string, string[], string>
             {
-                // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which RFC 6350 §4.3.2 forbids.
-                { "REV:1995-10-31T22:27:10,5Z", NoParameters, "1995-10-31T22:27:10,5Z" },
-                { "BDAY;VALUE=date-time:1996-04-15T10:22:00,5Z", new[] { "VALUE=date-time" }, "1996-04-15T10:22:00,5Z" }
+                { RevisionWithSecondFraction, NoParameters, "1995-10-31T22:27:10,5Z" },
+                { BirthdayWithSecondFraction, new[] { "VALUE=date-time" }, "1996-04-15T10:22:00,5Z" }
             };
+        }
+
+        public static TheoryData<string> NoVersion40FormCardData()
+        {
+            return new TheoryData<string> { Vcard30TestData.Card(RevisionWithSecondFraction), Vcard30TestData.Card(BirthdayWithSecondFraction) };
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormCardData))]
+        public void WriteCard_Version30ValueWithNoVersion40FormAsVersion30_RoundTrips(string text)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(text);
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormCardData))]
+        public void WriteCard_Version30ValueWithNoVersion40FormAsVersion40_ThrowsInvalidValue(string text)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(text);
+
+            // act
+            Action testAction = () => Vcard30TestData.Write(card, VcardVersion.V4_0);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
         }
 
         [Theory]
