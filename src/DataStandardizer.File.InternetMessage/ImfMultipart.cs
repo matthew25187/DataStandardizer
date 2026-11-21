@@ -159,8 +159,9 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <inheritdoc />
-        internal override ImfEntitySource ToChangedSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
         {
+            var encoding = options.HeaderEncoding;
             var contentType = ContentType;
             if (!string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase))
                 throw new ImfFileException("The Content-Type field of a multipart entity must be of the top-level type multipart.");
@@ -170,7 +171,7 @@ namespace DataStandardizer.File.InternetMessage
             var parts = new List<ImfEntitySource>(Parts.Count);
             foreach (var part in Parts)
             {
-                parts.Add(part.ToSource(encoding, lineBreak));
+                parts.Add(part.ToSource(options, lineBreak, boundaryGenerator));
             }
 
             var source = ImfEntitySource.FromParts(contentType, parts);

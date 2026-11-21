@@ -75,7 +75,7 @@ namespace DataStandardizer.File.InternetMessage
             var output = new MemoryStream();
             using (var writer = new ImfEntityWriter(output, Options, ImfEntityWriter.DefaultBlockSize, LineFeedIsLineBreak, ImfEntityWriter.GenerateBoundary))
             {
-                writer.WriteMessage(GetMessageSource(Options.HeaderEncoding, LineFeedIsLineBreak ? Lf : CrLf));
+                writer.WriteMessage(GetMessageSource(Options, LineFeedIsLineBreak ? Lf : CrLf, ImfEntityWriter.GenerateBoundary));
             }
 
             return output.ToArray();
@@ -84,37 +84,42 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Describes the message for a writer whose line break is <paramref name="lineBreak"/>.  A message with other line breaks, such as one read from an mbox or EMLX file that
         /// is held by a message with CRLF line breaks, is written with its own, and then changed to those of the writer (RFC 5322 §2.1), as a writer changes such a message on its
-        /// own.  It can't be changed if it has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3).
+        /// own.  It can't be changed if it has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3).  The caller has checked the depth of what has changed
+        /// (<see cref="ImfEntity.CheckChangedDepth"/>), which takes in the message.
         /// </summary>
         /// <exception cref="ImfFileException">The message can't be written, or can't change its line breaks.</exception>
-        private ImfEntitySource GetMessageSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        private ImfEntitySource GetMessageSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
         {
             var toCrLf = lineBreak.Length == CrLf.Length;
-            if (_message.LineFeedIsLineBreak != toCrLf) return _message.Body.ToSource(encoding, lineBreak);
+            if (_message.LineFeedIsLineBreak != toCrLf) return _message.Body.ToSource(options, lineBreak, boundaryGenerator);
 
-            _message.Body.CheckChangedDepth(Options.MaxNestingDepth);
-
-            // The line breaks change after the message is written, so the writer labels nothing in it binary, and refuses what is.
+            // The line breaks change after the message is written, so the writer labels nothing in it binary, and refuses what is.  It writes under the options of the writer that
+            // the message is for, as that writer would have.
             var output = new MemoryStream();
-            using (var writer = new ImfEntityWriter(Options, new ImfOutput(output, false, nameof(ImfEntityWriter)), ImfEntityWriter.DefaultBlockSize, _message.LineFeedIsLineBreak, true,
-                ImfEntityWriter.GenerateBoundary))
+            int heldEntityCount;
+            using (var writer = new ImfEntityWriter(options, new ImfOutput(output, false, nameof(ImfEntityWriter)), ImfEntityWriter.DefaultBlockSize, _message.LineFeedIsLineBreak, true,
+                boundaryGenerator))
             {
-                writer.WriteMessage(_message.Body.ToSource(encoding, _message.LineFeedIsLineBreak ? Lf : CrLf));
+                writer.WriteMessage(_message.Body.ToSource(options, _message.LineFeedIsLineBreak ? Lf : CrLf, boundaryGenerator));
+                heldEntityCount = (int)(writer.EntitiesWritten - 1);
             }
 
-            // What it holds is now other bytes than were read, so it is checked again as the writer's own.
-            return ImfEntitySource.FromRaw(ImfLineBreaks.Convert(_message, output.ToArray(), toCrLf));
+            // What it holds is now other bytes than were read, so it is checked again as the writer's own, and what it holds counts toward ImfOptions.MaxPartCount as if the writer
+            // had written it.
+            var source = ImfEntitySource.FromRaw(ImfLineBreaks.Convert(_message, output.ToArray(), toCrLf));
+            source.HeldEntityCount = heldEntityCount;
+            return source;
         }
 
         /// <inheritdoc />
-        internal override ImfEntitySource ToChangedSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
         {
             var contentType = ContentType;
             if (!IsMessageType(contentType))
                 throw new ImfFileException("The Content-Type field of an entity that holds a message must be message/rfc822 or message/global.");
 
-            var source = ImfEntitySource.FromMessage(contentType, GetMessageSource(encoding, lineBreak));
-            AddFields(source, encoding, lineBreak, null);
+            var source = ImfEntitySource.FromMessage(contentType, GetMessageSource(options, lineBreak, boundaryGenerator));
+            AddFields(source, options.HeaderEncoding, lineBreak, null);
             if (IsRead)
             {
                 KeepHeaderEnd(source);

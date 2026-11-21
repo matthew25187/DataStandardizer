@@ -25,7 +25,7 @@ namespace DataStandardizer.File.InternetMessage
     /// line breaks, so one read from an <c>.eml</c> file changes in that way.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism
     /// (§6.3), as a line break in it may not be one, which causes an <see cref="ImfFileException"/>.
     /// The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body
-    /// that would have had it is encoded instead.
+    /// that would have had it is encoded instead. A message that it holds, in a <c>message/rfc822</c> or <c>message/global</c> entity, changes its line breaks in the same way, under the same rules.
     /// </para>
     /// <para>
     /// <b>Metadata.</b>  Metadata that was read and hasn't changed is written byte for byte.  A property list that was missing or not well formed when read causes an

@@ -36,6 +36,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string MessageInFile = Separator + Message + "\n";
         private const string HeaderOnlyInFile = Separator + Header + "\n";
         private const string BuiltTextPart = "hi";
+        private const string TextMediaType = "text/plain";
+        private const string SevenBitText = "x";
+        private const string EightBitText = "café";
+        private const string MaxPartCountMessagePattern = "*ImfOptions.MaxPartCount*";
+
+        // A message that forwards a two-part multipart: its text part, the part that holds the message, that message's multipart body, and the two parts of that body.
+        private const int ForwardingEntityCount = 5;
+        private const int OneFewerThanForwardingEntityCount = 4;
         private const string MultipartInFile = Separator + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\n\n--b\n\nx\n--b--\n\n";
         private const string AttachmentFileName = "a.png";
         private const string AttachmentMediaType = "image/png";
@@ -734,6 +742,101 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Equal(Octets.Of(Eml));
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAChangedMessageFromAMailboxAttachedAndEightBitAllowed_LabelsItsNewPartEightBit()
+        {
+            // arrange
+            var forwarded = ReadMultipartWithAddedPart(EightBitText);
+            var options = new ImfOptions { AllowEightBitTransferEncoding = true };
+            var written = WriteForwarded(forwarded, options);
+            var part = (ImfMessagePart)((ImfMultipart)Mailboxes.ReadMessage(written, options).Body).Parts[AttachmentPartIndex];
+
+            // act
+            var testResult = ((ImfMultipart)part.Message.Body).Parts[AttachmentPartIndex].ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.EightBit);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAChangedMessageFromAMailboxAttachedOverMaxPartCount_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = BuildForwarding(ReadMultipartWithAddedPart(SevenBitText), new ImfOptions());
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions { MaxPartCount = OneFewerThanForwardingEntityCount }))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().WithMessage(MaxPartCountMessagePattern);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAChangedMessageFromAMailboxAttachedAtMaxPartCount_DoesNotThrow()
+        {
+            // arrange
+            var message = BuildForwarding(ReadMultipartWithAddedPart(SevenBitText), new ImfOptions());
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions { MaxPartCount = ForwardingEntityCount }))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_MessageFromAMailboxHoldingAnEmlMessage_WritesItWithLineFeedLineBreaks()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)message.Body).Parts.Add(new ImfMessagePart(Mailboxes.ReadMessage(Eml)));
+            var written = Mailboxes.WriteOne(Envelope, message);
+            var body = (ImfMultipart)Mailboxes.ReadFirst(written).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(Octets.Of(Message));
+        }
+
+        [Fact]
+        public void WriteMessage_MessageFromAMailboxHoldingABinaryEmlMessage_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)message.Body).Parts.Add(new ImfMessagePart(Mailboxes.ReadMessage(BinaryEml)));
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().WithMessage(ImfLineBreaks.OpaqueEntityMessage);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        /// <summary>
+        /// Reads a multipart message from a mailbox, and adds a text part to it, so that its body has changed.
+        /// </summary>
+        private static ImfMessage ReadMultipartWithAddedPart(string text)
+        {
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity(message.Options) { ContentType = MimeMediaType.Parse(TextMediaType) };
+            part.SetContent(Octets.Of(text));
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            return message;
         }
 
         /// <summary>

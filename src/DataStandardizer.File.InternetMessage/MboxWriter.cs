@@ -16,6 +16,7 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Messages.</b>  Each message is checked and written as an <see cref="ImfWriter"/> does, under the same options, so a message that it refuses leaves nothing in the output, and writing
     /// can continue with another.  A message read from a file with the same line breaks stays byte for byte as it was, apart from what the variant adds.
+    /// A message that one of them holds, in a <c>message/rfc822</c> or <c>message/global</c> entity, and that has other line breaks than the one that holds it, is given the line breaks of that one, which it can't be if it has a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism (§6.3).
     /// </para>
     /// <para>
     /// <b>Variants.</b>  With <see cref="MboxVariant.Mboxrd"/> and <see cref="MboxVariant.Mboxcl2"/>, a message reads back exactly.  With <see cref="MboxVariant.Mboxo"/> and
