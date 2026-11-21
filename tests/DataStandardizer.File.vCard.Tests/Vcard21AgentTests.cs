@@ -462,6 +462,18 @@ namespace DataStandardizer.File.vCard.Tests
             "END:VCARD",
             "END:VCARD");
 
+        // What a writer of vCard 2.1 writes for the card with the undecodable line, under AllowInvalidValues.
+        private static readonly string WrittenAgentWithUndecodableLine = VcardTestData.Crlf(
+            "BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Doe;Jane;;;",
+            "AGENT:BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Friday;Fred;;;",
+            UndecodableLine,
+            "END:VCARD",
+            "END:VCARD");
+
         private static readonly VcardOptions AllowInvalidValues = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
 
         public static TheoryData<string, VcardOptions, string> HeldLegacyLineData()
@@ -530,6 +542,47 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().Be(WrittenAgentWithKeptLegacyLine);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnUndecodableValueAsVersion21_ThrowsInvalidValue()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(AgentWithUndecodableLine, AllowInvalidValues);
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnInvalidDateAsVersion21_ThrowsInvalidValue()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.2.4: a birthday is an ISO 8601 date, which "x" isn't.
+            var text = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", "BDAY:x", "END:VCARD");
+            var card = VcardCardTestData.Read(text, AllowInvalidValues);
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnUndecodableValueWithAllowInvalidValuesAsVersion21_WritesTheLineAsItIs()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(AgentWithUndecodableLine, AllowInvalidValues);
+
+            // act
+            var testResult = Vcard21TestData.Write(card, allowInvalidValues: true);
+
+            // assert
+            testResult.Should().Be(WrittenAgentWithUndecodableLine);
         }
     }
 }

@@ -163,6 +163,7 @@ namespace DataStandardizer.File.vCard
         private VcardWriter(VcardContentLineWriter writer, VcardOptions options)
         {
             _writer = writer;
+            _writer.WritesUndecodableQuotedPrintableAsIs = options.AllowInvalidValues;
             _options = options;
             _mapping = VcardVersionMapping.For(options.WriteVersion, nameof(options));
         }

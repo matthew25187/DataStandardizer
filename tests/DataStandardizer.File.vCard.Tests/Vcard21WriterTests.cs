@@ -304,5 +304,52 @@ namespace DataStandardizer.File.vCard.Tests
             // assert
             VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.Lossy, VcardDiagnosticKind.MissingRequiredProperty);
         }
+
+        // ref. vCard 2.1 §2.1.4: "=ZZ" isn't a quoted-printable octet, so only AllowInvalidValues keeps the line, as it is.
+        private const string UndecodableLine = "NOTE;ENCODING=QUOTED-PRINTABLE:=ZZ";
+
+        private static readonly VcardOptions AllowInvalidValues = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+
+        [Fact]
+        public void WriteCard_UndecodableQuotedPrintable_ThrowsInvalidValue()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(UndecodableLine), AllowInvalidValues);
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_UndecodableQuotedPrintableWithAllowInvalidValues_WritesTheValueAsItIs()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(UndecodableLine), AllowInvalidValues);
+
+            // act
+            var testResult = Vcard21TestData.Write(card, allowInvalidValues: true);
+
+            // assert
+            testResult.Should().Be(VcardTestData.Crlf("BEGIN:VCARD", "VERSION:2.1", "N:Doe;Jane;;;", UndecodableLine, "END:VCARD"));
+        }
+
+        [Fact]
+        public void WriteCard_UndecodableQuotedPrintableEndingWithSoftLineBreakWithAllowInvalidValues_Throws()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.1.3: an "=" at the end of the line is a soft line break, so a reader would join the next line to the value.
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("N", "Doe;Jane;;;"));
+            card.Properties.Add(new VcardContentLine("NOTE", new[] { new VcardContentLineParameter("ENCODING", "QUOTED-PRINTABLE") }, "=ZZ="));
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card, allowInvalidValues: true);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>();
+        }
     }
 }
