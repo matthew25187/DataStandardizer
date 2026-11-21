@@ -681,7 +681,7 @@ namespace DataStandardizer.File.vCard
                     Convert(line);
                 }
 
-                AddSortString();
+                AddSortStrings();
                 return _lines;
             }
 
@@ -1216,55 +1216,73 @@ namespace DataStandardizer.File.vCard
             }
 
             /// <summary>
-            /// Writes the sort key of the line that a reader of vCard 3.0 gives a <c>SORT-STRING</c> to: the first <c>N</c>, or if there is none the first <c>ORG</c> (see
-            /// <see cref="TryAttachSortString"/>).  A sort key of any other line would move to that one, so it is reported as lost, among the diagnostics of its own line.
+            /// Writes a <c>SORT-STRING</c> for each sort key that a reader of vCard 3.0 gives back to the same line (see <see cref="TryAttachSortString"/>).  The reader gives the first
+            /// <c>SORT-STRING</c> to the first <c>N</c>, so on a card with an <c>N</c> only the sort key of that <c>N</c> is written.  On a card with no <c>N</c>, it gives each one in
+            /// turn to the next <c>ORG</c>, so the sort key of each <c>ORG</c> is written after it, up to the first <c>ORG</c> that has none.  A sort key of any other line would move to
+            /// a line it doesn't belong to, so it is reported as lost, among the diagnostics of its own line.
             /// </summary>
-            private void AddSortString()
+            private void AddSortStrings()
             {
                 if (_sortKeys.Count == 0) return;
 
-                var targetIndex = FindWrittenSortTarget(VcardPropertyNames.Name);
-                if (targetIndex < 0)
+                var kept = new HashSet<int>();
+                foreach (var targetIndex in FindWrittenSortTargets())
                 {
-                    targetIndex = FindWrittenSortTarget(VcardPropertyNames.Organization);
+                    if (!HasSortKey(targetIndex)) break;
+
+                    kept.Add(targetIndex);
                 }
 
-                SortKey kept = null;
-
-                // Backwards, so that putting a diagnostic in its place doesn't move the places of those before it.
+                // Backwards, so that putting a line or a diagnostic in its place doesn't move the places of those before it.
                 for (var index = _sortKeys.Count - 1; index >= 0; index--)
                 {
                     var sortKey = _sortKeys[index];
-                    if (sortKey.Index == targetIndex)
+                    if (!kept.Contains(sortKey.Index))
                     {
-                        kept = sortKey;
-
-                        // ref. RFC 2426 §3.6.5: "A single text value."
-                        if (sortKey.SortAs.Count > 1)
-                        {
-                            _found.Insert(sortKey.DiagnosticIndex, Loss(sortKey.Line, "more than one sort string"));
-                        }
-                    }
-                    else
-                    {
-                        // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types, so a reader takes it for the sort string of the name.
+                        // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types, so a reader takes it for the sort string of the name, or with no N, of the first ORG that
+                        // has none yet.
                         _found.Insert(sortKey.DiagnosticIndex, Loss(sortKey.Line, "the parameter SORT-AS"));
+                        continue;
                     }
+
+                    // ref. RFC 2426 §3.6.5: "A single text value."
+                    if (sortKey.SortAs.Count > 1)
+                    {
+                        _found.Insert(sortKey.DiagnosticIndex, Loss(sortKey.Line, "more than one sort string"));
+                    }
+
+                    _lines.Insert(sortKey.Index + 1, sortKey.Line.With(VcardPropertyNames.SortString, new VcardContentLineParameter[0], VcardValue.FormatText(sortKey.SortAs[0], VcardValueFormat.Text, VcardVersion.V3_0)));
                 }
-
-                if (kept is null) return;
-
-                _lines.Insert(kept.Index + 1, kept.Line.With(VcardPropertyNames.SortString, new VcardContentLineParameter[0], VcardValue.FormatText(kept.SortAs[0], VcardValueFormat.Text, VcardVersion.V3_0)));
             }
 
-            private int FindWrittenSortTarget(string name)
+            /// <summary>
+            /// Gets the written lines that a reader of vCard 3.0 gives the <c>SORT-STRING</c> lines to, in the order it gives them: the first <c>N</c>, or if there is none each
+            /// <c>ORG</c>.
+            /// </summary>
+            private List<int> FindWrittenSortTargets()
             {
+                var targets = new List<int>();
                 for (var index = 0; index < _lines.Count; index++)
                 {
-                    if (IsName(_lines[index], name)) return index;
+                    if (IsName(_lines[index], VcardPropertyNames.Name)) return new List<int> { index };
+
+                    if (IsName(_lines[index], VcardPropertyNames.Organization))
+                    {
+                        targets.Add(index);
+                    }
                 }
 
-                return -1;
+                return targets;
+            }
+
+            private bool HasSortKey(int lineIndex)
+            {
+                foreach (var sortKey in _sortKeys)
+                {
+                    if (sortKey.Index == lineIndex) return true;
+                }
+
+                return false;
             }
 
             /// <summary>
