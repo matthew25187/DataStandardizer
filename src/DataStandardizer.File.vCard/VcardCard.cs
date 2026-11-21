@@ -704,7 +704,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// Two UIDs match if they are equivalent as RFC 6350 §7.1.1 says: by RFC 3986 §6 for URIs, and with the case of a <c>urn:uuid:</c> ignored, as RFC 4122 §3 says.  Free-form
-        /// text has to be identical.
+        /// text has to be identical.  So does a URI that <see cref="Uid"/> leaves out, such as one whose scheme is one letter, which is compared by the simple string comparison of
+        /// RFC 3986 §6.2.1.
         /// </remarks>
         /// <param name="cards">The cards.</param>
         /// <param name="uid">The UID, as it appears in the card with any escaping removed.</param>
@@ -727,8 +728,8 @@ namespace DataStandardizer.File.vCard
                 if (card is null)
                     throw new ArgumentException("The cards cannot contain null.", nameof(cards));
 
-                var cardUid = card.Uid;
-                if (cardUid != null && AreEquivalentUids(cardUid.Value, uid)) return card;
+                VcardTypedValue cardUid;
+                if (card.TryGetUidToMatch(out cardUid) && AreEquivalentUids(cardUid, uid)) return card;
             }
 
             return null;
@@ -887,10 +888,10 @@ namespace DataStandardizer.File.vCard
                 if (card is null)
                     throw new ArgumentException("The cards cannot contain null.", nameof(cards));
 
-                var cardUid = card.Uid;
-                if (cardUid != null)
+                VcardTypedValue cardUid;
+                if (card.TryGetUidToMatch(out cardUid))
                 {
-                    candidates.Add(new KeyValuePair<VcardCard, VcardTypedValue>(card, cardUid.Value));
+                    candidates.Add(new KeyValuePair<VcardCard, VcardTypedValue>(card, cardUid));
                 }
             }
 
@@ -1365,6 +1366,39 @@ namespace DataStandardizer.File.vCard
             return parameters;
         }
 
+        /// <summary>
+        /// Gets the card's <c>UID</c> to match another against.  A URI that <see cref="Uid"/> leaves out, because no <see cref="Uri"/> is made from it on any runtime, such as one whose
+        /// scheme is one letter (see <see cref="VcardValue.HasOneLetterScheme"/>) or one longer than <see cref="VcardValue.MaxUriLengthOnEveryRuntime"/>, is given as text, so that it
+        /// matches only identical text: the simple string comparison of RFC 3986 §6.2.1.
+        /// </summary>
+        private bool TryGetUidToMatch(out VcardTypedValue uid)
+        {
+            var property = Uid;
+            if (property != null)
+            {
+                uid = property.Value;
+                return true;
+            }
+
+            foreach (var line in Properties)
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                string? text;
+#else
+                string text;
+#endif
+                if (string.Equals(line.Name, VcardPropertyNames.Uid, StringComparison.OrdinalIgnoreCase) && VcardValueTypeRegistry.GetValueType(line) == VcardValueType.Uri &&
+                    VcardValue.TryGetUriText(line.Value, out text))
+                {
+                    uid = new VcardTypedValue(text);
+                    return true;
+                }
+            }
+
+            uid = default(VcardTypedValue);
+            return false;
+        }
+
         private static bool AreEquivalentUids(VcardTypedValue cardUid, string right)
         {
             // Free-form text has no equivalence of its own, whatever it looks like.
@@ -1442,15 +1476,22 @@ namespace DataStandardizer.File.vCard
 #endif
         {
             // Create the line first, so that a value that can't be written leaves the card as it was.
-            var newLine = codec.CreateLine(value, parameters);
+            SetSingleLine(codec.Name, codec.CreateLine(value, parameters));
+        }
+
+        /// <summary>
+        /// Puts a line in place of the properties of its name, where the first of them was.
+        /// </summary>
+        private void SetSingleLine(string name, VcardContentLine newLine)
+        {
             var position = -1;
             for (var index = 0; index < Properties.Count; index++)
             {
-                if (string.Equals(Properties[index].Name, codec.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Properties[index].Name, name, StringComparison.OrdinalIgnoreCase))
                 {
                     // ref. RFC 9554 §4.4: 'When present with a value of "true", clients MUST NOT update the property.'
                     if (VcardPropertyParameterReader.IsDerived(Properties[index]))
-                        throw new InvalidOperationException("The property " + codec.Name + " has DERIVED=true, which RFC 9554 §4.4 says a client must not update.  Remove it first to work it out again.");
+                        throw new InvalidOperationException("The property " + name + " has DERIVED=true, which RFC 9554 §4.4 says a client must not update.  Remove it first to work it out again.");
 
                     if (position < 0)
                     {
@@ -1459,7 +1500,7 @@ namespace DataStandardizer.File.vCard
                 }
             }
 
-            RemoveProperties(codec.Name);
+            RemoveProperties(name);
             Properties.Insert(position < 0 ? Properties.Count : position, newLine);
         }
 

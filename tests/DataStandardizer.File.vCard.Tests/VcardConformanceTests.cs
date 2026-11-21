@@ -201,6 +201,9 @@ namespace DataStandardizer.File.vCard.Tests
                 new[] { "EMAIL;PID=1:a@example.com" },
                 new[] { "EMAIL;PID=1.1;PID=2.1:a@example.com", "CLIENTPIDMAP:1;urn:a" },
 
+                // ref. RFC 3986 §3.1: a URI whose scheme is one letter, which no Uri is made from (#867).
+                new[] { "EMAIL;PID=1.1:a@example.com", "CLIENTPIDMAP:1;c:/dir/file" },
+
                 // ref. RFC 6350 §6.4.1: TYPE as a parameter list and as a value list.
                 new[] { "TEL;TYPE=text;TYPE=voice:1" },
                 new[] { "TEL;TYPE=\"text,voice\":1" },

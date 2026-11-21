@@ -585,7 +585,10 @@ namespace DataStandardizer.File.vCard.Tests
             return new TheoryData<string, string[], string>
             {
                 { "abc", new[] { "VALUE=text" }, "abc" },
-                { "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", new string[0], "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6" }
+                { "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", new string[0], "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6" },
+
+                // ref. RFC 3986 §3.1: a scheme of one letter, which no Uri is made from (#867), is still a URI.
+                { "c:/dir/file", new string[0], "c:/dir/file" }
             };
         }
 

@@ -112,6 +112,33 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Photos_PhotoWithOneLetterScheme_HoldsItAsText()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("PHOTO:c:/dir/file"));
+
+            // act
+            var testResult = card.Photos[0].Value;
+
+            // assert
+            testResult.Text.Should().Be(OneLetterSchemeUri);
+            testResult.Uri.Should().BeNull();
+        }
+
+        [Fact]
+        public void FindByUid_UidWithOneLetterScheme_FindsItByItsText()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("UID:c:/dir/file"));
+
+            // act
+            var testResult = VcardCard.FindByUid(new[] { card }, OneLetterSchemeUri);
+
+            // assert
+            testResult.Should().BeSameAs(card);
+        }
+
+        [Fact]
         public void TryFormatUri_UriMadeFromADrivePath_ThrowsArgumentException()
         {
             // arrange

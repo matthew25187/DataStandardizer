@@ -248,17 +248,27 @@ namespace DataStandardizer.File.vCard
             return false;
         }
 
+        /// <summary>
+        /// Parses a <c>CLIENTPIDMAP</c> value (RFC 6350 §6.7.7) as <see cref="VcardClientPidMap.TryParse"/> does, but with the same answer on every runtime for a URI that
+        /// <see cref="Uri"/> can't hold, such as one whose scheme is one letter (see <see cref="VcardValue.IsValidUriValue"/>).
+        /// </summary>
+        private static bool TryParseClientPidMap(ReadOnlySpan<char> value, out long sourceId)
+        {
+            ReadOnlySpan<char> uriText;
+            return VcardClientPidMap.TryParseParts(value, VcardValueFormat.Text, out sourceId, out uriText) && VcardValue.IsValidUriValue(uriText);
+        }
+
         private static HashSet<long> GetPidSourceIds(VcardCard card)
         {
             var sourceIds = new HashSet<long>();
             foreach (var line in card.Properties)
             {
-                VcardClientPidMap map;
+                long sourceId;
                 string text;
                 if (string.Equals(line.Name, VcardPropertyNames.ClientPidMap, StringComparison.OrdinalIgnoreCase) && TryGetValueText(line, out text) &&
-                    VcardClientPidMap.TryParse(text.AsSpan(), VcardValueFormat.Text, out map))
+                    TryParseClientPidMap(text.AsSpan(), out sourceId))
                 {
-                    sourceIds.Add(map.SourceId);
+                    sourceIds.Add(sourceId);
                 }
             }
 
@@ -887,8 +897,8 @@ namespace DataStandardizer.File.vCard
                     VcardGender gender;
                     return VcardGender.TryParse(value, VcardValueFormat.Text, out gender);
                 case VcardPropertyNames.ClientPidMap:
-                    VcardClientPidMap map;
-                    return VcardClientPidMap.TryParse(value, VcardValueFormat.Text, out map);
+                    long sourceId;
+                    return TryParseClientPidMap(value, out sourceId);
                 case VcardPropertyNames.Nickname:
                 case VcardPropertyNames.Categories:
                     foreach (var item in VcardValue.EnumerateList(value, VcardValueFormat.Text))

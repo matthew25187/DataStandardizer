@@ -443,7 +443,8 @@ namespace DataStandardizer.File.vCard
 #else
             value = null;
 #endif
-            if (text.Length <= VcardValue.MaxUriLengthOnEveryRuntime)
+            // ref. VcardValue.HasOneLetterScheme: such a URI, like a long one, has no Uri on any runtime, so it is held as text.
+            if (text.Length <= VcardValue.MaxUriLengthOnEveryRuntime && !VcardValue.HasOneLetterScheme(text.AsSpan()))
             {
                 Uri uri;
                 if (!ParseUri(text, valueType, out uri)) return false;
