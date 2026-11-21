@@ -174,6 +174,52 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Single().Value.Should().Be(VcardUtcOffset.Parse("-0500".AsSpan(), VcardValueFormat.Text));
         }
 
+        // ref. vCard 2.1 §2.4.5 and §2.6.2, which cite ISO 8601: an hour of 24, which RFC 6350 §4.3.2 and §4.7 don't have, so a card read from vCard 2.1 keeps the value as it was read.
+        private const string RevisionAtHour24 = "19951031T240000";
+        private const string RevisionLineAtHour24 = "REV:19951031T240000";
+
+        // The same timestamp as the writer of vCard 2.1 gives it, in the extended format of ISO 8601, like the example of vCard 2.1 §2.6.2.
+        private const string WrittenRevisionAtHour24 = "1995-10-31T24:00:00";
+
+        [Theory]
+        [InlineData("TZ:+24:00", "+24:00")]
+        [InlineData("TZ:-2400", "-24:00")]
+        public void TimeZones_OffsetWithNoVersion40Form_GivesIt(string line, string expected)
+        {
+            // arrange
+            var card = View(line);
+
+            // act
+            var testResult = card.TimeZones.Single().Value;
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V2_1).Should().Be(expected);
+        }
+
+        [Fact]
+        public void Revision_TimestampWithNoVersion40Form_GivesIt()
+        {
+            // act
+            var testResult = View(RevisionLineAtHour24).Revision.Value;
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V2_1).Should().Be(WrittenRevisionAtHour24);
+        }
+
+        [Fact]
+        public void Revision_TimestampWithNoVersion40FormOfCardBuiltInCode_IsHidden()
+        {
+            // arrange
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("REV", RevisionAtHour24));
+
+            // act
+            var testResult = card.AsVersion21().Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
         [Fact]
         public void GeoLocations_Geo_GivesLatitudeAndLongitude()
         {

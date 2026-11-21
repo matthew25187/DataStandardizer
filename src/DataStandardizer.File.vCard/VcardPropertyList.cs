@@ -12,7 +12,9 @@ namespace DataStandardizer.File.vCard
     /// </summary>
     /// <remarks>
     /// An instance whose value isn't valid, which <see cref="VcardOptions.AllowInvalidValues"/> lets a reader accept, is not here, but it is still in
-    /// <see cref="VcardCard.Properties"/>.  Each member reads the properties of the card, so it takes time in proportion to their number.
+    /// <see cref="VcardCard.Properties"/>.  Nor is one that a card read from vCard 3.0 or 2.1 keeps in the form of that version, because vCard 4.0 has no form for its value, such as
+    /// a <c>REV</c> with a fraction of a second; <see cref="IVcard30Card"/> or <see cref="IVcard21Card"/> shows it.  Each member reads the properties of the card, so it takes time
+    /// in proportion to their number.
     /// </remarks>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     public sealed class VcardPropertyList<TValue> : IReadOnlyList<VcardProperty<TValue>>
@@ -156,7 +158,21 @@ namespace DataStandardizer.File.vCard
             return _codec.CreateProperty(line, value);
         }
 
+        /// <summary>
+        /// Gets the instances, including any whose value the card keeps in the form of the version it was read from, because vCard 4.0 has no form for it.  Only a view of an older
+        /// version uses this, and checks that it can show each value.
+        /// </summary>
+        internal List<VcardProperty<TValue>> GetInstancesInSourceForm()
+        {
+            return GetInstances(_card.SourceVersion);
+        }
+
         private List<VcardProperty<TValue>> GetInstances()
+        {
+            return GetInstances(null);
+        }
+
+        private List<VcardProperty<TValue>> GetInstances(VcardVersion? sourceVersion)
         {
             var result = new List<VcardProperty<TValue>>();
             foreach (var line in _card.Properties)
@@ -166,7 +182,7 @@ namespace DataStandardizer.File.vCard
 #else
                 VcardProperty<TValue> property;
 #endif
-                if (string.Equals(line.Name, _codec.Name, StringComparison.OrdinalIgnoreCase) && _codec.TryCreateProperty(line, out property))
+                if (string.Equals(line.Name, _codec.Name, StringComparison.OrdinalIgnoreCase) && _codec.TryCreateProperty(line, sourceVersion, out property))
                 {
                     result.Add(property);
                 }

@@ -12,6 +12,11 @@ namespace DataStandardizer.File.vCard
     internal delegate bool VcardValueParser<TValue>(string text, VcardValueType valueType, out TValue value);
 
     /// <summary>
+    /// Parses a value that a line of a card read from an older version holds in the form of that version, because vCard 4.0 has no form for it.
+    /// </summary>
+    internal delegate bool VcardSourceFormParser<TValue>(string text, VcardValueType valueType, VcardVersion version, out TValue value);
+
+    /// <summary>
     /// Converts between the content lines of one property and its typed values.
     /// </summary>
     internal sealed class VcardPropertyCodec<TValue>
@@ -51,6 +56,16 @@ namespace DataStandardizer.File.vCard
         internal bool IsLegacy { get; set; }
 
         /// <summary>
+        /// Gets the parser of a value that a card read from an older version keeps in the form of that version, because vCard 4.0 has no form for it; or <c>null</c> if the property
+        /// has no such value.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal VcardSourceFormParser<TValue>? ParseSourceForm { get; set; }
+#else
+        internal VcardSourceFormParser<TValue> ParseSourceForm { get; set; }
+#endif
+
+        /// <summary>
         /// Gets the name of the property.
         /// </summary>
         internal string Name { get; }
@@ -81,6 +96,30 @@ namespace DataStandardizer.File.vCard
 
             TValue value;
             if (!_parse(text, valueType, out value)) return false;
+
+            property = new VcardProperty<TValue>(line, value);
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the wrapper of a line, or of a line whose value a card read from an older version keeps in the form of that version, because vCard 4.0 has no form for it.  Only a view
+        /// of an older version uses the second kind, which isn't a valid vCard 4.0 property.
+        /// </summary>
+        /// <param name="line">The line.</param>
+        /// <param name="sourceVersion">The version the card was read from; or <c>null</c> if it was built in code.</param>
+        /// <param name="property">The wrapper, if the line has a valid value.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal bool TryCreateProperty(VcardContentLine line, VcardVersion? sourceVersion, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out VcardProperty<TValue>? property)
+#else
+        internal bool TryCreateProperty(VcardContentLine line, VcardVersion? sourceVersion, out VcardProperty<TValue> property)
+#endif
+        {
+            if (TryCreateProperty(line, out property)) return true;
+            if (ParseSourceForm is null || !sourceVersion.HasValue || sourceVersion.Value == VcardVersion.V4_0) return false;
+
+            string text;
+            TValue value;
+            if (!VcardConformance.TryGetValueText(line, out text) || !ParseSourceForm(text, VcardValueTypeRegistry.GetValueType(line), sourceVersion.Value, out value)) return false;
 
             property = new VcardProperty<TValue>(line, value);
             return true;
@@ -211,6 +250,26 @@ namespace DataStandardizer.File.vCard
             return new VcardPropertyCodec<VcardTypedValue>(name, ParseTyped, FormatTyped, value => value.ValueType);
         }
 
+        /// <summary>
+        /// Gets the codec of <c>BDAY</c>, whose date-time can have a time-secfrac in vCard 3.0 (RFC 2425 §5.8.4), which vCard 4.0 has no form for.
+        /// </summary>
+        internal static VcardPropertyCodec<VcardTypedValue> Birthday()
+        {
+            var codec = Typed(VcardPropertyNames.Birthday);
+            codec.ParseSourceForm = ParseDateAndOrTimeSourceForm;
+            return codec;
+        }
+
+        /// <summary>
+        /// Gets the codec of <c>TZ</c>, whose offset can have an hour of 24 in vCard 2.1 (§2.4.5, which cites ISO 8601), which vCard 4.0 has no form for.
+        /// </summary>
+        internal static VcardPropertyCodec<VcardTypedValue> TimeZone()
+        {
+            var codec = Typed(VcardPropertyNames.TimeZone);
+            codec.ParseSourceForm = ParseUtcOffsetSourceForm;
+            return codec;
+        }
+
         internal static VcardPropertyCodec<VcardName> Name()
         {
             return new VcardPropertyCodec<VcardName>(VcardPropertyNames.Name, (string text, VcardValueType valueType, out VcardName value) =>
@@ -247,6 +306,17 @@ namespace DataStandardizer.File.vCard
         {
             return new VcardPropertyCodec<VcardTimestamp>(name, (string text, VcardValueType valueType, out VcardTimestamp value) =>
                 VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Timestamp);
+        }
+
+        /// <summary>
+        /// Gets the codec of <c>REV</c>, whose timestamp can have a time-secfrac in vCard 3.0 (RFC 2425 §5.8.4) or an hour of 24 in vCard 2.1 (§2.6.2, which cites ISO 8601), which
+        /// vCard 4.0 has no form for.
+        /// </summary>
+        internal static VcardPropertyCodec<VcardTimestamp> Revision()
+        {
+            var codec = Timestamp(VcardPropertyNames.Revision);
+            codec.ParseSourceForm = ParseTimestampSourceForm;
+            return codec;
         }
 
         internal static VcardPropertyCodec<Bcp47LanguageTag> LanguageTag(string name)
@@ -425,6 +495,59 @@ namespace DataStandardizer.File.vCard
         private static string FormatTyped(VcardTypedValue value)
         {
             return value.ToString();
+        }
+
+        /// <summary>
+        /// ref. RFC 2426 §3.1.5: "The default is a single date value.  It can also be reset to a single date-time value."  Its §4 says "Value MUST match value type".
+        /// </summary>
+        private static bool ParseDateAndOrTimeSourceForm(string text, VcardValueType valueType, VcardVersion version, out VcardTypedValue value)
+        {
+            value = default(VcardTypedValue);
+            VcardDateAndOrTime date;
+            if (!VcardDateAndOrTime.TryParse(text.AsSpan(), VcardValueFormat.Text, version, out date) || date.IsDefinedIn(VcardVersion.V4_0)) return false;
+
+            switch (valueType)
+            {
+                case VcardValueType.DateAndOrTime:
+                    break;
+                case VcardValueType.Date:
+                    if (date.Kind != VcardDateAndOrTimeKind.Date) return false;
+
+                    break;
+                case VcardValueType.DateTime:
+                    if (date.Kind != VcardDateAndOrTimeKind.DateTime) return false;
+
+                    break;
+                default:
+                    return false;
+            }
+
+            value = new VcardTypedValue(date);
+            return true;
+        }
+
+        /// <summary>
+        /// ref. RFC 2426 §3.6.4: "The default is a single date-time value", which a card in canonical form keeps as <c>VALUE=date-time</c> when vCard 4.0 has no form for it.
+        /// </summary>
+        private static bool ParseTimestampSourceForm(string text, VcardValueType valueType, VcardVersion version, out VcardTimestamp value)
+        {
+            value = default(VcardTimestamp);
+            return (valueType == VcardValueType.Timestamp || valueType == VcardValueType.DateTime) && VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, version, out value) &&
+                   !value.IsDefinedIn(VcardVersion.V4_0);
+        }
+
+        /// <summary>
+        /// A card in canonical form says that a value of <c>TZ</c> is an offset with <c>VALUE=utc-offset</c>, because its default type in vCard 4.0 is text (RFC 6350 §6.5.1).
+        /// </summary>
+        private static bool ParseUtcOffsetSourceForm(string text, VcardValueType valueType, VcardVersion version, out VcardTypedValue value)
+        {
+            value = default(VcardTypedValue);
+            VcardUtcOffset offset;
+            if (valueType != VcardValueType.UtcOffset || !VcardUtcOffset.TryParse(text.AsSpan(), VcardValueFormat.Text, version, out offset) || offset.IsDefinedIn(VcardVersion.V4_0))
+                return false;
+
+            value = new VcardTypedValue(offset);
+            return true;
         }
     }
 }
