@@ -401,6 +401,21 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Analyze_OrganizationSortKeyBeforeLaterLoss_ReportsThemInTheOrderOfTheCard()
+        {
+            // arrange: ref. RFC 2426 §3.6.5 for the ORG, and RFC 6350 §6.1.4 for KIND, which vCard 3.0 doesn't have.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=Acme:The Acme Co", MinimalVersion40Name, "KIND:individual"));
+
+            // act
+            var testResult = VcardVersionConverter.Analyze(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().SatisfyRespectively(
+                first => first.PropertyName.Should().Be(VcardPropertyNames.Organization),
+                second => second.PropertyName.Should().Be(VcardPropertyNames.Kind));
+        }
+
+        [Fact]
         public void WriteCard_ListOfPreferences_MakesOnlyTheLowestPreferredAndReportsTheOrder()
         {
             // arrange
