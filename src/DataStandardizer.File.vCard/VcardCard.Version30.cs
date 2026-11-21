@@ -491,13 +491,15 @@ namespace DataStandardizer.File.vCard
         {
             get
             {
-                foreach (var name in new[] { VcardPropertyNames.Name, VcardPropertyNames.Organization })
+                // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types.  A writer of vCard 3.0 writes the sort key of the first N, or on a card with no N of the first ORG,
+                // and leaves out the sort key of any other line (VcardVersion30Mapping.Downgrade.AddSortStrings).
+                var sortTargets = GetProperties(VcardPropertyNames.Name);
+                if (sortTargets.Count == 0) sortTargets = GetProperties(VcardPropertyNames.Organization);
+
+                if (sortTargets.Count != 0)
                 {
-                    foreach (var line in GetProperties(name))
-                    {
-                        var sortAs = VcardPropertyParameterReader.GetListValues(line, VcardParameterNames.SortAs);
-                        if (sortAs.Count != 0) return sortAs[0];
-                    }
+                    var sortAs = VcardPropertyParameterReader.GetListValues(sortTargets[0], VcardParameterNames.SortAs);
+                    if (sortAs.Count != 0) return sortAs[0];
                 }
 
                 foreach (var line in GetProperties(VcardPropertyNames.SortString))

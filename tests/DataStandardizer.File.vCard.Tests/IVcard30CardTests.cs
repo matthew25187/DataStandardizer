@@ -12,6 +12,11 @@ namespace DataStandardizer.File.vCard.Tests
     public class IVcard30CardTests
     {
         private const string Base64 = "AQID";
+        private const string OrganizationSortKey = "Acme";
+        private const string SortedOrganization = "ORG;SORT-AS=" + OrganizationSortKey + ":Acme";
+        private const string OwnSortString = "Own";
+        private const string OwnSortStringProperty = "SORT-STRING:" + OwnSortString;
+        private const string UnsortedName = "N:Doe;;;;";
         private static readonly byte[] Data = { 1, 2, 3 };
         private static readonly Uri ExampleUri = new Uri("http://example.com/a,b");
 
@@ -361,6 +366,70 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().Be("Doe");
+        }
+
+        public static TheoryData<string[]> SortKeyAVersion30WriterLeavesOutData()
+        {
+            // ref. RFC 2426 §3.6.5: SORT-STRING sorts FN and N, so a writer of vCard 3.0 writes the sort key of the first N, or on a card with no N of the first ORG.
+            return new TheoryData<string[]>
+            {
+                new[] { Vcard30TestData.FormattedName, UnsortedName, SortedOrganization },
+                new[] { Vcard30TestData.FormattedName, "ORG:Acme", "ORG;SORT-AS=Bolt:Bolt" }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(SortKeyAVersion30WriterLeavesOutData))]
+        public void SortString_SortKeyAVersion30WriterLeavesOut_GivesNull(string[] properties)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(properties));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void SortString_SortKeyOnSecondNameOnly_GivesNull()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts the name, which is the first N.
+            var options = new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, UnsortedName, "N;SORT-AS=Roe:Roe;;;;"), options);
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void SortString_SortKeyOnFirstOrganizationOfCardWithNoName_GivesIt()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, SortedOrganization, "ORG;SORT-AS=Bolt:Bolt"));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OrganizationSortKey);
+        }
+
+        [Fact]
+        public void SortString_SortKeyOnOrganizationAndSortStringOfItsOwnOnCardWithName_GivesTheSortString()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, UnsortedName, SortedOrganization, OwnSortStringProperty));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OwnSortString);
         }
 
         [Fact]
