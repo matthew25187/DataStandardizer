@@ -343,6 +343,83 @@ namespace DataStandardizer.File.vCard.Tests
             testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
         }
 
+        // The names of a chain of cards, each held by an AGENT of the one before it, one past the limit of nesting: the card named "8" is nested in eight cards.
+        private static readonly string[] NamesOfCardsNestedPastTheLimit = { "N:1", "N:2", "N:3", "N:4", "N:5", "N:6", "N:7", "N:8" };
+
+        // What a writer of vCard 2.1 writes for the chain, under AllowLossyVersionConversion: the AGENT of the card named "7" is left out, since its card is nested too deeply.
+        private static readonly string WrittenCardsNestedToTheLimit = VcardTestData.Crlf(
+            "BEGIN:VCARD", "VERSION:2.1", "N:Doe;Jane;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:1;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:2;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:3;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:4;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:5;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:6;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:7;;;;",
+            "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD",
+            "END:VCARD");
+
+        // What the writer says of an AGENT whose card is nested too deeply.
+        private const string NestedTooDeeply = "its card is nested too deeply";
+
+        public static TheoryData<VcardCard> CardsNestedPastTheLimitData()
+        {
+            // AddAgent holds a copy of the card, so the chain is built from its innermost card out.
+            var held = VcardCardTestData.Read(Vcard21TestData.BareCard(NamesOfCardsNestedPastTheLimit[NamesOfCardsNestedPastTheLimit.Length - 1]));
+            for (var index = NamesOfCardsNestedPastTheLimit.Length - 2; index >= 0; index--)
+            {
+                var outer = VcardCardTestData.Read(Vcard21TestData.BareCard(NamesOfCardsNestedPastTheLimit[index]));
+                outer.AddAgent(held);
+                held = outer;
+            }
+
+            var card = VcardCardTestData.Read(Vcard21TestData.Card());
+            card.AddAgent(held);
+            return new TheoryData<VcardCard> { card };
+        }
+
+        [Theory]
+        [MemberData(nameof(CardsNestedPastTheLimitData))]
+        public void WriteCard_CardsNestedPastTheLimit_ThrowsLossy(VcardCard card)
+        {
+            // arrange
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            var thrown = testAction.Should().Throw<VcardFileException>().Which;
+            thrown.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.Lossy);
+            thrown.Message.Should().Contain(NestedTooDeeply);
+        }
+
+        [Theory]
+        [MemberData(nameof(CardsNestedPastTheLimitData))]
+        public void WriteCard_CardsNestedPastTheLimitUnderAllowLossyVersionConversion_WritesOnlyTheCardsWithinTheLimit(VcardCard card)
+        {
+            // arrange
+
+            // act
+            var testResult = Vcard21TestData.Write(card, allowLossy: true);
+
+            // assert
+            testResult.Should().Be(WrittenCardsNestedToTheLimit);
+        }
+
+        [Fact]
+        public void ReadCard_CardsNestedToTheLimit_ReadsTheInnermostCard()
+        {
+            // arrange
+
+            // act
+            var testResult = VcardCardTestData.Read(WrittenCardsNestedToTheLimit)
+                .Agents.Single().Card.Agents.Single().Card.Agents.Single().Card.Agents.Single().Card
+                .Agents.Single().Card.Agents.Single().Card.Agents.Single().Card.Name.Value.FamilyNames;
+
+            // assert
+            testResult.Should().Equal("7");
+        }
+
         [Fact]
         public void ReadCard_AgentWithNoCardAfterIt_ThrowsInvalidValue()
         {
