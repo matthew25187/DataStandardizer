@@ -35,8 +35,8 @@ namespace DataStandardizer.File.vCard
         public string Text { get; }
 
         /// <summary>
-        /// Gets the URI; or <c>null</c> if <see cref="Text"/> has more than 65519 characters, which <see cref="System.Uri"/> on .NET Framework can't hold.  It is <c>null</c> for such text on
-        /// every runtime.
+        /// Gets the URI; or <c>null</c> if <see cref="Text"/> has more than 65519 characters, which <see cref="System.Uri"/> on .NET Framework can't hold, or has a scheme of one letter,
+        /// such as <c>c:/dir/file</c>, which <see cref="System.Uri"/> on Windows takes for a drive path.  It is <c>null</c> for such text on every runtime.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Uri? Uri { get; }
@@ -55,8 +55,9 @@ namespace DataStandardizer.File.vCard
         /// <param name="uri">The URI, which must be absolute.</param>
         /// <returns>The value.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="uri"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, was given with characters a URI value can't hold, such as a space, or has more than 65519
-        /// characters, which <see cref="System.Uri"/> on .NET Framework can't hold.  Use <see cref="FromData"/> for inline data of any length.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, was given with characters a URI value can't hold, such as a space, was given as text whose
+        /// scheme is one letter, such as the drive path <c>C:/dir/file</c>, or has more than 65519 characters, which <see cref="System.Uri"/> on .NET Framework can't hold.  Use
+        /// <see cref="FromData"/> for inline data of any length.</exception>
         public static VcardMediaUri FromUri(Uri uri)
         {
             if (uri is null)
@@ -147,8 +148,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a value from the text of a URI with no escaping of a content line.  Text longer than <see cref="VcardValue.MaxUriLengthOnEveryRuntime"/> is checked without a
-        /// <see cref="System.Uri"/>, as <see cref="VcardValue.IsValidUriText"/> does.
+        /// Creates a value from the text of a URI with no escaping of a content line.  Text longer than <see cref="VcardValue.MaxUriLengthOnEveryRuntime"/>, or whose scheme is one
+        /// letter, is checked without a <see cref="System.Uri"/>, as <see cref="VcardValue.IsValidUriText"/> does.
         /// </summary>
         /// <returns><c>false</c> if the text isn't that of a URI value.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -158,7 +159,7 @@ namespace DataStandardizer.File.vCard
 #endif
         {
             result = null;
-            if (text.Length > VcardValue.MaxUriLengthOnEveryRuntime)
+            if (text.Length > VcardValue.MaxUriLengthOnEveryRuntime || VcardValue.HasOneLetterScheme(text.AsSpan()))
             {
                 if (!VcardValue.IsUriText(text.AsSpan())) return false;
 

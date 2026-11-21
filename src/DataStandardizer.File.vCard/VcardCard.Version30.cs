@@ -586,7 +586,19 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentNullException(nameof(value));
 
             Uri uri;
-            SetUid(VcardValue.TryParseUriText(value.AsSpan(), out uri) ? new VcardTypedValue(uri) : new VcardTypedValue(value));
+            if (VcardValue.TryParseUriText(value.AsSpan(), out uri))
+            {
+                SetUid(new VcardTypedValue(uri));
+            }
+            else if (VcardValue.IsValidUriText(value.AsSpan()))
+            {
+                // A URI that no Uri is made from on any runtime, such as one whose scheme is one letter, is a URI as the reader takes it (VcardVersion30Mapping.UidToCanonical).
+                SetSingleLine(VcardPropertyNames.Uid, new VcardContentLine(VcardPropertyNames.Uid, VcardValue.EscapeUri(value)));
+            }
+            else
+            {
+                SetUid(new VcardTypedValue(value));
+            }
         }
 
         void IVcard30Card.SetClassification(string value)

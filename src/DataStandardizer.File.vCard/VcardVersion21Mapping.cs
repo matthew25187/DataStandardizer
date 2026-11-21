@@ -739,8 +739,7 @@ namespace DataStandardizer.File.vCard
                     return true;
                 }
 
-                Uri uri;
-                if (!VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri)) return true;
+                if (!VcardValue.IsValidUriValue(value.AsSpan())) return true;
 
                 ReportLostProperty(line, "only a latitude and a longitude can be written");
                 return false;

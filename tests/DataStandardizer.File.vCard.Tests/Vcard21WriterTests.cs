@@ -175,6 +175,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "BDAY:--0415",
                 "BDAY;VALUE=text:circa 1800",
                 "TZ:America/New_York",
+                "GEO:c:/dir/file",
                 "ADR:;;a,b;;;;",
                 "N:a\\\\;Jane;;;"
             };

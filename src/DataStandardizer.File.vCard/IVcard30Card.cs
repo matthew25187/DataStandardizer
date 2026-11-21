@@ -33,8 +33,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>PHOTO</c> properties (RFC 2426 §3.1.4), each inline data or a URI.
         /// </summary>
         /// <remarks>
-        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, is
-        /// left out on every runtime, since <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
+        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, or
+        /// with a scheme of one letter, such as <c>c:/dir/file</c>, which <see cref="Uri"/> on Windows takes for a drive path, is left out on every runtime, since
+        /// <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
         /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Photos { get; }
 
@@ -82,8 +83,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>LOGO</c> properties (RFC 2426 §3.5.3), each inline data or a URI.
         /// </summary>
         /// <remarks>
-        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, is
-        /// left out on every runtime, since <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
+        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, or
+        /// with a scheme of one letter, such as <c>c:/dir/file</c>, which <see cref="Uri"/> on Windows takes for a drive path, is left out on every runtime, since
+        /// <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
         /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Logos { get; }
 
@@ -106,8 +108,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>SOUND</c> properties (RFC 2426 §3.6.6), each inline data or a URI.
         /// </summary>
         /// <remarks>
-        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, is
-        /// left out on every runtime, since <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
+        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, or
+        /// with a scheme of one letter, such as <c>c:/dir/file</c>, which <see cref="Uri"/> on Windows takes for a drive path, is left out on every runtime, since
+        /// <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
         /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Sounds { get; }
 
