@@ -85,6 +85,137 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void DeferredFailures_RunWithFailureAfterYielding_TaskIsNotCompletedWhenTheOperationReturns()
+        {
+            // arrange
+            var completedWhenReturned = true;
+            Func<Task> operation = () =>
+            {
+                var failure = TestFailures.Fail<bool>(FailureTiming.AfterYielding, () => new OperationCanceledException());
+                completedWhenReturned = failure.IsCompleted;
+                return Task.CompletedTask;
+            };
+
+            // act
+            DeferredFailures.Run(operation);
+
+            // assert
+            completedWhenReturned.Should().BeFalse();
+        }
+
+        [Fact]
+        public void DeferredFailures_RunWhoseOperationFailsAfterASequenceResumesIt_FailureIsNotCompletedWhenReturned()
+        {
+            // arrange
+            var enumerator = AsyncEnumerables.Yielding(new[] { Text }).GetAsyncEnumerator();
+            var completedWhenReturned = true;
+            Func<Task> operation = async () =>
+            {
+                await enumerator.MoveNextAsync().ConfigureAwait(false);
+                var failure = TestFailures.Fail<bool>(FailureTiming.AfterYielding, () => new OperationCanceledException());
+                completedWhenReturned = failure.IsCompleted;
+            };
+
+            // act
+            DeferredFailures.Run(operation);
+
+            // assert
+            completedWhenReturned.Should().BeFalse();
+        }
+
+        [Fact]
+        public void DeferredFailures_RunWhoseOperationFailsAfterASequenceResumesIt_FailureEndsBeforeRunReturns()
+        {
+            // arrange
+            var enumerator = AsyncEnumerables.Yielding(new[] { Text }).GetAsyncEnumerator();
+            Task<bool> failure = null;
+            Func<Task> operation = async () =>
+            {
+                await enumerator.MoveNextAsync().ConfigureAwait(false);
+                failure = TestFailures.Fail<bool>(FailureTiming.AfterYielding, () => new OperationCanceledException());
+            };
+
+            // act
+            DeferredFailures.Run(operation);
+
+            // assert
+            failure.Status.Should().Be(TaskStatus.Canceled);
+        }
+
+        [Fact]
+        public void DeferredFailures_RunInsideTheOperationOfRun_OuterFailureEndsBeforeRunReturns()
+        {
+            // arrange
+            Task<bool> failure = null;
+            Func<Task> operation = () =>
+            {
+                DeferredFailures.Run(() => Task.CompletedTask);
+                failure = TestFailures.Fail<bool>(FailureTiming.AfterYielding, () => new OperationCanceledException());
+                return Task.CompletedTask;
+            };
+
+            // act
+            DeferredFailures.Run(operation);
+
+            // assert
+            failure.Status.Should().Be(TaskStatus.Canceled);
+        }
+
+        // Each exception that a failure after yielding can carry, and the status its task ends with, as an async method gives it.
+        public static TheoryData<Func<Exception>, TaskStatus> DeferredTaskFailures => new TheoryData<Func<Exception>, TaskStatus>
+        {
+            { () => new IOException(), TaskStatus.Faulted },
+            { () => new OperationCanceledException(), TaskStatus.Canceled },
+        };
+
+        [Theory]
+        [MemberData(nameof(DeferredTaskFailures), DisableDiscoveryEnumeration = true)]
+        public async Task DeferredFailures_RunWithFailureAfterYielding_TaskEndsWithStatusOnceTheOperationHasReturned(Func<Exception> createException,
+            TaskStatus expected)
+        {
+            // arrange
+            Task<bool> failure = null;
+            Func<Task> operation = () =>
+            {
+                failure = TestFailures.Fail<bool>(FailureTiming.AfterYielding, createException);
+                return Task.CompletedTask;
+            };
+
+            // act: wait for the failure, observing its exception, so that its status can be checked.
+            _ = DeferredFailures.Run(operation);
+            _ = await Record.ExceptionAsync(() => failure);
+
+            // assert
+            failure.Status.Should().Be(expected);
+        }
+
+        [Fact]
+        public void DeferredFailures_Run_ReturnsTheTaskOfTheOperation()
+        {
+            // arrange
+            var operationTask = Task.FromResult(true);
+
+            // act
+            var testResult = DeferredFailures.Run(() => operationTask);
+
+            // assert
+            testResult.Should().BeSameAs(operationTask);
+        }
+
+        [Fact]
+        public void DeferredFailures_RunWhoseOperationThrows_Throws()
+        {
+            // arrange
+            Func<Task> operation = () => throw new InvalidOperationException();
+
+            // act
+            Action testAction = () => DeferredFailures.Run(operation);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
         public void FailingTextWriter_FirstFlushAsync_Fails()
         {
             // arrange

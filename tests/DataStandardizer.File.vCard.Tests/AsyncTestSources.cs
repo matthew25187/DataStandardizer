@@ -254,7 +254,9 @@ namespace DataStandardizer.File.vCard.Tests
 
         /// <summary>
         /// Gives the items as an asynchronous sequence that yields before each one, as an async iterator that awaits <c>Task.Yield()</c>
-        /// before each <c>yield return</c> would.
+        /// before each <c>yield return</c> would.  During <see cref="DeferredFailures.Run"/>, it waits instead until the operation has returned,
+        /// so that the code reading it is always suspended, and continues in the same order on every run.  An exception from
+        /// <paramref name="items"/> faults the task of the step, as it would in an async iterator.
         /// </summary>
         /// <param name="items">The items.</param>
         /// <param name="onEnumerate">Called with the token given to <c>GetAsyncEnumerator</c>.</param>
@@ -298,7 +300,16 @@ namespace DataStandardizer.File.vCard.Tests
                         return false;
                     }
 
-                    await Task.Yield();
+                    var gate = DeferredFailures.TryHold();
+                    if (gate == null)
+                    {
+                        await Task.Yield();
+                    }
+                    else
+                    {
+                        await gate.ConfigureAwait(false);
+                    }
+
                     return true;
                 }
 

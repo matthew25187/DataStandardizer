@@ -142,6 +142,19 @@ namespace DataStandardizer.File.vCard.Tests
         };
 
 
+        // The operation, with what yields, the failures of the target and the steps of a sequence, held back until the operation has returned its
+        // task, so that the writer is always given a task that has not completed, including after a sequence has resumed it.  Whether a yielding
+        // task has completed by then depends on the thread pool.
+        private static Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Deferring(
+            Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create)
+        {
+            return (createException, timing, onFailure) =>
+            {
+                var run = create(createException, timing, onFailure);
+                return token => DeferredFailures.Run(() => run(token));
+            };
+        }
+
         // Each operation, with each way the target can report a failure, each OperationCanceledException it can fail with while the caller's
         // token isn't canceled, and the exception the task then faults with.  A canceled task carries no exception of its own, so awaiting it
         // gives a TaskCanceledException, whatever exception the target was given.
@@ -160,7 +173,7 @@ namespace DataStandardizer.File.vCard.Tests
                     foreach (var (exceptionName, createException) in exceptions)
                     {
                         var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
-                        data.Add(name + ", " + timing + ", " + exceptionName, create, timing, createException, expectedType);
+                        data.Add(name + ", " + timing + ", " + exceptionName, Deferring(create), timing, createException, expectedType);
                     }
                 }
             }
@@ -176,7 +189,7 @@ namespace DataStandardizer.File.vCard.Tests
             {
                 foreach (var timing in timings)
                 {
-                    data.Add(name + ", " + timing, create, timing);
+                    data.Add(name + ", " + timing, Deferring(create), timing);
                 }
             }
 

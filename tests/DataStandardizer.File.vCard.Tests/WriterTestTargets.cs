@@ -526,7 +526,7 @@ namespace DataStandardizer.File.vCard.Tests
                 case FailureTiming.AsCanceledTask:
                     return Task.FromCanceled<TResult>(new CancellationToken(true));
                 default:
-                    return FailAfterYieldingAsync<TResult>(createException);
+                    return DeferredFailures.TryDefer<TResult>(createException) ?? FailAfterYieldingAsync<TResult>(createException);
             }
         }
 
