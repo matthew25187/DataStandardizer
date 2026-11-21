@@ -348,8 +348,12 @@ now holds an extension or a private use sequence, each of which starts with its
 singleton, version 2.0 makes it a `char`. It still throws
 `InvalidOperationException` on a default (uninitialised) instance.
 
-Code that reads `.Value` or `.HasValue`, or applies `??` to it, no longer compiles. Use the
-property directly:
+Code that reads `.Value` or `.HasValue`, calls `GetValueOrDefault()`, or applies
+`??`, `?.` or `is null` to it, no longer compiles. A comparison with `null`, such as
+`Singleton == null`, still compiles with warning CS0472 but is always `false`, so a
+branch guarded by it never runs. An assembly compiled against the `char?` property
+fails with `MissingMethodException` until it is recompiled. Use the property
+directly:
 
 ```csharp
 // Before
