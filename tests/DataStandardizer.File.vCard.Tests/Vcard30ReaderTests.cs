@@ -443,6 +443,33 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Organizations.Single().SortAs.Should().Equal("Acme");
         }
 
+        [Fact]
+        public void ReadCard_SecondSortStringOnCardWithName_KeepsItAsAPropertyOfItsOwn()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts FN and N.
+            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "N:Doe;John;;;", "ORG:Acme", "SORT-STRING:d", "SORT-STRING:x");
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be("x");
+            testResult.Organizations.Single().SortAs.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadCard_SecondSortStringOnCardWithTwoNames_KeepsItAsAPropertyOfItsOwn()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts the name, which is the first N.
+            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "N:Doe;John;;;", "N:Roe;Jane;;;", "SORT-STRING:d", "SORT-STRING:x");
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be("x");
+        }
+
         public static TheoryData<string> UnattachedSortStringData()
         {
             return new TheoryData<string>
