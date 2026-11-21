@@ -197,6 +197,9 @@ namespace DataStandardizer.File.vCard
 
         /// <summary>
         /// Gets the text of the <c>SORT-STRING</c> property (RFC 2426 §3.6.5), which the model holds on the <c>N</c> or <c>ORG</c> it sorts; or <c>null</c> if the card has none.
+        /// This is the first <c>SORT-AS</c> of the first <c>N</c>, or on a card with no <c>N</c> of the first <c>ORG</c>, since that is the sort string a writer of vCard 3.0 writes;
+        /// otherwise, or when a <c>SORT-STRING</c> property of the card's own comes before that line, it is a <c>SORT-STRING</c> property of the card's own.  An <c>N</c> with
+        /// <c>PHONETIC</c> (RFC 9554 §4.6), which vCard 3.0 can't hold, isn't counted.
         /// </summary>
         string? SortString { get; }
 
@@ -257,6 +260,9 @@ namespace DataStandardizer.File.vCard
 
         /// <summary>
         /// Gets the text of the <c>SORT-STRING</c> property (RFC 2426 §3.6.5), which the model holds on the <c>N</c> or <c>ORG</c> it sorts; or <c>null</c> if the card has none.
+        /// This is the first <c>SORT-AS</c> of the first <c>N</c>, or on a card with no <c>N</c> of the first <c>ORG</c>, since that is the sort string a writer of vCard 3.0 writes;
+        /// otherwise, or when a <c>SORT-STRING</c> property of the card's own comes before that line, it is a <c>SORT-STRING</c> property of the card's own.  An <c>N</c> with
+        /// <c>PHONETIC</c> (RFC 9554 §4.6), which vCard 3.0 can't hold, isn't counted.
         /// </summary>
         string SortString { get; }
 
