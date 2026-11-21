@@ -1089,7 +1089,8 @@ namespace DataStandardizer.File.vCard
                     var nestedLines = VcardVersionMapping.Version30.FromCanonical(nested, _options, nestedFound);
                     var nestedChecks = new List<VcardDiagnostic>();
                     Vcard30Conformance.Validate(nestedLines, nested, VcardNestedCards.HeldCardOptions, 0, nestedChecks);
-                    nestedFound.AddRange(nestedChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty));
+                    // A line kept in the form of vCard 2.1 is written as it is, so it is reported here, as it is at the top of a card.
+                    nestedFound.AddRange(nestedChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty || diagnostic.Kind == VcardDiagnosticKind.LegacySyntax));
                     foreach (var diagnostic in nestedFound)
                     {
                         _found.Add(new VcardDiagnostic(diagnostic.Kind, "In the card of an AGENT: " + diagnostic.Message, diagnostic.PropertyName, diagnostic.Group, line.LineNumber, _card.CardIndex));

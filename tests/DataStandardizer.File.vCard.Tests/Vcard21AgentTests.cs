@@ -355,5 +355,103 @@ namespace DataStandardizer.File.vCard.Tests
             // assert
             testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
         }
+
+        // ref. vCard 2.1 §2.1.8 and §2.5.1: a TEL at a URL, which RFC 6350 has no form for with a TYPE without a name, so a reader keeps the line as it is.
+        private const string KeptLegacyLine = "TEL;WORK;VALUE=URL:" + TelephoneUrl;
+
+        private const string TelephoneUrl = "http://example.com/tel";
+
+        // ref. vCard 2.1 §2.1.4: "=ZZ" isn't a quoted-printable octet, so only AllowInvalidValues keeps the line, as it is.
+        private const string UndecodableLine = "NOTE;ENCODING=QUOTED-PRINTABLE:=ZZ";
+
+        private static readonly string AgentWithKeptLegacyLine = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", KeptLegacyLine, "END:VCARD");
+
+        private static readonly string AgentWithUndecodableLine = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", UndecodableLine, "END:VCARD");
+
+        // The cards in canonical form, with the line as it was read: a TYPE in vCard 4.0 is a parameter with a name (RFC 6350 §5.6), so the writer of the text names it.
+        private const string CanonicalAgentWithKeptLegacyLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nTEL;TYPE=WORK;VALUE=URL:" + TelephoneUrl + "\\nEND:VCARD\\n";
+        private const string CanonicalAgentWithUndecodableLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\n" + UndecodableLine + "\\nEND:VCARD\\n";
+
+        // What a writer of vCard 2.1 writes for the card with the kept line.
+        private static readonly string WrittenAgentWithKeptLegacyLine = VcardTestData.Crlf(
+            "BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Doe;Jane;;;",
+            "AGENT:BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Friday;Fred;;;",
+            KeptLegacyLine,
+            "END:VCARD",
+            "END:VCARD");
+
+        private static readonly VcardOptions AllowInvalidValues = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+
+        public static TheoryData<string, VcardOptions, string> HeldLegacyLineData()
+        {
+            return new TheoryData<string, VcardOptions, string>
+            {
+                { AgentWithKeptLegacyLine, null, CanonicalAgentWithKeptLegacyLine },
+                { AgentWithUndecodableLine, AllowInvalidValues, CanonicalAgentWithUndecodableLine }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(HeldLegacyLineData))]
+        public void ReadCard_NestedCardWithALineKeptInItsForm_HoldsTheLineAsItIs(string text, VcardOptions options, string expectedValue)
+        {
+            // act
+            var testResult = VcardCardTestData.Read(text, options).GetProperties(VcardPropertyNames.Related).Single();
+
+            // assert
+            testResult.Value.Should().Be(expectedValue);
+            Vcard30TestData.ParametersOf(testResult).Should().Equal("VALUE=text", "TYPE=agent");
+        }
+
+        public static TheoryData<string, VcardOptions> HeldLegacyCardData()
+        {
+            return new TheoryData<string, VcardOptions>
+            {
+                { AgentWithKeptLegacyLine, null },
+                { AgentWithUndecodableLine, AllowInvalidValues }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(HeldLegacyCardData))]
+        public void ReadCards_NestedCardWithALineKeptInItsForm_ReadsTheCardAfterIt(string text, VcardOptions options)
+        {
+            // arrange
+            var stream = VcardCardTestData.Stream(text, Vcard21TestData.Card(KeptLegacyLine));
+
+            // act
+            var testResult = VcardCardTestData.ReadAll(stream, options);
+
+            // assert
+            testResult.Should().HaveCount(2);
+            testResult.Last().Properties.Last().Value.Should().Be(TelephoneUrl);
+        }
+
+        [Fact]
+        public void ReadCard_NestedCardWithAnUndecodableValueByDefault_ThrowsInvalidValue()
+        {
+            // act
+            Action testAction = () => VcardCardTestData.Read(AgentWithUndecodableLine);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithALineKeptInItsFormAsVersion21_WritesTheLineAsItIs()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(AgentWithKeptLegacyLine);
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be(WrittenAgentWithKeptLegacyLine);
+        }
     }
 }

@@ -336,5 +336,52 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be(1);
             card.GetProperties(VcardPropertyNames.Related).Single().Value.Should().Be("http://example.com/b");
         }
+
+        // A card whose NOTE has the quoted-printable of vCard 2.1, which RFC 2426 §5 removed, and "=ZZ", which isn't a quoted-printable octet (vCard 2.1 §2.1.4), so the line is kept as it is.
+        private const string AgentWithUndecodableLine = "AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:a\\nN:a\\;\\;\\;\\;\\nNOTE\\;ENCODING=QUOTED-PRINTABLE:=ZZ\\nEND:VCARD\\n";
+
+        // The same card in canonical form, with the line as it was read.
+        private const string CanonicalAgentWithUndecodableLine = "BEGIN:VCARD\\nVERSION:4.0\\nFN:a\\nN:a;;;;\\nNOTE;ENCODING=QUOTED-PRINTABLE:=ZZ\\nEND:VCARD\\n";
+
+        private static readonly VcardOptions AcceptUndecodableLine = new VcardOptions { MaxLineLength = null, AcceptLegacySyntax = true, AllowInvalidValues = true };
+
+        [Fact]
+        public void ReadCard_NestedCardWithAnUndecodableValueUnderItsOptions_HoldsTheLineAsItIs()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(AgentWithUndecodableLine);
+
+            // act
+            var testResult = VcardCardTestData.Read(text, AcceptUndecodableLine).GetProperties(VcardPropertyNames.Related).Single();
+
+            // assert
+            testResult.Value.Should().Be(CanonicalAgentWithUndecodableLine);
+        }
+
+        [Fact]
+        public void ReadCards_NestedCardWithAnUndecodableValueUnderItsOptions_ReadsTheCardAfterIt()
+        {
+            // arrange
+            var text = VcardCardTestData.Stream(Vcard30TestData.Card(AgentWithUndecodableLine), Vcard30TestData.Card());
+
+            // act
+            var testResult = VcardCardTestData.ReadAll(text, AcceptUndecodableLine);
+
+            // assert
+            testResult.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnUndecodableValueAsVersion30_ThrowsLegacySyntax()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(AgentWithUndecodableLine), AcceptUndecodableLine);
+
+            // act
+            Action testAction = () => Vcard30TestData.Write(card, VcardVersion.V3_0);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.LegacySyntax);
+        }
     }
 }

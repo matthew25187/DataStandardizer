@@ -43,6 +43,7 @@ namespace DataStandardizer.File.vCard
         private readonly VcardVersionMapping _mapping;
         private readonly VcardOptions _options;
         private readonly VcardContentLineWriter _writer;
+        private readonly bool _writesHeldCard;
 
         // These are changed with Interlocked, so that an operation started on another thread while one is in progress is refused.
         private int _isDisposed;
@@ -141,6 +142,18 @@ namespace DataStandardizer.File.vCard
 #else
             return options;
 #endif
+        }
+
+        /// <summary>
+        /// Creates a writer of the text of a card that an <c>AGENT</c> holds, which writes each of its lines as the model holds it, the forms of vCard 2.1 included.
+        /// </summary>
+        /// <param name="writer">The writer.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="writesHeldCard"><c>true</c>, since the card has been judged already, as it was read or added, and what it can't hold in the version it is written in is reported on
+        /// the property it is in.</param>
+        internal VcardWriter(TextWriter writer, VcardOptions options, bool writesHeldCard) : this(writer, options)
+        {
+            _writesHeldCard = writesHeldCard;
         }
 
         private VcardWriter(VcardContentLineWriter writer, VcardOptions options)
@@ -594,7 +607,7 @@ namespace DataStandardizer.File.vCard
             _mapping.Validate(properties, card, _options, 0, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
-                if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, true))
+                if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, true) && !(_writesHeldCard && diagnostic.Kind == VcardDiagnosticKind.LegacySyntax))
                     throw VcardConformance.BuildException(diagnostic);
             }
 

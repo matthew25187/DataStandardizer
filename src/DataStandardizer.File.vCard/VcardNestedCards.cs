@@ -118,7 +118,9 @@ namespace DataStandardizer.File.vCard
             };
 
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, options))
+            // A line of vCard 2.1 that a reader kept as it was, since vCard 4.0 or 3.0 has no form for it, is written as it is, as it is at the top of a card.  The text is read again with
+            // HeldCardOptions, which accept it.
+            using (var writer = new VcardWriter(output, options, true))
             {
                 writer.WriteCard(card);
             }
