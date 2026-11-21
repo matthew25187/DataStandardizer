@@ -21,6 +21,11 @@ namespace DataStandardizer.File.vCard.Tests
         private const string Rfc2426Label = "LABEL;TYPE=dom,home,postal,parcel:Mr.John Q. Public\\, Esq.\\nMail Drop: TNE QB\\n123 Main Street\\nAny Town\\, CA  91921-1234\\nU.S.A.";
         private const string Rfc2426Address = "ADR;TYPE=dom,home,postal,parcel:;;123 Main Street;Any Town;CA;91921-1234";
 
+        private const string FirstSortKey = "d";
+        private const string FirstSortString = "SORT-STRING:" + FirstSortKey;
+        private const string SecondSortKey = "x";
+        private const string SecondSortString = "SORT-STRING:" + SecondSortKey;
+
         // ref. RFC 2426 §7 as erratum 872 corrects it, with the N it adds, and the fold of the RFC.
         private static readonly string Rfc2426Authors = VcardTestData.Crlf(
             "BEGIN:vCard",
@@ -447,13 +452,14 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_SecondSortStringOnCardWithName_KeepsItAsAPropertyOfItsOwn()
         {
             // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts FN and N.
-            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "N:Doe;John;;;", "ORG:Acme", "SORT-STRING:d", "SORT-STRING:x");
+            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, Vcard30TestData.Name, "ORG:Acme", FirstSortString, SecondSortString);
 
             // act
             var testResult = VcardCardTestData.Read(text);
 
             // assert
-            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be("x");
+            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be(SecondSortKey);
+            testResult.Name.SortAs.Should().Equal(FirstSortKey);
             testResult.Organizations.Single().SortAs.Should().BeEmpty();
         }
 
@@ -461,13 +467,15 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_SecondSortStringOnCardWithTwoNames_KeepsItAsAPropertyOfItsOwn()
         {
             // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts the name, which is the first N.
-            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "N:Doe;John;;;", "N:Roe;Jane;;;", "SORT-STRING:d", "SORT-STRING:x");
+            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, Vcard30TestData.Name, "N:Roe;John;;;", FirstSortString, SecondSortString);
 
             // act
             var testResult = VcardCardTestData.Read(text);
 
             // assert
-            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be("x");
+            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be(SecondSortKey);
+            testResult.Name.SortAs.Should().Equal(FirstSortKey);
+            testResult.GetProperties(VcardPropertyNames.Name).Should().ContainSingle(line => line.GetParameter(VcardParameterNames.SortAs) != null);
         }
 
         public static TheoryData<string> UnattachedSortStringData()
