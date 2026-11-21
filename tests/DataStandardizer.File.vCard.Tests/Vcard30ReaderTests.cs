@@ -222,6 +222,31 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Value.Should().Be(expectedValue);
         }
 
+        public static TheoryData<string, string[], string> NoVersion40FormData()
+        {
+            return new TheoryData<string, string[], string>
+            {
+                // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which RFC 6350 §4.3.2 forbids.
+                { "REV:1995-10-31T22:27:10,5Z", NoParameters, "1995-10-31T22:27:10,5Z" },
+                { "BDAY;VALUE=date-time:1996-04-15T10:22:00,5Z", new[] { "VALUE=date-time" }, "1996-04-15T10:22:00,5Z" }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormData))]
+        public void ReadCard_Version30ValueWithNoVersion40Form_KeepsTheLineAsItIs(string line, string[] expectedParameters, string expectedValue)
+        {
+            // arrange
+            var text = Vcard30TestData.Card(line);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Properties.Last();
+
+            // assert
+            Vcard30TestData.ParametersOf(testResult).Should().Equal(expectedParameters);
+            testResult.Value.Should().Be(expectedValue);
+        }
+
         public static TheoryData<string, string> ShortStructuredValueData()
         {
             return new TheoryData<string, string>

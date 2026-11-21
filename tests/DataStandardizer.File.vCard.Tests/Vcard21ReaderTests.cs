@@ -236,6 +236,34 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Value.Should().Be(expectedValue);
         }
 
+        public static TheoryData<string, string> NoVersion40FormData()
+        {
+            return new TheoryData<string, string>
+            {
+                // ref. vCard 2.1 §2.4.5: "Hour values are from 00 to 24", where RFC 6350 §4.7 allows 00 to 23.
+                { "TZ:+24:00", "+24:00" },
+                { "TZ:-2400", "-2400" },
+
+                // ref. vCard 2.1 §2.6.2 and ISO 8601: 24:00:00 is the end of a day, which RFC 6350 §4.3.2 doesn't have.
+                { "REV:19951031T240000", "19951031T240000" }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormData))]
+        public void ReadCard_Version21ValueWithNoVersion40Form_KeepsTheLineAsItIs(string line, string expectedValue)
+        {
+            // arrange
+            var text = Vcard21TestData.Card(line);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Properties.Last();
+
+            // assert
+            Vcard30TestData.ParametersOf(testResult).Should().BeEmpty();
+            testResult.Value.Should().Be(expectedValue);
+        }
+
         [Fact]
         public void ReadCard_LabelWithTheTypesOfAnAddress_GoesOnThatAddress()
         {

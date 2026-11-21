@@ -188,7 +188,9 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the canonical value of a property that isn't a picture, a sound, a key or an agent.
         /// </summary>
-        /// <returns>The value; or <c>null</c> if it isn't valid, so the line stays as it is.</returns>
+        /// <returns>
+        /// The value; or <c>null</c> if it isn't valid, or vCard 4.0 has no form for it, such as an hour of 24 (ISO 8601, which vCard 2.1 §2.4.5 and §2.6.2 cite), so the line stays as it is.
+        /// </returns>
         private static string ValueToCanonical(VcardContentLine line, List<VcardContentLineParameter> parameters, string text, string location)
         {
             var value = text.AsSpan();
@@ -196,31 +198,41 @@ namespace DataStandardizer.File.vCard
             {
                 case VcardPropertyNames.Name:
                     VcardName name;
-                    return VcardName.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out name) ? name.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardName.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out name) && name.IsDefinedIn(VcardVersion.V4_0)
+                        ? name.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Address:
                     VcardAddress address;
-                    return VcardAddress.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out address) ? address.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardAddress.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out address) && address.IsDefinedIn(VcardVersion.V4_0)
+                        ? address.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Organization:
                     VcardOrganization organization;
-                    return VcardOrganization.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out organization)
+                    return VcardOrganization.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out organization) && organization.IsDefinedIn(VcardVersion.V4_0)
                         ? organization.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
                         : null;
                 case VcardPropertyNames.Birthday:
                     VcardDate date;
-                    return VcardDate.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out date) ? date.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardDate.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out date) && date.IsDefinedIn(VcardVersion.V4_0)
+                        ? date.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Revision:
                     VcardTimestamp timestamp;
-                    return VcardTimestamp.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out timestamp) ? timestamp.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardTimestamp.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out timestamp) && timestamp.IsDefinedIn(VcardVersion.V4_0)
+                        ? timestamp.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.TimeZone:
                     // ref. vCard 2.1 §2.4.5: an offset from UTC; RFC 6350 §6.5.1: 'The default is a single text value', so an offset says what it is.
                     VcardUtcOffset offset;
-                    if (!VcardUtcOffset.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out offset)) return null;
+                    if (!VcardUtcOffset.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out offset) || !offset.IsDefinedIn(VcardVersion.V4_0)) return null;
 
                     parameters.Insert(0, new VcardContentLineParameter(VcardParameterNames.Value, VcardValueTypeRegistry.GetValueTypeName(VcardValueType.UtcOffset)));
                     return offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                 case VcardPropertyNames.Geo:
                     VcardGeo geo;
-                    return VcardGeo.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out geo) ? geo.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardGeo.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out geo) && geo.IsDefinedIn(VcardVersion.V4_0)
+                        ? geo.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Url:
                     // ref. RFC 6350 §3.4 and its errata 3845 and 3846: a comma in a URI value is escaped in vCard 4.0.
                     return VcardValue.IsValidUriText(value) ? VcardValue.EscapeUri(text) : null;
