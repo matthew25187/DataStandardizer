@@ -91,6 +91,20 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().BeFalse();
         }
 
+        [Theory]
+        [InlineData(DateYear)]
+        [InlineData("1985-04-12")]
+        [InlineData(" 19850412")]
+        public void TryParse_DateNotInXmlForm_GivesTheDefaultDate(string value)
+        {
+            // act
+            VcardDate result;
+            VcardDate.TryParse(value.AsSpan(), VcardValueFormat.Xml, out result);
+
+            // assert
+            result.Should().Be(default(VcardDate));
+        }
+
         [Fact]
         public void ToString_DateOfAYearAloneInXmlForm_ThrowsInvalidOperation()
         {
