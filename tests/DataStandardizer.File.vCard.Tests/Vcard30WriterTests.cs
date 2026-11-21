@@ -261,7 +261,10 @@ namespace DataStandardizer.File.vCard.Tests
                 { "ADR;ALTID=1;PHONETIC=ipa:;;a;;;;", VcardPropertyNames.Address, "PHONETIC" },
 
                 // ref. RFC 2426 §4: agent-refer-param is the only parameter of AGENT.
-                { "RELATED;TYPE=agent;PREF=1:http://example.com", VcardPropertyNames.Related, ";PREF" }
+                { "RELATED;TYPE=agent;PREF=1:http://example.com", VcardPropertyNames.Related, ";PREF" },
+
+                // ref. RFC 2426 §3.6.5: a SORT-STRING sorts the N, so a reader would move the sort key of an ORG onto it.
+                { "ORG;SORT-AS=Acme:The Acme Co", VcardPropertyNames.Organization, "SORT-STRING" }
             };
         }
 
@@ -340,7 +343,6 @@ namespace DataStandardizer.File.vCard.Tests
                 { "RELATED;VALUE=text;TYPE=agent:Jim", "AGENT;VALUE=text:Jim" },
                 { "ADR;LABEL=\"a^nb\":;;1 First St;;;;", "ADR:;;1 First St;;;;\r\nLABEL:a\\nb" },
                 { "ADR;LABEL=\"a\\nb\":;;1 First St;;;;", "ADR:;;1 First St;;;;\r\nLABEL:a\\nb" },
-                { "ORG;SORT-AS=\"Acme\":Acme;Sales", "ORG:Acme;Sales\r\nSORT-STRING:Acme" },
                 { "X-UNKNOWN:a,b;c", "X-UNKNOWN:a,b;c" }
             };
         }
@@ -357,6 +359,45 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().Be(Vcard30TestData.Card(expected));
+        }
+
+        [Fact]
+        public void WriteCard_OrganizationSortKeyOnCardWithNoNameUnderAllowMissingRequiredProperties_WritesItAsSortString()
+        {
+            // arrange: ref. RFC 2426 §3.6.5.  With no N, a reader of vCard 3.0 gives the SORT-STRING back to the ORG.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=Acme:The Acme Co"));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, allowMissingRequired: true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "ORG:The Acme Co", "SORT-STRING:Acme"));
+        }
+
+        [Fact]
+        public void WriteCard_OrganizationSortKeyBeforeNameSortKeyUnderAllowLossyVersionConversion_KeepsTheNameSortKey()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: a SORT-STRING sorts the N.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=Acme:The Acme Co", "N;SORT-AS=Doe:Doe;Jane;;;"));
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.BareCard(Vcard30TestData.FormattedName, "ORG:The Acme Co", Vcard30TestData.Name, "SORT-STRING:Doe"));
+        }
+
+        [Fact]
+        public void Analyze_OrganizationSortKeyBeforeNameSortKey_ReportsOnlyTheOrganizationSortKeyAsLost()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: a SORT-STRING sorts the N.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, "ORG;SORT-AS=Acme:The Acme Co", "N;SORT-AS=Doe:Doe;Jane;;;"));
+
+            // act
+            var testResult = VcardVersionConverter.Analyze(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Kind = VcardDiagnosticKind.Lossy, PropertyName = VcardPropertyNames.Organization });
         }
 
         [Fact]

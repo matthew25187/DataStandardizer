@@ -646,7 +646,7 @@ namespace DataStandardizer.File.vCard
             private readonly List<VcardDiagnostic> _found;
             private readonly List<VcardContentLine> _lines;
             private readonly VcardOptions _options;
-            private bool _hasSortString;
+            private readonly List<SortKey> _sortKeys = new List<SortKey>();
 
             internal Downgrade(VcardCard card, VcardOptions options, List<VcardDiagnostic> found)
             {
@@ -663,6 +663,7 @@ namespace DataStandardizer.File.vCard
                     Convert(line);
                 }
 
+                AddSortString();
                 return _lines;
             }
 
@@ -724,8 +725,12 @@ namespace DataStandardizer.File.vCard
                 CheckParameterCharacters(line, parameters);
                 var converted = line.With(line.Name, parameters.ToArray(), value);
                 _lines.Add(converted);
+                if (sortAs.Count != 0)
+                {
+                    _sortKeys.Add(new SortKey(line, _lines.Count - 1, sortAs));
+                }
+
                 AddLabel(converted, parameters, label);
-                AddSortString(line, sortAs);
             }
 
             private static bool IsStructural(VcardContentLine line)
@@ -1188,20 +1193,72 @@ namespace DataStandardizer.File.vCard
                 _lines.Add(address.With(VcardPropertyNames.PostalLabel, labelParameters.ToArray(), text));
             }
 
-            private void AddSortString(VcardContentLine line, List<string> sortAs)
+            /// <summary>
+            /// Writes the sort key of the line that a reader of vCard 3.0 gives a <c>SORT-STRING</c> to: the first <c>N</c>, or if there is none the first <c>ORG</c> (see
+            /// <see cref="TryAttachSortString"/>).  A sort key of any other line would move to that one, so it is reported as lost.
+            /// </summary>
+            private void AddSortString()
             {
-                if (sortAs.Count == 0) return;
+                if (_sortKeys.Count == 0) return;
 
-                // ref. RFC 2426 §3.6.5: "A single text value."
-                if (sortAs.Count > 1 || _hasSortString)
+                var targetIndex = FindWrittenSortTarget(VcardPropertyNames.Name);
+                if (targetIndex < 0)
                 {
-                    ReportLoss(line, "more than one sort string");
+                    targetIndex = FindWrittenSortTarget(VcardPropertyNames.Organization);
                 }
 
-                if (_hasSortString) return;
+                SortKey kept = null;
+                foreach (var sortKey in _sortKeys)
+                {
+                    if (sortKey.Index == targetIndex)
+                    {
+                        kept = sortKey;
+                    }
+                    else
+                    {
+                        // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types, so a reader takes it for the sort string of the name.
+                        ReportLoss(sortKey.Line, "the parameter SORT-AS");
+                    }
+                }
 
-                _hasSortString = true;
-                _lines.Add(line.With(VcardPropertyNames.SortString, new VcardContentLineParameter[0], VcardValue.FormatText(sortAs[0], VcardValueFormat.Text, VcardVersion.V3_0)));
+                if (kept is null) return;
+
+                // ref. RFC 2426 §3.6.5: "A single text value."
+                if (kept.SortAs.Count > 1)
+                {
+                    ReportLoss(kept.Line, "more than one sort string");
+                }
+
+                _lines.Insert(kept.Index + 1, kept.Line.With(VcardPropertyNames.SortString, new VcardContentLineParameter[0], VcardValue.FormatText(kept.SortAs[0], VcardValueFormat.Text, VcardVersion.V3_0)));
+            }
+
+            private int FindWrittenSortTarget(string name)
+            {
+                for (var index = 0; index < _lines.Count; index++)
+                {
+                    if (IsName(_lines[index], name)) return index;
+                }
+
+                return -1;
+            }
+
+            /// <summary>
+            /// The <c>SORT-AS</c> of a line, and where the line was written.
+            /// </summary>
+            private sealed class SortKey
+            {
+                internal SortKey(VcardContentLine line, int index, List<string> sortAs)
+                {
+                    Line = line;
+                    Index = index;
+                    SortAs = sortAs;
+                }
+
+                internal VcardContentLine Line { get; }
+
+                internal int Index { get; }
+
+                internal List<string> SortAs { get; }
             }
         }
     }
