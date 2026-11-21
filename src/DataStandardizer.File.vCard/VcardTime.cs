@@ -27,8 +27,8 @@ namespace DataStandardizer.File.vCard
     /// and writes that one time.  An offset's hour of 24 belongs to the TZ property of vCard 2.1 (§2.4.5), not to a time.
     /// </para>
     /// <para>
-    /// Two times are equal if they say the same thing the same way, not if they are the same instant: <c>10Z</c> and <c>10+00</c> differ.  A fraction of more than 18 digits
-    /// keeps its first 18.
+    /// Two times are equal if they say the same thing the same way, not if they are the same instant: <c>10Z</c> and <c>10+00</c> differ.  A fraction keeps every digit it is
+    /// written with, so <c>10:22:00,5</c> and <c>10:22:00,50</c> differ.
     /// </para>
     /// <para>
     /// A default instance is not initialised: its properties and <see cref="IsDefinedIn"/> throw <see cref="InvalidOperationException"/>,
@@ -45,19 +45,19 @@ namespace DataStandardizer.File.vCard
         private const int EndOfDayHour = 24;
         private const int MaxMinute = 59;
         private const int MaxSecond = 60;
-        private const int MaxFractionDigits = 18;
+        private const int MaxDecimalScale = 28;
         private const int None = -1;
-
-        // The longest form is "10:22:00,", the fraction, and "-05:00".
-        internal const int MaxLength = 9 + MaxFractionDigits + VcardUtcOffset.MaxLength;
 
         // Each is the number plus one, so that the default value has none.
         private readonly byte _hourPlusOne;
         private readonly byte _minutePlusOne;
         private readonly byte _secondPlusOne;
         private readonly bool _isUtc;
-        private readonly byte _fractionDigitCount;
-        private readonly long _fraction;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private readonly string? _fraction;
+#else
+        private readonly string _fraction;
+#endif
         private readonly VcardUtcOffset _offset;
 
         /// <summary>
@@ -117,18 +117,20 @@ namespace DataStandardizer.File.vCard
             _minutePlusOne = minute.HasValue ? (byte)(minute.Value + 1) : (byte)0;
             _secondPlusOne = second.HasValue ? (byte)(second.Value + 1) : (byte)0;
             _isUtc = isUtc;
-            _fractionDigitCount = 0;
-            _fraction = 0;
+            _fraction = null;
             _offset = default(VcardUtcOffset);
         }
 
-        private VcardTime(int hour, int minute, int second, long fraction, int fractionDigitCount, bool isUtc, VcardUtcOffset offset)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private VcardTime(int hour, int minute, int second, string? fraction, bool isUtc, VcardUtcOffset offset)
+#else
+        private VcardTime(int hour, int minute, int second, string fraction, bool isUtc, VcardUtcOffset offset)
+#endif
         {
             _hourPlusOne = (byte)(hour + 1);
             _minutePlusOne = (byte)(minute + 1);
             _secondPlusOne = (byte)(second + 1);
             _isUtc = isUtc;
-            _fractionDigitCount = (byte)fractionDigitCount;
             _fraction = fraction;
             _offset = offset;
         }
@@ -173,7 +175,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the fraction of a second, such as 0.5 for <c>10:22:00,5</c>; or <c>null</c> if the time has none.  Only RFC 2425 has one.
+        /// Gets the fraction of a second, such as 0.5 for <c>10:22:00,5</c>; or <c>null</c> if the time has none.  Only RFC 2425 has one.  A decimal holds
+        /// 28 digits after the point, so a fraction with more gives its first 28 here; the time still keeps and writes every digit.
         /// </summary>
         /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
         public decimal? SecondFraction
@@ -181,7 +184,18 @@ namespace DataStandardizer.File.vCard
             get
             {
                 CheckInitialized();
-                return _fractionDigitCount == 0 ? (decimal?)null : new decimal((int)(_fraction & 0xFFFFFFFF), (int)(_fraction >> 32), 0, false, _fractionDigitCount);
+                if (_fraction is null) return null;
+
+                // Each digit, up to the 28 a decimal can scale by, makes a whole number, which then takes the scale, so 0,50 keeps its trailing zero.
+                var digitCount = Math.Min(_fraction.Length, MaxDecimalScale);
+                var whole = 0m;
+                for (var index = 0; index < digitCount; index++)
+                {
+                    whole = whole * 10 + (_fraction[index] - '0');
+                }
+
+                var bits = decimal.GetBits(whole);
+                return new decimal(bits[0], bits[1], bits[2], false, (byte)digitCount);
             }
         }
 
@@ -228,9 +242,9 @@ namespace DataStandardizer.File.vCard
                 case VcardVersion.V3_0:
                     return IsComplete && !IsEndOfDay;
                 case VcardVersion.V2_1:
-                    return IsComplete && _fractionDigitCount == 0;
+                    return IsComplete && _fraction is null;
                 default:
-                    return _fractionDigitCount == 0 && !IsEndOfDay;
+                    return _fraction is null && !IsEndOfDay;
             }
         }
 
@@ -370,7 +384,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this time; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format, VcardVersion version)
         {
-            var buffer = new char[MaxLength];
+            var buffer = new char[MaxFormattedLength];
             int charsWritten;
             return VcardValueFormatting.ToString(buffer, TryFormat(buffer, out charsWritten, format, version), charsWritten);
         }
@@ -410,7 +424,7 @@ namespace DataStandardizer.File.vCard
         public bool Equals(VcardTime other)
         {
             return _hourPlusOne == other._hourPlusOne && _minutePlusOne == other._minutePlusOne && _secondPlusOne == other._secondPlusOne &&
-                   _isUtc == other._isUtc && _fractionDigitCount == other._fractionDigitCount && _fraction == other._fraction && _offset == other._offset;
+                   _isUtc == other._isUtc && string.Equals(_fraction, other._fraction, StringComparison.Ordinal) && _offset == other._offset;
         }
 
         /// <inheritdoc />
@@ -426,7 +440,7 @@ namespace DataStandardizer.File.vCard
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            return (_hourPlusOne | (_minutePlusOne << 8) | (_secondPlusOne << 16) | (_isUtc ? 1 << 24 : 0)) ^ _fraction.GetHashCode() ^ _offset.GetHashCode();
+            return (_hourPlusOne | (_minutePlusOne << 8) | (_secondPlusOne << 16) | (_isUtc ? 1 << 24 : 0)) ^ (_fraction is null ? 0 : StringComparer.Ordinal.GetHashCode(_fraction)) ^ _offset.GetHashCode();
         }
 
         /// <summary>
@@ -451,6 +465,11 @@ namespace DataStandardizer.File.vCard
         internal bool IsInitialized => _hourPlusOne != 0 || _minutePlusOne != 0 || _secondPlusOne != 0;
 
         /// <summary>
+        /// Gets the most characters any form of this time takes: <c>10:22:00,</c>, the fraction, and an offset such as <c>-05:00</c>.
+        /// </summary>
+        internal int MaxFormattedLength => 9 + (_fraction is null ? 0 : _fraction.Length) + VcardUtcOffset.MaxLength;
+
+        /// <summary>
         /// Gets whether the time starts with its hour: the form <c>time-notrunc</c> (RFC 6350 §4).
         /// </summary>
         internal bool IsNotTruncated => _hourPlusOne != 0;
@@ -467,7 +486,7 @@ namespace DataStandardizer.File.vCard
         {
             get
             {
-                if (_fractionDigitCount != 0) return VcardVersion.V3_0;
+                if (!(_fraction is null)) return VcardVersion.V3_0;
 
                 return IsEndOfDay ? VcardVersion.V2_1 : VcardVersion.V4_0;
             }
@@ -520,7 +539,7 @@ namespace DataStandardizer.File.vCard
                 return false;
             }
 
-            result = new VcardTime(hour, minute, second, 0, 0, isUtc, offset);
+            result = new VcardTime(hour, minute, second, null, isUtc, offset);
             return true;
         }
 
@@ -570,7 +589,7 @@ namespace DataStandardizer.File.vCard
                 return false;
             }
 
-            result = new VcardTime(hour, minute, second, 0, 0, isUtc, offset);
+            result = new VcardTime(hour, minute, second, null, isUtc, offset);
             return true;
         }
 
@@ -607,23 +626,23 @@ namespace DataStandardizer.File.vCard
             // ref. ISO 8601: 24:00:00 is the end of a day.  RFC 2425 §5.8.4: time-hour = 2 DIGIT ;00-23
             if (hour > MaxHour && (version != VcardVersion.V2_1 || hour != EndOfDayHour || minute != 0 || second != 0)) return false;
 
-            long fraction = 0;
-            var fractionDigitCount = 0;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? fraction = null;
+#else
+            string fraction = null;
+#endif
             if (version == VcardVersion.V3_0 && index < value.Length && value[index] == ',')
             {
+                // Every digit is kept, since time-secfrac sets no limit on them.
                 var fractionStart = ++index;
                 while (IsDigitAt(value, index))
                 {
-                    if (fractionDigitCount < MaxFractionDigits)
-                    {
-                        fraction = fraction * 10 + (value[index] - '0');
-                        fractionDigitCount++;
-                    }
-
                     index++;
                 }
 
                 if (index == fractionStart) return false;
+
+                fraction = value.Slice(fractionStart, index - fractionStart).ToString();
             }
 
             var isUtc = false;
@@ -640,7 +659,7 @@ namespace DataStandardizer.File.vCard
                 return false;
             }
 
-            result = new VcardTime(hour, minute, second, fraction, fractionDigitCount, isUtc, offset);
+            result = new VcardTime(hour, minute, second, fraction, isUtc, offset);
             return true;
         }
 
@@ -681,10 +700,10 @@ namespace DataStandardizer.File.vCard
                 writer.AppendDigits(_minutePlusOne - 1, 2);
                 writer.Append(':');
                 writer.AppendDigits(_secondPlusOne - 1, 2);
-                if (_fractionDigitCount != 0)
+                if (!(_fraction is null))
                 {
                     writer.Append(',');
-                    writer.AppendDigits(_fraction, _fractionDigitCount);
+                    writer.Append(_fraction.AsSpan());
                 }
             }
 

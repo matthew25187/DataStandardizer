@@ -30,8 +30,6 @@ namespace DataStandardizer.File.vCard
     {
         private const string UninitializedMessage = "The VcardDateTime instance is not initialised.";
 
-        internal const int MaxLength = VcardDate.MaxLength + 1 + VcardTime.MaxLength;
-
         private readonly VcardDate _date;
         private readonly VcardTime _time;
 
@@ -219,7 +217,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format, VcardVersion version)
         {
-            var buffer = new char[MaxLength];
+            var buffer = new char[VcardDate.MaxLength + 1 + _time.MaxFormattedLength];
             int charsWritten;
             return VcardValueFormatting.ToString(buffer, TryFormat(buffer, out charsWritten, format, version), charsWritten);
         }
