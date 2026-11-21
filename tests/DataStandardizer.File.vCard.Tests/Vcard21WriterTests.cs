@@ -337,7 +337,7 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
-        public void WriteCard_UndecodableQuotedPrintableEndingWithSoftLineBreakWithAllowInvalidValues_Throws()
+        public void WriteCard_UndecodableQuotedPrintableEndingWithSoftLineBreakWithAllowInvalidValues_ThrowsInvalidStructure()
         {
             // arrange
             // ref. vCard 2.1 §2.1.3: an "=" at the end of the line is a soft line break, so a reader would join the next line to the value.
@@ -349,7 +349,23 @@ namespace DataStandardizer.File.vCard.Tests
             Action testAction = () => Vcard21TestData.Write(card, allowInvalidValues: true);
 
             // assert
-            testAction.Should().Throw<VcardFileException>();
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
+        }
+
+        [Fact]
+        public void Validate_UndecodableQuotedPrintableEndingWithSoftLineBreakAsVersion21_ReportsInvalidStructure()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.1.3: an "=" at the end of the line is a soft line break, so the check before writing refuses the card.
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("N", "Doe;Jane;;;"));
+            card.Properties.Add(new VcardContentLine("NOTE", new[] { new VcardContentLineParameter("ENCODING", "QUOTED-PRINTABLE") }, "=ZZ="));
+
+            // act
+            var testResult = card.Validate(VcardVersion.V2_1);
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.InvalidStructure);
         }
     }
 }

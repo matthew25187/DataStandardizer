@@ -901,7 +901,7 @@ namespace DataStandardizer.File.vCard
             }
 
             /// <summary>
-            /// Reports what a card held by an <c>AGENT</c> can't hold, what it lacks, and the values and parameters in it that aren't valid.
+            /// Reports what a card held by an <c>AGENT</c> can't hold, what it lacks, the values and parameters in it that aren't valid, and the values it can't write.
             /// </summary>
             private void ReportHeldCard(VcardContentLine agent, VcardCard held)
             {
@@ -912,7 +912,8 @@ namespace DataStandardizer.File.vCard
                 // The checks of the card around it apply, so its values and parameters are reported as its own are, and the options of the writer decide.
                 heldFound.AddRange(heldChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty ||
                                                                      diagnostic.Kind == VcardDiagnosticKind.InvalidValue ||
-                                                                     diagnostic.Kind == VcardDiagnosticKind.InvalidParameter));
+                                                                     diagnostic.Kind == VcardDiagnosticKind.InvalidParameter ||
+                                                                     diagnostic.Kind == VcardDiagnosticKind.InvalidStructure));
                 foreach (var diagnostic in heldFound)
                 {
                     _found.Add(new VcardDiagnostic(diagnostic.Kind, "In the card of an AGENT: " + diagnostic.Message, diagnostic.PropertyName, diagnostic.Group, agent.LineNumber, _card.CardIndex));

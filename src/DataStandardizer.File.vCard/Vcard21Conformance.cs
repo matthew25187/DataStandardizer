@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.vCard
 {
@@ -235,10 +236,34 @@ namespace DataStandardizer.File.vCard
 
         private static void CheckValue(VcardContentLine line, bool isDefined, VcardCard card, List<VcardDiagnostic> found)
         {
+            if (EndsWithUndecodableSoftLineBreak(line))
+            {
+                // ref. vCard 2.1 §2.1.3 and RFC 2045 §6.7 rule 5: a reader joins the next line to a value that ends with "=", so the value, which can't be broken with
+                // soft line breaks of its own, can't be written as it is either.
+                Add(found, VcardDiagnosticKind.InvalidStructure, Format("The QUOTED-PRINTABLE value of {0} can't be decoded and ends with an = that a reader would take for a soft line break, " +
+                    "so it can't be written.", line.Name), line, card);
+                return;
+            }
+
             if (!IsValidValue(line, isDefined))
             {
                 Add(found, VcardDiagnosticKind.InvalidValue, Format("The value of {0} is not valid in vCard 2.1.", line.Name), line, card);
             }
+        }
+
+        /// <summary>
+        /// Gets whether a line's value says it is <c>QUOTED-PRINTABLE</c>, can't be decoded, and ends with what a reader takes for a soft line break.
+        /// </summary>
+        private static bool EndsWithUndecodableSoftLineBreak(VcardContentLine line)
+        {
+            var encoding = VcardPropertyParameterReader.GetValue(line, VcardLegacyTokens.EncodingName);
+            if (!string.Equals(encoding, VcardLegacyTokens.QuotedPrintable, StringComparison.OrdinalIgnoreCase)) return false;
+
+            var value = line.Value.AsSpan();
+            int dataLength;
+            byte[] octets;
+            return MimeQuotedPrintable.EndsWithSoftLineBreak(value, out dataLength) &&
+                   !MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out octets);
         }
 
         private static bool IsValidValue(VcardContentLine line, bool isDefined)
