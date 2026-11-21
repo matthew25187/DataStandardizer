@@ -10,7 +10,8 @@ namespace DataStandardizer.File.InternetMessage
     /// The fields of a header, in order.  Lookups by name are case-insensitive.
     /// </summary>
     /// <remarks>
-    /// A writer writes the fields that were read, and have not been replaced or removed, byte for byte, so changing one field rewrites that field only.
+    /// A writer writes the fields that were read, and have not been replaced or removed, byte for byte, so changing one field rewrites that field only.  A field read with
+    /// other line breaks than the message it is in, such as one from an mbox file added to a message read from an <c>.eml</c> file, is given the line breaks of the message.
     /// </remarks>
     public sealed class ImfHeaderFieldCollection : IReadOnlyList<ImfHeaderField>
     {

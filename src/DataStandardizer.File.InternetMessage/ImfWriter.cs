@@ -27,7 +27,9 @@ namespace DataStandardizer.File.InternetMessage
     /// </para>
     /// <para>
     /// <b>Unchanged fields.</b>  A field that was read is written byte for byte, whichever options it was read under, so that signatures over it stay valid.  That includes any
-    /// obsolete syntax it holds.  So does the line break of the empty line that ended the header, and its absence if the data ended first and there is still no body.
+    /// obsolete syntax it holds.  So does the line break of the empty line that ended the header, and its absence if the data ended first and there is still no body.  A field
+    /// read with other line breaks than the message it is in, such as one from an mbox file added to a message read from an <c>.eml</c> file, is given the line breaks of the
+    /// message, as RFC 5322 §2.1 requires.
     /// </para>
     /// <para>
     /// <b>Other fields.</b>  A field that was set is formatted in the modern form, as <see cref="ImfHeaderWriter"/> formats it, with CRLF line breaks, and with the

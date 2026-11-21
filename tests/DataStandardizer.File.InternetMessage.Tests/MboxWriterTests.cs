@@ -41,6 +41,18 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string EightBitText = "café";
         private const string MaxPartCountMessagePattern = "*ImfOptions.MaxPartCount*";
 
+        // A folded field, with the line breaks of a mailbox and of a standalone message (RFC 5322 §2.1), and messages that each hold the one from the other.
+        private const string BuiltMessageWithAddedSubject = CrLfHeader + CrLfSubject + "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + BuiltTextPart;
+        private const string SourceWithAddedSubject = CrLfSubject + "MIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n" + SevenBitText;
+        private const string LineFeedSubject = "Subject: in\n ner\n";
+        private const string CrLfSubject = "Subject: in\r\n ner\r\n";
+        private const string SubjectInFile = Separator + LineFeedSubject + Header + "\none\n\n";
+        private const string SubjectEml = CrLfSubject + CrLfHeader + "\r\none\r\n";
+        private const string EmlWithAddedSubject = CrLfHeader + CrLfSubject + "\r\none\r\n";
+        private const string FileWithAddedSubject = Separator + Header + LineFeedSubject + "\none\n\n";
+        private const string NewMessageWithAddedSubject = CrLfHeader + CrLfSubject + "\r\n";
+        private const int FirstFieldIndex = 0;
+
         // A message that forwards a two-part multipart: its text part, the part that holds the message, that message's multipart body, and the two parts of that body.
         private const int ForwardingEntityCount = 5;
         private const int OneFewerThanForwardingEntityCount = 4;
@@ -855,13 +867,127 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// </summary>
         private static string WriteForwarded(ImfMessage forwarded, ImfOptions options)
         {
+            return WriteStandalone(BuildForwarding(forwarded, options), options);
+        }
+
+        /// <summary>
+        /// Writes a message with an <see cref="ImfWriter"/>, and gives its bytes.
+        /// </summary>
+        private static string WriteStandalone(ImfMessage message, ImfOptions options = null)
+        {
             var output = new MemoryStream();
-            using (var writer = new ImfWriter(output, options))
+            using (var writer = new ImfWriter(output, options ?? new ImfOptions()))
             {
-                writer.WriteMessage(BuildForwarding(forwarded, options));
+                writer.WriteMessage(message);
             }
 
             return Octets.ToText(output.ToArray());
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAFieldFromAMailboxAddedToAReadMessage_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(Eml);
+            message.Fields.Add(Mailboxes.ReadFirst(SubjectInFile).Message.Fields[FirstFieldIndex]);
+
+            // act
+            var testResult = WriteStandalone(message);
+
+            // assert
+            testResult.Should().Be(EmlWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAFieldFromAMailboxAddedToANewMessage_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var message = new ImfMessage { Date = ImfDateTime.Parse(BuiltDate), From = ImfAddressList.Parse(BuiltFrom) };
+            message.Fields.Add(Mailboxes.ReadFirst(SubjectInFile).Message.Fields[FirstFieldIndex]);
+
+            // act
+            var testResult = WriteStandalone(message);
+
+            // assert
+            testResult.Should().Be(NewMessageWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAFieldFromAMailboxAddedToABuiltMessage_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().SetText(BuiltTextPart);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            builder.Header.Fields.Add(Mailboxes.ReadFirst(SubjectInFile).Message.Fields[FirstFieldIndex]);
+            var message = builder.Build();
+
+            // act
+            var testResult = WriteStandalone(message);
+
+            // assert
+            testResult.Should().Be(BuiltMessageWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfEntityWriterWithAFieldViewFromAMailboxAdded_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var source = ImfEntitySource.FromContent(MimeMediaType.Parse(TextMediaType), Octets.Of(SevenBitText));
+            Mailboxes.WithFirstField(SubjectInFile, field => source.AddField(field));
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Be(SourceWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteField_ImfHeaderWriterWithAFieldViewFromAMailbox_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var output = new MemoryStream();
+            using (var subject = new ImfHeaderWriter(output))
+            {
+                // act
+                Mailboxes.WithFirstField(SubjectInFile, subject.WriteField);
+                var testResult = Octets.ToText(output.ToArray());
+
+                // assert
+                testResult.Should().Be(CrLfSubject);
+            }
+        }
+
+        [Fact]
+        public async Task WriteFieldAsync_ImfHeaderWriterWithAFieldViewFromAMailbox_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var output = new MemoryStream();
+            var subject = new ImfHeaderWriter(output);
+            await AsyncDisposal.UsingAsync(subject, async () =>
+            {
+                // act
+                await Mailboxes.WithFirstFieldAsync(SubjectInFile, field => subject.WriteFieldAsync(field).AsTask());
+                var testResult = Octets.ToText(output.ToArray());
+
+                // assert
+                testResult.Should().Be(CrLfSubject);
+            });
+        }
+
+        [Fact]
+        public void WriteMessage_MboxWriterWithAFieldFromAStandaloneMessageAdded_WritesItWithLineFeedLineBreaks()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MessageInFile).Message;
+            message.Fields.Add(Mailboxes.ReadMessage(SubjectEml).Fields[FirstFieldIndex]);
+
+            // act
+            var testResult = Mailboxes.WriteOne(Envelope, message);
+
+            // assert
+            testResult.Should().Be(FileWithAddedSubject);
         }
 
         [Fact]

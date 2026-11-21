@@ -372,7 +372,11 @@ namespace DataStandardizer.File.InternetMessage
                             throw;
                         }
 
-                        output.Write(field.Value, 0, field.Value.Length);
+                        // A field a reader read with other line breaks than the writer's, such as one from an mbox file, is given those of the writer (RFC 5322 §2.1).
+                        var raw = field.LineFeedIsLineBreak.HasValue && field.LineFeedIsLineBreak.Value != _lineFeedIsLineBreak
+                            ? ImfLineBreaks.ConvertLines(field.Value, !_lineFeedIsLineBreak)
+                            : field.Value;
+                        output.Write(raw, 0, raw.Length);
                     }
                     else
                     {

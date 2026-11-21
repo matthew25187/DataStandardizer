@@ -31,6 +31,17 @@ namespace DataStandardizer.File.InternetMessage
             if (HasOpaqueEntity(message.Body))
                 throw new ImfFileException(OpaqueEntityMessage);
 
+            return ConvertLines(bytes, toCrLf);
+        }
+
+        /// <summary>
+        /// Changes each line break, an LF with or without a CR before it, in bytes that hold no binary data, such as a header field.
+        /// </summary>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="toCrLf"><c>true</c> to change them to CRLF, or <c>false</c> to change them to LF.</param>
+        /// <returns>The changed bytes.</returns>
+        internal static byte[] ConvertLines(ReadOnlySpan<byte> bytes, bool toCrLf)
+        {
             var output = new MemoryStream(bytes.Length);
             var rest = bytes;
             while (true)
