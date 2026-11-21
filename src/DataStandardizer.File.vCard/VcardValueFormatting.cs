@@ -523,7 +523,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Appends a non-negative number of at most <paramref name="width"/> digits, padded with leading zeros.
         /// </summary>
-        internal void AppendDigits(long value, int width)
+        internal void AppendDigits(int value, int width)
         {
             if (_position + width > _destination.Length)
             {

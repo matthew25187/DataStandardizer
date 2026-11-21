@@ -147,12 +147,13 @@ namespace DataStandardizer.File.vCard.Tests
             var longFraction = VcardTime.Parse("10:22:00,1234567890123456789012345678901234567890-05:00".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
             var endOfDay = VcardTime.Parse("24:00:00".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1);
             var date = new VcardDate(1996, 10, 22);
+            const string longFractionDateTime = "1996-10-22T10:22:00,1234567890123456789012345678901234567890-05:00";
             return new TheoryData<Func<string>, string>
             {
                 { () => new VcardDateTime(date, fraction).ToString(), "1996-10-22T10:22:00,5" },
-                { () => new VcardDateTime(date, longFraction).ToString(), "1996-10-22T10:22:00,1234567890123456789012345678901234567890-05:00" },
-                { () => new VcardTimestamp(date, longFraction).ToString(), "1996-10-22T10:22:00,1234567890123456789012345678901234567890-05:00" },
-                { () => new VcardDateAndOrTime(new VcardDateTime(date, longFraction)).ToString(), "1996-10-22T10:22:00,1234567890123456789012345678901234567890-05:00" },
+                { () => new VcardDateTime(date, longFraction).ToString(), longFractionDateTime },
+                { () => new VcardTimestamp(date, longFraction).ToString(), longFractionDateTime },
+                { () => new VcardDateAndOrTime(new VcardDateTime(date, longFraction)).ToString(), longFractionDateTime },
                 { () => new VcardDateTime(date, endOfDay).ToString(), "1996-10-22T24:00:00" },
                 { () => new VcardTimestamp(date, endOfDay).ToString(), "1996-10-22T24:00:00" },
                 { () => new VcardDateAndOrTime(new VcardDateTime(date, endOfDay)).ToString(), "1996-10-22T24:00:00" },
