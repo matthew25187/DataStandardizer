@@ -359,6 +359,9 @@ namespace DataStandardizer.File.vCard.Tests
             "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD",
             "END:VCARD");
 
+        // What the writer says of an AGENT whose card is nested too deeply.
+        private const string NestedTooDeeply = "its card is nested too deeply";
+
         public static TheoryData<VcardCard> CardsNestedPastTheLimitData()
         {
             // AddAgent holds a copy of the card, so the chain is built from its innermost card out.
@@ -385,7 +388,9 @@ namespace DataStandardizer.File.vCard.Tests
             Action testAction = () => Vcard21TestData.Write(card);
 
             // assert
-            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.Lossy);
+            var thrown = testAction.Should().Throw<VcardFileException>().Which;
+            thrown.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.Lossy);
+            thrown.Message.Should().Contain(NestedTooDeeply);
         }
 
         [Theory]
