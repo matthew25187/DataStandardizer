@@ -2739,11 +2739,14 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        // An empty stream that doesn't support writing.
+        private static MemoryStream CreateReadOnlyStream() => new MemoryStream(new byte[0], writable: false);
+
         [Fact]
         public void Constructor_ReadOnlyStream_ThrowsArgumentExceptionForCsvStream()
         {
             // arrange
-            using (var stream = new MemoryStream(new byte[0], false))
+            using (var stream = CreateReadOnlyStream())
             {
 
                 // act
@@ -2758,7 +2761,7 @@ namespace DataStandardizer.File.CSV.Tests
         public void Constructor_ReadOnlyStreamWithOptions_ThrowsArgumentExceptionForCsvStream()
         {
             // arrange
-            using (var stream = new MemoryStream(new byte[0], false))
+            using (var stream = CreateReadOnlyStream())
             {
                 var options = new CsvFileOptions();
 
