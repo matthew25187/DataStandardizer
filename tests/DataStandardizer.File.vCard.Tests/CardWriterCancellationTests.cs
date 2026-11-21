@@ -129,12 +129,10 @@ namespace DataStandardizer.File.vCard.Tests
                 var writer = new XcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardsAsync(new[] { CreateLongCard() }, cancellationToken: token);
             }),
-            // The sequence doesn't yield, so that the writer reaches its target before the operation returns, as the target needs for its failure to
-            // be held back until then.
             ("XcardWriter.WriteCardsAsync from an asynchronous sequence", YieldingFailureTimings, (createException, timing, onFailure) =>
             {
                 var writer = new XcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
-                return token => writer.WriteCardsAsync(AsyncEnumerables.Completed(new[] { CreateLongCard() }), cancellationToken: token);
+                return token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCard() }), cancellationToken: token);
             }),
             ("XcardWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
             {
@@ -144,8 +142,9 @@ namespace DataStandardizer.File.vCard.Tests
         };
 
 
-        // The operation, with the failures of the target that yield held back until the operation has returned its task, so that the writer is
-        // always given a task that has not completed.  Whether a yielding task has completed by then depends on the thread pool.
+        // The operation, with what yields, the failures of the target and the steps of a sequence, held back until the operation has returned its
+        // task, so that the writer is always given a task that has not completed, including after a sequence has resumed it.  Whether a yielding
+        // task has completed by then depends on the thread pool.
         private static Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Deferring(
             Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create)
         {

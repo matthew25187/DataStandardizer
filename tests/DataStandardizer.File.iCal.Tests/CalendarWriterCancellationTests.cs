@@ -129,12 +129,10 @@ namespace DataStandardizer.File.iCal.Tests
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarsAsync(new[] { CreateLongCalendar() }, cancellationToken: token);
             }),
-            // The sequence doesn't yield, so that the writer reaches its target before the operation returns, as the target needs for its failure to
-            // be held back until then.
             ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence", YieldingFailureTimings, (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
-                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Completed(new[] { CreateLongCalendar() }), cancellationToken: token);
+                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCalendar() }), cancellationToken: token);
             }),
             ("XcalWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
             {
@@ -144,8 +142,9 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
 
-        // The operation, with the failures of the target that yield held back until the operation has returned its task, so that the writer is
-        // always given a task that has not completed.  Whether a yielding task has completed by then depends on the thread pool.
+        // The operation, with what yields, the failures of the target and the steps of a sequence, held back until the operation has returned its
+        // task, so that the writer is always given a task that has not completed, including after a sequence has resumed it.  Whether a yielding
+        // task has completed by then depends on the thread pool.
         private static Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Deferring(
             Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create)
         {

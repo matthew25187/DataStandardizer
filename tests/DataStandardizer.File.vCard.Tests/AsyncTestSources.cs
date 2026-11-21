@@ -254,70 +254,62 @@ namespace DataStandardizer.File.vCard.Tests
 
         /// <summary>
         /// Gives the items as an asynchronous sequence that yields before each one, as an async iterator that awaits <c>Task.Yield()</c>
-        /// before each <c>yield return</c> would.
+        /// before each <c>yield return</c> would.  During <see cref="DeferredFailures.Run"/>, it waits instead until the operation has returned,
+        /// so that the code reading it is always suspended, and continues in the same order on every run.  An exception from
+        /// <paramref name="items"/> faults the task of the step, as it would in an async iterator.
         /// </summary>
         /// <param name="items">The items.</param>
         /// <param name="onEnumerate">Called with the token given to <c>GetAsyncEnumerator</c>.</param>
         public static IAsyncEnumerable<T> Yielding<T>(IEnumerable<T> items, Action<CancellationToken> onEnumerate = null)
         {
-            return new AsyncEnumerable<T>(items, onEnumerate, true);
+            return new YieldingAsyncEnumerable<T>(items, onEnumerate);
         }
 
-        /// <summary>
-        /// Gives the items as an asynchronous sequence whose every step completes before it returns, so that a consumer is never suspended by
-        /// it.
-        /// </summary>
-        /// <param name="items">The items.</param>
-        public static IAsyncEnumerable<T> Completed<T>(IEnumerable<T> items)
-        {
-            return new AsyncEnumerable<T>(items, null, false);
-        }
-
-        private sealed class AsyncEnumerable<T> : IAsyncEnumerable<T>
+        private sealed class YieldingAsyncEnumerable<T> : IAsyncEnumerable<T>
         {
             private readonly IEnumerable<T> _items;
             private readonly Action<CancellationToken> _onEnumerate;
-            private readonly bool _yields;
 
-            public AsyncEnumerable(IEnumerable<T> items, Action<CancellationToken> onEnumerate, bool yields)
+            public YieldingAsyncEnumerable(IEnumerable<T> items, Action<CancellationToken> onEnumerate)
             {
                 _items = items;
                 _onEnumerate = onEnumerate;
-                _yields = yields;
             }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
                 _onEnumerate?.Invoke(cancellationToken);
-                return new Enumerator(_items.GetEnumerator(), _yields);
+                return new Enumerator(_items.GetEnumerator());
             }
 
             private sealed class Enumerator : IAsyncEnumerator<T>
             {
                 private readonly IEnumerator<T> _items;
-                private readonly bool _yields;
 
-                public Enumerator(IEnumerator<T> items, bool yields)
+                public Enumerator(IEnumerator<T> items)
                 {
                     _items = items;
-                    _yields = yields;
                 }
 
                 public T Current => _items.Current;
 
-                public ValueTask<bool> MoveNextAsync()
+                public async ValueTask<bool> MoveNextAsync()
                 {
                     if (!_items.MoveNext())
                     {
-                        return new ValueTask<bool>(false);
+                        return false;
                     }
 
-                    return _yields ? YieldAsync() : new ValueTask<bool>(true);
-                }
+                    var gate = DeferredFailures.TryHold();
+                    if (gate == null)
+                    {
+                        await Task.Yield();
+                    }
+                    else
+                    {
+                        await gate.ConfigureAwait(false);
+                    }
 
-                private static async ValueTask<bool> YieldAsync()
-                {
-                    await Task.Yield();
                     return true;
                 }
 
