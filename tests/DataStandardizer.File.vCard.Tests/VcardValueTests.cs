@@ -42,6 +42,11 @@ namespace DataStandardizer.File.vCard.Tests
         private const double TwoToTheSixtieth = 1152921504606846976.0;
         private const double TwoToTheMinusTwentieth = 9.5367431640625E-07;
 
+        // Negative zero as text, and the bits of positive and negative zero (IEEE 754 binary64: negative zero has only the sign bit set).
+        private const string NegativeZeroText = "-0";
+        private const long PositiveZeroBits = 0;
+        private const long NegativeZeroBits = long.MinValue;
+
         // Long enough for the smallest subnormal double written without an exponent.
         private const int LongFloatDestinationLength = 400;
 
@@ -51,7 +56,7 @@ namespace DataStandardizer.File.vCard.Tests
             { "needs 16 digits", () => SixteenDigitDouble, "901.7426589977661" },
             { "needs 16 digits, below 1", () => SumOfOneTenthAndSevenTenths, "0.7999999999999999" },
             { "GEO coordinate", () => GeoCoordinateWithSixteenDigits, "0.8455124082255701" },
-            { "negative zero", () => -0.0, "-0" },
+            { "negative zero", () => -0.0, NegativeZeroText },
             { "whole number of 17 digits", () => 1E+16, "10000000000000000" },
             { "whole number of 18 digits", () => 1E+17, "100000000000000000" },
             { "decimal point four places before the first digit", () => 0.00001, "0.00001" },
@@ -201,6 +206,77 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             result.Should().Be(0);
+        }
+
+        /// <summary>
+        /// The double nearest to <c>5.882948112288285E-204</c>.  .NET Framework reads that text as the double above it,
+        /// <c>5.8829481122882854E-204</c>.
+        /// </summary>
+        private const double SixteenDigitExponentDouble = 5.8829481122882847E-204;
+
+        /// <summary>
+        /// 2^53, the double below 2^53 + 1, which lies halfway between it and <see cref="TwoToThe53PlusTwo"/>.
+        /// </summary>
+        private const double TwoToThe53 = 9007199254740992d;
+
+        /// <summary>
+        /// 2^53 + 2, the double above 2^53 + 1.
+        /// </summary>
+        private const double TwoToThe53PlusTwo = 9007199254740994d;
+
+        /// <summary>
+        /// 2^53 + 1, with a last digit beyond the 17 significant digits a double needs, which puts it just above halfway between
+        /// <see cref="TwoToThe53"/> and <see cref="TwoToThe53PlusTwo"/>.  .NET Framework ignores the last digit and reads <see cref="TwoToThe53"/>.
+        /// </summary>
+        private const string JustAboveHalfwayText = "9007199254740993.0000000000000001";
+
+        /// <summary>
+        /// Just above half the smallest subnormal double, so that its nearest double is <see cref="double.Epsilon"/>, not zero.
+        /// </summary>
+        private const string JustAboveHalfTheSmallestSubnormalText = "2.4703282292062327208828439643411068618252990130716238221279284125033775364E-324";
+
+        /// <summary>
+        /// Just below halfway between <see cref="double.MaxValue"/> and 2^1024, so that its nearest double is <see cref="double.MaxValue"/>.
+        /// </summary>
+        private const string JustBelowHalfwayAboveTheLargestText = "1.797693134862315807937289714053E+308";
+
+        // The zeros between 2^53 + 1 and a last digit 1, more than the 767 significant digits a value halfway between two doubles can have.
+        private const int ZerosPastTheHalfwayDigits = 1000;
+
+        // The expected doubles are their bits, so that negative zero differs from positive zero, and so that xUnit on .NET Framework doesn't
+        // serialize a double in a theory row with that runtime's "R".
+        public static TheoryData<string, string, VcardValueFormat, long> NearestDoubleCases => new TheoryData<string, string, VcardValueFormat, long>
+        {
+            { "negative zero", NegativeZeroText, VcardValueFormat.Text, NegativeZeroBits },
+            { "negative zero, jCard", NegativeZeroText, VcardValueFormat.Json, NegativeZeroBits },
+            { "negative zero with a fraction, xCard", "-0.0E0", VcardValueFormat.Xml, NegativeZeroBits },
+            { "needs 16 digits", "901.7426589977661", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(SixteenDigitDouble) },
+            { "16 digits and an exponent", "5.882948112288285E-204", VcardValueFormat.Json, BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
+            { "smallest normal", SmallestNormalDoubleText, VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "smallest normal, rounded up", "2.2250738585072012E-308", VcardValueFormat.Xml, BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "smallest subnormal", SmallestSubnormalDoubleText, VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(double.Epsilon) },
+            { "just above halfway", JustAboveHalfwayText, VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "exactly halfway, odd neighbour above", "9007199254740993", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53) },
+            { "just above halfway, in more digits than a halfway value can have", "9007199254740993." + new string('0', ZerosPastTheHalfwayDigits) + "1", VcardValueFormat.Text, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just below half the smallest subnormal", "2.4703282292062327E-324", VcardValueFormat.Json, PositiveZeroBits },
+            { "just above half the smallest subnormal", JustAboveHalfTheSmallestSubnormalText, VcardValueFormat.Json, BitConverter.DoubleToInt64Bits(double.Epsilon) },
+            { "far below the smallest subnormal", "1E-99999999999", VcardValueFormat.Xml, PositiveZeroBits },
+            { "just below halfway above the largest", JustBelowHalfwayAboveTheLargestText, VcardValueFormat.Xml, BitConverter.DoubleToInt64Bits(double.MaxValue) },
+        };
+
+        [Theory]
+        [MemberData(nameof(NearestDoubleCases))]
+        public void TryParseFloat_Value_GivesTheNearestDoubleOnEveryTarget(string scenario, string value, VcardValueFormat format, long expectedBits)
+        {
+            // arrange
+            _ = scenario;
+
+            // act
+            var testResult = VcardValue.TryParseFloat(value.AsSpan(), format, out var result);
+
+            // assert
+            testResult.Should().BeTrue();
+            BitConverter.DoubleToInt64Bits(result).Should().Be(expectedBits);
         }
 
         [Theory]

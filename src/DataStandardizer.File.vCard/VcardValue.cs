@@ -573,11 +573,7 @@ namespace DataStandardizer.File.vCard
                 if (index == fractionStart || index != value.Length) return false;
             }
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-            if (!double.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out result)) return false;
-#else
-            if (!double.TryParse(value.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out result)) return false;
-#endif
+            if (!NearestDoubleParser.TryParse(value, out result)) return false;
 
             if (!double.IsInfinity(result)) return true;
 
@@ -625,11 +621,7 @@ namespace DataStandardizer.File.vCard
             result = 0;
             if (!VcardValueFormatting.IsXmlFloatNumeral(value)) return false;
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#else
-            if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#endif
+            if (!NearestDoubleParser.TryParse(value, out result)) return false;
 
             if (!double.IsInfinity(result)) return true;
 
@@ -677,11 +669,7 @@ namespace DataStandardizer.File.vCard
             result = 0;
             if (!VcardValueFormatting.IsJsonNumber(value)) return false;
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#else
-            if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#endif
+            if (!NearestDoubleParser.TryParse(value, out result)) return false;
 
             if (!double.IsInfinity(result)) return true;
 
