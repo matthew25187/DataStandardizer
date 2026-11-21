@@ -14,6 +14,9 @@ namespace DataStandardizer.Geography
     public readonly partial struct Iso3166Part2Subdivision
     {
         
+        /// <summary>
+        /// The ISO 3166-2 subdivisions of <see cref="Iso3166Part1Alpha2Country.PE"/>.
+        /// </summary>
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("ay", "aym", 127, "jach\'a suyu")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 127, "region", "regions")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("fr", "fra", 127, "région")]

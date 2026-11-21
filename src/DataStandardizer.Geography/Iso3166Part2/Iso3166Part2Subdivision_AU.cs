@@ -14,6 +14,9 @@ namespace DataStandardizer.Geography
     public readonly partial struct Iso3166Part2Subdivision
     {
         
+        /// <summary>
+        /// The ISO 3166-2 subdivisions of <see cref="Iso3166Part1Alpha2Country.AU"/>.
+        /// </summary>
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 324, "territory", "territories")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("fr", "fra", 324, "territoire")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 393, "state", "states")]

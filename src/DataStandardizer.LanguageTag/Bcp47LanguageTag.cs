@@ -91,8 +91,18 @@ namespace DataStandardizer.LanguageTag
         }
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Convert a language tag object to a string.
+        /// </summary>
+        /// <param name="languageTag">Language tag object to convert.</param>
+        /// <returns>The language tag, in the case it was written in; <c>null</c> if <paramref name="languageTag"/> is a default instance.</returns>
         public static implicit operator string?(Bcp47LanguageTag languageTag)
 #else
+        /// <summary>
+        /// Convert a language tag object to a string.
+        /// </summary>
+        /// <param name="languageTag">Language tag object to convert.</param>
+        /// <returns>The language tag, in the case it was written in; <c>null</c> if <paramref name="languageTag"/> is a default instance.</returns>
         [return: MaybeNull]
         public static implicit operator string(Bcp47LanguageTag languageTag)
 #endif
@@ -100,11 +110,23 @@ namespace DataStandardizer.LanguageTag
             return languageTag._languageTag;
         }
 
+        /// <summary>
+        /// Determine whether two language tags are equal, ignoring case.
+        /// </summary>
+        /// <param name="left">The first language tag to compare.</param>
+        /// <param name="right">The second language tag to compare.</param>
+        /// <returns><c>true</c> if the language tags are the same apart from the case of their letters, or both are default instances; otherwise <c>false</c>.</returns>
         public static bool operator ==(Bcp47LanguageTag left, Bcp47LanguageTag right)
         {
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Determine whether two language tags are not equal, ignoring case.
+        /// </summary>
+        /// <param name="left">The first language tag to compare.</param>
+        /// <param name="right">The second language tag to compare.</param>
+        /// <returns><c>true</c> if the language tags differ other than in the case of their letters, or only one is a default instance; otherwise <c>false</c>.</returns>
         public static bool operator !=(Bcp47LanguageTag left, Bcp47LanguageTag right)
         {
             return !left.Equals(right);
@@ -223,6 +245,11 @@ namespace DataStandardizer.LanguageTag
             return _languageTag.AsSpan();
         }
 
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Language tags are compared ordinally, ignoring case (RFC 5646 §2.1.1), so <c>en-GB</c> equals <c>en-gb</c>. Only the text is compared, so the
+        /// same tag created with different conformance checks is equal, and tags that differ other than in case are not, even when they mean the same, such as <c>iw</c> and its preferred value <c>he</c>.
+        /// </remarks>
         public bool Equals(Bcp47LanguageTag other)
         {
             return string.Equals(_languageTag, other._languageTag, StringComparison.OrdinalIgnoreCase);
@@ -267,6 +294,7 @@ namespace DataStandardizer.LanguageTag
             return IsValid(_languageTag.AsSpan(), conformance);
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             // Must agree with Equals, which compares case-insensitively.
@@ -343,6 +371,10 @@ namespace DataStandardizer.LanguageTag
 
         }
 
+        /// <summary>
+        /// Returns the language tag.
+        /// </summary>
+        /// <returns>The language tag, in the case it was written in; the name of the type if this is a default instance.</returns>
         public override string ToString()
         {
             return _languageTag ?? base.ToString() ?? GetType().FullName ?? GetType().Name;
@@ -394,11 +426,19 @@ namespace DataStandardizer.LanguageTag
         }
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Language tags are compared ordinally, ignoring case (RFC 5646 §2.1.1).
+        /// </remarks>
         public override bool Equals(object? obj)
         {
             return obj is Bcp47LanguageTag other && Equals(other);
         }
 #else
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Language tags are compared ordinally, ignoring case (RFC 5646 §2.1.1).
+        /// </remarks>
         public override bool Equals(object obj)
         {
             return obj is Bcp47LanguageTag other && Equals(other);

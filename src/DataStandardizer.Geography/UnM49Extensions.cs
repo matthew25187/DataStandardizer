@@ -8,6 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Geography
 {
+    /// <summary>
+    /// Provides extension methods that give the codes, names, levels and hierarchy of UN M49 areas, and the ISO 3166-1 codes of countries and areas.
+    /// </summary>
     public static class UnM49Extensions
     {
         /// <summary>

@@ -68,6 +68,11 @@ namespace DataStandardizer.Geography
                 return DataStandardizer.Geography.Iso3166Part2Subdivision.ConvertFromCode(value);
             }
         
+            /// <summary>
+            /// Converts a <see cref="Iso3166Part2Subdivision"/> to its code.
+            /// </summary>
+            /// <param name="value">The value to convert.</param>
+            /// <returns>The code, or <see langword="null"/> for the default value.</returns>
 #if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Geography.Iso3166Part2Subdivision value)
     #else
@@ -78,11 +83,23 @@ namespace DataStandardizer.Geography
                 return value._value;
             }
         
+        /// <summary>
+        /// Determines whether two <see cref="Iso3166Part2Subdivision"/> values have the same code.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the codes are equal; otherwise, <see langword="false"/>.</returns>
         public static bool operator ==(DataStandardizer.Geography.Iso3166Part2Subdivision left, DataStandardizer.Geography.Iso3166Part2Subdivision right)
             {
                 return left.Equals(right);
             }
         
+        /// <summary>
+        /// Determines whether two <see cref="Iso3166Part2Subdivision"/> values have different codes.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the codes differ; otherwise, <see langword="false"/>.</returns>
         public static bool operator !=(DataStandardizer.Geography.Iso3166Part2Subdivision left, DataStandardizer.Geography.Iso3166Part2Subdivision right)
             {
                 return !left.Equals(right);
@@ -90,11 +107,13 @@ namespace DataStandardizer.Geography
         #endregion
         
         #region Public Methods
+        /// <inheritdoc/>
         public bool Equals(DataStandardizer.Geography.Iso3166Part2Subdivision other)
         {
             return (this._value == other._value);
         }
         
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             if ((this._value == null))
@@ -106,6 +125,7 @@ namespace DataStandardizer.Geography
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <inheritdoc/>
         public int CompareTo(object? obj)
         {
             if ((this._value == null))
@@ -127,11 +147,19 @@ namespace DataStandardizer.Geography
             return string.CompareOrdinal(this._value, other._value);
         }
         
+        /// <inheritdoc/>
         public override bool Equals(object? obj)
         {
             return (obj is DataStandardizer.Geography.Iso3166Part2Subdivision other && this.Equals(other));
         }
         
+        /// <summary>
+        /// Returns the name of the predefined member that holds this value.
+        /// </summary>
+        /// <returns>
+        /// The name of the field that holds this value in its country's nested class, such as <c>_02</c> for <c>AD-02</c>; the code, if no
+        /// field holds it; or the full name of the type, for the default value.
+        /// </returns>
         public override string ToString()
         {
             System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> nestedTypes = this.GetType().GetTypeInfo().DeclaredNestedTypes;
@@ -162,6 +190,7 @@ namespace DataStandardizer.Geography
         
 #else
         
+        /// <inheritdoc/>
         public int CompareTo(object obj)
         {
             if ((this._value == null))
@@ -183,11 +212,19 @@ namespace DataStandardizer.Geography
             return string.CompareOrdinal(this._value, other._value);
         }
         
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return (obj is DataStandardizer.Geography.Iso3166Part2Subdivision other && this.Equals(other));
         }
         
+        /// <summary>
+        /// Returns the name of the predefined member that holds this value.
+        /// </summary>
+        /// <returns>
+        /// The name of the field that holds this value in its country's nested class, such as <c>_02</c> for <c>AD-02</c>; the code, if no
+        /// field holds it; or the full name of the type, for the default value.
+        /// </returns>
         public override string ToString()
         {
             System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> nestedTypes = this.GetType().GetTypeInfo().DeclaredNestedTypes;
@@ -220,6 +257,7 @@ namespace DataStandardizer.Geography
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <inheritdoc/>
         public System.TypeCode GetTypeCode()
         {
             if ((this._value == null))
@@ -328,6 +366,12 @@ namespace DataStandardizer.Geography
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
+        /// <summary>
+        /// Returns the code.  The format provider is not used.
+        /// </summary>
+        /// <param name="provider">Not used.</param>
+        /// <returns>The code.</returns>
+        /// <exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider? provider)
@@ -377,6 +421,7 @@ namespace DataStandardizer.Geography
         
 #elif NETSTANDARD1_3_OR_GREATER||NET
         
+        /// <inheritdoc/>
         public System.TypeCode GetTypeCode()
         {
             if ((this._value == null))
@@ -485,6 +530,12 @@ namespace DataStandardizer.Geography
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
+        /// <summary>
+        /// Returns the code.  The format provider is not used.
+        /// </summary>
+        /// <param name="provider">Not used.</param>
+        /// <returns>The code.</returns>
+        /// <exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider provider)

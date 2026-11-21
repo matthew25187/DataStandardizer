@@ -6,6 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.File.CSV
 {
+    /// <summary>
+    /// Chooses the property that a mapping maps to a CSV field.
+    /// </summary>
+    /// <typeparam name="TModel">The type of the model object or record line whose property is mapped.</typeparam>
     public sealed class CsvFileMappingBuilder<TModel> where TModel : class
     {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

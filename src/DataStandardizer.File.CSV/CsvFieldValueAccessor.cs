@@ -40,9 +40,13 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Converts a mapped field value to the property type.
         /// </summary>
+        /// <param name="headerLine">The header line of the file, which a converter delegate is given, or <c>null</c> if the file has none.</param>
         /// <param name="model">The model that a converter delegate is given.</param>
+        /// <param name="options">The options of the reader, which a converter delegate is given.</param>
+        /// <param name="propertyFieldMapping">The mapping of the property, keyed by property key.</param>
         /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
         /// <param name="fieldIndex">The position of that field on the line, which a converter delegate is given; <c>null</c> for a constant or generated value, which has no field.</param>
+        /// <param name="fieldValue">The value to convert: the text of the field, or a constant or generated value.</param>
         /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
         /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
         /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
@@ -54,9 +58,13 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Converts a mapped field value to the property type.
         /// </summary>
+        /// <param name="headerLine">The header line of the file, which a converter delegate is given, or <c>null</c> if the file has none.</param>
         /// <param name="model">The model that a converter delegate is given.</param>
+        /// <param name="options">The options of the reader, which a converter delegate is given.</param>
+        /// <param name="propertyFieldMapping">The mapping of the property, keyed by property key.</param>
         /// <param name="fieldName">The name of the field on the line that the mapping resolved to, which a converter delegate is given.</param>
         /// <param name="fieldIndex">The position of that field on the line, which a converter delegate is given; <c>null</c> for a constant or generated value, which has no field.</param>
+        /// <param name="fieldValue">The value to convert: the text of the field, or a constant or generated value.</param>
         /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
         /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
         /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>

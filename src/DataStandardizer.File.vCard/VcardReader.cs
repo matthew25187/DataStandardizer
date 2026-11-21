@@ -30,7 +30,7 @@ namespace DataStandardizer.File.vCard
     /// <see cref="VcardContentLineReader"/>, which does not check <c>VERSION</c>.
     /// </para>
     /// <para>
-    /// Each card is checked once its <c>END:VCARD</c> has been read, as <see cref="VcardCard.Validate"/> does, and for the structure of its <c>BEGIN</c>, <c>VERSION</c> and
+    /// Each card is checked once its <c>END:VCARD</c> has been read, as <see cref="VcardCard.Validate()"/> does, and for the structure of its <c>BEGIN</c>, <c>VERSION</c> and
     /// <c>END</c> lines.  The first problem that the options do not accept throws <see cref="VcardFileException"/>, carrying the card index and the property in its data; reading can
     /// then continue with the next card.  The accommodations are <see cref="VcardOptions.AllowMissingRequiredProperties"/>,
     /// <see cref="VcardOptions.AllowCardinalityViolations"/>, <see cref="VcardOptions.AllowInvalidValues"/> and <see cref="VcardOptions.AcceptLegacySyntax"/>, all off by default.  No option

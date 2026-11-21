@@ -516,18 +516,12 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Parses a value made of a name and parameters, with the media type parser, which takes the parameter forms of RFC 2231 and rejects those of RFC 2047.
-        /// </summary>
-        /// <param name="value">The field body.</param>
-        /// <param name="prefix">Text to put before the value once it has no comments, so that what follows is what the media type parser expects.</param>
-        /// <param name="wordParameterName">The name of the parameter whose encoded words are decoded, with <see cref="ImfOptions.AllowMalformedParameters"/>.</param>
-        /// <param name="allowFinalSemicolon">Whether one semicolon may end the value.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="result">The value.</param>
-        /// <returns><c>false</c> if the value is not valid.</returns>
-        /// <summary>
         /// Parses the body of a Content-Location field (RFC 2557 §4.1): a URI between comments and white space, folded as §4.4.2 allows, with any RFC 2047 encoded words of §4.4.1 decoded.
         /// </summary>
+        /// <param name="value">The field body.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="result">The URI.</param>
+        /// <returns><c>false</c> if the value is not valid.</returns>
         internal static bool TryParseContentLocation(string value, ImfOptions options, [MaybeNullWhen(false)] out Uri result)
         {
             result = null;
@@ -584,6 +578,17 @@ namespace DataStandardizer.File.InternetMessage
             return output.ToString();
         }
 
+        /// <summary>
+        /// Parses a value made of a name and parameters, with the media type parser, which takes the parameter forms of RFC 2231 and rejects those of RFC 2047.
+        /// </summary>
+        /// <param name="value">The field body.</param>
+        /// <param name="prefix">Text to put before the value once it has no comments, so that what follows is what the media type parser expects.</param>
+        /// <param name="wordParameterName">The name of the parameter whose encoded words are decoded, with <see cref="ImfOptions.AllowMalformedParameters"/>.</param>
+        /// <param name="allowFinalSemicolon">Whether one semicolon may end the value.</param>
+        /// <param name="parseOptions">The options of the media type parser.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="result">The value.</param>
+        /// <returns><c>false</c> if the value is not valid.</returns>
         internal static bool TryParseParameterized(ReadOnlySpan<byte> value, string prefix, string wordParameterName, bool allowFinalSemicolon, MimeMediaTypeParseOptions parseOptions, ImfOptions options, out MimeMediaType result)
         {
             result = default;

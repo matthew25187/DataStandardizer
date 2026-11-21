@@ -9,6 +9,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Geography
 {
+    /// <summary>
+    /// Provides extension methods that give the names and other metadata of ISO 3166-1 country codes and ISO 3166-2 subdivision codes.
+    /// </summary>
     public static class Iso3166Extensions
     {
         private static readonly Regex SubdivisionCodeExpression;

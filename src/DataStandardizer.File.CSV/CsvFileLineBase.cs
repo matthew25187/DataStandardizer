@@ -39,6 +39,10 @@ namespace DataStandardizer.File.CSV
         private readonly CsvFieldStore<object> _fieldBag = new CsvFieldStore<object>();
 #endif
 
+        /// <summary>
+        /// Gets the number of fields on the line.
+        /// </summary>
+        /// <returns>The number of fields on the line.</returns>
         protected int GetFieldCount()
         {
             return _fieldBag.Count;
@@ -55,11 +59,24 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private protected IReadOnlyList<object?> FieldValues => _fieldBag.Values;
 
+        /// <summary>
+        /// Gets the value of a field.
+        /// </summary>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <returns>The value of the field, or <c>null</c> if the line has no field with that name.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="fieldName"/> is <c>null</c>.</exception>
         protected object? GetFieldValue(string fieldName)
         {
             return _fieldBag.TryGetValue(fieldName, out var fieldValue) ? fieldValue : null;
         }
 
+        /// <summary>
+        /// Sets the value of a field, adding the field to the end of the line if the line doesn't have it.  Properties that share the field
+        /// all read the new value.
+        /// </summary>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <param name="value">The value of the field.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="fieldName"/> is <c>null</c>.</exception>
         protected void SetFieldValue(string fieldName, object? value)
         {
             // The indexer adds the key when it is missing, so no separate lookup is needed.
@@ -69,12 +86,25 @@ namespace DataStandardizer.File.CSV
 #else
         private protected IReadOnlyList<object> FieldValues => _fieldBag.Values;
 
+        /// <summary>
+        /// Gets the value of a field.
+        /// </summary>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <returns>The value of the field, or <c>null</c> if the line has no field with that name.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="fieldName"/> is <c>null</c>.</exception>
         [return: MaybeNull]
         protected object GetFieldValue(string fieldName)
         {
             return _fieldBag.TryGetValue(fieldName, out var fieldValue) ? fieldValue : null;
         }
 
+        /// <summary>
+        /// Sets the value of a field, adding the field to the end of the line if the line doesn't have it.  Properties that share the field
+        /// all read the new value.
+        /// </summary>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <param name="value">The value of the field.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="fieldName"/> is <c>null</c>.</exception>
         protected void SetFieldValue(string fieldName, [AllowNull] object value)
         {
             // The indexer adds the key when it is missing, so no separate lookup is needed.

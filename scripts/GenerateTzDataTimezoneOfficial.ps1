@@ -872,7 +872,7 @@ function Out-SourceCode {
 
         if (-not [string]::IsNullOrEmpty($TypeComment)) {
             $enumTypeOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($TypeComment, $true)
+            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($TypeComment -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
             $enumTypeCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
             $structType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
         }
@@ -1006,6 +1006,7 @@ function Out-SourceCode {
             $memberHostType = [System.CodeDom.CodeTypeDeclaration]::new($hostTypeName)
             $memberHostType.IsClass = $true
             $memberHostType.TypeAttributes = [System.Reflection.TypeAttributes]::NestedPublic -bor [System.Reflection.TypeAttributes]::Sealed -bor [System.Reflection.TypeAttributes]::Abstract
+            @('<summary>', "The timezones directly under <c>$hostIdentifier/</c> in the TZ Database's naming hierarchy.", '</summary>') | ForEach-Object { [void]$memberHostType.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
             $memberHostTypes[$hostIdentifier] = $memberHostType
         }
 
@@ -1109,7 +1110,7 @@ function Out-SourceCode {
         $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", $constructorArguments)
 
         $summaryOpenComment = [System.CodeDom.CodeComment]::new('<summary>', $true)
-        $summaryContentComment = [System.CodeDom.CodeComment]::new($_.TZ, $true)
+        $summaryContentComment = [System.CodeDom.CodeComment]::new(($_.TZ -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $summaryCloseComment = [System.CodeDom.CodeComment]::new('</summary>', $true)
         @($summaryOpenComment, $summaryContentComment, $summaryCloseComment) | ForEach-Object { [void]$enumField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_)) }
 
@@ -1133,7 +1134,7 @@ function Out-SourceCode {
 
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<item>", $true)
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>$_</term>", $true)
-                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$countryName</description>", $true)
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$($countryName -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')</description>", $true)
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</item>", $true)
             }
             $remarksComments += [System.CodeDom.CodeComment]::new("`t</list>", $true)

@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace DataStandardizer.Geography
 {
+    /// <summary>
+    /// Provides methods that list the ISO 3166-2 subdivisions of a country.
+    /// </summary>
     public static class Iso3166Part2Enum
     {
         private static readonly ILookup<Type, FieldInfo> SubdivisionCodeLookup;

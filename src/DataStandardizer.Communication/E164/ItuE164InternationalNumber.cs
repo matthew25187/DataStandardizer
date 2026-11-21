@@ -116,6 +116,12 @@ namespace DataStandardizer.Communication.E164
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Converts an <see cref="ItuE164InternationalNumber"/> to its <see cref="Number"/>.
+        /// </summary>
+        /// <param name="value">The international number to convert.</param>
+        /// <returns>The digits of <paramref name="value"/> as a number, as <see cref="Number"/> gives them.</returns>
+        /// <exception cref="InvalidCastException"><paramref name="value"/> is uninitialized.</exception>
         public static explicit operator ulong(ItuE164InternationalNumber value)
         {
             return value._numberStructure?.Number ?? throw new InvalidCastException($"{nameof(ItuE164InternationalNumber)} is uninitialized.");
@@ -340,6 +346,11 @@ namespace DataStandardizer.Communication.E164
 
         #region Public Properties
 
+        /// <summary>
+        /// Gets the international number as a single numeric value: the country code followed by the rest of the number's digits.
+        /// </summary>
+        /// <value>The digits of the international number, without the international prefix symbol, as a number.</value>
+        /// <exception cref="InvalidOperationException">The instance is uninitialized.</exception>
         public ulong Number => _numberStructure?.Number ?? throw new InvalidOperationException($"{nameof(ItuE164InternationalNumber)} is uninitialized.");
 
         ushort IItuE164InternationalNumber.CountryCode => _numberStructure?.CountryCode ??

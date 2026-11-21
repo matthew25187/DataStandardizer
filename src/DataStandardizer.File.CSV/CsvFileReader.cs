@@ -45,7 +45,7 @@ namespace DataStandardizer.File.CSV
         private const char QuoteCharacter = '"';
 
         /// <summary>
-        /// Size, in bytes, of the buffers of the <see cref="StreamReader"/> and <see cref="FileStream"/> the reader
+        /// Size, in bytes, of the buffers of the <see cref="StreamReader"/> and <see cref="T:System.IO.FileStream"/> the reader
         /// creates itself.  A caller-supplied <see cref="TextReader"/> keeps its own buffering.
         /// </summary>
         internal const int StreamBufferSize = 16 * 1024;
@@ -112,6 +112,13 @@ namespace DataStandardizer.File.CSV
         private readonly ICsvFileOptions _options = new CsvFileOptions();
         private readonly List<string> _rawFieldValues = new List<string>();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileReader{TRecordLine}"/> class that reads CSV data from a stream, with the default options.
+        /// </summary>
+        /// <param name="csvStream">The stream to read.  It is decoded as UTF-8, unless it starts with the byte order mark of another encoding.  The
+        /// reader disposes of it when the reader is disposed.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvStream"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvStream"/> doesn't support reading.</exception>
         public CsvFileReader(Stream csvStream)
         {
             if (csvStream is null)
@@ -123,6 +130,19 @@ namespace DataStandardizer.File.CSV
             _isInternalReader = true;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileReader{TRecordLine}"/> class that reads CSV data from a stream, with the given options.
+        /// </summary>
+        /// <param name="csvStream">The stream to read.  It is decoded with <see cref="ICsvFileOptions.Encoding"/> if it is set, whatever byte order mark
+        /// the stream starts with; otherwise as UTF-8, unless it starts with the byte order mark of another encoding.  The reader disposes of it when the
+        /// reader is disposed.</param>
+        /// <param name="options">The options that configure the reader.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvStream"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvStream"/> doesn't support reading.
+        /// -or-
+        /// <see cref="ICsvFileOptions.BadValueHandler"/>, <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> or
+        /// <see cref="ICsvFileOptions.HeaderHandler"/> of <paramref name="options"/> is set to a delegate of a type the reader doesn't call.
+        /// </exception>
         public CsvFileReader(Stream csvStream, CsvFileOptions options)
         {
             if (csvStream is null)
@@ -142,6 +162,17 @@ namespace DataStandardizer.File.CSV
         }
 
 #if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileReader{TRecordLine}"/> class that reads CSV data from a file, with the default options.
+        /// </summary>
+        /// <param name="csvFilePath">The path of the file to read.  It is decoded as UTF-8, unless it starts with the byte order mark of another
+        /// encoding.  The reader closes it when the reader is disposed.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvFilePath"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvFilePath"/> is empty or isn't a valid path.</exception>
+        /// <exception cref="T:System.IO.FileNotFoundException">The file at <paramref name="csvFilePath"/> doesn't exist.</exception>
+        /// <exception cref="T:System.IO.DirectoryNotFoundException">The directory of <paramref name="csvFilePath"/> doesn't exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">The caller doesn't have permission to read the file.</exception>
+        /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
         public CsvFileReader(string csvFilePath)
         {
             if (csvFilePath is null)
@@ -151,6 +182,23 @@ namespace DataStandardizer.File.CSV
             _isInternalReader = true;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileReader{TRecordLine}"/> class that reads CSV data from a file, with the given options.
+        /// </summary>
+        /// <param name="csvFilePath">The path of the file to read.  It is decoded with <see cref="ICsvFileOptions.Encoding"/> if it is set, whatever byte
+        /// order mark the file starts with; otherwise as UTF-8, unless it starts with the byte order mark of another encoding.  The reader closes it when
+        /// the reader is disposed.</param>
+        /// <param name="options">The options that configure the reader.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvFilePath"/> is empty or isn't a valid path.
+        /// -or-
+        /// <see cref="ICsvFileOptions.BadValueHandler"/>, <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> or
+        /// <see cref="ICsvFileOptions.HeaderHandler"/> of <paramref name="options"/> is set to a delegate of a type the reader doesn't call.
+        /// </exception>
+        /// <exception cref="T:System.IO.FileNotFoundException">The file at <paramref name="csvFilePath"/> doesn't exist.</exception>
+        /// <exception cref="T:System.IO.DirectoryNotFoundException">The directory of <paramref name="csvFilePath"/> doesn't exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">The caller doesn't have permission to read the file.</exception>
+        /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
         public CsvFileReader(string csvFilePath, CsvFileOptions options)
         {
             if (csvFilePath is null)
@@ -168,6 +216,12 @@ namespace DataStandardizer.File.CSV
         }
 #endif
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileReader{TRecordLine}"/> class that reads CSV data from a text reader, with the default
+        /// options.
+        /// </summary>
+        /// <param name="reader">The text reader to read.  The reader doesn't dispose of it.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="reader"/> is <c>null</c>.</exception>
         public CsvFileReader(TextReader reader)
         {
             if (reader is null)
@@ -176,6 +230,19 @@ namespace DataStandardizer.File.CSV
             _reader = reader;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileReader{TRecordLine}"/> class that reads CSV data from a text reader, with the given
+        /// options.
+        /// </summary>
+        /// <param name="reader">The text reader to read.  The reader doesn't dispose of it.</param>
+        /// <param name="options">The options that configure the reader.  <see cref="ICsvFileOptions.Encoding"/> must not be set, as the text reader
+        /// has already decoded its text.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="reader"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><see cref="ICsvFileOptions.BadValueHandler"/>, <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> or
+        /// <see cref="ICsvFileOptions.HeaderHandler"/> of <paramref name="options"/> is set to a delegate of a type the reader doesn't call.
+        /// -or-
+        /// <see cref="ICsvFileOptions.Encoding"/> of <paramref name="options"/> is set.
+        /// </exception>
         public CsvFileReader(TextReader reader, CsvFileOptions options) : this(reader)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -218,6 +285,8 @@ namespace DataStandardizer.File.CSV
         /// Creates the reader of a stream, which reads each byte that isn't part of a character of the encoding as a lone surrogate, so that the
         /// field that holds it is a bad value.
         /// </summary>
+        /// <param name="stream">The stream to read.</param>
+        /// <param name="encoding">The encoding to decode it with, unless a byte order mark replaces it.</param>
         /// <param name="isEncodingDeclared">
         /// <c>true</c> if the encoding is <see cref="ICsvFileOptions.Encoding"/>, which a byte order mark of another encoding doesn't replace;
         /// <c>false</c> if it is the default, which a byte order mark replaces.
@@ -244,6 +313,10 @@ namespace DataStandardizer.File.CSV
         }
 #endif
 
+        /// <summary>
+        /// Releases the resources the reader uses.  A reader created from a stream or a file path disposes of the stream or closes the file; a reader
+        /// created from a <see cref="TextReader"/> leaves it open.
+        /// </summary>
         public void Dispose()
         {
             if (!MarkDisposed()) return;
@@ -1472,6 +1545,8 @@ namespace DataStandardizer.File.CSV
             /// <summary>
             /// Gets the plan for each mapping for a line with the given number of fields.
             /// </summary>
+            /// <param name="fieldCount">The number of fields on the line.</param>
+            /// <param name="mappings">The plan for each mapping.</param>
             /// <param name="mappedFieldNames">The field name of each mapping that maps a property to a field with another name, keyed by property key,
             /// or <c>null</c> if there are none.  Every line with this number of fields shares it, so it is never changed.</param>
             /// <param name="sharedFieldLayout">The slots of the mappings that share a field with another mapping, or <c>null</c> if there are none.

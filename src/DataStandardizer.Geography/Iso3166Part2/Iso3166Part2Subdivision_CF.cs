@@ -14,6 +14,9 @@ namespace DataStandardizer.Geography
     public readonly partial struct Iso3166Part2Subdivision
     {
         
+        /// <summary>
+        /// The ISO 3166-2 subdivisions of <see cref="Iso3166Part1Alpha2Country.CF"/>.
+        /// </summary>
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 194, "economic prefecture", "economic prefectures")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("fr", "fra", 194, "préfecture économique")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("sg", "sag", 194, "sêse tî kömändâ-kötä")]

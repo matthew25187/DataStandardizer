@@ -390,7 +390,7 @@ namespace DataStandardizer.Communication.E164
         IC400 = 400,
         
         /// <summary>
-        /// Telefónica Germany GmbH & Co. OHG
+        /// Telefónica Germany GmbH &amp; Co. OHG
         /// </summary>
         /// <remarks>
         /// Shared code: 883

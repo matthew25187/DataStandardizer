@@ -148,7 +148,7 @@ namespace DataStandardizer.File.vCard
         /// Gets the properties, in order.  It can be changed.
         /// </summary>
         /// <remarks>
-        /// It doesn't hold <c>BEGIN</c>, <c>VERSION</c> or <c>END</c>.  <see cref="Validate"/> reports any that are added.
+        /// It doesn't hold <c>BEGIN</c>, <c>VERSION</c> or <c>END</c>.  <see cref="Validate()"/> reports any that are added.
         /// </remarks>
         public IList<VcardContentLine> Properties { get; } = new NonNullCollection();
 
@@ -761,7 +761,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// ref. RFC 9554 §4.7: an application "SHOULD assign a unique identifier to each sibling property of the same name", and "Resolving duplicate identifier conflicts is specific to the
-        /// application".  So a duplicate isn't an error that <see cref="Validate"/> reports, and this is how to find one.  The same value on a property of another name isn't a duplicate.
+        /// application".  So a duplicate isn't an error that <see cref="Validate()"/> reports, and this is how to find one.  The same value on a property of another name isn't a duplicate.
         /// Values are compared without regard to case, since a <c>PROP-ID</c> isn't quoted (RFC 6350 §5).
         /// </remarks>
         /// <returns>The groups, each of two or more instances.</returns>

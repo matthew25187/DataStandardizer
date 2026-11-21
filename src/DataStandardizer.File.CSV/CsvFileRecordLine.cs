@@ -54,6 +54,16 @@ namespace DataStandardizer.File.CSV
             return default;
         }
 
+        /// <summary>
+        /// Sets the value of the field that a property writes, adding the field to the end of the line if the line doesn't have it.
+        /// </summary>
+        /// <typeparam name="T">The type of the property.</typeparam>
+        /// <param name="value">The value of the property.</param>
+        /// <param name="propertyName">The name of the property, which the compiler supplies.</param>
+        /// <remarks>
+        /// The field is the one that <see cref="GetPropertyValue{T}"/> reads for the property.  Every property that shares the field reads the new
+        /// value from then on.
+        /// </remarks>
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string? propertyName = null)
         {
             // The line records that the property set the value, so the writer can tell it from a field's value with the same name.
@@ -89,6 +99,16 @@ namespace DataStandardizer.File.CSV
             return default!;
         }
 
+        /// <summary>
+        /// Sets the value of the field that a property writes, adding the field to the end of the line if the line doesn't have it.
+        /// </summary>
+        /// <typeparam name="T">The type of the property.</typeparam>
+        /// <param name="value">The value of the property.</param>
+        /// <param name="propertyName">The name of the property, which the compiler supplies.</param>
+        /// <remarks>
+        /// The field is the one that <see cref="GetPropertyValue{T}"/> reads for the property.  Every property that shares the field reads the new
+        /// value from then on.
+        /// </remarks>
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string? propertyName = null)
         {
             // The line records that the property set the value, so the writer can tell it from a field's value with the same name.
@@ -124,6 +144,16 @@ namespace DataStandardizer.File.CSV
             return default;
         }
 
+        /// <summary>
+        /// Sets the value of the field that a property writes, adding the field to the end of the line if the line doesn't have it.
+        /// </summary>
+        /// <typeparam name="T">The type of the property.</typeparam>
+        /// <param name="value">The value of the property.</param>
+        /// <param name="propertyName">The name of the property, which the compiler supplies.</param>
+        /// <remarks>
+        /// The field is the one that <see cref="GetPropertyValue{T}"/> reads for the property.  Every property that shares the field reads the new
+        /// value from then on.
+        /// </remarks>
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string propertyName = null)
         {
             // The line records that the property set the value, so the writer can tell it from a field's value with the same name.
