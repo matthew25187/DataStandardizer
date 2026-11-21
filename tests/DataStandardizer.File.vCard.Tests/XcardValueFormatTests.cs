@@ -17,6 +17,8 @@ namespace DataStandardizer.File.vCard.Tests
         private const string DateMonth = "--04";
         private const string DateDay = "---12";
         private const string DateYear = "1985";
+        private const string DateExtendedForm = "1985-04-12";
+        private const string DateWithLeadingSpace = " 19850412";
 
         // ref. RFC 6351 Appendix A §4.3.2 and its erratum 4247: value-time = "(\d\d(\d\d(\d\d)?)?|-\d\d(\d\d)?|--\d\d)(Z|[+\-]\d\d(\d\d)?)?".
         private const string TimeComplete = "232050";
@@ -80,8 +82,8 @@ namespace DataStandardizer.File.vCard.Tests
 
         [Theory]
         [InlineData(DateYear)]
-        [InlineData("1985-04-12")]
-        [InlineData(" 19850412")]
+        [InlineData(DateExtendedForm)]
+        [InlineData(DateWithLeadingSpace)]
         public void TryParse_DateNotInXmlForm_IsFalse(string value)
         {
             // act
@@ -93,8 +95,8 @@ namespace DataStandardizer.File.vCard.Tests
 
         [Theory]
         [InlineData(DateYear)]
-        [InlineData("1985-04-12")]
-        [InlineData(" 19850412")]
+        [InlineData(DateExtendedForm)]
+        [InlineData(DateWithLeadingSpace)]
         public void TryParse_DateNotInXmlForm_GivesTheDefaultDate(string value)
         {
             // act
