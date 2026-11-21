@@ -401,6 +401,90 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().BeNull();
         }
 
+        // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which RFC 6350 §4.3.2 doesn't have, so a card read from vCard 3.0 keeps the value as it was read.
+        private const string RevisionWithSecondFraction = "1995-10-31T22:27:10,5Z";
+        private const string RevisionLineWithSecondFraction = "REV:1995-10-31T22:27:10,5Z";
+        private const string BirthdayWithSecondFraction = "1996-04-15T10:22:00,5Z";
+        private const string BirthdayLineWithSecondFraction = "BDAY;VALUE=date-time:1996-04-15T10:22:00,5Z";
+
+        // ref. vCard 2.1 §2.6.2 and ISO 8601: 24:00:00 is the end of a day, which RFC 2425 §5.8.4 doesn't have.
+        private const string RevisionLineAtHour24 = "REV:19951031T240000";
+
+        [Fact]
+        public void Birthday_DateTimeWithNoVersion40Form_GivesIt()
+        {
+            // act
+            var testResult = View(BirthdayLineWithSecondFraction).Birthday.Value;
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V3_0).Should().Be(BirthdayWithSecondFraction);
+        }
+
+        [Fact]
+        public void Revision_TimestampWithNoVersion40Form_GivesIt()
+        {
+            // act
+            var testResult = View(RevisionLineWithSecondFraction).Revision.Value;
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V3_0).Should().Be(RevisionWithSecondFraction);
+        }
+
+        [Fact]
+        public void Revision_TimestampWithNoVersion40FormOfCardBuiltInCode_IsHidden()
+        {
+            // arrange
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("REV", RevisionWithSecondFraction));
+
+            // act
+            var testResult = card.AsVersion30().Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void Revision_TimestampOfVersion21Version30CanNotShow_IsHidden()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(RevisionLineAtHour24)).AsVersion30();
+
+            // act
+            var testResult = card.Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void SetRevision_TimestampWithNoVersion40Form_ThrowsArgumentException()
+        {
+            // arrange
+            var card = View(RevisionLineWithSecondFraction);
+            var value = card.Revision.Value;
+
+            // act
+            Action testAction = () => card.SetRevision(value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void SetBirthday_DateTimeWithNoVersion40Form_ThrowsArgumentException()
+        {
+            // arrange
+            var card = View(BirthdayLineWithSecondFraction);
+            var value = card.Birthday.Value;
+
+            // act
+            Action testAction = () => card.SetBirthday(value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
         [Fact]
         public void SetBirthday_DateVersion30CanNotHold_ThrowsArgumentException()
         {

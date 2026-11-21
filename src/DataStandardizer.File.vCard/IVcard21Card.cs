@@ -232,7 +232,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>REV</c> property, replacing any there is.
         /// </summary>
         /// <param name="value">The time.</param>
-        /// <exception cref="ArgumentException">vCard 2.1 can't hold the time.</exception>
+        /// <exception cref="ArgumentException">vCard 2.1 can't hold the time, or vCard 4.0, the canonical form, has no form for it, such as an hour of 24.</exception>
         void SetRevision(VcardTimestamp value);
 
         /// <summary>

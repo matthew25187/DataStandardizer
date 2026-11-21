@@ -283,6 +283,32 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Value.Should().Be(expectedValue);
         }
 
+        [Fact]
+        public void ReadCard_RevisionWithNoVersion40Form_IsNotItsVersion40Revision()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(RevisionWithSecondFraction);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void ReadCard_BirthdayWithNoVersion40Form_IsNotItsVersion40Birthday()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(BirthdayWithSecondFraction);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Birthday;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
         public static TheoryData<string, string> ShortStructuredValueData()
         {
             return new TheoryData<string, string>

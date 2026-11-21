@@ -34,6 +34,8 @@ This page says how each version maps to the model, and what each can't hold. To 
 
 **Dates in `REV`.** A `REV` of vCard 4.0 has a time, so RFC 2426's `REV:1997-11-15` becomes the first moment of that day in UTC, and is written back as `1997-11-15T00:00:00Z`.
 
+**Values vCard 4.0 has no form for.** A fraction of a second, as in `REV:1995-10-31T22:27:10,5Z` (RFC 2425 §5.8.4), has no form in vCard 4.0, and neither has an hour of 24 in a vCard 2.1 `REV` or `TZ`. Such a value stays in the card as it was read, and is written back the same way. `AsVersion30()` or `AsVersion21()` shows it, if that version can hold it, but `Revision`, `Birthday` and `TimeZones` of the card itself don't, because it isn't a valid vCard 4.0 value. Writing the card as vCard 4.0 reports it as `InvalidValue`.
+
 **Media types.** A `TYPE` becomes a media type through [VcardLegacyMediaTypes](../reference/VcardLegacyMediaTypes.md). RFC 2426 says the value is an image or audio format that IANA registers, or a non-standard one, so any other token is taken as a subtype: `TYPE=HEIC` on a `PHOTO` is `image/heic`, and is written back as `HEIC`. A binary value with no `TYPE` is `application/octet-stream`.
 
 **Agents.** An `AGENT` holds a card as escaped text. `Agents` gives what each agent holds, with `Card` read from that text, so changing it doesn't change the property. `AddAgent` and `RemoveAgents` change them.

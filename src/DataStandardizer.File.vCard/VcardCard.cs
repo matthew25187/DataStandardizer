@@ -38,11 +38,11 @@ namespace DataStandardizer.File.vCard
     {
         private static readonly VcardPropertyCodec<string> KindCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Kind);
         private static readonly VcardPropertyCodec<VcardName> NameCodec = VcardPropertyCodecs.Name();
-        private static readonly VcardPropertyCodec<VcardTypedValue> BirthdayCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Birthday);
+        private static readonly VcardPropertyCodec<VcardTypedValue> BirthdayCodec = VcardPropertyCodecs.Birthday();
         private static readonly VcardPropertyCodec<VcardTypedValue> AnniversaryCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Anniversary);
         private static readonly VcardPropertyCodec<VcardGender> GenderCodec = VcardPropertyCodecs.Gender();
         private static readonly VcardPropertyCodec<string> ProductIdCodec = VcardPropertyCodecs.Text(VcardPropertyNames.ProductId);
-        private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Timestamp(VcardPropertyNames.Revision);
+        private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Revision();
         private static readonly VcardPropertyCodec<VcardTimestamp> CreatedCodec = VcardPropertyCodecs.Timestamp(VcardPropertyNames.Created);
         private static readonly VcardPropertyCodec<Bcp47LanguageTag> DefaultLanguageCodec = VcardPropertyCodecs.LanguageTag(VcardPropertyNames.DefaultLanguage);
         private static readonly VcardPropertyCodec<VcardTypedValue> UidCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Uid);
@@ -61,7 +61,7 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<string> EmailsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Email);
         private static readonly VcardPropertyCodec<Uri> InstantMessagingCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.InstantMessaging);
         private static readonly VcardPropertyCodec<Bcp47LanguageTag> LanguagesCodec = VcardPropertyCodecs.LanguageTag(VcardPropertyNames.Language);
-        private static readonly VcardPropertyCodec<VcardTypedValue> TimeZonesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.TimeZone);
+        private static readonly VcardPropertyCodec<VcardTypedValue> TimeZonesCodec = VcardPropertyCodecs.TimeZone();
         private static readonly VcardPropertyCodec<Uri> GeoLocationsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Geo);
         private static readonly VcardPropertyCodec<string> TitlesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Title);
         private static readonly VcardPropertyCodec<string> RolesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Role);
@@ -1391,6 +1391,19 @@ namespace DataStandardizer.File.vCard
         private VcardProperty<TValue> GetSingle<TValue>(VcardPropertyCodec<TValue> codec)
 #endif
         {
+            return GetSingle(codec, null);
+        }
+
+        /// <summary>
+        /// Gets the instance of a property that may appear once, which can be one whose value the card keeps in the form of <paramref name="sourceVersion"/>, because vCard 4.0 has no
+        /// form for it.  Only a view of an older version passes a version.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private VcardProperty<TValue>? GetSingle<TValue>(VcardPropertyCodec<TValue> codec, VcardVersion? sourceVersion)
+#else
+        private VcardProperty<TValue> GetSingle<TValue>(VcardPropertyCodec<TValue> codec, VcardVersion? sourceVersion)
+#endif
+        {
             // ref. RFC 9554 §4.6: a property with PHONETIC is how to pronounce another of the same name, so it is not the value unless there's nothing else.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             VcardProperty<TValue>? phonetic = null;
@@ -1404,7 +1417,7 @@ namespace DataStandardizer.File.vCard
 #else
                 VcardProperty<TValue> property;
 #endif
-                if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, out property))
+                if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, sourceVersion, out property))
                 {
                     if (VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) is null ||
                         !VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Phonetic, line.Name))

@@ -283,7 +283,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard21Property<VcardName> IVcard21Card.Name => Vcard21Views.Create<VcardName, VcardName>(this, Name, GetVersion21Name);
 
-        IVcard21Property<VcardDate> IVcard21Card.Birthday => Vcard21Views.Create<VcardTypedValue, VcardDate>(this, Birthday, GetVersion21Birthday);
+        IVcard21Property<VcardDate> IVcard21Card.Birthday => Vcard21Views.Create<VcardTypedValue, VcardDate>(this, GetSingle(BirthdayCodec, SourceVersion), GetVersion21Birthday);
 
         IVcard21Property<string> IVcard21Card.Mailer => Vcard21Views.Create<string, string>(this, Mailer, GetSame);
 
@@ -313,7 +313,7 @@ namespace DataStandardizer.File.vCard
             }
         }
 
-        IVcard21Property<VcardTimestamp> IVcard21Card.Revision => Vcard21Views.Create<VcardTimestamp, VcardTimestamp>(this, Revision, GetVersion21Revision);
+        IVcard21Property<VcardTimestamp> IVcard21Card.Revision => Vcard21Views.Create<VcardTimestamp, VcardTimestamp>(this, GetSingle(RevisionCodec, SourceVersion), GetVersion21Revision);
 
         IVcard21Property<string> IVcard21Card.Uid => Vcard21Views.Create<VcardTypedValue, string>(this, Uid, GetUidValue);
 
