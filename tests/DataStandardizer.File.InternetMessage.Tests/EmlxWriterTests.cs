@@ -119,6 +119,38 @@ namespace DataStandardizer.File.InternetMessage.Tests
             EmlxFiles.NoEmptyLine,
         };
 
+        /// <summary>
+        /// The double nearest to <c>5.882948112288285E-204</c>.  .NET Framework reads that text as the double above it,
+        /// <c>5.8829481122882854E-204</c>.
+        /// </summary>
+        private const double SixteenDigitExponentDouble = 5.8829481122882847E-204;
+
+        /// <summary>
+        /// 2^53 + 2, the double above 2^53 + 1.
+        /// </summary>
+        private const double TwoToThe53PlusTwo = 9007199254740994d;
+
+        /// <summary>
+        /// 2^53 + 1, with a last digit beyond the 17 significant digits a double needs, which puts it just above halfway between 2^53 and
+        /// <see cref="TwoToThe53PlusTwo"/>.  .NET Framework ignores the last digit and reads 2^53.
+        /// </summary>
+        private const string JustAboveHalfwayText = "9007199254740993.0000000000000001";
+
+        // The expected doubles are their bits, so that negative zero differs from positive zero, and so that xUnit on .NET Framework doesn't
+        // serialize a double in a theory row with that runtime's "R".
+        public static TheoryData<string, string, long> NearestRealCases => new TheoryData<string, string, long>
+        {
+            { "negative zero", "-0", BitConverter.DoubleToInt64Bits(-0.0) },
+            { "negative zero with a fraction and an exponent", "-0.0E0", BitConverter.DoubleToInt64Bits(-0.0) },
+            { "needs 16 digits", "901.7426589977661", BitConverter.DoubleToInt64Bits(SixteenDigitDouble) },
+            { "16 digits and an exponent", "5.882948112288285E-204", BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
+            { "smallest normal, rounded up", "2.2250738585072012E-308", BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "just above halfway", JustAboveHalfwayText, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just below half the smallest subnormal", "2.4703282292062327E-324", BitConverter.DoubleToInt64Bits(0.0) },
+            { "decimal point with no digits after it", "+5.", BitConverter.DoubleToInt64Bits(5.0) },
+            { "decimal point with no digits before it", ".5", BitConverter.DoubleToInt64Bits(0.5) },
+        };
+
         public static TheoryData<EmlxPlistValueKind, string> NumbersPastTheRange => new TheoryData<EmlxPlistValueKind, string>
         {
             { EmlxPlistValueKind.Real, "1e999" },
@@ -844,6 +876,22 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // assert
             testResult.Should().BeTrue();
             value.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(NearestRealCases))]
+        public void TryGetDouble_Real_GivesTheNearestDoubleOnEveryTarget(string scenario, string text, long expectedBits)
+        {
+            // arrange
+            _ = scenario;
+            var subject = EmlxPlistValue.CreateScalar(EmlxPlistValueKind.Real, text);
+
+            // act
+            var testResult = subject.TryGetDouble(out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            BitConverter.DoubleToInt64Bits(value).Should().Be(expectedBits);
         }
 
         [Theory]

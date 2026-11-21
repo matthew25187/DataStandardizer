@@ -218,8 +218,8 @@ namespace DataStandardizer.File.InternetMessage
 
             if (TryGetSpecialReal(Text, out value)) return true;
 
-            // A number past the range is an infinity on some runtimes, and a failure on others.
-            return double.TryParse(Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && KeepIfFinite(ref value);
+            // The text matches IsValidReal.  A number past the range is an infinity on some runtimes, and a failure on others.
+            return NearestDoubleParser.TryParse(Text.AsSpan(), out value) && KeepIfFinite(ref value);
         }
 
         /// <summary>
@@ -325,7 +325,7 @@ namespace DataStandardizer.File.InternetMessage
         private bool TryGetLargeInteger(out double value)
         {
             if (!Text.StartsWith(HexPrefix, StringComparison.OrdinalIgnoreCase))
-                return double.TryParse(Text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value) && KeepIfFinite(ref value);
+                return NearestDoubleParser.TryParse(Text.AsSpan(), out value) && KeepIfFinite(ref value);
 
             value = 0;
             for (var index = HexPrefix.Length; index < Text.Length; index++)
