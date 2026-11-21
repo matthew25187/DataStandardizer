@@ -127,6 +127,12 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if an entity may be labelled <c>binary</c>.  A line break in a binary body is data (RFC 2045 §2.9), so it can't be when the line breaks of
+        /// the output will be changed.
+        /// </summary>
+        private bool MayUseBinary => _options.AllowBinaryTransferEncoding && !_lineBreaksChange;
+
+        /// <summary>
         /// Gets the scans to read in this pass.  Each is read between <see cref="BeginScan"/> and <see cref="ImfBodyScan.Complete"/>.
         /// </summary>
         internal List<ImfBodyScan> PendingScans { get; private set; }
@@ -578,7 +584,7 @@ namespace DataStandardizer.File.InternetMessage
         private void CheckRawEntity(Node node)
         {
             var scan = node.BodyScan;
-            if (scan is null || node.Source.IsPreserved || _options.AllowBinaryTransferEncoding) return;
+            if (scan is null || node.Source.IsPreserved || MayUseBinary) return;
 
             // ref. RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7 and §2.8.  Only the binary label of §2.9 covers these, which has to be asked for.
             if (scan.HasLongLine && !_options.AllowLongLines)
@@ -624,16 +630,15 @@ namespace DataStandardizer.File.InternetMessage
                 return domain;
             }
 
-            // ref. RFC 2045 §2.9: a line break in a binary body is data, so it can't be changed, and a body whose line breaks will be is given another encoding.
-            var mayChooseBinary = _options.AllowBinaryTransferEncoding && !_lineBreaksChange;
-            if (domain == MimeDataDomain.EightBit && (_options.AllowEightBitTransferEncoding || mayChooseBinary))
+            // A body whose line breaks will be changed is given another encoding than binary.
+            if (domain == MimeDataDomain.EightBit && (_options.AllowEightBitTransferEncoding || MayUseBinary))
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = _options.AllowEightBitTransferEncoding ? MimeTransferEncoding.EightBit : MimeTransferEncoding.Binary;
                 return node.Encoding.Domain;
             }
 
-            if (mayChooseBinary)
+            if (MayUseBinary)
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = MimeTransferEncoding.Binary;
@@ -706,8 +711,8 @@ namespace DataStandardizer.File.InternetMessage
             if (scan is null) return MimeDataDomain.SevenBit;
 
             var domain = scan.Domain;
-            if (domain == MimeDataDomain.Binary ? !_options.AllowBinaryTransferEncoding
-                : domain == MimeDataDomain.EightBit && !_options.AllowEightBitTransferEncoding && !_options.AllowBinaryTransferEncoding)
+            if (domain == MimeDataDomain.Binary ? !MayUseBinary
+                : domain == MimeDataDomain.EightBit && !_options.AllowEightBitTransferEncoding && !MayUseBinary)
                 throw BuildError("A preamble or epilogue must be lines of text (RFC 2046 §5.1.1), which the options must allow if they have octets above 127.", node.Path);
 
             return domain;
@@ -902,9 +907,12 @@ namespace DataStandardizer.File.InternetMessage
             return true;
         }
 
-        private static ImfFileException BuildCompositeEncodingError(Node node)
+        private ImfFileException BuildCompositeEncodingError(Node node)
         {
-            return BuildError($"A {node.Source.ContentType.Type}/{node.Source.ContentType.Subtype} entity can have only an identity transfer encoding, 7bit, 8bit or binary (RFC 2045 §6.4), which the options or its TransferEncoding must allow.", node.Path);
+            var reason = _options.AllowBinaryTransferEncoding && _lineBreaksChange
+                ? "  The binary transfer encoding can't be used here, as the line breaks of the message are changed, and a line break in a binary body is data (RFC 2045 §2.9)."
+                : string.Empty;
+            return BuildError($"A {node.Source.ContentType.Type}/{node.Source.ContentType.Subtype} entity can have only an identity transfer encoding, 7bit, 8bit or binary (RFC 2045 §6.4), which the options or its TransferEncoding must allow.{reason}", node.Path);
         }
 
         private static ImfFileException BuildError(string message, string path)

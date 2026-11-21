@@ -82,6 +82,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string AttachmentMediaType = "image/png";
         private const int AttachmentPartIndex = 1;
 
+        // The attachment of a message built with no text part, which is the first part.
+        private const int OnlyAttachmentPartIndex = 0;
+
         // ref. RFC 3501 §6.4.5: the first part of a multipart message body is part 1.
         private const string FirstPartPath = "1";
         private const string BuiltDate = "Thu, 1 Jan 2026 00:00:00 +0000";
@@ -349,7 +352,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             builder.Header.Date = ImfDateTime.Parse(BuiltDate);
             builder.Header.From = ImfAddressList.Parse(BuiltFrom);
             var message = builder.Build();
-            ((ImfMultipart)message.Body).Parts[0].ContentTransferEncoding = MimeTransferEncoding.Binary;
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = MimeTransferEncoding.Binary;
             var entry = new EmlxEntry(message, new EmlxMetadata());
 
             // act
