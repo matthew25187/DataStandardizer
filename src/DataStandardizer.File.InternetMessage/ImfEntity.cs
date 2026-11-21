@@ -547,12 +547,15 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Describes the entity for an <see cref="ImfEntityWriter"/>: what has not changed as the bytes that were read, and the rest as what it now holds.
         /// </summary>
-        /// <param name="encoding">How the writer writes header text that is not US-ASCII.</param>
+        /// <param name="options">The options of the writer.</param>
         /// <param name="lineBreak">The line break of the writer.</param>
+        /// <param name="boundaryGenerator">The source of boundaries of the writer.</param>
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
-        internal ImfEntitySource ToSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal ImfEntitySource ToSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
         {
-            if (HasChangedBody) return ToChangedSource(encoding, lineBreak);
+            if (HasChangedBody) return ToChangedSource(options, lineBreak, boundaryGenerator);
+
+            var encoding = options.HeaderEncoding;
 
             ImfEntitySource source;
             if (_hasRawEntity && !HasChangedFields)
@@ -582,10 +585,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Describes an entity whose body has changed.
         /// </summary>
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
-        internal virtual ImfEntitySource ToChangedSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal virtual ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
         {
             var source = ImfEntitySource.FromContent(ContentType, GetContent());
-            AddFields(source, encoding, lineBreak, null);
+            AddFields(source, options.HeaderEncoding, lineBreak, null);
             KeepHeaderEnd(source);
             return source;
         }

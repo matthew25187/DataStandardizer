@@ -208,7 +208,7 @@ namespace DataStandardizer.File.InternetMessage
 
             if (depth > 0)
             {
-                _partCount++;
+                _partCount += 1 + source.HeldEntityCount;
                 if (_partCount > _options.MaxPartCount)
                     throw BuildError($"The message has more than {_options.MaxPartCount} entities, the most that ImfOptions.MaxPartCount allows.", path);
             }

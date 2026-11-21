@@ -147,6 +147,11 @@ namespace DataStandardizer.File.InternetMessage
         internal bool HasChangedHeader { get; set; }
 
         /// <summary>
+        /// Gets or sets the number of entities that raw bytes hold besides the one they are, which <see cref="ImfOptions.MaxPartCount"/> counts as if the writer had written each of them.
+        /// </summary>
+        internal int HeldEntityCount { get; set; }
+
+        /// <summary>
         /// Describes an entity with content in memory.
         /// </summary>
         /// <param name="contentType">The media type, which is written as the Content-Type field.  Say what character set any text is in, with a

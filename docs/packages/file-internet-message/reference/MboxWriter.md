@@ -27,7 +27,7 @@ public sealed class MboxWriter : IDisposable, IAsyncDisposable
 
 ## Remarks
 
-**Messages.** Each message is checked and written as an [`ImfWriter`](ImfWriter.md) does, under the same options, so a message that it refuses leaves nothing in the output, and writing can continue with another. A message read from a file with the same line breaks stays byte for byte as it was, apart from what the variant adds.
+**Messages.** Each message is checked and written as an [`ImfWriter`](ImfWriter.md) does, under the same options, so a message that it refuses leaves nothing in the output, and writing can continue with another. A message read from a file with the same line breaks stays byte for byte as it was, apart from what the variant adds. A message that one of them holds, in a `message/rfc822` or `message/global` entity, and that has other line breaks than the one that holds it, is given the line breaks of that one, which it can't be if it has a `binary` entity (RFC 2045 §2.9) or an extension mechanism (§6.3).
 
 **Variants.** With [`MboxVariant.Mboxrd`](MboxVariant.md) and [`MboxVariant.Mboxcl2`](MboxVariant.md), a message reads back exactly. With [`MboxVariant.Mboxo`](MboxVariant.md) and [`MboxVariant.Mboxcl`](MboxVariant.md), the quotes added to lines starting `From ` stay when it is read. With [`MboxVariant.Mboxcl`](MboxVariant.md) and [`MboxVariant.Mboxcl2`](MboxVariant.md), the Content-Length field is set to the length of the body as the file holds it, replacing any that is wrong, and a header section with no empty line gets one. The message itself isn't changed. Other variants leave any Content-Length field as it is.
 
