@@ -97,7 +97,8 @@ namespace DataStandardizer.Communication.Mime
         /// Creates a data URI.
         /// </summary>
         /// <param name="mediaType">The media type of the data. Any character of it that can't appear in a URI, such as the quotes around a
-        /// parameter value, is percent-encoded.</param>
+        /// parameter value, is percent-encoded. So is a <c>;</c> in a quoted parameter value, which RFC 2397 §3 would read as the start of
+        /// the next parameter, and a <c>/</c> or <c>=</c> there, so that a reader that splits on every delimiter reads the value whole.</param>
         /// <param name="data">The data.</param>
         /// <param name="base64"><c>true</c> to write the data in base64; <c>false</c> to percent-encode it, which suits text.</param>
         /// <returns>The data URI, such as <c>data:text/plain;charset=UTF-8,A%20brief%20note</c>.</returns>
@@ -109,9 +110,11 @@ namespace DataStandardizer.Communication.Mime
 
             var header = mediaType.ToString();
             var headerLength = 0;
+            var inQuotes = false;
+            var isQuotedPair = false;
             foreach (var c in header)
             {
-                headerLength += IsHeaderChar(c) ? 1 : 3;
+                headerLength += IsHeaderChar(c, ref inQuotes, ref isQuotedPair) ? 1 : 3;
             }
 
             var dataStart = Scheme.Length + headerLength + (base64 ? Base64Extension.Length : 0) + 1;
@@ -121,9 +124,11 @@ namespace DataStandardizer.Communication.Mime
             var buffer = new char[dataStart + encodedLength];
             var position = 0;
             MimeGrammar.TryWrite(Scheme, buffer, ref position);
+            inQuotes = false;
+            isQuotedPair = false;
             foreach (var c in header)
             {
-                if (IsHeaderChar(c))
+                if (IsHeaderChar(c, ref inQuotes, ref isQuotedPair))
                 {
                     buffer[position++] = c;
                 }
@@ -470,39 +475,109 @@ namespace DataStandardizer.Communication.Mime
 
         private static bool TryParseMediaType(ReadOnlySpan<char> header, out MimeMediaType mediaType)
         {
+            // ref. RFC 2397 §3: mediatype := [ type "/" subtype ] *( ";" parameter ); parameter := attribute "=" value
+            // The type, subtype, attribute and value are those of RFC 2045 §5.1, "represented using URL escaped encoding ... as necessary".
+            // The delimiters are literal, so the media type is split on them first and each part is then percent-decoded on its own. An
+            // escaped delimiter is part of a token, where it is not a token character, so it never acts as a delimiter.
             mediaType = default(MimeMediaType);
             if (header.IsEmpty) return true;
 
-            // The media type is percent-decoded first, as its parameter values may hold characters that can't appear in a URI.
-            var escapeCount = 0;
-            for (var index = 0; index < header.Length; index++)
+            // With no escapes and a type, the parts are what the media type parser reads, as a token can't hold a delimiter and a
+            // quoted-string can't be written without escaping its quotes.
+            if (header[0] != ';' && IsUnescapedHeader(header))
+            {
+                return MimeMediaType.TryParse(header, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out mediaType);
+            }
+
+            // Decoding only shortens a part, so the decoded media type is no longer than the header and the type that may be put before it.
+            var decoded = new char[TextPlain.Length + header.Length];
+            var position = 0;
+            var index = 0;
+            if (header[0] == ';')
+            {
+                // ref. RFC 2397 §2: "text/plain" can be omitted but the charset parameter supplied.
+                MimeGrammar.TryWrite(TextPlain, decoded, ref position);
+            }
+            else
+            {
+                if (!TryDecodeToken(header, ref index, decoded, ref position) || index >= header.Length || header[index] != '/') return false;
+
+                decoded[position++] = header[index++];
+                if (!TryDecodeToken(header, ref index, decoded, ref position)) return false;
+            }
+
+            while (index < header.Length)
+            {
+                if (header[index] != ';') return false;
+
+                decoded[position++] = header[index++];
+                if (!TryDecodeToken(header, ref index, decoded, ref position) || index >= header.Length || header[index] != '=') return false;
+
+                decoded[position++] = header[index++];
+                if (!TryDecodeValue(header, ref index, decoded, ref position)) return false;
+            }
+
+            // The names are RFC 2045 tokens, which include those that RFC 6838 §4.2 doesn't allow in a registered name.
+            return MimeMediaType.TryParse(decoded.AsSpan(0, position), MimeMediaTypeParseOptions.AllowRfc2045Tokens, out mediaType);
+        }
+
+        /// <summary>
+        /// Determine if a media type has no escapes and only characters that may appear unencoded in a URI.
+        /// </summary>
+        private static bool IsUnescapedHeader(ReadOnlySpan<char> header)
+        {
+            foreach (var c in header)
+            {
+                if (c == '%' || !IsDataChar(c)) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Decode a type, subtype or attribute, which runs to the next literal delimiter, and check that it is an RFC 2045 token.
+        /// </summary>
+        private static bool TryDecodeToken(ReadOnlySpan<char> header, ref int index, Span<char> destination, ref int position)
+        {
+            var start = position;
+            if (!TryDecodePart(header, ref index, destination, ref position, false)) return false;
+
+            return MimeGrammar.IsToken(destination.Slice(start, position - start));
+        }
+
+        /// <summary>
+        /// Decode a parameter value, which runs to the next literal <c>;</c>, and check that it is an RFC 2045 token or quoted-string.
+        /// </summary>
+        private static bool TryDecodeValue(ReadOnlySpan<char> header, ref int index, Span<char> destination, ref int position)
+        {
+            var start = position;
+            if (!TryDecodePart(header, ref index, destination, ref position, true)) return false;
+
+            var value = destination.Slice(start, position - start);
+
+            // ref. RFC 2231 §7: an extended value can be empty, as in "title*=". The media type parser decides whether this one can be.
+            if (value.IsEmpty || value[0] != '"') return value.IsEmpty || MimeGrammar.IsToken(value);
+
+            var end = 0;
+            string unquoted;
+            return MimeGrammar.TryReadQuotedString(value, ref end, false, out unquoted) && end == value.Length;
+        }
+
+        /// <summary>
+        /// Percent-decode a part of the media type, up to the next literal delimiter: <c>;</c> for a value, and otherwise any of <c>/</c>,
+        /// <c>;</c> and <c>=</c>.
+        /// </summary>
+        private static bool TryDecodePart(ReadOnlySpan<char> header, ref int index, Span<char> destination, ref int position, bool isValue)
+        {
+            for (; index < header.Length; index++)
             {
                 var c = header[index];
+                if (c == ';' || (!isValue && (c == '/' || c == '='))) break;
+
                 if (c == '%')
                 {
                     if (!IsPercentEncoded(header, index)) return false;
 
-                    escapeCount++;
-                    index += 2;
-                }
-                else if (!IsDataChar(c))
-                {
-                    return false;
-                }
-            }
-
-            // ref. RFC 2397 §2: "text/plain" can be omitted but the charset parameter supplied.
-            var prefixLength = header[0] == ';' ? TextPlain.Length : 0;
-            if (escapeCount == 0 && prefixLength == 0) return MimeMediaType.TryParse(header, out mediaType);
-
-            var decoded = new char[prefixLength + header.Length - escapeCount * 2];
-            var position = 0;
-            if (prefixLength != 0) MimeGrammar.TryWrite(TextPlain, decoded, ref position);
-            for (var index = 0; index < header.Length; index++)
-            {
-                var c = header[index];
-                if (c == '%')
-                {
                     c = (char)((HexValue(header[index + 1]) << 4) | HexValue(header[index + 2]));
 
                     // A media type is US-ASCII.
@@ -510,11 +585,15 @@ namespace DataStandardizer.Communication.Mime
 
                     index += 2;
                 }
+                else if (!IsDataChar(c))
+                {
+                    return false;
+                }
 
-                decoded[position++] = c;
+                destination[position++] = c;
             }
 
-            return MimeMediaType.TryParse(decoded.AsSpan(), out mediaType);
+            return true;
         }
 
         private static bool TryGetBase64Length(ReadOnlySpan<char> data, out int length)
@@ -615,10 +694,32 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// Determine if a character of a media type may be written unencoded in the URI. A comma would end the media type.
+        /// Determine if the next character of a formatted media type may be written unencoded in the URI.
         /// </summary>
-        private static bool IsHeaderChar(char c)
+        /// <param name="c">The character.</param>
+        /// <param name="inQuotes">Whether the character is in a quoted-string; updated for the next character.</param>
+        /// <param name="isQuotedPair">Whether the character is the second of a quoted-pair; updated for the next character.</param>
+        /// <remarks>
+        /// A comma would end the media type. A <c>/</c>, <c>;</c> or <c>=</c> outside a quoted-string is a delimiter, as a token can't
+        /// hold one. In a quoted-string, a <c>;</c> is encoded, as RFC 2397 §3 would read it as the start of the next parameter, and so
+        /// are <c>/</c> and <c>=</c>, so that a reader that splits on every delimiter reads the value whole.
+        /// </remarks>
+        private static bool IsHeaderChar(char c, ref bool inQuotes, ref bool isQuotedPair)
         {
+            if (isQuotedPair)
+            {
+                isQuotedPair = false;
+            }
+            else if (c == '"')
+            {
+                inQuotes = !inQuotes;
+            }
+            else if (inQuotes)
+            {
+                if (c == '\\') isQuotedPair = true;
+                if (c == '/' || c == ';' || c == '=') return false;
+            }
+
             return c != ',' && IsDataChar(c);
         }
     }
