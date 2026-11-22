@@ -169,7 +169,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// <summary>
         /// 2^65 + 4352, more than halfway between 2^65 and the double above it, 2^65 + 8192, in hexadecimal (#1104).
         /// </summary>
-        private const string AboveHalfwayHexIntegerText = "0x20000000000001100";
+        private const string AboveHalfwayHexIntegerText = "0x" + AboveHalfwayHexDigits;
+
+        /// <summary>
+        /// The digits of <see cref="AboveHalfwayHexIntegerText"/>, without the <c>0x</c> prefix.
+        /// </summary>
+        private const string AboveHalfwayHexDigits = "20000000000001100";
 
         /// <summary>
         /// 2^65 + 4096, exactly halfway between 2^65 and 2^65 + 8192, in hexadecimal.  The tie goes to 2^65, whose significand is even.
@@ -213,6 +218,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// </summary>
         private const int ManyLeadingZeros = 300;
 
+        /// <summary>
+        /// The zeros after the 1 of 2^1024 = 16^256 in hexadecimal, one digit more than a double holds.
+        /// </summary>
+        private const int TwoToThe1024HexZeros = 256;
+
         // The expected doubles are their bits, so that negative zero differs from positive zero, and so that xUnit on .NET Framework doesn't
         // serialize a double in a theory row with that runtime's "R".
         public static TheoryData<string, string, long> NearestRealCases => new TheoryData<string, string, long>
@@ -233,7 +243,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "decimal, just above halfway", JustAboveHalfwayIntegerText, TwoToThe64PlusFourThousandNinetySixBits },
             { "hexadecimal, above halfway", AboveHalfwayHexIntegerText, TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
             { "hexadecimal, halfway, ties to even", HalfwayHexIntegerText, TwoToThe65Bits },
-            { "hexadecimal, leading zeros", "0x" + new string('0', ManyLeadingZeros) + AboveHalfwayHexIntegerText.Substring(2), TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
+            { "hexadecimal, leading zeros", "0x" + new string('0', ManyLeadingZeros) + AboveHalfwayHexDigits, TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
             { "hexadecimal, largest double", "0x" + MaxDoubleHexDigits + new string('0', MaxDoubleHexTrailingZeros), MaxDoubleBits },
         };
 
@@ -242,7 +252,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { EmlxPlistValueKind.Real, "1e999" },
             { EmlxPlistValueKind.Integer, new string('9', 400) },
             { EmlxPlistValueKind.Integer, "0x" + new string('F', 300) },
-            { EmlxPlistValueKind.Integer, "0x1" + new string('0', 256) },
+            { EmlxPlistValueKind.Integer, "0x1" + new string('0', TwoToThe1024HexZeros) },
             { EmlxPlistValueKind.Integer, "0x" + HalfwayAboveMaxDoubleHexDigits + new string('0', MaxDoubleHexTrailingZeros) },
         };
 
