@@ -39,7 +39,10 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Line length.</b>  RFC 4155 Appendix A requires each message to follow the formatting rules of RFC 2822, so RFC 5322 §2.1.1 limits each line in the file to 998 octets.  A quote that takes
     /// a line past that causes an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowLongLines"/> is set, or it is in a body that has no line limit, such as a <c>binary</c> one.  A
-    /// variant that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.
+    /// variant that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.  To find the entity that holds a line too long for the file, the message is read back
+    /// under the same options, and a message that can't be read that way causes the <see cref="ImfFileException"/> the reader gives, with its own
+    /// <see cref="ImfFileException.DataItemName.DiagnosticKind"/>, if it has one.  Its <see cref="ImfFileException.DataItemName.BytePosition"/> and
+    /// <see cref="ImfFileException.DataItemName.LineNumber"/> count from the start of the message, in the line breaks of the file, with no separator line and no quotes.
     /// </para>
     /// <para>
     /// <b>Last line.</b>  The empty line that ends a message has to be a line of its own, so a message whose last line has no line break gets one.  With
@@ -582,7 +585,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so a quote counts.  Most messages have no long line in the file, so they don't need to
-        // be read to find what holds it.  A reader of what was written treats each line as this does, and refuses what the message can't be read with, such as a long line of a header.
+        // be read to find what holds it.  A reader of what was written treats each line as this does, and refuses what the message can't be read with, such as a long line of a header.  What it
+        // refuses is passed on as the reader describes it, with its own kind, position and entity path, so that only a long line is reported as one.
         private void CheckLineLengths(ReadOnlySpan<byte> formatted, ReadOnlySpan<byte> message, List<ImfDiagnostic> diagnostics)
         {
             if (!HasLongLine(formatted)) return;
@@ -590,16 +594,8 @@ namespace DataStandardizer.File.InternetMessage
             var lines = FindLongQuotedLines(message);
             using (var reader = new ImfEntityReader(new MemoryStream(message.ToArray()), _options, QuotedLineScanBufferSize, !_isCrLf) { LongLinesOutsideTheData = () => lines })
             {
-                try
+                while (!(reader.ReadEvent() is null))
                 {
-                    while (!(reader.ReadEvent() is null))
-                    {
-                    }
-                }
-                catch (ImfFileException exception)
-                {
-                    Report(ImfDiagnosticKind.LongBodyLine, exception.Message, diagnostics);
-                    return;
                 }
 
                 foreach (var diagnostic in reader.Diagnostics)
