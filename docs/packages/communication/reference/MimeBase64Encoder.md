@@ -27,7 +27,12 @@ call, and in `Mime` mode it keeps track of the line length, so the output is the
 however the data is split.
 
 In `Mime` mode, it breaks lines after 76 characters with CRLF, and writes no line break
-at the end of the data.
+at the end of the data. When a line is full and `destination` has room for the line break
+but not for the 4 characters after it, the encoder writes the line break on its own and
+returns `DestinationTooSmall`.
+
+Each quantum of 4 characters is written whole, so a call makes progress whenever
+`destination` has room for at least 4 bytes or characters.
 
 After a call with `isFinalBlock` set to `true` returns `Done`, the encoder is ready for
 new data. An instance isn't thread-safe.
@@ -53,5 +58,5 @@ new data. An instance isn't thread-safe.
 | `void Reset()` | Discards any bytes held and the line length, to start on new data. |
 
 `Encode` returns `Done` if all of `source` was consumed, including any bytes it holds for
-the next call, or `DestinationTooSmall` if `destination` is full, in which case call again
-with the rest of `source`.
+the next call, or `DestinationTooSmall` if `destination` has no room for the next quantum, in
+which case call again with the rest of `source`.
