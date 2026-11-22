@@ -1352,6 +1352,9 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
                 ("text/plain;a*=\"UTF-8'en'a b;c\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b;c"),
                 ("text/plain;a*0*=\"UTF-8''a%20\";a*1*=b", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
+                // ref. RFC 2231 §7: an apostrophe is not an attribute-char, but a quoted-string may hold one.
+                ("text/plain;a*=\"UTF-8''it's\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "it's"),
+                ("text/plain;a*0*=\"UTF-8''a\";a*1*=\"'b\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a'b"),
             };
         }
 

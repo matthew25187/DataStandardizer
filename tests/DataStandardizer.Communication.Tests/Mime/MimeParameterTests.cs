@@ -17,6 +17,10 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string CharsetName = "charset";
         private const string UsAscii = "us-ascii";
 
+        // ref. RFC 2046 §5.2.3: the access-type parameter of message/external-body, and one of its values.
+        private const string AccessTypeName = "access-type";
+        private const string UrlAccessType = "url";
+
         // One character too few for QuotedValueThatIsNotAToken.
         private const int OneTooFewForQuotedValue = 15;
 
@@ -133,11 +137,12 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Language.Should().BeEmpty();
         }
 
-        // Pairs of parameters that are equal: names are compared without regard to case, and a charset value is too.
+        // Pairs of parameters that are equal: names are compared without regard to case, and charset and access-type values are too.
         public static TheoryData<string, string, string, string> EqualParameters => new TheoryData<string, string, string, string>
         {
             { Name, Value, "NAME", Value },
             { CharsetName, UsAscii, "Charset", "US-ASCII" },
+            { AccessTypeName, UrlAccessType, "Access-Type", "URL" },
         };
 
         // Pairs of parameters that aren't equal: most values are compared with regard to case, and the names differ.
@@ -285,17 +290,12 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 5322 §2.1.1: lines should be no more than 78 characters.
         private const int RecommendedLineLength = 78;
 
-        // Any destination will do, as an uninitialised parameter throws before it writes.
-        private const int AnyDestinationLength = 10;
-
         public static TheoryData<Action> MembersOfDefaultInstance => new TheoryData<Action>
         {
             () => _ = default(MimeParameter).Name,
             () => _ = default(MimeParameter).Value,
             () => _ = default(MimeParameter).Charset,
             () => _ = default(MimeParameter).Language,
-            () => default(MimeParameter).FormatSections(RecommendedLineLength),
-            () => default(MimeParameter).TryFormat(new char[AnyDestinationLength], out _),
         };
 
         [Theory]
@@ -307,6 +307,33 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void FormatSections_DefaultInstance_ReturnsNoSections()
+        {
+            // arrange
+            var parameter = default(MimeParameter);
+
+            // act
+            var testResult = parameter.FormatSections(RecommendedLineLength);
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void TryFormat_DefaultInstance_WritesNothing()
+        {
+            // arrange
+            var parameter = default(MimeParameter);
+
+            // act
+            var testResult = parameter.TryFormat(new char[0], out var charsWritten);
+
+            // assert
+            testResult.Should().BeTrue();
+            charsWritten.Should().Be(0);
         }
 
         [Fact]

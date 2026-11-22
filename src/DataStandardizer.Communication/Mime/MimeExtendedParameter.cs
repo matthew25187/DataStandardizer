@@ -481,8 +481,9 @@ namespace DataStandardizer.Communication.Mime
                     continue;
                 }
 
-                // A quoted value, which is accepted only as an opt-in, may also hold the characters that a token can't.
-                if (!(isQuoted ? MimeGrammar.IsValueChar(c) && c != '\'' : IsAttributeChar(c))) return false;
+                // A quoted value, which is accepted only as an opt-in, may also hold the characters that a token can't, including an
+                // apostrophe anywhere in the octets of any section.
+                if (!(isQuoted ? MimeGrammar.IsValueChar(c) : IsAttributeChar(c))) return false;
 
                 bytes[byteCount++] = (byte)c;
             }
