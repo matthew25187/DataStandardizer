@@ -9,7 +9,7 @@ namespace DataStandardizer.File.iCal.Tests
     /// Holds back what yields during an operation, the failures that <c>FailureTiming.AfterYielding</c> reports and the steps of a
     /// sequence from <c>AsyncEnumerables.Yielding</c>, until the operation has returned its task, so that the code under test is always
     /// given a task that has not completed.  Whether a task that yields has completed by the time it is returned depends on the thread pool, and
-    /// some code, such as the XML writer of .NET Framework, treats a write of a text writer that has already failed as though it had succeeded.
+    /// code takes a different path for a task that has already completed, so the same test would otherwise take either path from run to run.
     /// </summary>
     /// <remarks>
     /// Once the operation has returned, <see cref="Run"/> opens the gates on its own thread, so the code waiting on them continues there, before
