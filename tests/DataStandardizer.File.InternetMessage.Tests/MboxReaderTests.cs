@@ -158,14 +158,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string LargeMailbox = Separator1 + LargeMessage + "\n" + Separator2 + Message2 + "\n";
         private static readonly byte[] ManyMessagesMailbox = Mailboxes.Repeat(OneMessageWithEmptyLine, ManyMessages);
 
-        // The reader skips the rest of a message through a buffer of 4096 octets.  CrLfHeader is 56 octets and the skipped body's full lines 4000, so a last line of 39 octets
-        // leaves one octet of that buffer for the CRLF that ends it, which is let go only when the next separator line is found.  The lengths either side of it are controls.
+        // The reader skips the rest of a message through a buffer of 4096 octets (MboxReader.DiscardBufferSize, pinned by a test below).  CrLfHeader is 56 octets and the skipped
+        // body's full lines 4000, so a last line of 39 octets leaves one octet of that buffer for the CRLF that ends it, which is let go only when the next separator line is found.
+        // The lengths either side of it are controls.
+        private const int SkipBufferSize = 4096;
         private const int SkippedBodyLineCount = 4;
         private const int SkippedLastLineLeavingTwoOctets = 38;
         private const int SkippedLastLineLeavingOneOctet = 39;
         private const int SkippedLastLineLeavingNoOctets = 40;
         private static readonly string SkippedBodyLines = string.Concat(Enumerable.Repeat(new string('x', LargeBodyLineLength) + "\r\n", SkippedBodyLineCount));
-        private static readonly ImfOptions AllowCrLfAndBlankLine = new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowMissingMboxBlankLine = true };
 
         public static TheoryData<string> SkippedMessageAlignments => new TheoryData<string>
         {
@@ -1476,23 +1477,36 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadMessage_SkippedMessageEndingAtTheDiscardBufferEnd_ReadsTheNextMessage(string mailbox)
         {
             // act
-            var testResult = Mailboxes.ReadSecondAfterSkipping(mailbox, AllowCrLfAndBlankLine);
+            var testResult = Mailboxes.ReadSecondAfterSkipping(mailbox, CrLfAndBlankLineOptions());
+
+            // assert
+            testResult.Should().Be(CrLfMessage2);
+        }
+
+        [Theory]
+        [MemberData(nameof(SkippedMessageAlignments))]
+        public async Task ReadMessageAsync_SkippedMessageEndingAtTheDiscardBufferEnd_ReadsTheNextMessage(string mailbox)
+        {
+            // act
+            var testResult = await Mailboxes.ReadSecondAfterSkippingAsync(mailbox, CrLfAndBlankLineOptions());
 
             // assert
             testResult.Should().Be(CrLfMessage2);
         }
 
         [Fact]
-        public async Task ReadMessageAsync_SkippedMessageEndingAtTheDiscardBufferEnd_ReadsTheNextMessage()
+        public void DiscardBufferSize_Value_IsTheSizeTheSkipTestsAreAlignedTo()
         {
-            // arrange
-            var mailbox = SkippedThenSecond(SkippedLastLineLeavingOneOctet);
-
             // act
-            var testResult = await Mailboxes.ReadSecondAfterSkippingAsync(mailbox, AllowCrLfAndBlankLine);
+            var testResult = MboxReader.DiscardBufferSize;
 
             // assert
-            testResult.Should().Be(CrLfMessage2);
+            testResult.Should().Be(SkipBufferSize);
+        }
+
+        private static ImfOptions CrLfAndBlankLineOptions()
+        {
+            return new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowMissingMboxBlankLine = true };
         }
 
         // A CRLF file of a message with no empty line after it, whose last line has the given length, then a second message.
