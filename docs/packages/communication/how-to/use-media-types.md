@@ -109,7 +109,8 @@ Console.WriteLine(MimeMediaType.Parse("application/ld+json").Suffix);    // json
 Console.WriteLine(MimeMediaType.Parse("application/ld+json").Tree);      // Standards
 Console.WriteLine(MimeMediaType.Parse("application/vnd.ms-excel").Tree); // Vendor
 Console.WriteLine(MimeMediaType.Parse("image/prs.btif").Tree);           // Personal
-Console.WriteLine(MimeMediaType.Parse("application/x-tar").Tree);        // Unregistered
+Console.WriteLine(MimeMediaType.Parse("application/x.example").Tree);    // Unregistered
+Console.WriteLine(MimeMediaType.Parse("application/x-tar").Tree);        // Standards (no facet prefix)
 ```
 
 ## See also

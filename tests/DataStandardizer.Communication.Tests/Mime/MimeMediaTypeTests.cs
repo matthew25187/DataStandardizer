@@ -642,8 +642,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("application/VND.ms-excel", MimeRegistrationTree.Vendor)]
         [InlineData("application/prs.example", MimeRegistrationTree.Personal)]
         [InlineData("application/x.example", MimeRegistrationTree.Unregistered)]
-        [InlineData("application/x-www-form-urlencoded", MimeRegistrationTree.Unregistered)]
-        [InlineData("application/X-tar", MimeRegistrationTree.Unregistered)]
+        [InlineData("application/X.example", MimeRegistrationTree.Unregistered)]
+        [InlineData("application/x-www-form-urlencoded", MimeRegistrationTree.Standards)]
+        [InlineData("application/X-tar", MimeRegistrationTree.Standards)]
         [InlineData("application/vnd", MimeRegistrationTree.Standards)]
         [InlineData("application/xml", MimeRegistrationTree.Standards)]
         public void Tree_Subtype_ReturnsTreeOfSubtypePrefix(string value, MimeRegistrationTree tree)
