@@ -20,6 +20,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string XUuencodeInMixedCase = "X-UUEncode";
         private const string XGzip64 = "x-gzip64";
 
+        // An x-token that names a known mechanism after its "x-", so it is a different, extension mechanism.
+        private const string XBase64 = "x-base64";
+
         // ref. RFC 4289 §3: a token that isn't registered with IANA, so it isn't an ietf-token; nor is it an x-token.
         private const string Uuencode = "uuencode";
 
@@ -109,7 +112,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData(XGzip64)]
         [InlineData("x-b")]
         [InlineData("x--")]
-        [InlineData("x-base64")]
+        [InlineData(XBase64)]
         public void Parse_XToken_IsKeptAsWrittenAndUnknown(string value)
         {
             // act
@@ -291,7 +294,7 @@ namespace DataStandardizer.Communication.Tests.Mime
             { Base64, QuotedPrintable },
             { SevenBit, EightBit },
             { XUuencode, XGzip64 },
-            { Base64, "x-base64" },
+            { Base64, XBase64 },
         };
 
         [Theory]

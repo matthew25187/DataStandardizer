@@ -171,6 +171,7 @@ namespace DataStandardizer.Communication.Mime
         /// <summary>
         /// Gets whether a token is an x-token: "X-" or "x-" followed, with no intervening white space, by a token (RFC 2045 §5.1).
         /// </summary>
+        /// <param name="token">The value, which the caller has already checked is a token, so that what follows "x-" is one too.</param>
         private static bool IsXToken(ReadOnlySpan<char> token)
         {
             return token.Length > 2 && (token[0] == 'x' || token[0] == 'X') && token[1] == '-';
