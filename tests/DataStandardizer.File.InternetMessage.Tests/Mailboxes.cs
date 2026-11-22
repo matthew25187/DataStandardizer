@@ -272,6 +272,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         /// <summary>
+        /// Starts reading the first message of a file, skips the rest of it by moving to the next, and describes that one.
+        /// </summary>
+        public static string ReadSecondAfterSkipping(string mailbox, ImfOptions options)
+        {
+            using (var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox)), MboxVariant.Mboxrd, options))
+            {
+                reader.ReadEntityEvents();
+                return Describe(reader.ReadMessage().Message);
+            }
+        }
+
+        /// <summary>
+        /// Starts reading the first message of a file asynchronously, skips the rest of it by moving to the next, and describes that one.
+        /// </summary>
+        public static async Task<string> ReadSecondAfterSkippingAsync(string mailbox, ImfOptions options)
+        {
+            var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox)), MboxVariant.Mboxrd, options);
+            string description = null;
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                await reader.ReadEntityEventsAsync();
+                description = Describe((await reader.ReadMessageAsync()).Message);
+            });
+
+            return description;
+        }
+
+        /// <summary>
         /// Reads each message of a file and keeps none of them, and gives how many there were and the most that the reader ever had from the stream beyond what it had used.
         /// </summary>
         public static (long Count, long MostHeld) ReadAndMeasure(MboxReader reader, Func<long> bytesGiven)

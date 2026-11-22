@@ -52,7 +52,11 @@ namespace DataStandardizer.File.InternetMessage
 #endif
     {
         private const int MessageBufferSize = 16 * 1024;
-        private const int DiscardBufferSize = 4 * 1024;
+        /// <summary>
+        /// The size of the buffer the rest of a message is read into and thrown away when the reader moves on before reaching its end.  Internal so that tests can pin the size their
+        /// alignments depend on.
+        /// </summary>
+        internal const int DiscardBufferSize = 4 * 1024;
 
         private readonly ImfOptions _options;
         private readonly bool _ownsStream;

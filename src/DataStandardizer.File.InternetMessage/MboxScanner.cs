@@ -227,7 +227,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets a flag indicating that nothing more of the current message is left to read, or that there is no current message.
         /// </summary>
-        internal bool IsMessageEnded => _phase == Phase.MessageEnded || _phase == Phase.FirstSeparator || _phase == Phase.NoMoreMessages;
+        internal bool IsMessageEnded => (_phase == Phase.MessageEnded && _queueLength == 0 && _quotesToWrite == 0) || _phase == Phase.FirstSeparator || _phase == Phase.NoMoreMessages;
 
         /// <summary>
         /// Gets the 0-based index of the current message, which is 0 before the first.
@@ -479,6 +479,9 @@ namespace DataStandardizer.File.InternetMessage
             _reportedInvalidSeparator = false;
             _quotedLineLength = NotAQuotedLine;
             _messageOffset = 0;
+            _queueLength = 0;
+            _queueStart = 0;
+            _quotesToWrite = 0;
             LongQuotedLines.Clear();
         }
 
