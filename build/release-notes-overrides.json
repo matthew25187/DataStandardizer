@@ -981,6 +981,39 @@
           ]
         }
       ]
+    },
+    "38814270040e32f7df2c18455ac048021753ed3a": {
+      "subject": "Lower-case hex digits are accepted by default in RFC 2231 values and \"Q\"-encoded words (#1144)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "\"Q\"-encoded words (`MimeEncodedWord`, and the \"Q\" modes of `MimeQuotedPrintable`) accept lower-case hexadecimal digits such as `=c3=a9` by default, which RFC 2047 §4.2 allows",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "`MimeMediaType` accepts lower-case hexadecimal digits in RFC 2231 extended parameter values, such as `%c3%a9`, by default (RFC 2231 §7, RFC 822 §2.1)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "deprecated",
+          "text": "`MimeMediaTypeParseOptions.AllowLowercaseHexDigits` and `MimeEncodedWordParseOptions.AllowLowercaseHexDigits` are obsolete and have no effect, as lower-case hexadecimal digits are always accepted; they will be removed in a future major version",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "Header text decoding (`ImfHeaderText`) decodes \"Q\"-encoded words with lower-case hexadecimal digits, such as `=?UTF-8?Q?=c3=a9?=`, by default, which RFC 2047 §4.2 allows; before, they were decoded only with `ImfOptions.AllowMalformedEncodedWords`",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
     }
   }
 }
