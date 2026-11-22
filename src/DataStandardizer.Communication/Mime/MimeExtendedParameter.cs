@@ -290,7 +290,7 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="octet">The octet, held as the character with the same number.</param>
         internal static int GetOctetUnitLength(char octet)
         {
-            return octet < '' && IsAttributeChar(octet) ? 1 : 3;
+            return octet < '\x80' && IsAttributeChar(octet) ? 1 : 3;
         }
 
         /// <summary>
@@ -302,7 +302,7 @@ namespace DataStandardizer.Communication.Mime
         internal static void WriteOctetUnit(char octet, Span<char> destination, ref int position)
         {
             // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char)
-            if (octet < '' && IsAttributeChar(octet))
+            if (octet < '\x80' && IsAttributeChar(octet))
             {
                 destination[position++] = octet;
             }

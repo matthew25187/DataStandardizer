@@ -17,8 +17,9 @@ namespace DataStandardizer.Communication.Mime
     /// <para>
     /// A value of printable US-ASCII characters, spaces and horizontal tabs, with no language, is written as a token when it is one, and
     /// otherwise as a quoted-string. Any other value, or a value with a language, is written as an RFC 2231 extended value in UTF-8, such as
-    /// <c>title*=UTF-8'en'%C2%A3%20rates</c>. A value read in a character set that couldn't be resolved is written back as its octets, in
-    /// that character set. Use <see cref="FormatSections(int)"/> to split a long parameter into sections.
+    /// <c>title*=UTF-8'en'%C2%A3%20rates</c>. A value read in a character set that couldn't be resolved is always written back as an
+    /// extended value of its octets, in that character set, even when they are printable US-ASCII. Use <see cref="FormatSections(int)"/> to
+    /// split a long parameter into sections.
     /// </para>
     /// </remarks>
     public readonly struct MimeParameter : IEquatable<MimeParameter>
@@ -192,7 +193,7 @@ namespace DataStandardizer.Communication.Mime
         private string WrittenCharsetName => _isOctets ? GetOctetsCharsetName() : MimeCharset.Utf8.Name;
 
         /// <summary>
-        /// Formats the parameter into a span, as <c>name=value</c>, or as <c>name*=UTF-8'language'value</c> for an RFC 2231 extended
+        /// Formats the parameter into a span, as <c>name=value</c>, or as <c>name*=charset'language'value</c> for an RFC 2231 extended
         /// value.
         /// </summary>
         /// <param name="destination">The span to write to.</param>
@@ -237,7 +238,7 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// Formats the parameter as <c>name=value</c>, or as <c>name*=UTF-8'language'value</c> for an RFC 2231 extended value.
+        /// Formats the parameter as <c>name=value</c>, or as <c>name*=charset'language'value</c> for an RFC 2231 extended value.
         /// </summary>
         /// <returns>The parameter; an empty string if the <see cref="MimeParameter"/> is not initialised.</returns>
         public override string ToString()
@@ -354,8 +355,9 @@ namespace DataStandardizer.Communication.Mime
 
         private StringComparison GetValueComparison()
         {
-            // ref. RFC 2046 §4.1.2: the values of the charset parameter are not case sensitive.
-            return HasName(CharsetParameterName) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            // ref. RFC 2046 §4.1.2: the values of the charset parameter are not case sensitive. Octets in a character set that couldn't be
+            // resolved are not known to be letters, so they are compared as they are.
+            return HasName(CharsetParameterName) && !_isOctets ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         }
 
         private string GetOctetsCharsetName()

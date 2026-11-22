@@ -1074,6 +1074,20 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Fact]
+        public void Equals_CharsetParameterOctetsInUnknownCharsetThatDifferAsLatin1Case_ReturnsFalse()
+        {
+            // arrange
+            var left = MimeMediaType.Parse("text/plain;charset*=x-no-such-charset''%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var right = MimeMediaType.Parse("text/plain;charset*=x-no-such-charset''%C9", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = left.Equals(right);
+
+            // assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
         public void FormatSections_ParameterFits_ReturnsParameter()
         {
             // arrange
