@@ -48,6 +48,15 @@ namespace DataStandardizer.Communication.Mime
         // at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3), UTF-16, UTF-32 and GB18030.
         private const int MaxCarriedOctets = 3;
 
+        // ref. ANSI X3.4 (US-ASCII): 0x41 is 'A'. EndsInAsciiMode reads it after a word's octets.
+        private const byte ProbeOctet = 0x41;
+        private const string ProbeCharacter = "A";
+
+        // ref. ECMA-35 (ISO/IEC 2022): the ESC, SO and SI control characters.
+        private const byte Escape = 0x1B;
+        private const byte ShiftOut = 0x0E;
+        private const byte ShiftIn = 0x0F;
+
         private const string InvalidFormatMessage = "The value is not a valid encoded word.";
         private const string UninitializedMessage = nameof(MimeEncodedWord) + " is uninitialized.";
 
@@ -930,8 +939,11 @@ namespace DataStandardizer.Communication.Mime
             if (charsetResolver.TryGetEncoding(charset, out encoding))
             {
                 // ref. RFC 2047 §6.3 (2): a word whose octets are not whole characters in its character set is incorrectly formed.
-                return MimeExtendedParameter.TryGetString(encoding, octets, octets.Length,
-                    (options & MimeEncodedWordParseOptions.AllowInvalidOctets) != 0, out text);
+                var allowInvalidOctets = (options & MimeEncodedWordParseOptions.AllowInvalidOctets) != 0;
+                if (!MimeExtendedParameter.TryGetString(encoding, octets, octets.Length, allowInvalidOctets, out text)) return false;
+
+                // ref. RFC 2047 §3: a word that switches out of ASCII mode must switch back to it by its end, whatever its octets.
+                return EndsInAsciiMode(charset, encoding, octets, allowInvalidOctets ? null : text);
             }
 
             if ((options & MimeEncodedWordParseOptions.AllowUnknownCharsets) == 0)
@@ -942,6 +954,89 @@ namespace DataStandardizer.Communication.Mime
 
             text = MimeExtendedParameter.DecodeLatin1(octets, octets.Length);
             return true;
+        }
+
+        // Indicates whether a word's octets leave its character set in ASCII mode (ref. RFC 2047 §3).
+        //
+        // A character set of the ISO/IEC 2022 family, such as ISO-2022-JP (RFC 1468), is in ASCII mode when ASCII is designated to G0 and
+        // G0 is shifted in, which its octets show whether or not they are valid. Any other character set that switches modes, such as
+        // HZ-GB-2312, is in the mode it starts in if an ASCII octet after the word's octets is read as the ASCII character, as it is at the
+        // start; this can only be asked of octets that are valid. A character set that doesn't read the octet alone as that character, such
+        // as UTF-16, has no ASCII mode, and the Unicode encoding forms have no modes at all.
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool EndsInAsciiMode(MimeCharset charset, Encoding encoding, byte[] octets, string? validText)
+#else
+        private static bool EndsInAsciiMode(MimeCharset charset, Encoding encoding, byte[] octets, string validText)
+#endif
+        {
+            if (IsIso2022(charset)) return EndsWithIso2022Ascii(octets);
+            if (encoding is UTF8Encoding || encoding is UnicodeEncoding || encoding is MimeUnicodeSchemeEncoding) return true;
+            if (validText is null && !MimeExtendedParameter.TryGetString(encoding, octets, octets.Length, false, out validText)) return true;
+
+            string probeText;
+            if (!MimeExtendedParameter.TryGetString(encoding, new[] { ProbeOctet }, 1, false, out probeText) ||
+                probeText != ProbeCharacter)
+            {
+                return true;
+            }
+
+            var probed = new byte[octets.Length + 1];
+            Array.Copy(octets, probed, octets.Length);
+            probed[octets.Length] = ProbeOctet;
+            return MimeExtendedParameter.TryGetString(encoding, probed, probed.Length, false, out probeText) &&
+                string.Equals(probeText, validText + ProbeCharacter, StringComparison.Ordinal);
+        }
+
+        // ref. IANA Character Sets registry: the ISO-2022-* names, such as ISO-2022-JP and ISO-2022-KR, and their csISO2022* aliases.
+        // The encoding's WebName isn't asked, as the base class throws for an encoding with no code page, as a caller's may be.
+        private static bool IsIso2022(MimeCharset charset)
+        {
+            return charset.Name.StartsWith("ISO-2022-", StringComparison.OrdinalIgnoreCase) ||
+                charset.Name.StartsWith("csISO2022", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Indicates whether ISO/IEC 2022 octets end with ASCII designated to G0 and G0 shifted in, as they start (ref. ECMA-35, which is
+        // ISO/IEC 2022: an escape sequence is ESC, any intermediate bytes 0x20 to 0x2F, and a final byte 0x30 to 0x7E; ESC ( F designates a
+        // 94-character set to G0, and ESC $ F and ESC $ ( F a multiple-byte one; SO invokes G1 and SI invokes G0. RFC 1468: in ISO-2022-JP,
+        // ESC ( B designates ASCII, and ESC ( J, ESC $ @ and ESC $ B the other sets.)
+        private static bool EndsWithIso2022Ascii(byte[] octets)
+        {
+            var isAsciiDesignated = true;
+            var isShiftedOut = false;
+            for (var index = 0; index < octets.Length; index++)
+            {
+                switch (octets[index])
+                {
+                    case ShiftOut:
+                        isShiftedOut = true;
+                        break;
+                    case ShiftIn:
+                        isShiftedOut = false;
+                        break;
+                    case Escape:
+                        var final = index + 1;
+                        while (final < octets.Length && octets[final] >= 0x20 && octets[final] <= 0x2F) final++;
+
+                        // An escape sequence cut off at the end leaves the mode unknown.
+                        if (final >= octets.Length) return false;
+
+                        var intermediateCount = final - index - 1;
+                        if (intermediateCount == 1 && octets[index + 1] == (byte)'(')
+                        {
+                            isAsciiDesignated = octets[final] == (byte)'B';
+                        }
+                        else if ((intermediateCount == 1 && octets[index + 1] == (byte)'$') ||
+                            (intermediateCount == 2 && octets[index + 1] == (byte)'$' && octets[index + 2] == (byte)'('))
+                        {
+                            isAsciiDesignated = false;
+                        }
+
+                        index = final;
+                        break;
+                }
+            }
+
+            return isAsciiDesignated && !isShiftedOut;
         }
 
         private static string DecodeTextCore(ReadOnlySpan<char> text, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,

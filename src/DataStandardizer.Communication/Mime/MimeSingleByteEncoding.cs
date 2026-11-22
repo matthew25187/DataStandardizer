@@ -1,12 +1,12 @@
-#if !NET5_0_OR_GREATER
+#if !(NETSTANDARD1_3_OR_GREATER || NETCOREAPP)
 using System;
 using System.Text;
 
 namespace DataStandardizer.Communication.Mime
 {
     /// <summary>
-    /// An encoding in which each byte up to a limit is the character with the same code: ISO-8859-1 for the targets that don't have
-    /// <c>Encoding.Latin1</c>, and US-ASCII for those that don't have <c>Encoding.ASCII</c>.
+    /// An encoding in which each byte up to a limit is the character with the same code: US-ASCII and ISO-8859-1 for netstandard1.1, which
+    /// can't give the runtime's encodings the fallbacks the other builds give them.
     /// </summary>
     /// <remarks>
     /// A byte above the limit is read as U+FFFD, and a character above the limit is written as <c>?</c>, as the runtime's encodings do with
@@ -14,33 +14,22 @@ namespace DataStandardizer.Communication.Mime
     /// </remarks>
     internal sealed class MimeSingleByteEncoding : Encoding
     {
-        internal static readonly MimeSingleByteEncoding Latin1 = new MimeSingleByteEncoding("iso-8859-1", "Western European (ISO)", '\xFF');
-
-#if !(NETSTANDARD1_3_OR_GREATER || NETCOREAPP)
-        internal static readonly MimeSingleByteEncoding Ascii = new MimeSingleByteEncoding("us-ascii", "US-ASCII", '\x7F');
-#endif
+        internal static readonly MimeSingleByteEncoding Ascii = new MimeSingleByteEncoding("us-ascii", '\x7F');
+        internal static readonly MimeSingleByteEncoding Latin1 = new MimeSingleByteEncoding("iso-8859-1", '\xFF');
 
         private const byte ReplacementByte = (byte)'?';
-        private const char ReplacementChar = '\uFFFD';
+        private const char ReplacementChar = '\xFFFD';
 
         private readonly string _webName;
-        private readonly string _encodingName;
         private readonly char _maxChar;
 
-        private MimeSingleByteEncoding(string webName, string encodingName, char maxChar)
+        private MimeSingleByteEncoding(string webName, char maxChar)
         {
             _webName = webName;
-            _encodingName = encodingName;
             _maxChar = maxChar;
         }
 
         public override string WebName => _webName;
-
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
-        public override string EncodingName => _encodingName;
-
-        public override bool IsSingleByte => true;
-#endif
 
         public override int GetByteCount(char[] chars, int index, int count)
         {
@@ -91,9 +80,10 @@ namespace DataStandardizer.Communication.Mime
 
         public override int GetMaxByteCount(int charCount)
         {
-            if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+            // One more, as the runtime's encodings allow, for a high surrogate held back by an encoder that holds one.
+            if (charCount < 0 || charCount == int.MaxValue) throw new ArgumentOutOfRangeException(nameof(charCount));
 
-            return charCount;
+            return charCount + 1;
         }
 
         public override int GetMaxCharCount(int byteCount)
@@ -103,14 +93,19 @@ namespace DataStandardizer.Communication.Mime
             return byteCount;
         }
 
+        public override Encoder GetEncoder()
+        {
+            return new SingleByteEncoder(this);
+        }
+
+        public override Decoder GetDecoder()
+        {
+            return new SingleByteDecoder(this);
+        }
+
         public override bool Equals(object obj)
         {
-            // A clone is equal to the encoding it was cloned from while it has the same fallbacks, as the runtime's encodings are.
-            return obj is MimeSingleByteEncoding other && other._webName == _webName
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
-                && other.EncoderFallback.Equals(EncoderFallback) && other.DecoderFallback.Equals(DecoderFallback)
-#endif
-                ;
+            return obj is MimeSingleByteEncoding other && other._webName == _webName;
         }
 
         public override int GetHashCode()
@@ -123,6 +118,52 @@ namespace DataStandardizer.Communication.Mime
             if (array is null) throw new ArgumentNullException(name);
             if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
             if (count < 0 || count > array.Length - index) throw new ArgumentOutOfRangeException(nameof(count));
+        }
+
+        /// <summary>
+        /// Encodes characters that may arrive in several blocks. Each character is written by itself, so nothing is held back.
+        /// </summary>
+        private sealed class SingleByteEncoder : MimeEncoder
+        {
+            private readonly MimeSingleByteEncoding _encoding;
+
+            internal SingleByteEncoder(MimeSingleByteEncoding encoding)
+            {
+                _encoding = encoding;
+            }
+
+            public override int GetByteCount(char[] chars, int index, int count, bool flush)
+            {
+                return _encoding.GetByteCount(chars, index, count);
+            }
+
+            public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, bool flush)
+            {
+                return _encoding.GetBytes(chars, charIndex, charCount, bytes, byteIndex);
+            }
+        }
+
+        /// <summary>
+        /// Decodes bytes that may arrive in several blocks. Each byte is read by itself, so nothing is held back.
+        /// </summary>
+        private sealed class SingleByteDecoder : MimeDecoder
+        {
+            private readonly MimeSingleByteEncoding _encoding;
+
+            internal SingleByteDecoder(MimeSingleByteEncoding encoding)
+            {
+                _encoding = encoding;
+            }
+
+            public override int GetCharCount(byte[] bytes, int index, int count)
+            {
+                return _encoding.GetCharCount(bytes, index, count);
+            }
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+            {
+                return _encoding.GetChars(bytes, byteIndex, byteCount, chars, charIndex);
+            }
         }
     }
 }

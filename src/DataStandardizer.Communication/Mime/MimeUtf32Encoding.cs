@@ -72,10 +72,11 @@ namespace DataStandardizer.Communication.Mime
 
         public override int GetMaxCharCount(int byteCount)
         {
+            // As UTF32Encoding allows: bytes held back by a decoder may finish another code unit, which gives at most a surrogate pair,
+            // and the bytes left at a flush give one U+FFFD.
             if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
 
-            // Each code unit gives at most a surrogate pair, and bytes held back by a decoder may complete one more.
-            return (byteCount / UnitLength + 1) * 2;
+            return byteCount / 2 + 2;
         }
 
         public override Encoder GetEncoder()
@@ -239,7 +240,7 @@ namespace DataStandardizer.Communication.Mime
         /// <summary>
         /// Encodes characters that may arrive in several blocks, holding back a high surrogate at the end of a block.
         /// </summary>
-        private sealed class Utf32Encoder : Encoder
+        private sealed class Utf32Encoder : MimeEncoder
         {
             private readonly MimeUtf32Encoding _encoding;
             private char _pendingHighSurrogate;
@@ -269,7 +270,7 @@ namespace DataStandardizer.Communication.Mime
         /// <summary>
         /// Decodes bytes that may arrive in several blocks, holding back an incomplete code unit at the end of a block.
         /// </summary>
-        private sealed class Utf32Decoder : Decoder
+        private sealed class Utf32Decoder : MimeDecoder
         {
             private readonly MimeUtf32Encoding _encoding;
             private readonly byte[] _pending = new byte[UnitLength];

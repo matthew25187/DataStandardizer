@@ -75,6 +75,12 @@ namespace DataStandardizer.Communication.Mime
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         public override string EncodingName => _encodingName;
+
+        // The names for a message body and header, which System.Net.Mime.ContentType and AlternateView use as the charset. The encoding
+        // has no code page, which the base class would look them up by.
+        public override string BodyName => _webName;
+
+        public override string HeaderName => _webName;
 #endif
 
         private int MarkLength => _bigEndianMark.Length;
@@ -209,7 +215,7 @@ namespace DataStandardizer.Communication.Mime
         /// Decodes bytes that may arrive in several blocks, holding back the first bytes until there are enough to tell whether they are a
         /// byte order mark.
         /// </summary>
-        private sealed class SchemeDecoder : Decoder
+        private sealed class SchemeDecoder : MimeDecoder
         {
             private readonly MimeUnicodeSchemeEncoding _encoding;
             private readonly byte[] _pending;

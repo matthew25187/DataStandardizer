@@ -25,6 +25,20 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         /// <summary>
+        /// Decodes bytes that give no characters by themselves, then flushes the decoder with a second block, into an array of the size
+        /// <see cref="Encoding.GetMaxCharCount(int)"/> gives for that block.
+        /// </summary>
+        public static string DecodeAfterHeldBytes(Encoding encoding, byte[] heldBytes, byte[] block)
+        {
+            var decoder = encoding.GetDecoder();
+            decoder.GetChars(heldBytes, 0, heldBytes.Length, new char[0], 0, false);
+
+            var chars = new char[encoding.GetMaxCharCount(block.Length)];
+            var charCount = decoder.GetChars(block, 0, block.Length, chars, 0, true);
+            return new string(chars, 0, charCount);
+        }
+
+        /// <summary>
         /// Encodes text, giving the encoder one character at a time, and flushing it at the end.
         /// </summary>
         public static byte[] EncodeOneCharacterAtATime(Encoding encoding, string text)

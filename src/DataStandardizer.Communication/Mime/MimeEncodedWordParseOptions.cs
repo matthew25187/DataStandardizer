@@ -66,10 +66,17 @@ namespace DataStandardizer.Communication.Mime
         /// U+FFFD.
         /// </summary>
         /// <remarks>
-        /// The netstandard1.1 build can't change how an encoding treats invalid octets. So there, without this option, the text that the
-        /// encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it with the encoding gives the same octets
-        /// back, and the encoding doesn't throw <see cref="DecoderFallbackException"/> or <see cref="EncoderFallbackException"/>. A valid
-        /// word in a character set that can write a character in more than one way needs this option on that build.
+        /// <para>
+        /// A word in a character set that switches modes, such as ISO-2022-JP (RFC 1468), must still switch back to ASCII mode by its end
+        /// (RFC 2047 §3), so <c>=?ISO-2022-JP?B?GyRCMGw=?=</c> is not accepted.
+        /// </para>
+        /// <para>
+        /// The netstandard1.1 build finds <c>Encoding.Clone</c> and <c>Encoding.DecoderFallback</c> at run time. On a runtime whose
+        /// reflection metadata leaves them out, such as .NET Native, it can't change how an encoding treats invalid octets. So there,
+        /// without this option, the text that the encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it
+        /// with the encoding gives the same octets back, and with this option, the invalid octets are read as the encoding's own fallback
+        /// reads them.
+        /// </para>
         /// </remarks>
         AllowInvalidOctets = 1 << 4,
 

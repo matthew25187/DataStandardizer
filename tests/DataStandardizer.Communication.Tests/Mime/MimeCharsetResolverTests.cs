@@ -11,8 +11,6 @@ namespace DataStandardizer.Communication.Tests.Mime
     public class MimeCharsetResolverTests
     {
         // ref. IANA Character Sets registry
-        private const string UsAsciiName = "US-ASCII";
-        private const string Iso88591Name = "ISO-8859-1";
         private const string Utf8Name = "UTF-8";
         private const string Utf7Name = "UTF-7";
         private const string Windows1252Name = "windows-1252";
@@ -162,10 +160,10 @@ namespace DataStandardizer.Communication.Tests.Mime
             { Utf32Name, UnpairedSurrogate, Utf32BigEndianReplacementBytes },
         };
 
-        // ISO-8859-1 is left out: on netstandard2.0 its clone ignores the fallbacks it is given (#945).
         public static TheoryData<string, string> CharactersThatFallBack => new TheoryData<string, string>
         {
             { UsAsciiName, CharacterAboveLatin1 },
+            { Iso88591Name, CharacterAboveLatin1 },
             { Utf8Name, UnpairedSurrogate },
             { Utf16Name, UnpairedSurrogate },
             { Utf32Name, UnpairedSurrogate },
@@ -836,6 +834,128 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetDecoder_BuiltInNameConvertNoBytes_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+
+            // act
+            decoder.Convert(new byte[0], 0, 0, new char[0], 0, 0, true, out var bytesUsed, out var charsUsed, out var completed);
+
+            // assert
+            bytesUsed.Should().Be(0);
+            charsUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+
+#if NETCOREAPP
+        // Decoder.Convert(ReadOnlySpan<byte>, ...) is only on .NET, and calls Decoder.Convert(byte*, ...).
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetDecoder_BuiltInNameConvertEmptySpan_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+
+            // act
+            decoder.Convert(ReadOnlySpan<byte>.Empty, Span<char>.Empty, true, out var bytesUsed, out var charsUsed, out var completed);
+
+            // assert
+            bytesUsed.Should().Be(0);
+            charsUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+#endif
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetEncoder_BuiltInNameConvertNoCharacters_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var encoder = Resolve(name).GetEncoder();
+
+            // act
+            encoder.Convert(new char[0], 0, 0, new byte[0], 0, 0, true, out var charsUsed, out var bytesUsed, out var completed);
+
+            // assert
+            charsUsed.Should().Be(0);
+            bytesUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData(UsAsciiName)]
+        [InlineData(Iso88591Name)]
+        public void GetMaxByteCount_SingleByteName_AllowsForHeldBackHighSurrogate(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetMaxByteCount(ThreeCharacters);
+
+            // assert
+            testResult.Should().Be(MaxBytesForThreeCharacters);
+        }
+
+        [Fact]
+        public void GetDecoder_Utf32BigEndianBlockAfterHeldBytes_FitsGetMaxCharCount()
+        {
+            // arrange
+            var encoding = Resolve(Utf32BigEndianName);
+
+            // act
+            var testResult = EncodingBlocks.DecodeAfterHeldBytes(encoding, Utf32BigEndianHeldBytes, Utf32BigEndianBlockAfterHeldBytes);
+
+            // assert
+            testResult.Should().Be(Utf32BigEndianHeldAndBlockText);
+        }
+
+        [Theory]
+        [InlineData(Utf16Name)]
+        [InlineData(Utf32Name)]
+        public void BodyName_UnmarkedScheme_IsCharsetName(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.BodyName;
+
+            // assert
+            testResult.Should().BeEquivalentTo(name);
+        }
+
+        [Theory]
+        [InlineData(Utf16Name)]
+        [InlineData(Utf32Name)]
+        public void HeaderName_UnmarkedScheme_IsCharsetName(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.HeaderName;
+
+            // assert
+            testResult.Should().BeEquivalentTo(name);
+        }
+
+        [Fact]
+        public void IsSingleByte_Iso88591_ReturnsTrue()
+        {
+            // arrange
+            var encoding = Resolve(Iso88591Name);
+
+            // act
+            var testResult = encoding.IsSingleByte;
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         private static Encoding Resolve(string name)

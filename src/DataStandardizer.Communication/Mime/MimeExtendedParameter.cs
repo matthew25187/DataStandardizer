@@ -12,11 +12,6 @@ namespace DataStandardizer.Communication.Mime
         // ref. RFC 2231 §3: the sections are numbered from 0.
         private const string FirstSection = "0";
 
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
-        // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER, for a value that can't be represented.
-        private const string ReplacementString = "\uFFFD";
-#endif
-
         /// <summary>
         /// A <c>name=value</c> pair as written, before RFC 2231 sections are joined.
         /// </summary>
@@ -536,21 +531,33 @@ namespace DataStandardizer.Communication.Mime
         {
             value = string.Empty;
 
+            // ref. RFC 2781 §4.3: a byte order mark gives the byte order of UTF-16 and UTF-32, and isn't part of the text.
+            var start = 0;
+            var scheme = encoding as MimeUnicodeSchemeEncoding;
+            if (scheme != null) encoding = scheme.SelectEncoding(bytes, 0, byteCount, out start);
+
             // ref. RFC 2231 §4: the octets are text in the character set, so octets that are not valid in it are not a valid value.
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
-            var decoding = (Encoding)encoding.Clone();
-            decoding.DecoderFallback = allowInvalidOctets ? new DecoderReplacementFallback(ReplacementString) : DecoderFallback.ExceptionFallback;
+#if NETCOREAPP3_0_OR_GREATER
+            Encoding? copy;
 #else
-            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and then
-            // checked with IsDecodedExactly. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
-            var decoding = encoding;
+            Encoding copy;
 #endif
+            var decoding = encoding;
+            var hasFallback = false;
+            if (!IsHandCoded(encoding) && MimeDecoderFallbacks.TryCopy(encoding, allowInvalidOctets, out copy))
+            {
+                decoding = copy;
+                hasFallback = true;
+            }
+
             try
             {
-                var text = decoding.GetString(bytes, 0, byteCount);
-#if !(NETSTANDARD2_0_OR_GREATER || NETCOREAPP)
-                if (!allowInvalidOctets && !IsDecodedExactly(encoding, bytes, byteCount, text)) return false;
-#endif
+                var text = decoding.GetString(bytes, start, byteCount - start);
+
+                // An encoding that can't be given a fallback reads invalid octets as its own fallback does, so the text is checked instead.
+                // The hand-coded encodings write each character in only one way, so for them the check finds exactly the invalid octets.
+                if (!hasFallback && !allowInvalidOctets && !IsDecodedExactly(encoding, bytes, start, byteCount - start, text)) return false;
+
                 value = text;
                 return true;
             }
@@ -560,15 +567,22 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
+        // Indicates whether an encoding is one of the package's hand-coded ones, which read invalid octets as U+FFFD whatever fallback they
+        // are given.
+        private static bool IsHandCoded(Encoding encoding)
+        {
+#if NETSTANDARD1_3_OR_GREATER || NETCOREAPP
+            return false;
+#else
+            return encoding is MimeSingleByteEncoding || encoding is MimeUtf32Encoding;
+#endif
+        }
+
         // Indicates whether text read with an encoding that may replace invalid octets, with U+FFFD, '?' or anything else, came from valid
         // octets: whether writing the text with the encoding gives the same octets back. An encoding that can't write the text didn't read
-        // it from valid octets. The byte order mark that MimeUnicodeSchemeEncoding reads and doesn't write is left out of the comparison.
-        internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int byteCount, string text)
+        // it from valid octets.
+        internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int index, int count, string text)
         {
-            var start = 0;
-            var scheme = encoding as MimeUnicodeSchemeEncoding;
-            if (scheme != null) encoding = scheme.SelectEncoding(bytes, 0, byteCount, out start);
-
             byte[] written;
             try
             {
@@ -579,11 +593,11 @@ namespace DataStandardizer.Communication.Mime
                 return false;
             }
 
-            if (written.Length != byteCount - start) return false;
+            if (written.Length != count) return false;
 
-            for (var index = 0; index < written.Length; index++)
+            for (var position = 0; position < written.Length; position++)
             {
-                if (written[index] != bytes[start + index]) return false;
+                if (written[position] != bytes[index + position]) return false;
             }
 
             return true;

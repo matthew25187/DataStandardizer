@@ -14,11 +14,10 @@ namespace DataStandardizer.Communication.Tests.Mime
         private static readonly byte[] InvalidOctet = { 0xFF };
         private static readonly byte[] ReplacementCharacterUtf8Octets = { 0xEF, 0xBF, 0xBD };
 
-        // ref. RFC 2781 §4.3: U+FFFD after a big-endian and a little-endian byte order mark, and an unpaired high surrogate (D800) after a
-        // big-endian one.
-        private static readonly byte[] BigEndianReplacementCharacter = { 0xFE, 0xFF, 0xFF, 0xFD };
-        private static readonly byte[] LittleEndianReplacementCharacter = { 0xFF, 0xFE, 0xFD, 0xFF };
-        private static readonly byte[] UnpairedHighSurrogate = { 0xFE, 0xFF, 0xD8, 0x00 };
+        // ref. RFC 2781 §2: U+FFFD in UTF-16BE and UTF-16LE, and an unpaired high surrogate (D800) in UTF-16BE.
+        private static readonly byte[] BigEndianReplacementCharacter = { 0xFF, 0xFD };
+        private static readonly byte[] LittleEndianReplacementCharacter = { 0xFD, 0xFF };
+        private static readonly byte[] UnpairedHighSurrogate = { 0xD8, 0x00 };
 
         // US-ASCII encodings that read an invalid octet as '?', and as U+FFFD but can't write U+FFFD.
         private const string QuestionMark = "?";
@@ -34,9 +33,9 @@ namespace DataStandardizer.Communication.Tests.Mime
             { Encoding.UTF8, ReplacementCharacterUtf8Octets, ReplacementCharacter, true },
             { QuestionMarkAscii, InvalidOctet, QuestionMark, false },
             { ThrowingWriterAscii, InvalidOctet, ReplacementCharacter, false },
-            { MimeUnicodeSchemeEncoding.Utf16, BigEndianReplacementCharacter, ReplacementCharacter, true },
-            { MimeUnicodeSchemeEncoding.Utf16, LittleEndianReplacementCharacter, ReplacementCharacter, true },
-            { MimeUnicodeSchemeEncoding.Utf16, UnpairedHighSurrogate, ReplacementCharacter, false },
+            { MimeUnicodeSchemeEncoding.Utf16.BigEndian, BigEndianReplacementCharacter, ReplacementCharacter, true },
+            { MimeUnicodeSchemeEncoding.Utf16.LittleEndian, LittleEndianReplacementCharacter, ReplacementCharacter, true },
+            { MimeUnicodeSchemeEncoding.Utf16.BigEndian, UnpairedHighSurrogate, ReplacementCharacter, false },
         };
 
         [Theory]
@@ -45,7 +44,7 @@ namespace DataStandardizer.Communication.Tests.Mime
             bool expected)
         {
             // act
-            var result = MimeExtendedParameter.IsDecodedExactly(encoding, octets, octets.Length, text);
+            var result = MimeExtendedParameter.IsDecodedExactly(encoding, octets, 0, octets.Length, text);
 
             // assert
             result.Should().Be(expected);

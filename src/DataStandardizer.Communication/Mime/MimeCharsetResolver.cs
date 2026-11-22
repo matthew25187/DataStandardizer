@@ -37,6 +37,12 @@ namespace DataStandardizer.Communication.Mime
     /// The encodings the runtime provides are returned as the runtime returns them.
     /// </para>
     /// <para>
+    /// In the netstandard1.1 build, <c>US-ASCII</c>, <c>ISO-8859-1</c> and <c>UTF-32</c> are hand-coded, as netstandard1.1 has no way to
+    /// give the runtime's encodings these fallbacks. They read and write the same bytes as the other builds' encodings, but an encoding
+    /// in that build can't set the properties that netstandard1.1 leaves out, such as <c>CodePage</c>, <c>IsSingleByte</c>,
+    /// <c>BodyName</c> and <c>EncodingName</c>, so code compiled for a later target that reads them gets what the base class gives.
+    /// </para>
+    /// <para>
     /// The encodings the runtime provides depend on the runtime, not on the target framework of the package. .NET Framework has the Windows
     /// code pages, such as <c>windows-1252</c> and <c>Shift_JIS</c>. .NET Core and .NET 5 and later have only the Unicode encodings,
     /// <c>US-ASCII</c> and <c>ISO-8859-1</c>, until the application registers the code pages, once, at startup:
@@ -128,13 +134,12 @@ namespace DataStandardizer.Communication.Mime
             // The runtime's US-ASCII and ISO-8859-1 write a best fit for some characters they can't hold, which changes the text, and
             // read invalid bytes as '?' on .NET Framework, so they are given the same fallbacks as the hand-coded ones.
 #if NETSTANDARD1_3_OR_GREATER || NETCOREAPP
-            var ascii = Encoding.GetEncoding("us-ascii", EncoderFallback.ReplacementFallback, new DecoderReplacementFallback("\uFFFD"));
+            var ascii = Encoding.GetEncoding("us-ascii", EncoderFallback.ReplacementFallback,
+                new DecoderReplacementFallback(MimeDecoderFallbacks.ReplacementString));
+            var latin1 = Encoding.GetEncoding("iso-8859-1", EncoderFallback.ReplacementFallback,
+                new DecoderReplacementFallback(MimeDecoderFallbacks.ReplacementString));
 #else
             var ascii = MimeSingleByteEncoding.Ascii;
-#endif
-#if NET5_0_OR_GREATER
-            var latin1 = Encoding.GetEncoding("iso-8859-1", EncoderFallback.ReplacementFallback, new DecoderReplacementFallback("\uFFFD"));
-#else
             var latin1 = MimeSingleByteEncoding.Latin1;
 #endif
             var utf8 = new UTF8Encoding(false);
