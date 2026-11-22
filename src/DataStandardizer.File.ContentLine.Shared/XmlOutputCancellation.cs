@@ -23,6 +23,11 @@ namespace DataStandardizer.File.ContentLine
     /// <see cref="XmlOutputTextWriter"/> and <see cref="XmlOutputStream"/> wrap such an exception in an <see cref="XmlOutputCanceledException"/>,
     /// which faults System.Xml's tasks rather than canceling them, and <see cref="Unwrap"/> gives the original back once it has reached the writer.
     /// </para>
+    /// <para>
+    /// The <c>netstandard2.x</c> builds wrap the output on every runtime, .NET (Core) included, rather than guess from the runtime which
+    /// System.Xml they are running on.  It costs an async state machine only for a write or flush that hasn't completed by the time it returns,
+    /// once for each buffer of the XML writer.
+    /// </para>
     /// </remarks>
     internal static class XmlOutputCancellation
     {
@@ -52,7 +57,8 @@ namespace DataStandardizer.File.ContentLine
     /// asynchronous write or flush across the XML writer, as <see cref="XmlOutputCancellation"/> describes.
     /// </summary>
     /// <remarks>
-    /// Every member passes through to the caller's writer.  Disposing it disposes the caller's writer, which the XML writer does only when its
+    /// Every member passes through to the caller's writer, but the synchronous <c>WriteLine</c> overloads, which the base class writes through
+    /// <see cref="Write(char[], int, int)"/> with the same line break.  Disposing it disposes the caller's writer, which the XML writer does only when its
     /// <see cref="System.Xml.XmlWriterSettings.CloseOutput"/> setting is <c>true</c>.
     /// </remarks>
     internal sealed class XmlOutputTextWriter : TextWriter
@@ -62,6 +68,9 @@ namespace DataStandardizer.File.ContentLine
         public XmlOutputTextWriter(TextWriter writer) : base(writer.FormatProvider)
         {
             _writer = writer;
+
+            // The base class writes its own copy of the line break for the WriteLine overloads that aren't passed through, so it is kept the same.
+            base.NewLine = writer.NewLine;
         }
 
         public override System.Text.Encoding Encoding => _writer.Encoding;
@@ -74,7 +83,11 @@ namespace DataStandardizer.File.ContentLine
         public override string NewLine
         {
             get => _writer.NewLine;
-            set => _writer.NewLine = value;
+            set
+            {
+                _writer.NewLine = value;
+                base.NewLine = value;
+            }
         }
 
         public override void Write(char value) => _writer.Write(value);

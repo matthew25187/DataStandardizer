@@ -1113,7 +1113,7 @@ namespace DataStandardizer.File.vCard
             if (!stream.CanWrite)
                 throw new ArgumentException("Expected a stream supporting write.", "xcardStream");
 
-            #if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD2_0_OR_GREATER
             // On .NET Framework, System.Xml would lose a cancellation from the output (XmlOutputCancellation).
             stream = new XmlOutputStream(stream);
 #endif
@@ -1151,7 +1151,7 @@ namespace DataStandardizer.File.vCard
             if (options.Encoding != null)
                 throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(options));
 
-            #if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD2_0_OR_GREATER
             // On .NET Framework, System.Xml would lose a cancellation from the output (XmlOutputCancellation).
             writer = new XmlOutputTextWriter(writer);
 #endif

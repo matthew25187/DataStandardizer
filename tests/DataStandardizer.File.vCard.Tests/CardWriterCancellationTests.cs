@@ -135,6 +135,16 @@ namespace DataStandardizer.File.vCard.Tests
                 var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardAsync(CreateLongCard(), token).AsTask();
             }),
+            ("XcardWriter.WriteCardsAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCardsAsync(new[] { CreateLongCard() }, cancellationToken: token);
+            }),
+            ("XcardWriter.WriteCardsAsync from an asynchronous sequence to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCard() }), cancellationToken: token);
+            }),
             ("XcardWriter.FlushAsync to a stream", (createException, timing, onFailure) =>
             {
                 var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });

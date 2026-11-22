@@ -135,6 +135,16 @@ namespace DataStandardizer.File.iCal.Tests
                 var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarAsync(CreateLongCalendar(), token).AsTask();
             }),
+            ("XcalWriter.WriteCalendarsAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCalendarsAsync(new[] { CreateLongCalendar() }, cancellationToken: token);
+            }),
+            ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCalendar() }), cancellationToken: token);
+            }),
             ("XcalWriter.FlushAsync to a stream", (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
