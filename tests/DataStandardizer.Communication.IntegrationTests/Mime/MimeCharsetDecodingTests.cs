@@ -18,6 +18,13 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         // The first word is 1B 24 42 30 6C, which stays in JIS X 0208 mode; the second is 1B 24 42 30 6C 1B 28 42.
         private const string Iso2022JpWordEndingInJisMode = "=?ISO-2022-JP?B?GyRCMGw=?=";
         private const string Iso2022JpWordEndingInAsciiMode = "=?ISO-2022-JP?B?GyRCMGwbKEI=?=";
+
+        // ref. RFC 1468: ESC ( J switches ISO-2022-JP to JIS X 0201-Roman, which isn't ASCII: 1B 24 42 30 6C 1B 28 4A.
+        private const string Iso2022JpWordEndingInJisRomanMode = "=?ISO-2022-JP?B?GyRCMGwbKEo=?=";
+
+        // ref. RFC 1557: ESC $ ) C designates KS C 5601 to G1 in ISO-2022-KR, and SO shifts to it; the word, 1B 24 29 43 0E 30 21, has no SI
+        // to shift back to ASCII.
+        private const string Iso2022KrWordEndingShiftedOut = "=?ISO-2022-KR?B?GyQpQw4wIQ==?=";
         private const string Iso2022JpWordText = "\x4E00";
 
         // ref. RFC 1468: ESC $ @ switches ISO-2022-JP to JIS C 6226-1978, where 0x467C 0x4B5C is U+65E5 U+672C, which ISO-2022-JP writes
@@ -39,31 +46,37 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER.
         private const string ReplacementCharacter = "\xFFFD";
 
-        [Fact]
-        public void DecodeText_Iso2022JpWordEndingInJisMode_LeavesWordAsWritten()
+        [Theory]
+        [InlineData(Iso2022JpWordEndingInJisMode)]
+        [InlineData(Iso2022JpWordEndingInJisRomanMode)]
+        [InlineData(Iso2022KrWordEndingShiftedOut)]
+        public void DecodeText_WordNotEndingInAsciiMode_LeavesWordAsWritten(string word)
         {
             // arrange
             CodePageProvider.Register();
 
             // act
-            var testResult = MimeEncodedWord.DecodeText(Iso2022JpWordEndingInJisMode);
+            var testResult = MimeEncodedWord.DecodeText(word);
 
             // assert
-            testResult.Should().Be(Iso2022JpWordEndingInJisMode);
+            testResult.Should().Be(word);
         }
 
-        [Fact]
-        public void DecodeText_Iso2022JpWordEndingInJisModeWithAllowInvalidOctets_DecodesWord()
+        [Theory]
+        [InlineData(Iso2022JpWordEndingInJisMode)]
+        [InlineData(Iso2022JpWordEndingInJisRomanMode)]
+        [InlineData(Iso2022KrWordEndingShiftedOut)]
+        public void DecodeText_WordNotEndingInAsciiModeWithAllowInvalidOctets_LeavesWordAsWritten(string word)
         {
             // arrange
             CodePageProvider.Register();
 
             // act
-            var testResult = MimeEncodedWord.DecodeText(Iso2022JpWordEndingInJisMode, MimeEncodedWordContext.Text,
-                MimeEncodedWordParseOptions.AllowInvalidOctets, MimeCharsetResolver.Default);
+            var testResult = MimeEncodedWord.DecodeText(word, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowInvalidOctets,
+                MimeCharsetResolver.Default);
 
             // assert
-            testResult.Should().Be(Iso2022JpWordText);
+            testResult.Should().Be(word);
         }
 
         [Fact]

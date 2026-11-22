@@ -40,7 +40,7 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         /// Calls <c>MimeMediaType.TryParse(string, MimeMediaTypeParseOptions, out MimeMediaType)</c> of the netstandard1.1 build, with the
         /// option named <paramref name="option"/>, and gets the value of the first parameter of the media type it reads.
         /// </summary>
-        /// <returns>The value of the first parameter; or null if the media type isn't read.</returns>
+        /// <returns>The value of the first parameter; or null if the media type isn't read, or has no parameters.</returns>
         public static string ParseFirstParameterValue(string mediaType, string option) =>
             Build.Value.ParseFirstParameterValue(mediaType, option);
 
@@ -108,10 +108,8 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
                 var arguments = new[] { mediaType, Enum.Parse(_mediaTypeOptionsType, option), null };
                 if (!(bool)_tryParseMediaType.Invoke(null, arguments)) return null;
 
-                var parameters = (System.Collections.IEnumerable)_parameters.GetValue(arguments[2]);
-                var enumerator = parameters.GetEnumerator();
-                enumerator.MoveNext();
-                return (string)_parameterValue.GetValue(enumerator.Current);
+                var enumerator = ((System.Collections.IEnumerable)_parameters.GetValue(arguments[2])).GetEnumerator();
+                return enumerator.MoveNext() ? (string)_parameterValue.GetValue(enumerator.Current) : null;
             }
 
             public string DecodeText(string text, string option) =>

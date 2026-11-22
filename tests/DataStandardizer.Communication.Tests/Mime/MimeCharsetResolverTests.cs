@@ -852,6 +852,25 @@ namespace DataStandardizer.Communication.Tests.Mime
             completed.Should().BeTrue();
         }
 
+#if NETCOREAPP
+        // Decoder.Convert(ReadOnlySpan<byte>, ...) is only on .NET, and calls Decoder.Convert(byte*, ...).
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetDecoder_BuiltInNameConvertEmptySpan_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+
+            // act
+            decoder.Convert(ReadOnlySpan<byte>.Empty, Span<char>.Empty, true, out var bytesUsed, out var charsUsed, out var completed);
+
+            // assert
+            bytesUsed.Should().Be(0);
+            charsUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+#endif
+
         [Theory]
         [MemberData(nameof(BuiltInNameList))]
         public void GetEncoder_BuiltInNameConvertNoCharacters_ConvertsNothingAndCompletes(string name)

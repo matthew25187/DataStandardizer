@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.1;netstandard2.0;net10.0</TargetFrameworks>
+    <!-- MimeDecoder overrides Decoder.Convert(byte*, ...), which Decoder.Convert(ReadOnlySpan<byte>, ...) calls. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
 Provides types supporting communication-related standards, including:

@@ -67,8 +67,8 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// <para>
-        /// This also accepts a word in a character set that switches modes, such as ISO-2022-JP (RFC 1468), that doesn't switch back to
-        /// ASCII mode by its end, as in <c>=?ISO-2022-JP?B?GyRCMGw=?=</c>, which RFC 2047 §3 doesn't allow.
+        /// A word in a character set that switches modes, such as ISO-2022-JP (RFC 1468), must still switch back to ASCII mode by its end
+        /// (RFC 2047 §3), so <c>=?ISO-2022-JP?B?GyRCMGw=?=</c> is not accepted.
         /// </para>
         /// <para>
         /// The netstandard1.1 build finds <c>Encoding.Clone</c> and <c>Encoding.DecoderFallback</c> at run time. On a runtime whose

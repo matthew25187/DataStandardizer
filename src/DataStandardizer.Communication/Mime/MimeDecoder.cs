@@ -37,14 +37,22 @@ namespace DataStandardizer.Communication.Mime
             completed = bytesUsed == byteCount;
         }
 
-#if NETCOREAPP
-        public override void Convert(ReadOnlySpan<byte> bytes, Span<char> chars, bool flush, out int bytesUsed, out int charsUsed,
-            out bool completed)
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+        // Decoder's own Convert(ReadOnlySpan<byte>, Span<char>, ...) calls this one, which, like the array one, throws for no bytes.
+        public override unsafe void Convert(byte* bytes, int byteCount, char* chars, int charCount, bool flush, out int bytesUsed,
+            out int charsUsed, out bool completed)
         {
-            var byteArray = bytes.ToArray();
-            var charArray = new char[chars.Length];
-            Convert(byteArray, 0, byteArray.Length, charArray, 0, charArray.Length, flush, out bytesUsed, out charsUsed, out completed);
-            charArray.AsSpan(0, charsUsed).CopyTo(chars);
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (chars == null) throw new ArgumentNullException(nameof(chars));
+            if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+            if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+
+            var byteArray = new ReadOnlySpan<byte>(bytes, byteCount).ToArray();
+
+            // No more characters than the bytes give are needed, however long the destination is.
+            var charArray = new char[Math.Min(charCount, GetCharCount(byteArray, 0, byteCount, flush))];
+            Convert(byteArray, 0, byteCount, charArray, 0, charArray.Length, flush, out bytesUsed, out charsUsed, out completed);
+            charArray.AsSpan(0, charsUsed).CopyTo(new Span<char>(chars, charCount));
         }
 #endif
     }

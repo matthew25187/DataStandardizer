@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 #if NETSTANDARD1_1
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 #endif
 
 namespace DataStandardizer.Communication.Mime
@@ -63,8 +64,17 @@ namespace DataStandardizer.Communication.Mime
                 return false;
             }
 
-            copy = (Encoding)CloneMethod.Invoke(encoding, null);
-            DecoderFallbackProperty.SetValue(copy, replace ? ReplacementFallback : ExceptionFallback);
+            try
+            {
+                copy = (Encoding)CloneMethod.Invoke(encoding, null);
+                DecoderFallbackProperty.SetValue(copy, replace ? ReplacementFallback : ExceptionFallback);
+            }
+            catch (TargetInvocationException exception) when (exception.InnerException != null)
+            {
+                // What Clone or the setter threw, such as InvalidOperationException for a read-only copy, as the other builds throw it.
+                ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+                throw;
+            }
 #else
             copy = (Encoding)encoding.Clone();
             copy.DecoderFallback = replace ? ReplacementFallback : DecoderFallback.ExceptionFallback;
