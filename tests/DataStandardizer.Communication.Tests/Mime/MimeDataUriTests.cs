@@ -86,6 +86,13 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string MediaTypeWithDelimiterInQuotedValue = "text/plain;name=\"a;b\"";
         private const string DelimiterInQuotedValueUri = "data:text/plain;name=%22a%3Bb%22,x";
 
+        // Media types with a quoted parameter value holding a "/" or a "=", which Create encodes along with ";", and the data URIs of "x"
+        // in them.
+        private const string MediaTypeWithSolidusInQuotedValue = "text/plain;name=\"a/b\"";
+        private const string SolidusInQuotedValueUri = "data:text/plain;name=%22a%2Fb%22,x";
+        private const string MediaTypeWithEqualsSignInQuotedValue = "text/plain;name=\"a=b\"";
+        private const string EqualsSignInQuotedValueUri = "data:text/plain;name=%22a%3Db%22,x";
+
         // A media type whose subtype and parameter name are RFC 2045 §5.1 tokens but not RFC 6838 §4.2 restricted names, and the data URI
         // of "x" in it.
         private const string MediaTypeWithRfc2045Tokens = "text/x-a~b;a%b=1";
@@ -158,6 +165,13 @@ namespace DataStandardizer.Communication.Tests.Mime
             "data:;base64,AA%3D%3D",
             "data:;base64,AA\r\nEC",
             "data:;base64,AAEC====",
+        };
+
+        public static TheoryData<string, string> QuotedValuesWithDelimiters => new TheoryData<string, string>
+        {
+            { MediaTypeWithDelimiterInQuotedValue, DelimiterInQuotedValueUri },
+            { MediaTypeWithSolidusInQuotedValue, SolidusInQuotedValueUri },
+            { MediaTypeWithEqualsSignInQuotedValue, EqualsSignInQuotedValueUri },
         };
 
         public static TheoryData<string> CanonicalUris => new TheoryData<string>
@@ -629,27 +643,29 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.MediaType.Should().Be(mediaType);
         }
 
-        [Fact]
-        public void Create_DelimiterInQuotedParameterValue_PercentEncodesIt()
+        [Theory]
+        [MemberData(nameof(QuotedValuesWithDelimiters))]
+        public void Create_DelimiterInQuotedParameterValue_PercentEncodesIt(string mediaTypeText, string expected)
         {
             // arrange
-            var mediaType = MimeMediaType.Parse(MediaTypeWithDelimiterInQuotedValue);
+            var mediaType = MimeMediaType.Parse(mediaTypeText);
 
             // act
             var testResult = MimeDataUri.Create(mediaType, LetterX, false);
 
             // assert
-            testResult.ToString().Should().Be(DelimiterInQuotedValueUri);
+            testResult.ToString().Should().Be(expected);
         }
 
-        [Fact]
-        public void Parse_CreatedWithDelimiterInQuotedParameterValue_KeepsMediaType()
+        [Theory]
+        [MemberData(nameof(QuotedValuesWithDelimiters))]
+        public void Parse_CreatedWithDelimiterInQuotedParameterValue_KeepsMediaType(string mediaTypeText, string uri)
         {
             // arrange
-            var mediaType = MimeMediaType.Parse(MediaTypeWithDelimiterInQuotedValue);
+            var mediaType = MimeMediaType.Parse(mediaTypeText);
 
             // act
-            var testResult = MimeDataUri.Parse(DelimiterInQuotedValueUri);
+            var testResult = MimeDataUri.Parse(uri);
 
             // assert
             testResult.MediaType.Should().Be(mediaType);

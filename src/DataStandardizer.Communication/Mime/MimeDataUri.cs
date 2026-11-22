@@ -97,8 +97,8 @@ namespace DataStandardizer.Communication.Mime
         /// Creates a data URI.
         /// </summary>
         /// <param name="mediaType">The media type of the data. Any character of it that can't appear in a URI, such as the quotes around a
-        /// parameter value, is percent-encoded, as is a <c>/</c>, <c>;</c> or <c>=</c> in a quoted parameter value, which RFC 2397 §3
-        /// would read as a delimiter.</param>
+        /// parameter value, is percent-encoded. So is a <c>;</c> in a quoted parameter value, which RFC 2397 §3 would read as the start of
+        /// the next parameter, and a <c>/</c> or <c>=</c> there, so that a reader that splits on every delimiter reads the value whole.</param>
         /// <param name="data">The data.</param>
         /// <param name="base64"><c>true</c> to write the data in base64; <c>false</c> to percent-encode it, which suits text.</param>
         /// <returns>The data URI, such as <c>data:text/plain;charset=UTF-8,A%20brief%20note</c>.</returns>
@@ -482,6 +482,13 @@ namespace DataStandardizer.Communication.Mime
             mediaType = default(MimeMediaType);
             if (header.IsEmpty) return true;
 
+            // With no escapes and a type, the parts are what the media type parser reads, as a token can't hold a delimiter and a
+            // quoted-string can't be written without escaping its quotes.
+            if (header[0] != ';' && IsUnescapedHeader(header))
+            {
+                return MimeMediaType.TryParse(header, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out mediaType);
+            }
+
             // Decoding only shortens a part, so the decoded media type is no longer than the header and the type that may be put before it.
             var decoded = new char[TextPlain.Length + header.Length];
             var position = 0;
@@ -512,6 +519,19 @@ namespace DataStandardizer.Communication.Mime
 
             // The names are RFC 2045 tokens, which include those that RFC 6838 §4.2 doesn't allow in a registered name.
             return MimeMediaType.TryParse(decoded.AsSpan(0, position), MimeMediaTypeParseOptions.AllowRfc2045Tokens, out mediaType);
+        }
+
+        /// <summary>
+        /// Determine if a media type has no escapes and only characters that may appear unencoded in a URI.
+        /// </summary>
+        private static bool IsUnescapedHeader(ReadOnlySpan<char> header)
+        {
+            foreach (var c in header)
+            {
+                if (c == '%' || !IsDataChar(c)) return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -681,7 +701,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="isQuotedPair">Whether the character is the second of a quoted-pair; updated for the next character.</param>
         /// <remarks>
         /// A comma would end the media type. A <c>/</c>, <c>;</c> or <c>=</c> outside a quoted-string is a delimiter, as a token can't
-        /// hold one, and in a quoted-string it is encoded, as RFC 2397 §3 reads each of them as a delimiter.
+        /// hold one. In a quoted-string, a <c>;</c> is encoded, as RFC 2397 §3 would read it as the start of the next parameter, and so
+        /// are <c>/</c> and <c>=</c>, so that a reader that splits on every delimiter reads the value whole.
         /// </remarks>
         private static bool IsHeaderChar(char c, ref bool inQuotes, ref bool isQuotedPair)
         {
