@@ -129,7 +129,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the bytes of a header as a scanner reads them.  Those of a message that was read are what it read, and the rest are formatted as a writer formats them.
+        /// Gets the bytes of a header as a scanner reads them.  Those of a message that was read are what it read, and the rest are formatted as a writer formats them, with the
+        /// <see cref="ImfOptions.HeaderEncoding"/> of the message.
         /// </summary>
         private static byte[] GetHeaderBytes(ImfMessage message, byte[] lineBreak, out byte[] headerEnd)
         {
@@ -137,7 +138,7 @@ namespace DataStandardizer.File.InternetMessage
             var buffer = new byte[1024];
             foreach (var field in message.Fields)
             {
-                var bytes = field.GetOutput(ImfHeaderEncoding.EncodedWords, lineBreak, ref buffer).ToArray();
+                var bytes = field.GetOutput(message.Options.HeaderEncoding, lineBreak, ref buffer).ToArray();
                 output.Write(bytes, 0, bytes.Length);
             }
 
