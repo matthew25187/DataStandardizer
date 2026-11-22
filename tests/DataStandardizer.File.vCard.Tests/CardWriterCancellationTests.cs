@@ -66,75 +66,91 @@ namespace DataStandardizer.File.vCard.Tests
             FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
         };
 
-        // The way a text writer under XcardWriter's XML writer can report a failure of a write that the XML writer passes on, on every target
-        // framework.  On .NET Framework, an XML writer whose text writer fails a write without waiting completes as though the write succeeded.
-        private static readonly FailureTiming[] YieldingFailureTimings = { FailureTiming.AfterYielding };
-
         // Each asynchronous operation of each writer, over a target that fails with the given exception at the given time.  Each operation
         // reaches the target: VcardWriter writes each line through, XcardWriter's card is longer than its XML writer's buffer, and JcardWriter
-        // writes a card only once it follows another, so a first card is written before the operation.  Each has the ways its target
-        // can report a failure.
-        private static readonly (string Name, FailureTiming[] Timings, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Create)[] TargetOperations =
+        // writes a card only once it follows another, so a first card is written before the operation.  Each has every
+        // way its target can report a failure.
+        private static readonly (string Name, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Create)[] TargetOperations =
         {
-            ("VcardWriter.WriteCardAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("VcardWriter.WriteCardAsync", (createException, timing, onFailure) =>
             {
                 var writer = new VcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardAsync(CreateCard(), token).AsTask();
             }),
-            ("VcardWriter.WriteCardsAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("VcardWriter.WriteCardsAsync", (createException, timing, onFailure) =>
             {
                 var writer = new VcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardsAsync(new[] { CreateCard() }, cancellationToken: token);
             }),
-            ("VcardWriter.WriteCardsAsync from an asynchronous sequence", FailureTimings, (createException, timing, onFailure) =>
+            ("VcardWriter.WriteCardsAsync from an asynchronous sequence", (createException, timing, onFailure) =>
             {
                 var writer = new VcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateCard() }), cancellationToken: token);
             }),
-            ("VcardWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("VcardWriter.FlushAsync", (createException, timing, onFailure) =>
             {
                 var writer = new VcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.FlushAsync(token);
             }),
-            ("JcardWriter.WriteCardAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("JcardWriter.WriteCardAsync", (createException, timing, onFailure) =>
             {
                 var writer = new JcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 writer.WriteCard(CreateCard());
                 return token => writer.WriteCardAsync(CreateCard(), token).AsTask();
             }),
-            ("JcardWriter.WriteCardsAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("JcardWriter.WriteCardsAsync", (createException, timing, onFailure) =>
             {
                 var writer = new JcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 writer.WriteCard(CreateCard());
                 return token => writer.WriteCardsAsync(new[] { CreateCard() }, cancellationToken: token);
             }),
-            ("JcardWriter.WriteCardsAsync from an asynchronous sequence", FailureTimings, (createException, timing, onFailure) =>
+            ("JcardWriter.WriteCardsAsync from an asynchronous sequence", (createException, timing, onFailure) =>
             {
                 var writer = new JcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 writer.WriteCard(CreateCard());
                 return token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateCard() }), cancellationToken: token);
             }),
-            ("JcardWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("JcardWriter.FlushAsync", (createException, timing, onFailure) =>
             {
                 var writer = new JcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 return token => writer.FlushAsync(token);
             }),
-            ("XcardWriter.WriteCardAsync", YieldingFailureTimings, (createException, timing, onFailure) =>
+            ("XcardWriter.WriteCardAsync", (createException, timing, onFailure) =>
             {
                 var writer = new XcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardAsync(CreateLongCard(), token).AsTask();
             }),
-            ("XcardWriter.WriteCardsAsync", YieldingFailureTimings, (createException, timing, onFailure) =>
+            ("XcardWriter.WriteCardsAsync", (createException, timing, onFailure) =>
             {
                 var writer = new XcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardsAsync(new[] { CreateLongCard() }, cancellationToken: token);
             }),
-            ("XcardWriter.WriteCardsAsync from an asynchronous sequence", YieldingFailureTimings, (createException, timing, onFailure) =>
+            ("XcardWriter.WriteCardsAsync from an asynchronous sequence", (createException, timing, onFailure) =>
             {
                 var writer = new XcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCard() }), cancellationToken: token);
             }),
-            ("XcardWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("XcardWriter.WriteCardAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCardAsync(CreateLongCard(), token).AsTask();
+            }),
+            ("XcardWriter.WriteCardsAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCardsAsync(new[] { CreateLongCard() }, cancellationToken: token);
+            }),
+            ("XcardWriter.WriteCardsAsync from an asynchronous sequence to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCard() }), cancellationToken: token);
+            }),
+            ("XcardWriter.FlushAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcardWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.FlushAsync(token);
+            }),
+            ("XcardWriter.FlushAsync", (createException, timing, onFailure) =>
             {
                 var writer = new XcardWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.FlushAsync(token);
@@ -166,9 +182,9 @@ namespace DataStandardizer.File.vCard.Tests
                 ("another, canceled token", () => new OperationCanceledException(new CancellationToken(true))),
             };
             var data = new TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming, Func<Exception>, Type>();
-            foreach (var (name, timings, create) in TargetOperations)
+            foreach (var (name, create) in TargetOperations)
             {
-                foreach (var timing in timings)
+                foreach (var timing in FailureTimings)
                 {
                     foreach (var (exceptionName, createException) in exceptions)
                     {
@@ -185,9 +201,9 @@ namespace DataStandardizer.File.vCard.Tests
         public static TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming> TargetFailures()
         {
             var data = new TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming>();
-            foreach (var (name, timings, create) in TargetOperations)
+            foreach (var (name, create) in TargetOperations)
             {
-                foreach (var timing in timings)
+                foreach (var timing in FailureTimings)
                 {
                     data.Add(name + ", " + timing, Deferring(create), timing);
                 }

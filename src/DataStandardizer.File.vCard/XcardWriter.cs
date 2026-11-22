@@ -4,6 +4,9 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Xml;
+#if NETSTANDARD2_0_OR_GREATER
+using DataStandardizer.File.ContentLine;
+#endif
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
 using System.Threading.Tasks;
 #endif
@@ -165,8 +168,14 @@ namespace DataStandardizer.File.vCard
         /// Creates a writer of xCard data to an XML writer, which may be writing a larger document.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The <c>vcards</c> element is written at the XML writer's current position, and ended when the writer is disposed.  The XML writer's settings apply, such as its
         /// indentation.
+        /// </para>
+        /// <para>
+        /// On .NET Framework, an asynchronous XML writer treats a write that its output cancels before returning as though it succeeded, and the
+        /// writer can only report what the XML writer does.  The constructors that take a stream or a text writer guard against this.
+        /// </para>
         /// </remarks>
         /// <param name="writer">The XML writer.  It is neither flushed nor closed when the writer is disposed.  For the asynchronous members, its
         /// <see cref="XmlWriterSettings.Async"/> setting must be <c>true</c>.</param>
@@ -179,8 +188,14 @@ namespace DataStandardizer.File.vCard
         /// Creates a writer of xCard data to an XML writer, which may be writing a larger document.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The <c>vcards</c> element is written at the XML writer's current position, and ended when the writer is disposed.  The XML writer's settings apply, such as its
         /// indentation.
+        /// </para>
+        /// <para>
+        /// On .NET Framework, an asynchronous XML writer treats a write that its output cancels before returning as though it succeeded, and the
+        /// writer can only report what the XML writer does.  The constructors that take a stream or a text writer guard against this.
+        /// </para>
         /// </remarks>
         /// <param name="writer">The XML writer.  It is neither flushed nor closed when the writer is disposed.  For the asynchronous members, its
         /// <see cref="XmlWriterSettings.Async"/> setting must be <c>true</c>.</param>
@@ -1098,6 +1113,11 @@ namespace DataStandardizer.File.vCard
             if (!stream.CanWrite)
                 throw new ArgumentException("Expected a stream supporting write.", "xcardStream");
 
+#if NETSTANDARD2_0_OR_GREATER
+            // System.Xml from the .NET Framework reference source, on .NET Framework, Mono or Unity, would lose a cancellation from the output
+            // (XmlOutputCancellation).  It does nothing on .NET (Core).
+            stream = new XmlOutputStream(stream);
+#endif
             return XmlWriter.Create(stream, CreateSettings(options, options.Encoding ?? DefaultEncoding, false));
         }
 
@@ -1132,6 +1152,11 @@ namespace DataStandardizer.File.vCard
             if (options.Encoding != null)
                 throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(options));
 
+#if NETSTANDARD2_0_OR_GREATER
+            // System.Xml from the .NET Framework reference source, on .NET Framework, Mono or Unity, would lose a cancellation from the output
+            // (XmlOutputCancellation).  It does nothing on .NET (Core).
+            writer = new XmlOutputTextWriter(writer);
+#endif
             return XmlWriter.Create(writer, CreateSettings(options, DefaultEncoding, false));
         }
 

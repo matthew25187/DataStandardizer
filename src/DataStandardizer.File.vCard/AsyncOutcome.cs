@@ -2,6 +2,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+#if NETSTANDARD2_0_OR_GREATER
+using DataStandardizer.File.ContentLine;
+#endif
 
 namespace DataStandardizer.File.vCard
 {
@@ -19,6 +22,10 @@ namespace DataStandardizer.File.vCard
     /// operation's async core catches every exception and returns the task that the operation completes as, its outcome, and the operation
     /// returns that task through <see cref="Unwrap(ValueTask{Task})"/>.
     /// </para>
+    /// <para>
+    /// On the <c>netstandard2.x</c> builds, an exception that an XML writer's output carried across System.Xml in an
+    /// <c>XmlOutputCanceledException</c> is reported as the exception the output failed with.
+    /// </para>
     /// </remarks>
     internal static class AsyncOutcome
     {
@@ -31,6 +38,9 @@ namespace DataStandardizer.File.vCard
         /// <returns>A canceled task if the operation is canceled; otherwise a task faulted with <paramref name="exception"/>.</returns>
         internal static Task Fail(Exception exception, CancellationToken cancellationToken, ref bool isCanceled)
         {
+#if NETSTANDARD2_0_OR_GREATER
+            exception = XmlOutputCancellation.Unwrap(exception);
+#endif
             if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
             {
                 isCanceled = true;
@@ -94,7 +104,11 @@ namespace DataStandardizer.File.vCard
             catch (Exception exception)
             {
                 _ = outcome.Exception;
+#if NETSTANDARD2_0_OR_GREATER
+                return Task.FromException(XmlOutputCancellation.Unwrap(exception));
+#else
                 return Task.FromException(exception);
+#endif
             }
 
             return outcome;
