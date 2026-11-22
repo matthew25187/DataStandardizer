@@ -24,6 +24,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private const int SmallBlock = 3;
 
+        // ref. RFC 2046 §5.1.1: the line "--abcX" starts with the boundary "abc".
+        private const string BoundaryPrefixLine = "Content-Type: multipart/mixed; boundary=abc\r\n\r\n--abc\r\n\r\nline one\r\n--abcX\r\nline three\r\n--abc--";
+
+        // The start of the line "--abcX" in BoundaryPrefixLine, worked out by hand: 45 octets of the Content-Type line, 2 of the empty line, 7 of
+        // "--abc", 2 of the empty line and 10 of "line one".
+        private const long BoundaryPrefixLinePosition = 66;
+        private const long BoundaryPrefixLineNumber = 6;
+
         // Enough levels to overflow the stack, if each level took a stack frame.
         private const int VeryDeep = 20000;
         private const int ManyCandidates = 100000;
@@ -60,6 +68,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // ref. RFC 2046 §5.1.1: body-part := MIME-part-headers [CRLF *OCTET], and the delimiter has a CRLF of its own, so the fields need an empty line.
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1\r\n--b--", "1" },
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n--b--", "1" },
+
+            // ref. RFC 2046 §5.1.1: no line of the content a boundary encloses starts with its delimiter, unless it is a delimiter.
+            { BoundaryPrefixLine, "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA: 1\r\n--bX: 2\r\n\r\nx\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\nSubject: s\r\n--bX: 2\r\n\r\nx\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\n--bX\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--X\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b x\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--bc\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b-\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--bX\r\n--b\r\n\r\nx\r\n--b--", "" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\n--bX\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\n\r\nx\r\n--b1--\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=a\r\n\r\n--a\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--\r\n--aX\r\n--a--", "1" },
 
             // ref. RFC 2045 §3: at most one of each.
             { "Content-Type: text/plain\r\nContent-Type: text/plain\r\n\r\n", "" },
@@ -134,18 +156,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "Content-Type: message/global-disposition-notification\r\nContent-Transfer-Encoding: base64\r\n\r\nQTox", "A:1" },
         };
 
-        // A line one octet too long to be a delimiter line, which stays in the body.  Its padding is made here, as it is too long to write out.
-        public static TheoryData<string, string[]> DelimiterLinesTooLong => new TheoryData<string, string[]>
+        // A line one octet too long to be a delimiter line, which starts with the boundary all the same.  Its padding is made here, as it is too long
+        // to write out.
+        public static TheoryData<string> DelimiterLinesTooLong => new TheoryData<string>
         {
-            {
-                LongMessages.DelimiterLineWithPadding(LongestDelimiterPadding + 1),
-                new[]
-                {
-                    "start /", "field / Content-Type", "type / multipart/mixed",
-                    "start 1", "type 1 text/plain", "body 1 [x\r\n--b" + new string(' ', LongestDelimiterPadding + 1) + "\r\n\r\ny]", "end 1",
-                    "end /"
-                }
-            },
+            LongMessages.DelimiterLineWithPadding(LongestDelimiterPadding + 1),
         };
 
         public static TheoryData<string> InvalidEncodedBodies => new TheoryData<string>
@@ -306,6 +321,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadEvent_NoCloseDelimiterBeforeAnOuterDelimiterThatStartsWithTheInnerBoundary_ThrowsWithTheOption()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: the line "--b1" is content of the open part of "b", so the option doesn't let it start with "--b")
+            const string message = "Content-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b1\r\n\r\ny\r\n--b1--";
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowMissingBoundaryTerminator = true }))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+            }
+        }
+
+        [Fact]
         public void ReadEvent_NoDelimiterAtAll_WithTheOptionIsAllPreamble()
         {
             // arrange
@@ -381,17 +411,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadEvent_BareLineFeedAfterABoundary_IsNotADelimiter()
+        public void ReadEvent_BareLineFeedAfterABoundary_Throws()
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\ny\r\n--b--\nz\r\n--b--";
             using (var reader = EntityEvents.CreateReader(message, EntityEvents.AnyOctetsOptions))
             {
                 // act
-                var testResult = EntityEvents.ReadOutline(reader);
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
 
                 // assert
-                testResult.Should().Equal("start /", "field / Content-Type", "type / multipart/mixed", "start 1", "type 1 text/plain", "body 1 [x\r\n--b\ny\r\n--b--\nz]", "end 1", "end /");
+                testAction.Should().Throw<ImfFileException>();
             }
         }
 
@@ -433,7 +463,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_LineFeedIsLineBreak_ReadsLineFeedsAsTheContainerFormatsDo()
         {
             // arrange
-            const string message = "Content-Type: multipart/mixed; boundary=b\n\n--b\n\nx\r\n--b\r\ny\n--b--\nz\n";
+            const string message = "Content-Type: multipart/mixed; boundary=b\n\n--b\n\nx\r\n-b\r\ny\n--b--\nz\n";
             using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowMissingMimeVersion = true }, SmallBlock, true))
             {
                 // act
@@ -442,7 +472,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 // assert
                 testResult.Should().Equal(
                     "start /", "field / Content-Type", "type / multipart/mixed",
-                    "start 1", "type 1 text/plain", "body 1 [x\r\n--b\r\ny]", "end 1",
+                    "start 1", "type 1 text/plain", "body 1 [x\r\n-b\r\ny]", "end 1",
                     "epilogue / [z\n]", "end /");
             }
         }
@@ -467,16 +497,62 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(DelimiterLinesTooLong))]
-        public void ReadEvent_DelimiterLineTooLong_IsNotADelimiter(string message, string[] expected)
+        public void ReadEvent_DelimiterLineTooLong_Throws(string message)
         {
             // arrange
             using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowLongLines = true }, SmallBlock, false))
             {
                 // act
-                var testResult = EntityEvents.ReadOutline(reader);
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
 
                 // assert
-                testResult.Should().Equal(expected);
+                testAction.Should().Throw<ImfFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_LineThatStartsWithTheBoundary_ThrowsAtThatLine()
+        {
+            // arrange
+            using (var reader = EntityEvents.CreateReader(BoundaryPrefixLine))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.BytePosition].Should().Be(BoundaryPrefixLinePosition);
+                exception.Data[ImfFileException.DataItemName.LineNumber].Should().Be(BoundaryPrefixLineNumber);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_LineThatStartsWithTheBoundaryOneByteAtATime_Throws()
+        {
+            // arrange
+            var stream = new BlockStream(Octets.Of(BoundaryPrefixLine), BlockStreamMode.SynchronousOnly, 1, 1);
+            using (var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions, 1, false))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_LineFeedIsLineBreakAndALineThatStartsWithTheBoundary_Throws()
+        {
+            // arrange
+            const string message = "Content-Type: multipart/mixed; boundary=b\n\n--b\n\nx\r\n--b\r\ny\n--b--\n";
+            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowMissingMimeVersion = true }, SmallBlock, true))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
             }
         }
 
