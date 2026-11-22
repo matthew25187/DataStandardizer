@@ -236,12 +236,22 @@ namespace DataStandardizer.File.InternetMessage
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _maxNestingDepth = options.MaxNestingDepth;
             _maxPartCount = options.MaxPartCount;
-            _quotedPrintableDecoder = new MimeQuotedPrintableDecoder(
-                MimeQuotedPrintableMode.Body,
-                options.AcceptBareLineFeed || lineFeedIsLineBreak ? MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds : MimeQuotedPrintableDecoderOptions.None);
+            _quotedPrintableDecoder = new MimeQuotedPrintableDecoder(MimeQuotedPrintableMode.Body, GetQuotedPrintableOptions(options, lineFeedIsLineBreak));
 
             _frames.Add(new Frame { IsMessage = true });
             _entitiesRead = 1;
+        }
+
+        /// <summary>
+        /// Gets the options a quoted-printable body is decoded with: bare line feeds as the reading options or the container format accept them, and long lines
+        /// (RFC 2045 §6.7 rule 5) when <see cref="ImfOptions.AllowLongLines"/> is set.
+        /// </summary>
+        internal static MimeQuotedPrintableDecoderOptions GetQuotedPrintableOptions(ImfOptions options, bool lineFeedIsLineBreak)
+        {
+            var result = options.AcceptBareLineFeed || lineFeedIsLineBreak ? MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds : MimeQuotedPrintableDecoderOptions.None;
+            if (options.AllowLongLines) result |= MimeQuotedPrintableDecoderOptions.AllowLongLines;
+
+            return result;
         }
 
         /// <summary>

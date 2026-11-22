@@ -38,6 +38,18 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string LineOf75Letters = LineOf74Letters + "a";
         private const string LineOf73Letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" + "aaaaaaaaaaaaa";
         private const string SoftLineBreak = "=\r\n";
+
+        // ref. RFC 2045 §6.7 rule 5: an encoded line, without its transport padding and CRLF, is at most 76 characters.
+        private const int MaxLineLength = 76;
+
+        // The longest run of spaces and tabs a decoder with AllowLongLines holds before it knows whether a line break follows; the line
+        // limit of RFC 5322 §2.1.1.
+        private const int MaxHeldWhitespace = 998;
+
+        // Lengths of transport padding longer than a line: the 78 of a line padded to 80 columns after "Hi", and longer runs.
+        private const int PaddingTo80Columns = 78;
+        private const int LongPadding = 200;
+        private const int PaddingLongerThanHeld = 2000;
         private const string LineBreak = "\r\n";
 
         // Shorter than a full line, so the encoder writes them as they are.
@@ -225,29 +237,33 @@ namespace DataStandardizer.Communication.Tests.Mime
         // at every point.
         public static IEnumerable<object[]> RunOf75WhitespaceSplits()
         {
-            var encoded = new string(' ', 75) + "a";
+            var encoded = new string(' ', MaxLineLength - 1) + "a";
             for (var split = 0; split <= encoded.Length; split++)
             {
                 yield return new object[] { encoded.Substring(0, split), encoded.Substring(split), Latin1Encoding.GetBytes(encoded) };
             }
         }
 
-        // Transport padding longer than a line, after a letter and after a soft line break, each split into two at every point, with what
-        // it decodes to; ref. RFC 2045 §6.7 rule 3.
+        // Transport padding longer than a line, after a letter and after a soft line break, each split into two at every point, with and
+        // without AllowLongLines, with what it decodes to; ref. RFC 2045 §6.7 rule 3.
         public static IEnumerable<object[]> LongTransportPaddingSplits()
         {
             var values = new[]
             {
-                ("Hi" + new string(' ', 78) + "\r\nthere", "Hi\r\nthere"),
-                ("a=" + new string('\t', 100) + "\r\nb", "ab"),
-                (LineOf76Letters + new string(' ', 200) + "\r\n", LineOf76Letters + "\r\n"),
+                ("Hi" + new string(' ', PaddingTo80Columns) + "\r\nthere", "Hi\r\nthere"),
+                ("a=" + new string('\t', LongPadding) + "\r\nb", "ab"),
+                (LineOf76Letters + new string(' ', LongPadding) + "\r\n", LineOf76Letters + "\r\n"),
+                ("a" + new string(' ', PaddingLongerThanHeld) + "\r\nb", "a\r\nb"),
             };
 
             foreach (var (encoded, decoded) in values)
             {
-                for (var split = 0; split <= encoded.Length; split++)
+                foreach (var options in new[] { Strict, LongLines })
                 {
-                    yield return new object[] { encoded.Substring(0, split), encoded.Substring(split), Latin1Encoding.GetBytes(decoded) };
+                    for (var split = 0; split <= encoded.Length; split++)
+                    {
+                        yield return new object[] { options, encoded.Substring(0, split), encoded.Substring(split), Latin1Encoding.GetBytes(decoded) };
+                    }
                 }
             }
         }
@@ -317,19 +333,30 @@ namespace DataStandardizer.Communication.Tests.Mime
                     yield return new object[] { encoded, options, position };
                 }
             }
+
+            // With AllowLongLines, a run of whitespace longer than the decoder holds, followed by data.
+            foreach (var options in new[] { LongLines, EveryLeniency })
+            {
+                yield return new object[] { new string(' ', MaxHeldWhitespace + 1) + "a", options, MaxHeldWhitespace + 1 };
+            }
         }
 
         // Lines longer than RFC 2045 §6.7 rule 5 allows, with the position of the character that makes the line too long, and what each
         // decodes to with AllowLongLines.
         private static IEnumerable<(string Encoded, int Position, string Decoded)> LongLineValues()
         {
-            yield return (LineOf77Letters, 76, LineOf77Letters);
-            yield return (LineOf76Letters + "=\r\nb", 76, LineOf76Letters + "b");
-            yield return (LineOf74Letters + "=3D", 76, LineOf74Letters + "=");
-            yield return ("a\r\n" + LineOf77Letters, 79, "a\r\n" + LineOf77Letters);
-            yield return (new string(' ', 77) + "a", 77, new string(' ', 77) + "a");
-            yield return (new string('a', 30) + new string(' ', 76) + "a", 106, new string('a', 30) + new string(' ', 76) + "a");
-            yield return ("a" + new string('\t', 200) + "b" + new string(' ', 200) + "\r\n", 201, "a" + new string('\t', 200) + "b\r\n");
+            var spacesBeyondLine = new string(' ', MaxLineLength + 1);
+            var thirtyLettersAndALineOfSpaces = new string('a', 30) + new string(' ', MaxLineLength) + "a";
+            var tabsBetweenLetters = "a" + new string('\t', LongPadding) + "b";
+            var heldWhitespace = new string(' ', MaxHeldWhitespace) + "a";
+            yield return (LineOf77Letters, MaxLineLength, LineOf77Letters);
+            yield return (LineOf76Letters + "=\r\nb", MaxLineLength, LineOf76Letters + "b");
+            yield return (LineOf74Letters + "=3D", MaxLineLength, LineOf74Letters + "=");
+            yield return ("a\r\n" + LineOf77Letters, "a\r\n".Length + MaxLineLength, "a\r\n" + LineOf77Letters);
+            yield return (spacesBeyondLine + "a", spacesBeyondLine.Length, spacesBeyondLine + "a");
+            yield return (thirtyLettersAndALineOfSpaces, thirtyLettersAndALineOfSpaces.Length - 1, thirtyLettersAndALineOfSpaces);
+            yield return (tabsBetweenLetters + new string(' ', LongPadding) + "\r\n", tabsBetweenLetters.Length - 1, tabsBetweenLetters + "\r\n");
+            yield return (heldWhitespace, heldWhitespace.Length - 1, heldWhitespace);
         }
 
         // Lines longer than RFC 2045 §6.7 rule 5 allows, each split into two at every point, with what they decode to with AllowLongLines.
@@ -1041,29 +1068,32 @@ namespace DataStandardizer.Communication.Tests.Mime
             // arrange
             var decoder = new MimeQuotedPrintableDecoder(Body);
             var destination = new byte[expected.Length];
-            decoder.Decode(first.AsSpan(), destination, out _, out var firstWritten, false);
 
             // act
+            var firstResult = decoder.Decode(first.AsSpan(), destination, out _, out var firstWritten, false);
             var testResult = decoder.Decode(second.AsSpan(), destination.AsSpan(firstWritten), out _, out _, true);
 
             // assert
+            firstResult.Should().Be(OperationStatus.Done);
             testResult.Should().Be(OperationStatus.Done);
             destination.Should().Equal(expected);
         }
 
         [Theory]
         [MemberData(nameof(LongTransportPaddingSplits))]
-        public void Decode_TransportPaddingLongerThanALineSplitAtAnyPoint_IsRemoved(string first, string second, byte[] expected)
+        public void Decode_TransportPaddingLongerThanALineSplitAtAnyPoint_IsRemoved(MimeQuotedPrintableDecoderOptions options, string first,
+            string second, byte[] expected)
         {
             // arrange
-            var decoder = new MimeQuotedPrintableDecoder(Body);
+            var decoder = new MimeQuotedPrintableDecoder(Body, options);
             var destination = new byte[expected.Length];
-            decoder.Decode(first.AsSpan(), destination, out _, out var firstWritten, false);
 
             // act
+            var firstResult = decoder.Decode(first.AsSpan(), destination, out _, out var firstWritten, false);
             var testResult = decoder.Decode(second.AsSpan(), destination.AsSpan(firstWritten), out _, out _, true);
 
             // assert
+            firstResult.Should().Be(OperationStatus.Done);
             testResult.Should().Be(OperationStatus.Done);
             destination.Should().Equal(expected);
         }
@@ -1096,12 +1126,13 @@ namespace DataStandardizer.Communication.Tests.Mime
             // arrange
             var decoder = new MimeQuotedPrintableDecoder(Body, LongLines);
             var destination = new byte[expected.Length];
-            decoder.Decode(first.AsSpan(), destination, out _, out var firstWritten, false);
 
             // act
+            var firstResult = decoder.Decode(first.AsSpan(), destination, out _, out var firstWritten, false);
             var testResult = decoder.Decode(second.AsSpan(), destination.AsSpan(firstWritten), out _, out _, true);
 
             // assert
+            firstResult.Should().Be(OperationStatus.Done);
             testResult.Should().Be(OperationStatus.Done);
             destination.Should().Equal(expected);
         }

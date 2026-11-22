@@ -298,7 +298,13 @@ namespace DataStandardizer.Communication.Mime
 
                 // The whitespace is followed by something other than a line break, so it is part of the data and of the line. ref.
                 // RFC 2045 §6.7 rule 5: the line, with this unit, is at most 76 characters.
-                if (!_allowLongLines && _lineLength + _whitespaceCount >= MimeQuotedPrintable.MaxLineLength) return OperationStatus.InvalidData;
+                // With long lines allowed, a run longer than the decoder holds is not valid either.
+                if (_allowLongLines
+                    ? _whitespaceCount > MimeQuotedPrintable.MaxHeldWhitespace
+                    : _lineLength + _whitespaceCount >= MimeQuotedPrintable.MaxLineLength)
+                {
+                    return OperationStatus.InvalidData;
+                }
 
                 while (_whitespaceCount > 0)
                 {
@@ -356,10 +362,11 @@ namespace DataStandardizer.Communication.Mime
         private OperationStatus AddWhitespace(int unit)
         {
             // ref. RFC 2045 §6.7 rule 3: transport padding may be of any length. A run that no longer fits on the line can only be
-            // padding, so the rest of it is counted but not kept, and it is not valid if anything but a line break follows it.
-            if (!_allowLongLines && _lineLength + _whitespaceCount >= MimeQuotedPrintable.MaxLineLength)
+            // padding, so the rest of it is counted but not kept, and it is not valid if anything but a line break follows it. With long
+            // lines allowed, the run is kept up to MaxHeldWhitespace, so the decoder's memory stays bounded.
+            if (IsWhitespaceRunFull())
             {
-                if (_whitespaceCount <= MimeQuotedPrintable.MaxLineLength) _whitespaceCount++;
+                if (_whitespaceCount <= MimeQuotedPrintable.MaxHeldWhitespace) _whitespaceCount++;
 
                 return OperationStatus.Done;
             }
@@ -368,7 +375,7 @@ namespace DataStandardizer.Communication.Mime
             {
                 if (_whitespaceStart == 0)
                 {
-                    Array.Resize(ref _whitespace, _whitespace.Length * 2);
+                    Array.Resize(ref _whitespace, Math.Min(_whitespace.Length * 2, MimeQuotedPrintable.MaxHeldWhitespace));
                 }
                 else
                 {
@@ -379,6 +386,15 @@ namespace DataStandardizer.Communication.Mime
 
             _whitespace[_whitespaceStart + _whitespaceCount++] = (byte)unit;
             return OperationStatus.Done;
+        }
+
+        // Whether the run of whitespace can't be part of the data: with a unit after it, the line would be longer than 76 characters, or
+        // with long lines allowed, the run is longer than the decoder holds.
+        private bool IsWhitespaceRunFull()
+        {
+            return _allowLongLines
+                ? _whitespaceCount >= MimeQuotedPrintable.MaxHeldWhitespace
+                : _lineLength + _whitespaceCount >= MimeQuotedPrintable.MaxLineLength;
         }
 
         private void ClearWhitespace()

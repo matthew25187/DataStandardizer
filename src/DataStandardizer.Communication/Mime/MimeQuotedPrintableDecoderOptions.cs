@@ -47,8 +47,9 @@ namespace DataStandardizer.Communication.Mime
         /// <remarks>
         /// RFC 2045 §6.7 rule 5 requires that an encoded line, without its transport padding and CRLF, be at most 76 characters long,
         /// and note (5) says a robust decoder might decode longer lines. The option is also for data whose soft line breaks have already
-        /// been removed, such as a vCard 2.1 value that has been unfolded. The "Q" modes have no lines, so this option has no effect on
-        /// them.
+        /// been removed, such as a vCard 2.1 value that has been unfolded. So that the decoder holds a bounded amount of data, a run of
+        /// more than 998 spaces and tabs (the line limit of RFC 5322 §2.1.1) is still not valid unless a line break follows it. The "Q"
+        /// modes have no lines, so this option has no effect on them.
         /// </remarks>
         AllowLongLines = 8,
     }
