@@ -163,7 +163,7 @@ namespace DataStandardizer.Communication.Mime
                 var subtype = Subtype;
                 if (MimeGrammar.StartsWithIgnoreCase(subtype, "vnd.")) return MimeRegistrationTree.Vendor;
                 if (MimeGrammar.StartsWithIgnoreCase(subtype, "prs.")) return MimeRegistrationTree.Personal;
-                if (MimeGrammar.StartsWithIgnoreCase(subtype, "x.") || MimeGrammar.StartsWithIgnoreCase(subtype, "x-")) return MimeRegistrationTree.Unregistered;
+                if (MimeGrammar.StartsWithIgnoreCase(subtype, "x.")) return MimeRegistrationTree.Unregistered;
 
                 return MimeRegistrationTree.Standards;
             }

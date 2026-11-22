@@ -24,7 +24,7 @@ public enum MimeRegistrationTree
 
 | Field | Value | Meaning |
 | --- | --- | --- |
-| `Standards` | 0 | No prefix, such as `text/plain` (RFC 6838 §3.1). |
+| `Standards` | 0 | No facet prefix, such as `text/plain` (RFC 6838 §3.1). Subtypes that start with `x-`, such as `application/x-www-form-urlencoded`, are here too (RFC 6838 §3.4). |
 | `Vendor` | 1 | The prefix `vnd.`, such as `application/vnd.ms-excel` (RFC 6838 §3.2). |
 | `Personal` | 2 | The prefix `prs.` (RFC 6838 §3.3). |
-| `Unregistered` | 3 | The prefix `x.`, or `x-` for types made before RFC 6838 (RFC 6838 §3.4). |
+| `Unregistered` | 3 | The prefix `x.` (RFC 6838 §3.4). |
