@@ -14,8 +14,8 @@ namespace DataStandardizer.File.ContentLine
     /// <para>
     /// The System.Xml of .NET Framework, which Mono, and so Unity, build from the same reference source, treats a task as a successful write
     /// when it has completed and has no exception, which a canceled task never has.  Its own async methods await the output, and the async
-    /// method builder cancels their tasks for an <see cref="OperationCanceledException"/>, so any cancellation from the output that completes before the call returns, whether the output
-    /// throws it, returns a task faulted with it, or returns a task that has already been canceled, is lost one level up, and the XML writer
+    /// method builder cancels their tasks for an <see cref="OperationCanceledException"/>, so any cancellation from the output that completes
+    /// before the call returns, whether the output throws it, returns a task faulted with it, or returns a task that has already been canceled, is lost one level up, and the XML writer
     /// carries on as though the write succeeded.  .NET (Core) checks for successful completion instead, and the <c>net10.0</c> build writes to its
     /// output directly.
     /// </para>
