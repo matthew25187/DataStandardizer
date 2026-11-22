@@ -6,7 +6,7 @@ namespace DataStandardizer.Communication.Mime
     public enum MimeRegistrationTree
     {
         /// <summary>
-        /// The standards tree, whose subtypes have no facet prefix, such as <c>text/plain</c> (RFC 6838 §3.1). This includes subtypes that start with <c>x-</c>, which are no longer in the unregistered tree (RFC 6838 §3.4).
+        /// The standards tree, whose subtypes have no facet prefix, such as <c>text/plain</c> (RFC 6838 §3.1). A subtype that starts with <c>x-</c> has no facet prefix, so it is reported here too; RFC 6838 §3.4 takes such subtypes out of the unregistered tree, but that does not make them registrations in the standards tree.
         /// </summary>
         Standards = 0,
 
