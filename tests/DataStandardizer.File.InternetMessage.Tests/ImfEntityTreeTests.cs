@@ -1466,11 +1466,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
             testResult.Should().Be("Subject: New\r\n\r\nbody");
         }
 
-        [Fact]
-        public void Body_NewUtf8FieldAndUtf8HeaderEncoding_IsRead()
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void Body_NewUtf8FieldWithEitherHeaderEncoding_IsRead(ImfHeaderEncoding encoding)
         {
-            // arrange (ref. RFC 6532 §3.2: a field body may hold UTF-8)
-            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 });
+            // arrange (ref. RFC 6532 §3.2: a reader accepts a field body in UTF-8, and HeaderEncoding is for a writer)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = encoding });
 
             // act
             var testResult = EntityTrees.ContentOf(subject.Body);
@@ -1479,24 +1481,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
             testResult.Should().Be(Utf8RawBody);
         }
 
-        [Fact]
-        public void Body_NewUtf8FieldAndDefaultHeaderEncoding_Throws()
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void Validate_NewUtf8FieldWithEitherHeaderEncoding_ReportsNothing(ImfHeaderEncoding encoding)
         {
-            // arrange (ref. RFC 5322 §2.2: a field body is US-ASCII)
-            var subject = NewMessageWithUtf8Field(new ImfOptions());
-
-            // act
-            Action testAction = () => _ = subject.Body;
-
-            // assert
-            testAction.Should().Throw<ImfFileException>();
-        }
-
-        [Fact]
-        public void Validate_NewUtf8FieldAndUtf8HeaderEncoding_ReportsNothing()
-        {
-            // arrange
-            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 });
+            // arrange (ref. RFC 6532 §3.2)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = encoding });
 
             // act
             var testResult = subject.Validate();
@@ -1505,18 +1496,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
             testResult.Should().BeEmpty();
         }
 
-        [Fact]
-        public void WriteMessage_NewUtf8FieldAndUtf8HeaderEncoding_WritesItAsUtf8()
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void WriteMessage_NewUtf8FieldAndUtf8Writer_WritesItAsUtf8(ImfHeaderEncoding messageEncoding)
         {
-            // arrange
-            var options = new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 };
-            var subject = NewMessageWithUtf8Field(options);
+            // arrange (ref. RFC 6532 §3.2)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = messageEncoding });
 
             // act
-            var testResult = EntityTrees.Write(subject, options);
+            var testResult = EntityTrees.Write(subject, new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 });
 
             // assert
             testResult.Should().Be(Utf8FieldMessage);
+        }
+
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void WriteMessage_NewUtf8FieldAndDefaultWriter_Throws(ImfHeaderEncoding messageEncoding)
+        {
+            // arrange (ref. RFC 5322 §2.2: a field body is US-ASCII)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = messageEncoding });
+
+            // act
+            Action testAction = () => EntityTrees.Write(subject, new ImfOptions());
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
         }
 
         /// <summary>

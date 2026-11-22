@@ -113,7 +113,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfEntity.ContentType"/>.
         /// </para>
         /// </remarks>
-        /// <exception cref="ImfFileException">On get: <see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
+        /// <exception cref="ImfFileException">On get: <see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept; or the body hasn't been read,
+        /// and a field in <see cref="Fields"/> can't be written with any <see cref="ImfOptions.HeaderEncoding"/>, such as one whose body holds a control character.</exception>
         /// <exception cref="ArgumentNullException">On set: the value is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">On set: the entity holds this message.</exception>
         /// <exception cref="InvalidOperationException">On set: the entity is already the body of a message or a part of a multipart entity.</exception>

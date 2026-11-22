@@ -129,16 +129,19 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the bytes of a header as a scanner reads them.  Those of a message that was read are what it read, and the rest are formatted as a writer formats them, with the
-        /// <see cref="ImfOptions.HeaderEncoding"/> of the message.
+        /// Gets the bytes of a header as a scanner reads them.  Those of a message that was read are what it read, and the rest are formatted as a writer formats them.
         /// </summary>
+        /// <remarks>
+        /// The rest are formatted as UTF-8 (RFC 6532), which a reader accepts whatever the options.  <see cref="ImfOptions.HeaderEncoding"/> is the writer's to apply, as each writer
+        /// formats the fields again with its own; and the scanner needs only the MIME fields from these bytes, as the message keeps its own fields.
+        /// </remarks>
         private static byte[] GetHeaderBytes(ImfMessage message, byte[] lineBreak, out byte[] headerEnd)
         {
             var output = new MemoryStream();
             var buffer = new byte[1024];
             foreach (var field in message.Fields)
             {
-                var bytes = field.GetOutput(message.Options.HeaderEncoding, lineBreak, ref buffer).ToArray();
+                var bytes = field.GetOutput(ImfHeaderEncoding.Utf8, lineBreak, ref buffer).ToArray();
                 output.Write(bytes, 0, bytes.Length);
             }
 
