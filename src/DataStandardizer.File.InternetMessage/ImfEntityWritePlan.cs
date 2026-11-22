@@ -82,7 +82,7 @@ namespace DataStandardizer.File.InternetMessage
         private const string EntityPathOfMessage = "";
         private const int MaxBoundaryAttempts = 16;
 
-        private const string LineBreakDataMessage = "The line breaks of the message are changed, and a CR or LF in the content of an entity that isn't text is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1), which an identity transfer encoding would let the change alter.  Its TransferEncoding must be quoted-printable or base64.";
+        private const string LineBreakDataMessage = "The line breaks of the message are changed, and a CR or LF in the content of an entity that isn't text is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1), which an identity transfer encoding would let the change alter.  Its transfer encoding, from its TransferEncoding or a Content-Transfer-Encoding field, must be quoted-printable or base64.";
 
         // ref. RFC 2046 §5.1.1: boundary := 0*69<bchars> bcharsnospace
         private const int MaxBoundaryLength = 70;
