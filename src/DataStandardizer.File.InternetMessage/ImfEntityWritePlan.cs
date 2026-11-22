@@ -930,9 +930,11 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase)) return true;
 
-            // ref. RFC 6532 §3.7: message/global may have any transfer encoding.
+            // ref. RFC 6532 §3.7: message/global may have any transfer encoding.  RFC 6533 §6.3, §6.4 and §6.5 allow quoted-printable and base64 on
+            // message/global-headers, message/global-delivery-status and message/global-disposition-notification.
             return string.Equals(contentType.Type, MimeTopLevelTypes.Message, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(contentType.Subtype, "global", StringComparison.OrdinalIgnoreCase);
+                && !string.Equals(contentType.Subtype, "global", StringComparison.OrdinalIgnoreCase)
+                && !ImfEntityScanner.IsRfc6533Subtype(contentType.Subtype);
         }
 
         private static bool IsTextType(MimeMediaType contentType)

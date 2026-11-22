@@ -39,7 +39,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// A multipart entity or embedded message gets the identity encoding that covers what it holds (RFC 2045 §6.4), so one with an <c>8bit</c> part is labelled
     /// <c>8bit</c>.  Such an entity has no encoding of its own, so a body of content with a multipart or message type can only be given an identity encoding,
-    /// except <c>message/global</c> (RFC 6532 §3.7).
+    /// except <c>message/global</c> (RFC 6532 §3.7), and <c>message/global-headers</c>, <c>message/global-delivery-status</c> and
+    /// <c>message/global-disposition-notification</c>, which may also be <c>quoted-printable</c> or <c>base64</c> (RFC 6533 §6.3, §6.4 and §6.5).
     /// </para>
     /// <para>
     /// <b>Boundaries.</b>  A boundary that was not given is random, 34 characters from the RFC 2046 §5.1.1 <c>bchars</c>, and holds <c>=_</c>, which

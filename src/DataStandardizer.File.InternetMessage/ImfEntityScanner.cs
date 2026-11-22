@@ -70,6 +70,7 @@ namespace DataStandardizer.File.InternetMessage
             internal const string BoundaryMissing = "A multipart entity requires a boundary parameter (RFC 2046 §5.1.1).";
             internal const string CloseWithoutPart = "Found the close delimiter of a multipart entity with no parts.  RFC 2046 §5.1.1 requires at least one.";
             internal const string CompositeEncodingTemplate = "The transfer encoding '{0}' is not allowed on a '{1}' entity, which may use only 7bit, 8bit or binary (RFC 2045 §6.4).";
+            internal const string Rfc6533EncodingTemplate = "The transfer encoding '{0}' is not allowed on a '{1}' entity, which may use only 7bit, 8bit, binary, quoted-printable or base64 (RFC 2045 §6.4, RFC 6533 §6.3, §6.4 and §6.5).";
             internal const string ContentTypeDuplicate = "The header section has more than one Content-Type field (RFC 2045 §3).";
             internal const string ContentTypeInvalid = "The Content-Type field is not valid (RFC 2045 §5.1).";
             internal const string InvalidBase64 = "The body is not valid base64 (RFC 2045 §6.8).";
@@ -148,6 +149,9 @@ namespace DataStandardizer.File.InternetMessage
         private const string DigestSubtype = "digest";
         private const string ExternalBodySubtype = "external-body";
         private const string GlobalSubtype = "global";
+        private const string GlobalDeliveryStatusSubtype = "global-delivery-status";
+        private const string GlobalDispositionNotificationSubtype = "global-disposition-notification";
+        private const string GlobalHeadersSubtype = "global-headers";
         private const string PartialSubtype = "partial";
         private const string Rfc822Subtype = "rfc822";
 
@@ -759,9 +763,14 @@ namespace DataStandardizer.File.InternetMessage
                 }
 
                 // ref. RFC 6532 §3.7: unlike the other message types, message/global may have any transfer encoding, so it can only be followed
-                // when that leaves the embedded message readable.
+                // when that leaves the embedded message readable.  RFC 6533 §6.3, §6.4 and §6.5 allow quoted-printable and base64 on the types it
+                // defines too.
                 var isGlobal = EqualsIgnoreCase(subtype, GlobalSubtype);
-                if (!isGlobal)
+                if (IsRfc6533Subtype(subtype))
+                {
+                    CheckRfc6533Encoding(frame);
+                }
+                else if (!isGlobal)
                 {
                     CheckCompositeEncoding(frame);
                 }
@@ -782,6 +791,25 @@ namespace DataStandardizer.File.InternetMessage
 
             var parent = _frames[_frames.Count - 2];
             return EqualsIgnoreCase(parent.ContentType.Type, MimeTopLevelTypes.Multipart) && EqualsIgnoreCase(parent.ContentType.Subtype, DigestSubtype);
+        }
+
+        /// <summary>
+        /// Determines if a subtype of <c>message</c> is one that RFC 6533 §6.3, §6.4 and §6.5 allow to be <c>quoted-printable</c> or <c>base64</c>, as well
+        /// as an identity encoding.
+        /// </summary>
+        internal static bool IsRfc6533Subtype(string subtype)
+        {
+            return EqualsIgnoreCase(subtype, GlobalHeadersSubtype)
+                || EqualsIgnoreCase(subtype, GlobalDeliveryStatusSubtype)
+                || EqualsIgnoreCase(subtype, GlobalDispositionNotificationSubtype);
+        }
+
+        private void CheckRfc6533Encoding(Frame frame)
+        {
+            // ref. RFC 6533 §6.3, §6.4 and §6.5: quoted-printable or base64, besides the identity encodings of RFC 2045 §6.4.
+            var encoding = frame.TransferEncoding;
+            if (!encoding.IsIdentity && encoding != MimeTransferEncoding.QuotedPrintable && encoding != MimeTransferEncoding.Base64)
+                throw BuildError(string.Format(ErrorMessage.Rfc6533EncodingTemplate, encoding.Name, frame.ContentType.Type + "/" + frame.ContentType.Subtype));
         }
 
         private void CheckCompositeEncoding(Frame frame)
