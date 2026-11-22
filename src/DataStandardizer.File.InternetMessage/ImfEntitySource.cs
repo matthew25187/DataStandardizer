@@ -143,6 +143,13 @@ namespace DataStandardizer.File.InternetMessage
         internal bool IsPreserved { get; set; }
 
         /// <summary>
+        /// Gets or sets a flag indicating that the entity was read somewhere other than where it is written: a part that was moved, or the body of a message that wasn't read
+        /// in the entity that now holds it.  A reader found no delimiter of the boundaries around that other place in what it kept, which says nothing about the boundaries
+        /// around this one, so the writer checks what is kept in it, and below it, against all of them.
+        /// </summary>
+        internal bool IsReadElsewhere { get; set; }
+
+        /// <summary>
         /// Gets or sets a flag indicating that raw bytes that were read hold a header that has since changed, so what holds them can't go by the label it was read with (RFC 2045 §6.4).
         /// </summary>
         internal bool HasChangedHeader { get; set; }

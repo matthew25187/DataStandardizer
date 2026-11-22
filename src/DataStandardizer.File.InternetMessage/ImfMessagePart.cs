@@ -119,7 +119,10 @@ namespace DataStandardizer.File.InternetMessage
             if (!IsMessageType(contentType))
                 throw new ImfFileException("The Content-Type field of an entity that holds a message must be message/rfc822 or message/global.");
 
-            var source = ImfEntitySource.FromMessage(contentType, GetMessageSource(options, lineBreak, boundaryGenerator));
+            // A message that wasn't read in this entity was read on its own, or in another, so nothing in it was checked against the boundaries around this one.
+            var messageSource = GetMessageSource(options, lineBreak, boundaryGenerator);
+            messageSource.IsReadElsewhere |= !IsRead || !ReferenceEquals(_message, _readMessage);
+            var source = ImfEntitySource.FromMessage(contentType, messageSource);
             AddFields(source, options.HeaderEncoding, lineBreak, null);
             if (IsRead)
             {
