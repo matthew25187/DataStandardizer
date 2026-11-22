@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Numerics;
 using DataStandardizer.FloatingPoint;
 
 namespace DataStandardizer.File.InternetMessage
@@ -18,6 +19,12 @@ namespace DataStandardizer.File.InternetMessage
         private const int DecimalBase = 10;
         private const int HexBase = 16;
         private const string HexPrefix = "0x";
+
+        /// <summary>
+        /// The most hexadecimal digits, after leading zeros, that a value within the range of a <see cref="double"/> has, as 16^256 = 2^1024.
+        /// </summary>
+        private const int MaxSignificantHexDigits = 256;
+
         private const string NaNText = "nan";
         private const string NegativeInfinityText = "-infinity";
         private const string PositiveInfinityText = "+infinity";
@@ -328,13 +335,21 @@ namespace DataStandardizer.File.InternetMessage
                 return NearestDoubleParser.TryParse(Text.AsSpan(), out value) && KeepIfFinite(ref value);
 
             value = 0;
-            for (var index = HexPrefix.Length; index < Text.Length; index++)
+            var start = HexPrefix.Length;
+            while (start < Text.Length && Text[start] == '0') start++;
+
+            // Past this many significant digits the value is at least 2^1024, beyond the range of a double.
+            if (Text.Length - start > MaxSignificantHexDigits) return false;
+
+            // Sum the digits exactly and round once, so that the result is the nearest double, as it is for a decimal integer.
+            var exact = BigInteger.Zero;
+            for (var index = start; index < Text.Length; index++)
             {
                 var character = Text[index];
-                value = (value * HexBase) + (character <= '9' ? character - '0' : (char.ToLowerInvariant(character) - 'a') + DecimalBase);
+                exact = (exact * HexBase) + (character <= '9' ? character - '0' : (char.ToLowerInvariant(character) - 'a') + DecimalBase);
             }
 
-            return KeepIfFinite(ref value);
+            return NearestDoubleParser.TryParse(exact.ToString(CultureInfo.InvariantCulture).AsSpan(), out value) && KeepIfFinite(ref value);
         }
 
         private static bool KeepIfFinite(ref double value)

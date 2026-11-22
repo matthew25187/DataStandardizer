@@ -166,6 +166,63 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// </summary>
         private const long TwoToThe64PlusFourThousandNinetySixBits = 0x43F0000000000001;
 
+        /// <summary>
+        /// 2^65 + 4352, more than halfway between 2^65 and the double above it, 2^65 + 8192, in hexadecimal (#1104).
+        /// </summary>
+        private const string AboveHalfwayHexIntegerText = "0x" + AboveHalfwayHexDigits;
+
+        /// <summary>
+        /// The digits of <see cref="AboveHalfwayHexIntegerText"/>, without the <c>0x</c> prefix.
+        /// </summary>
+        private const string AboveHalfwayHexDigits = "20000000000001100";
+
+        /// <summary>
+        /// 2^65 + 4096, exactly halfway between 2^65 and 2^65 + 8192, in hexadecimal.  The tie goes to 2^65, whose significand is even.
+        /// </summary>
+        private const string HalfwayHexIntegerText = "0x20000000000001000";
+
+        /// <summary>
+        /// The bits of 2^65.
+        /// </summary>
+        private const long TwoToThe65Bits = 0x4400000000000000;
+
+        /// <summary>
+        /// The bits of 2^65 + 8192, the double above 2^65.
+        /// </summary>
+        private const long TwoToThe65PlusEightThousandOneHundredNinetyTwoBits = 0x4400000000000001;
+
+        /// <summary>
+        /// The significant hexadecimal digits of <see cref="double.MaxValue"/>, (2^53 - 1) * 2^971, before its 242 trailing zeros.
+        /// </summary>
+        private const string MaxDoubleHexDigits = "FFFFFFFFFFFFF8";
+
+        /// <summary>
+        /// The significant hexadecimal digits of halfway between <see cref="double.MaxValue"/> and 2^1024, before its 242 trailing zeros.  The
+        /// tie goes to 2^1024, past the range of a double.
+        /// </summary>
+        private const string HalfwayAboveMaxDoubleHexDigits = "FFFFFFFFFFFFFC";
+
+        /// <summary>
+        /// The number of zeros after the significant digits of <see cref="MaxDoubleHexDigits"/> and <see cref="HalfwayAboveMaxDoubleHexDigits"/>,
+        /// which brings each to 256 digits, the most that a double holds.
+        /// </summary>
+        private const int MaxDoubleHexTrailingZeros = 242;
+
+        /// <summary>
+        /// The bits of <see cref="double.MaxValue"/>.
+        /// </summary>
+        private const long MaxDoubleBits = 0x7FEFFFFFFFFFFFFF;
+
+        /// <summary>
+        /// More leading zeros than the 256 significant hexadecimal digits that a double holds.
+        /// </summary>
+        private const int ManyLeadingZeros = 300;
+
+        /// <summary>
+        /// The zeros after the 1 of 2^1024 = 16^256 in hexadecimal, one digit more than a double holds.
+        /// </summary>
+        private const int TwoToThe1024HexZeros = 256;
+
         // The expected doubles are their bits, so that negative zero differs from positive zero, and so that xUnit on .NET Framework doesn't
         // serialize a double in a theory row with that runtime's "R".
         public static TheoryData<string, string, long> NearestRealCases => new TheoryData<string, string, long>
@@ -181,11 +238,22 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "decimal point with no digits before it", ".5", BitConverter.DoubleToInt64Bits(0.5) },
         };
 
+        public static TheoryData<string, string, long> LargeIntegerCases => new TheoryData<string, string, long>
+        {
+            { "decimal, just above halfway", JustAboveHalfwayIntegerText, TwoToThe64PlusFourThousandNinetySixBits },
+            { "hexadecimal, above halfway", AboveHalfwayHexIntegerText, TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
+            { "hexadecimal, halfway, ties to even", HalfwayHexIntegerText, TwoToThe65Bits },
+            { "hexadecimal, leading zeros", "0x" + new string('0', ManyLeadingZeros) + AboveHalfwayHexDigits, TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
+            { "hexadecimal, largest double", "0x" + MaxDoubleHexDigits + new string('0', MaxDoubleHexTrailingZeros), MaxDoubleBits },
+        };
+
         public static TheoryData<EmlxPlistValueKind, string> NumbersPastTheRange => new TheoryData<EmlxPlistValueKind, string>
         {
             { EmlxPlistValueKind.Real, "1e999" },
             { EmlxPlistValueKind.Integer, new string('9', 400) },
             { EmlxPlistValueKind.Integer, "0x" + new string('F', 300) },
+            { EmlxPlistValueKind.Integer, "0x1" + new string('0', TwoToThe1024HexZeros) },
+            { EmlxPlistValueKind.Integer, "0x" + HalfwayAboveMaxDoubleHexDigits + new string('0', MaxDoubleHexTrailingZeros) },
         };
 
         public static TheoryData<string> LenientFiles => new TheoryData<string>
@@ -961,18 +1029,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
             BitConverter.DoubleToInt64Bits(value).Should().Be(expectedBits);
         }
 
-        [Fact]
-        public void TryGetDouble_IntegerTooLargeForInt64_GivesTheNearestDoubleOnEveryTarget()
+        [Theory]
+        [MemberData(nameof(LargeIntegerCases))]
+        public void TryGetDouble_IntegerTooLargeForInt64_GivesTheNearestDoubleOnEveryTarget(string scenario, string text, long expectedBits)
         {
             // arrange
-            var subject = EmlxPlistValue.CreateScalar(EmlxPlistValueKind.Integer, JustAboveHalfwayIntegerText);
+            _ = scenario;
+            var subject = EmlxPlistValue.CreateScalar(EmlxPlistValueKind.Integer, text);
 
             // act
             var testResult = subject.TryGetDouble(out var value);
 
             // assert
             testResult.Should().BeTrue();
-            BitConverter.DoubleToInt64Bits(value).Should().Be(TwoToThe64PlusFourThousandNinetySixBits);
+            BitConverter.DoubleToInt64Bits(value).Should().Be(expectedBits);
         }
 
         [Theory]
