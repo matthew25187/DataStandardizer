@@ -39,8 +39,10 @@ value as a token if it is one, or otherwise as a quoted-string. A value that isn
 US-ASCII, or that has a language, is written as an RFC 2231 extended value.
 
 **Equality.** The type, subtype and parameter names are compared case-insensitively.
-Parameter values are compared case-sensitively, except for the value of `charset`. The
-order of the parameters doesn't matter.
+Parameter values are compared case-sensitively, except for the value of `charset`
+(RFC 2046 §4.1.2), and in `message/external-body` the values of `access-type` and
+`permission` (RFC 2046 §5.2.3.1), and of `mode` when the access-type is `ftp`, `anon-ftp`
+or `tftp` (RFC 2046 §5.2.3.2 and §5.2.3.3). The order of the parameters doesn't matter.
 
 See [Use media types](../how-to/use-media-types.md).
 

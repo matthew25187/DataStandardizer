@@ -1,6 +1,19 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "d1b4b6928ccb76cbf16c5d5338edfd2365f14a17": {
+      "subject": "MimeParameter compares access-type values case-insensitively, accepts apostrophes in quoted extended values, and formats a default instance as empty (#1153)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`MimeMediaTypeParseOptions.AllowQuotedExtendedValues` accepts an apostrophe in the value, as its docs say"
+        },
+        {
+          "category": "fixed",
+          "text": "`default(MimeParameter).TryFormat` and `FormatSections` no longer throw"
+        }
+      ]
+    },
     "abe9eb3be659272c7bda2efb15b69ce67eb146cb": {
       "subject": "ISO 3166-2 subdivision lookups return null for a code with a trailing line feed (#1068)",
       "notes": []
