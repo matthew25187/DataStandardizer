@@ -353,7 +353,8 @@ namespace DataStandardizer.File.InternetMessage
             if (!string.Equals(contentType.Type, MimeTopLevelTypes.Text, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only an entity of the top-level type text has text.");
 
-            return DecodeText(GetContent(), GetCharset(contentType));
+            var charset = GetCharset(contentType);
+            return DecodeText(GetContent(), charset);
         }
 
         /// <summary>

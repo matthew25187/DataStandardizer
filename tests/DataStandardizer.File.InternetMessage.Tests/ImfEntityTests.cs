@@ -30,13 +30,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string NoContentType = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\n\r\nplain";
         private const string EightBitWithNoCharset = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\n\r\ncaf\x00E9";
         private const string UnknownCharset = Header + "Content-Type: text/plain; charset=x-no-such-charset\r\n\r\nplain";
-        private const string HtmlWithCharset = Header + "Content-Type: text/html; charset=us-ascii\r\n\r\n<p>x</p>";
+        private const string HtmlText = "<p>x</p>";
+        private const string XmlText = "<a/>";
+        private const string HtmlWithCharset = Header + "Content-Type: text/html; charset=us-ascii\r\n\r\n" + HtmlText;
 
         // ref. RFC 6657 §3: these types have no default character set.  HTML and XML give it within the text (HTML Living Standard §16.1.2, RFC 7303 §3.2), and text/markdown
         // requires the charset parameter (RFC 7763 §2).
-        private const string HtmlWithNoCharset = Header + "Content-Type: text/html\r\n\r\n<p>x</p>";
-        private const string XmlWithNoCharset = Header + "Content-Type: text/xml\r\n\r\n<a/>";
-        private const string XmlExternalParsedEntityWithNoCharset = Header + "Content-Type: text/xml-external-parsed-entity\r\n\r\n<a/>";
+        private const string HtmlWithNoCharset = Header + "Content-Type: text/html\r\n\r\n" + HtmlText;
+        private const string XmlWithNoCharset = Header + "Content-Type: text/xml\r\n\r\n" + XmlText;
+        private const string XmlExternalParsedEntityWithNoCharset = Header + "Content-Type: text/xml-external-parsed-entity\r\n\r\n" + XmlText;
         private const string MarkdownWithNoCharset = Header + "Content-Type: text/markdown\r\n\r\n# x";
 
         // ref. RFC 7303 §3.2, XML 1.0 §4.3.3: the encoding declaration says the text is UTF-8, and "ü" is the octets C3 BC.
@@ -98,7 +100,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { MimeShapes.TextOnly, Cafe + "\r\n" },
             { Latin1EightBit, Cafe },
             { NoContentType, "plain" },
-            { HtmlWithCharset, "<p>x</p>" },
+            { HtmlWithCharset, HtmlText },
         };
 
         public static TheoryData<string> TextsWithNoKnownCharset => new TheoryData<string>
