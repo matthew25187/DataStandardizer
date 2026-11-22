@@ -91,8 +91,9 @@ namespace DataStandardizer.Communication.Mime
         /// A word that holds whole characters is decoded by itself. The unfinished part of a character is at most 3 octets, as a character
         /// is at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3). Each word in a run of such words is
         /// read in the state that the words before it leave: the byte order of UTF-16 or UTF-32 given by a byte order mark at the start of
-        /// the run (RFC 2781 §3.2), or the mode of a character set of the ISO/IEC 2022 family, such as ISO-2022-JP (RFC 1468). A word that
-        /// ends partway through a character in such a character set may end outside ASCII mode, but the run must end in it (RFC 2047 §3).
+        /// the run (RFC 2781 §3.2), or the mode of a character set of the ISO/IEC 2022 family, such as ISO-2022-JP (RFC 1468): the sets
+        /// designated to G0 and G1, and which of them is shifted in. A word that ends partway through a character or an escape sequence in
+        /// such a character set may end outside ASCII mode, but a word of whole characters, and the run, must end in it (RFC 2047 §3).
         /// The octets of the run are then decoded together. If a run doesn't finish its last character, or its octets aren't valid
         /// together, its first word is decoded by itself, as it is without this option, and the words after it are read again.
         /// </para>

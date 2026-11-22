@@ -1262,16 +1262,23 @@ namespace DataStandardizer.Communication.Mime
             carried.CopyTo(octets, stateOctets.Length);
             Array.Copy(wordOctets, 0, octets, stateOctets.Length + carried.Count, wordOctets.Length);
 
-            var isIso2022 = IsIso2022(charset);
+            // ref. RFC 2047 §3: octets that end partway through a character or an escape sequence can't have switched back to ASCII mode. In
+            // ISO/IEC 2022, the mode they leave carries into the next word with the rest of the character; the chain must still end in
+            // ASCII mode. A word of whole characters must end in ASCII mode, as it must without AllowSplitCharacters.
+            var allowOtherMode = false;
             for (var carryLength = 0; carryLength <= MaxCarriedOctets && carryLength <= carried.Count + wordOctets.Length; carryLength++)
             {
                 var decoded = new byte[octets.Length - carryLength];
                 Array.Copy(octets, decoded, decoded.Length);
+                if (!TryDecodeOctets(charset, decoded, options, charsetResolver, carryLength == 0 || !allowOtherMode, out text))
+                {
+                    if (carryLength == 0)
+                    {
+                        allowOtherMode = IsIso2022(charset) && EndsPartwayThrough(charset, octets, stateOctets.Length, options, charsetResolver);
+                    }
 
-                // ref. RFC 2047 §3: octets that end partway through a character can't have switched back to ASCII mode. In ISO/IEC 2022,
-                // the mode they leave carries into the next word with the rest of the character; the chain must still end in ASCII mode.
-                var requireAsciiMode = carryLength == 0 || !isIso2022;
-                if (!TryDecodeOctets(charset, decoded, options, charsetResolver, requireAsciiMode, out text)) continue;
+                    continue;
+                }
 
                 // A chain that goes on needs the state its octets leave the decoder in, which octets that end partway through an escape
                 // sequence leave unknown.
@@ -1291,6 +1298,18 @@ namespace DataStandardizer.Communication.Mime
 
             text = string.Empty;
             return false;
+        }
+
+        // Indicates whether ISO/IEC 2022 octets, after the octets of the state they are read in, end partway through a character, so that
+        // they aren't valid even outside ASCII mode, or partway through an escape sequence.
+        private static bool EndsPartwayThrough(MimeCharset charset, byte[] octets, int stateLength, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver)
+        {
+            string text;
+            if (!TryDecodeOctets(charset, octets, options, charsetResolver, false, out text)) return true;
+
+            var mode = Iso2022Mode.Initial;
+            return !mode.TryRead(octets, stateLength, octets.Length - stateLength);
         }
 
         private static void DecodeWord(Segment segment, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver)
@@ -1460,7 +1479,9 @@ namespace DataStandardizer.Communication.Mime
         /// ref. ECMA-35, which is ISO/IEC 2022: an escape sequence is ESC, any intermediate bytes 0x20 to 0x2F, and a final byte 0x30 to
         /// 0x7E. ESC ( F designates a 94-character set to G0, and ESC $ F and ESC $ ( F a multiple-byte one; ESC ) F and ESC $ ) F designate
         /// them to G1. SO invokes G1 and SI invokes G0. RFC 1468: in ISO-2022-JP, ESC ( B designates ASCII, and ESC ( J, ESC $ @ and ESC $ B
-        /// the other sets. The octets start with ASCII designated to G0, nothing designated to G1, and G0 invoked.
+        /// the other sets. The octets start with ASCII designated to G0, nothing designated to G1, and G0 invoked. The G2 and G3 designations
+        /// and single shifts of ISO-2022-JP-2 (RFC 1554) and ISO-2022-CN (RFC 1922) aren't kept, so a character split between words after
+        /// one of them isn't joined; the words are then decoded by themselves.
         /// </remarks>
         private struct Iso2022Mode
         {

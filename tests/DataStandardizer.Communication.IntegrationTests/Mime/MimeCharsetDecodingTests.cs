@@ -40,6 +40,17 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         private const string Iso2022KrHangulSplitShiftedOut = "=?ISO-2022-KR?B?GyQpQw4w?= =?ISO-2022-KR?B?IQ8=?=";
         private const string Iso2022KrHangul = "\xAC00";
 
+        // ref. RFC 1468 and RFC 2047 §3: the first word, 1B 24 42 30 6C, holds a whole U+4E00 but ends in JIS X 0208 mode, so it stays as
+        // it is, and the second, 30 6C 1B 28 42, starts in ASCII mode, where it is "0l".
+        private const string Iso2022JpWholeKanjiEndingInJisMode = "=?ISO-2022-JP?B?GyRCMGw=?= =?ISO-2022-JP?B?MGwbKEI=?=";
+        private const string Iso2022JpWholeKanjiEndingInJisModeText = "=?ISO-2022-JP?B?GyRCMGw=?= 0l";
+
+        // The split inputs above with each word decoded by itself: a word that ends partway through a character or an escape sequence
+        // stays as it is, and the rest of the character is read in ASCII mode.
+        private const string Iso2022JpKanjiSplitInJisModeWordByWord = "=?ISO-2022-JP?B?GyRCMGww?= l";
+        private const string Iso2022JpEscapeSequenceSplitWordByWord = "=?ISO-2022-JP?B?GyQ=?= B0l";
+        private const string Iso2022KrHangulSplitShiftedOutWordByWord = "=?ISO-2022-KR?B?GyQpQw4w?= !";
+
         // ref. RFC 1468: ESC $ @ switches ISO-2022-JP to JIS C 6226-1978, where 0x467C 0x4B5C is U+65E5 U+672C, which ISO-2022-JP writes
         // with ESC $ B instead.
         private const string Iso2022JpJisC6226Parameter = "t/s;n*=iso-2022-jp''%1B%24%40%46%7C%4B%5C%1B%28%42";
@@ -120,6 +131,36 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
 
             // assert
             testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(Iso2022JpKanjiSplitInJisMode, Iso2022JpKanjiSplitInJisModeWordByWord)]
+        [InlineData(Iso2022JpEscapeSequenceSplit, Iso2022JpEscapeSequenceSplitWordByWord)]
+        [InlineData(Iso2022KrHangulSplitShiftedOut, Iso2022KrHangulSplitShiftedOutWordByWord)]
+        public void DecodeText_Iso2022CharacterSplit_DecodesEachWordByItself(string value, string expected)
+        {
+            // arrange
+            CodePageProvider.Register();
+
+            // act
+            var testResult = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void DecodeText_Iso2022WholeCharactersEndingInJisModeWithAllowSplitCharacters_LeavesWordAsWritten()
+        {
+            // arrange
+            CodePageProvider.Register();
+
+            // act
+            var testResult = MimeEncodedWord.DecodeText(Iso2022JpWholeKanjiEndingInJisMode, MimeEncodedWordContext.Text,
+                MimeEncodedWordParseOptions.AllowSplitCharacters, MimeCharsetResolver.Default);
+
+            // assert
+            testResult.Should().Be(Iso2022JpWholeKanjiEndingInJisModeText);
         }
 
         [Fact]
