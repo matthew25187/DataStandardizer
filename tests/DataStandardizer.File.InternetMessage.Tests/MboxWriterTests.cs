@@ -69,6 +69,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 3501 §6.4.5: the parts of a multipart message body are numbered from 1.
         private const string FirstPartPath = "1";
         private const string SecondPartPath = "2";
+        private const string DataFileName = "a.bin";
+        private const string DataMediaType = "application/octet-stream";
+
+        // Content of seven-bit octets whose LF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it in a file of LF if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithLineFeed = { 0x61, 0x0A, 0x62 };
         private const string SecondMessageInFile = Separator + Header + "\ntwo\n\n";
         private const string TwoDistinctMessagesInFile = MessageInFile + SecondMessageInFile;
         private const string ExtensionEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: x-private\r\n\r\nx\r\n";
@@ -712,6 +717,68 @@ namespace DataStandardizer.File.InternetMessage.Tests
             ((ImfMultipart)message.Body).Parts.Add(part);
             var output = new MemoryStream();
             using (var subject = new ImfWriter(output, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_CrLfFileWithAPartOfSevenBitOctetsWithLineFeedAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var written = Mailboxes.WriteOne(Envelope, message, MboxVariant.Mboxrd, MboxLineBreak.CarriageReturnLineFeed);
+            var body = (ImfMultipart)Mailboxes.ReadFirst(written, options: AllowCrLf).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartOfSevenBitOctetsWithLineFeedAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, new ImfOptions()))
+            {
+                writer.WriteMessage(message);
+            }
+
+            var body = (ImfMultipart)Mailboxes.ReadMessage(Octets.ToText(output.ToArray())).Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartWithLineFeedLabelledSevenBitAddedToAMessageFromAMailbox_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions()))
             {
                 // act
                 Action testAction = () => subject.WriteMessage(message);

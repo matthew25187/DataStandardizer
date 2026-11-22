@@ -44,7 +44,11 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
     /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), whose line breaks may not be line breaks, can't change like that, which causes an
     /// <see cref="ImfFileException"/>.  The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when
-    /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body that would have had it is encoded instead.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
+    /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body that would have had it is encoded instead.
+    /// Nor does it give the <c>7bit</c> or <c>8bit</c> transfer encoding to a body that holds a CR or LF and isn't of a <c>text</c>, <c>message</c> or <c>multipart</c> type, as a CR or
+    /// LF there is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1).  Such a body is encoded too, and one whose <see cref="ImfEntity.ContentTransferEncoding"/> asks for <c>7bit</c> or
+    /// <c>8bit</c> causes an <see cref="ImfFileException"/>.
+    /// Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
     /// A message that another message holds, in a <c>message/rfc822</c> or <c>message/global</c> entity such as one being forwarded, and that has other line breaks than the one that holds it, changes in the same way, under the same rules.
     /// </para>
     /// <para>
@@ -151,7 +155,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules, or for the writer of a container format that changes
         /// the line breaks of what it writes.  When <paramref name="lineBreaksChange"/> is <c>true</c>, so that the change doesn't alter any data, the writer labels no entity
-        /// <c>binary</c> (RFC 2045 §2.9), and refuses a message that has one.
+        /// <c>binary</c> (RFC 2045 §2.9), and refuses a message that has one.  Nor does it label <c>7bit</c> or <c>8bit</c> a body whose CR and LF octets are data, and it refuses
+        /// one that asks for that.
         /// </summary>
         internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator, ImfConformanceProfile profile)
             : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, lineBreaksChange, boundaryGenerator, profile)

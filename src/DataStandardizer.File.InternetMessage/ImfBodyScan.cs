@@ -193,6 +193,11 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal bool HasBareLineBreak => _hasBareLineBreak;
 
+        /// <summary>
+        /// Gets a flag indicating that the bytes hold a CR or LF.
+        /// </summary>
+        internal bool HasLineBreakOctet => _lineBreakBytes > 0;
+
         private long TotalLength => _literalBytes + _otherBytes + _lineBreakBytes;
 
         /// <summary>
