@@ -931,6 +931,14 @@ namespace DataStandardizer.Communication.Mime
         private static bool TryDecodeOctets(MimeCharset charset, byte[] octets, MimeEncodedWordParseOptions options,
             IMimeCharsetResolver charsetResolver, out string text)
         {
+            return TryDecodeOctets(charset, octets, options, charsetResolver, true, out text);
+        }
+
+        // Decodes octets in a character set. Unless requireAsciiMode is false, which only the first part of a character split between words
+        // asks for, the octets must also leave the character set in ASCII mode.
+        private static bool TryDecodeOctets(MimeCharset charset, byte[] octets, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver, bool requireAsciiMode, out string text)
+        {
 #if NETCOREAPP3_0_OR_GREATER
             Encoding? encoding;
 #else
@@ -943,7 +951,7 @@ namespace DataStandardizer.Communication.Mime
                 if (!MimeExtendedParameter.TryGetString(encoding, octets, octets.Length, allowInvalidOctets, out text)) return false;
 
                 // ref. RFC 2047 §3: a word that switches out of ASCII mode must switch back to it by its end, whatever its octets.
-                return EndsInAsciiMode(charset, encoding, octets, allowInvalidOctets ? null : text);
+                return !requireAsciiMode || EndsInAsciiMode(charset, encoding, octets, allowInvalidOctets ? null : text);
             }
 
             if ((options & MimeEncodedWordParseOptions.AllowUnknownCharsets) == 0)
@@ -995,48 +1003,11 @@ namespace DataStandardizer.Communication.Mime
                 charset.Name.StartsWith("csISO2022", StringComparison.OrdinalIgnoreCase);
         }
 
-        // Indicates whether ISO/IEC 2022 octets end with ASCII designated to G0 and G0 shifted in, as they start (ref. ECMA-35, which is
-        // ISO/IEC 2022: an escape sequence is ESC, any intermediate bytes 0x20 to 0x2F, and a final byte 0x30 to 0x7E; ESC ( F designates a
-        // 94-character set to G0, and ESC $ F and ESC $ ( F a multiple-byte one; SO invokes G1 and SI invokes G0. RFC 1468: in ISO-2022-JP,
-        // ESC ( B designates ASCII, and ESC ( J, ESC $ @ and ESC $ B the other sets.)
+        // Indicates whether ISO/IEC 2022 octets end with ASCII designated to G0 and G0 shifted in, as they start.
         private static bool EndsWithIso2022Ascii(byte[] octets)
         {
-            var isAsciiDesignated = true;
-            var isShiftedOut = false;
-            for (var index = 0; index < octets.Length; index++)
-            {
-                switch (octets[index])
-                {
-                    case ShiftOut:
-                        isShiftedOut = true;
-                        break;
-                    case ShiftIn:
-                        isShiftedOut = false;
-                        break;
-                    case Escape:
-                        var final = index + 1;
-                        while (final < octets.Length && octets[final] >= 0x20 && octets[final] <= 0x2F) final++;
-
-                        // An escape sequence cut off at the end leaves the mode unknown.
-                        if (final >= octets.Length) return false;
-
-                        var intermediateCount = final - index - 1;
-                        if (intermediateCount == 1 && octets[index + 1] == (byte)'(')
-                        {
-                            isAsciiDesignated = octets[final] == (byte)'B';
-                        }
-                        else if ((intermediateCount == 1 && octets[index + 1] == (byte)'$') ||
-                            (intermediateCount == 2 && octets[index + 1] == (byte)'$' && octets[index + 2] == (byte)'('))
-                        {
-                            isAsciiDesignated = false;
-                        }
-
-                        index = final;
-                        break;
-                }
-            }
-
-            return isAsciiDesignated && !isShiftedOut;
+            var mode = Iso2022Mode.Initial;
+            return mode.TryRead(octets, 0, octets.Length) && mode.IsAscii;
         }
 
         private static string DecodeTextCore(ReadOnlySpan<char> text, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,
@@ -1189,13 +1160,15 @@ namespace DataStandardizer.Communication.Mime
 
         // Decodes the text of each encoded word. A word that ends partway through a character starts a chain of words, separated only by
         // whitespace and with the same character set and language, each of which carries the octets of the unfinished character into the
-        // next. Once a word finishes the last character, the octets of the whole chain are decoded together, so that the state of the
-        // decoder, such as the byte order given by a byte order mark, carries across the words.
+        // next. Each word is read in the state that the words before it in the chain leave the decoder in, such as the byte order given by a
+        // byte order mark or the mode of ISO-2022-JP, so that its octets are split into characters the same way as when the chain is read
+        // whole. Once a word finishes the last character, the octets of the whole chain are decoded together.
         private static void DecodeSplitCharacters(List<Segment> segments, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver)
         {
             var strictOptions = options & ~MimeEncodedWordParseOptions.AllowInvalidOctets;
             var chainOctets = new List<byte>();
             var carried = new List<byte>(MaxCarriedOctets);
+            var state = new SplitCharacterState();
 
             // The first word of the chain, or -1 if there is none, and the last word in it.
             var chainStart = -1;
@@ -1219,7 +1192,8 @@ namespace DataStandardizer.Communication.Mime
                 {
                     if (segment != null && segment.Kind == SegmentKind.Word)
                     {
-                        if (!TryCarry(segment, carried, strictOptions, charsetResolver, out text))
+                        state.Reset();
+                        if (!TryCarry(segment, carried, state, strictOptions, charsetResolver, out text))
                         {
                             DecodeWord(segment, options, charsetResolver);
                         }
@@ -1239,7 +1213,7 @@ namespace DataStandardizer.Communication.Mime
                 }
 
                 if (segment != null && segment.Kind == SegmentKind.Word && segment.Word.HasSameCharsetAndLanguage(segments[previous].Word) &&
-                    TryCarry(segment, carried, strictOptions, charsetResolver, out text))
+                    TryCarry(segment, carried, state, strictOptions, charsetResolver, out text))
                 {
                     chainOctets.AddRange(segment.Word.Octets);
                     previous = index;
@@ -1274,19 +1248,37 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
-        // Decodes the carried octets and those of a word, but for up to MaxCarriedOctets at the end, which become the carried octets.
-        private static bool TryCarry(Segment segment, List<byte> carried, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver,
-            out string text)
+        // Decodes the carried octets and those of a word, but for up to MaxCarriedOctets at the end, which become the carried octets. They
+        // are decoded after the octets of the state that the chain so far leaves the decoder in, which read as no text, and the state is
+        // moved on past the octets that are decoded.
+        private static bool TryCarry(Segment segment, List<byte> carried, SplitCharacterState state, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver, out string text)
         {
-            var octets = new byte[carried.Count + segment.Word.Octets.Length];
-            carried.CopyTo(octets);
-            Array.Copy(segment.Word.Octets, 0, octets, carried.Count, segment.Word.Octets.Length);
+            var charset = segment.Word.Charset;
+            var stateOctets = state.Octets;
+            var wordOctets = segment.Word.Octets;
+            var octets = new byte[stateOctets.Length + carried.Count + wordOctets.Length];
+            Array.Copy(stateOctets, octets, stateOctets.Length);
+            carried.CopyTo(octets, stateOctets.Length);
+            Array.Copy(wordOctets, 0, octets, stateOctets.Length + carried.Count, wordOctets.Length);
 
-            for (var carryLength = 0; carryLength <= MaxCarriedOctets && carryLength <= octets.Length; carryLength++)
+            var isIso2022 = IsIso2022(charset);
+            for (var carryLength = 0; carryLength <= MaxCarriedOctets && carryLength <= carried.Count + wordOctets.Length; carryLength++)
             {
                 var decoded = new byte[octets.Length - carryLength];
                 Array.Copy(octets, decoded, decoded.Length);
-                if (!TryDecodeOctets(segment.Word.Charset, decoded, options, charsetResolver, out text)) continue;
+
+                // ref. RFC 2047 §3: octets that end partway through a character can't have switched back to ASCII mode. In ISO/IEC 2022,
+                // the mode they leave carries into the next word with the rest of the character; the chain must still end in ASCII mode.
+                var requireAsciiMode = carryLength == 0 || !isIso2022;
+                if (!TryDecodeOctets(charset, decoded, options, charsetResolver, requireAsciiMode, out text)) continue;
+
+                // A chain that goes on needs the state its octets leave the decoder in, which octets that end partway through an escape
+                // sequence leave unknown.
+                if (carryLength > 0 && !state.TryRead(charset, decoded, stateOctets.Length, decoded.Length - stateOctets.Length, charsetResolver))
+                {
+                    continue;
+                }
 
                 carried.Clear();
                 for (var position = decoded.Length; position < octets.Length; position++)
@@ -1393,6 +1385,166 @@ namespace DataStandardizer.Communication.Mime
             internal bool HasSameCharsetAndLanguage(RawWord other)
             {
                 return Charset.Equals(other.Charset) && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        /// <summary>
+        /// The state that the octets read so far of a chain of words that a character is split between leave a decoder in, as octets that
+        /// put a decoder in the same state from the start and read as no text.
+        /// </summary>
+        /// <remarks>
+        /// UTF-16 and UTF-32 read with a byte order mark keep the byte order the chain starts with (RFC 2781 §3.2: a byte order mark is
+        /// only read at the start of the text), so their state is the mark of that byte order. A character set of the ISO/IEC 2022 family,
+        /// such as ISO-2022-JP (RFC 1468), keeps the character sets designated and invoked, so its state is the escape sequences and the
+        /// shift that set them. Any other character set reads a character the same way wherever it starts, so it needs no octets.
+        /// </remarks>
+        private sealed class SplitCharacterState
+        {
+            private static readonly byte[] NoOctets = new byte[0];
+
+            private bool _hasOctets;
+            private Iso2022Mode _mode = Iso2022Mode.Initial;
+
+            /// <summary>Gets the octets that put a decoder in the state.</summary>
+            internal byte[] Octets { get; private set; } = NoOctets;
+
+            /// <summary>Returns to the state at the start of a chain.</summary>
+            internal void Reset()
+            {
+                _hasOctets = false;
+                _mode = Iso2022Mode.Initial;
+                Octets = NoOctets;
+            }
+
+            /// <summary>
+            /// Moves the state on past octets of the chain that are valid in the state, or leaves it as it is if they leave it unknown.
+            /// </summary>
+            /// <param name="charset">The character set of the chain.</param>
+            /// <param name="octets">The octets.</param>
+            /// <param name="start">The position of the first octet to read.</param>
+            /// <param name="count">The number of octets to read.</param>
+            /// <param name="charsetResolver">Finds the encoding of the character set.</param>
+            /// <returns><c>true</c> if the state is known after the octets; otherwise, <c>false</c>.</returns>
+            internal bool TryRead(MimeCharset charset, byte[] octets, int start, int count, IMimeCharsetResolver charsetResolver)
+            {
+                if (IsIso2022(charset))
+                {
+                    var mode = _mode;
+                    if (!mode.TryRead(octets, start, count)) return false;
+
+                    _mode = mode;
+                    Octets = mode.GetOctets();
+                    return true;
+                }
+
+                if (_hasOctets || count == 0) return true;
+
+                // ref. RFC 2781 §4.3: the first octets of the chain give the byte order, by their byte order mark or by having none.
+                _hasOctets = true;
+#if NETCOREAPP3_0_OR_GREATER
+                Encoding? encoding;
+#else
+                Encoding encoding;
+#endif
+                var scheme = charsetResolver.TryGetEncoding(charset, out encoding) ? encoding as MimeUnicodeSchemeEncoding : null;
+                if (scheme != null) Octets = scheme.GetByteOrderMark(octets, start, count);
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// The mode of ISO/IEC 2022 octets: the character sets designated to G0 and G1, and which of them is invoked.
+        /// </summary>
+        /// <remarks>
+        /// ref. ECMA-35, which is ISO/IEC 2022: an escape sequence is ESC, any intermediate bytes 0x20 to 0x2F, and a final byte 0x30 to
+        /// 0x7E. ESC ( F designates a 94-character set to G0, and ESC $ F and ESC $ ( F a multiple-byte one; ESC ) F and ESC $ ) F designate
+        /// them to G1. SO invokes G1 and SI invokes G0. RFC 1468: in ISO-2022-JP, ESC ( B designates ASCII, and ESC ( J, ESC $ @ and ESC $ B
+        /// the other sets. The octets start with ASCII designated to G0, nothing designated to G1, and G0 invoked.
+        /// </remarks>
+        private struct Iso2022Mode
+        {
+            private static readonly byte[] NoOctets = new byte[0];
+
+            // The escape sequences that designate G0, or none for ASCII, and G1, or none.
+            private byte[] _g0Designation;
+            private byte[] _g1Designation;
+            private bool _isShiftedOut;
+
+            internal static Iso2022Mode Initial => new Iso2022Mode { _g0Designation = NoOctets, _g1Designation = NoOctets };
+
+            /// <summary>Gets a value indicating whether ASCII is designated to G0 and G0 is invoked.</summary>
+            internal bool IsAscii => _g0Designation.Length == 0 && !_isShiftedOut;
+
+            /// <summary>
+            /// Moves the mode on past octets, or leaves it as it is if they end partway through an escape sequence, which leaves the mode
+            /// unknown.
+            /// </summary>
+            internal bool TryRead(byte[] octets, int start, int count)
+            {
+                var g0Designation = _g0Designation;
+                var g1Designation = _g1Designation;
+                var isShiftedOut = _isShiftedOut;
+                var end = start + count;
+                for (var index = start; index < end; index++)
+                {
+                    switch (octets[index])
+                    {
+                        case ShiftOut:
+                            isShiftedOut = true;
+                            break;
+                        case ShiftIn:
+                            isShiftedOut = false;
+                            break;
+                        case Escape:
+                            var final = index + 1;
+                            while (final < end && octets[final] >= 0x20 && octets[final] <= 0x2F) final++;
+
+                            if (final >= end) return false;
+
+                            var intermediateCount = final - index - 1;
+                            var first = intermediateCount > 0 ? octets[index + 1] : (byte)0;
+                            var second = intermediateCount > 1 ? octets[index + 2] : (byte)0;
+                            if (intermediateCount == 1 && first == (byte)'(')
+                            {
+                                g0Designation = octets[final] == (byte)'B' ? NoOctets : Copy(octets, index, final + 1 - index);
+                            }
+                            else if ((intermediateCount == 1 && first == (byte)'$') || (intermediateCount == 2 && first == (byte)'$' && second == (byte)'('))
+                            {
+                                g0Designation = Copy(octets, index, final + 1 - index);
+                            }
+                            else if ((intermediateCount == 1 && first == (byte)')') || (intermediateCount == 2 && first == (byte)'$' && second == (byte)')'))
+                            {
+                                g1Designation = Copy(octets, index, final + 1 - index);
+                            }
+
+                            index = final;
+                            break;
+                    }
+                }
+
+                _g0Designation = g0Designation;
+                _g1Designation = g1Designation;
+                _isShiftedOut = isShiftedOut;
+                return true;
+            }
+
+            /// <summary>Gets octets that put ISO/IEC 2022 octets in this mode from the start, and read as no text.</summary>
+            internal byte[] GetOctets()
+            {
+                var octets = new byte[_g0Designation.Length + _g1Designation.Length + (_isShiftedOut ? 1 : 0)];
+                Array.Copy(_g0Designation, octets, _g0Designation.Length);
+                Array.Copy(_g1Designation, 0, octets, _g0Designation.Length, _g1Designation.Length);
+                if (_isShiftedOut) octets[octets.Length - 1] = ShiftOut;
+
+                return octets;
+            }
+
+            private static byte[] Copy(byte[] octets, int start, int count)
+            {
+                var copy = new byte[count];
+                Array.Copy(octets, start, copy, 0, count);
+                return copy;
             }
         }
 
