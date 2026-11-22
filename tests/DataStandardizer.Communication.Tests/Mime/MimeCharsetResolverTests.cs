@@ -90,7 +90,7 @@ namespace DataStandardizer.Communication.Tests.Mime
 
         [Theory]
         [MemberData(nameof(BuiltInNamesInOtherCase))]
-        public void TryGetEncoding_BuiltInNameInOtherCase_ReturnsSameEncoding(string name, string nameInOtherCase)
+        public void TryGetEncoding_BuiltInNameInOtherCase_ReturnsEqualEncoding(string name, string nameInOtherCase)
         {
             // arrange
             var encoding = Resolve(name);
@@ -99,8 +99,7 @@ namespace DataStandardizer.Communication.Tests.Mime
             var testResult = Resolve(nameInOtherCase);
 
             // assert
-            testResult.Should().BeOfType(encoding.GetType());
-            testResult.WebName.Should().Be(encoding.WebName);
+            testResult.Should().Be(encoding);
         }
 
         [Theory]
@@ -117,21 +116,64 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Should().NotBeSameAs(encoding);
         }
 
-        public static TheoryData<string, byte[], string> InvalidBytes => new TheoryData<string, byte[], string>
-        {
-            { UsAsciiName, new byte[] { 0x41, 0x80 }, "A\xFFFD" },
-            { Utf8Name, new byte[] { 0x41, 0xFF }, "A\xFFFD" },
-        };
+        // 'A', then 0x80, which is above US-ASCII's 7-bit range (RFC 20).
+        private static readonly byte[] UsAsciiInvalidBytes = { 0x41, 0x80 };
+
+        // 'A', then 0xFF, which never appears in UTF-8 (RFC 3629 §1).
+        private static readonly byte[] Utf8InvalidBytes = { 0x41, 0xFF };
+
+        // 'A' in UTF-16BE, then half of a two-octet code unit (RFC 2781 §2).
+        private static readonly byte[] Utf16TruncatedBytes = { 0x00, 0x41, 0x00 };
+
+        // 'A' in UTF-32BE, then one octet of a four-octet code unit (The Unicode Standard §3.9, D90).
+        private static readonly byte[] Utf32TruncatedBytes = { 0x00, 0x00, 0x00, 0x41, 0x00 };
+
+        // 'A', then the U+FFFD that a replacement fallback reads for the invalid octets after it.
+        private const string TextWithReplacementCharacter = "A\xFFFD";
+
+        // U+0100 LATIN CAPITAL LETTER A WITH MACRON, which neither US-ASCII nor ISO-8859-1 can hold.
+        private const string CharacterAboveLatin1 = "\x0100";
+
+        // A high surrogate with no low surrogate after it, which no Unicode encoding form can write (The Unicode Standard §3.9, D91).
+        private const string UnpairedSurrogate = "\xD800";
+
+        // '?', which US-ASCII and ISO-8859-1 write for a character they can't hold.
+        private static readonly byte[] QuestionMarkBytes = { 0x3F };
+
+        // U+FFFD in UTF-8, UTF-16BE and UTF-32BE, which the Unicode encodings write for an unpaired surrogate.
+        private static readonly byte[] Utf8ReplacementBytes = { 0xEF, 0xBF, 0xBD };
+        private static readonly byte[] Utf16BigEndianReplacementBytes = { 0xFF, 0xFD };
+        private static readonly byte[] Utf32BigEndianReplacementBytes = { 0x00, 0x00, 0xFF, 0xFD };
 
         public static TheoryData<string, byte[]> InvalidByteSequences => new TheoryData<string, byte[]>
         {
-            { UsAsciiName, new byte[] { 0x41, 0x80 } },
-            { Utf8Name, new byte[] { 0x41, 0xFF } },
+            { UsAsciiName, UsAsciiInvalidBytes },
+            { Utf8Name, Utf8InvalidBytes },
+            { Utf16Name, Utf16TruncatedBytes },
+            { Utf32Name, Utf32TruncatedBytes },
+        };
+
+        public static TheoryData<string, string, byte[]> UnencodableCharacters => new TheoryData<string, string, byte[]>
+        {
+            { UsAsciiName, CharacterAboveLatin1, QuestionMarkBytes },
+            { Iso88591Name, CharacterAboveLatin1, QuestionMarkBytes },
+            { Utf8Name, UnpairedSurrogate, Utf8ReplacementBytes },
+            { Utf16Name, UnpairedSurrogate, Utf16BigEndianReplacementBytes },
+            { Utf32Name, UnpairedSurrogate, Utf32BigEndianReplacementBytes },
+        };
+
+        // ISO-8859-1 is left out: on netstandard2.0 its clone ignores the fallbacks it is given (#945).
+        public static TheoryData<string, string> CharactersThatFallBack => new TheoryData<string, string>
+        {
+            { UsAsciiName, CharacterAboveLatin1 },
+            { Utf8Name, UnpairedSurrogate },
+            { Utf16Name, UnpairedSurrogate },
+            { Utf32Name, UnpairedSurrogate },
         };
 
         [Theory]
-        [MemberData(nameof(InvalidBytes))]
-        public void GetString_AnotherCallerChangedItsDecoderFallback_ReturnsReplacementCharacters(string name, byte[] bytes, string text)
+        [MemberData(nameof(InvalidByteSequences))]
+        public void GetString_AnotherCallerChangedItsDecoderFallback_ReturnsReplacementCharacter(string name, byte[] bytes)
         {
             // arrange
             var changed = Resolve(name);
@@ -142,13 +184,13 @@ namespace DataStandardizer.Communication.Tests.Mime
             var testResult = encoding.GetString(bytes);
 
             // assert
-            testResult.Should().Be(text);
+            testResult.Should().Be(TextWithReplacementCharacter);
         }
 
         [Theory]
-        [InlineData(UsAsciiName)]
-        [InlineData(Iso88591Name)]
-        public void GetBytes_AnotherCallerChangedItsEncoderFallback_WritesQuestionMark(string name)
+        // Not enumerated at discovery: xUnit's serialisation would replace the unpaired surrogate with U+FFFD.
+        [MemberData(nameof(UnencodableCharacters), DisableDiscoveryEnumeration = true)]
+        public void GetBytes_AnotherCallerChangedItsEncoderFallback_WritesReplacement(string name, string text, byte[] bytes)
         {
             // arrange
             var changed = Resolve(name);
@@ -156,10 +198,10 @@ namespace DataStandardizer.Communication.Tests.Mime
             var encoding = Resolve(name);
 
             // act
-            var testResult = encoding.GetBytes("\x0100");
+            var testResult = encoding.GetBytes(text);
 
             // assert
-            testResult.Should().Equal((byte)'?');
+            testResult.Should().Equal(bytes);
         }
 
         [Theory]
@@ -175,6 +217,22 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testAction.Should().Throw<DecoderFallbackException>();
+        }
+
+        [Theory]
+        // Not enumerated at discovery: xUnit's serialisation would replace the unpaired surrogate with U+FFFD.
+        [MemberData(nameof(CharactersThatFallBack), DisableDiscoveryEnumeration = true)]
+        public void GetBytes_CallerChangedItsEncoderFallback_UsesThatFallback(string name, string text)
+        {
+            // arrange
+            var encoding = Resolve(name);
+            encoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+
+            // act
+            Action testAction = () => encoding.GetBytes(text);
+
+            // assert
+            testAction.Should().Throw<EncoderFallbackException>();
         }
 
         [Theory]

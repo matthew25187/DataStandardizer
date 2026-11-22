@@ -138,7 +138,12 @@ namespace DataStandardizer.Communication.Mime
         public override bool Equals(object obj)
 #endif
         {
-            return ReferenceEquals(this, obj);
+            // A clone is equal to the encoding it was cloned from while it has the same fallbacks, as the runtime's encodings are.
+            return obj is MimeUnicodeSchemeEncoding other && other._webName == _webName
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+                && other.EncoderFallback.Equals(EncoderFallback) && other.DecoderFallback.Equals(DecoderFallback)
+#endif
+                ;
         }
 
         public override int GetHashCode()
