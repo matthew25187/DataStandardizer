@@ -121,13 +121,8 @@ namespace DataStandardizer.Communication.Mime
                 return true;
             }
 
-            // ref. RFC 2045 §6.7 rule 4: a line break in text is written as a CRLF line break.
-            if (!_binary && unit == '\n')
-            {
-                step = Step.LineBreak(1);
-                return true;
-            }
-
+            // ref. RFC 2045 §6.7 rule 4: a CRLF in text is a line break, and is written as one. A bare CR or LF is not a line break, so
+            // rules 1 and 2 have it written as "=0D" or "=0A".
             if (!_binary && unit == '\r')
             {
                 if (available < 2 && !isFinalBlock)
@@ -161,11 +156,7 @@ namespace DataStandardizer.Communication.Mime
             else
             {
                 var next = Peek(source, consumed, 1);
-                if (next == '\n')
-                {
-                    endsLine = true;
-                }
-                else if (next == '\r')
+                if (next == '\r')
                 {
                     if (available < 3 && !isFinalBlock)
                     {

@@ -600,7 +600,8 @@ namespace DataStandardizer.File.vCard
             var value = line.Value.AsSpan();
             if (VcardLegacyTokens.EqualsIgnoreCase(encodingName.AsSpan(), VcardLegacyTokens.QuotedPrintable))
             {
-                if (MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out _)) return ContentLineFoldMode.QuotedPrintableSoftBreak;
+                // The value has no soft line breaks yet, so it can be one long line.
+                if (MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.AllowLongLines, out _)) return ContentLineFoldMode.QuotedPrintableSoftBreak;
 
                 // A value that isn't quoted-printable can't be broken with soft line breaks, so it is written as it is, unless it ends with what a reader takes
                 // for a soft line break (vCard 2.1 §2.1.3), which would join the next line to it.

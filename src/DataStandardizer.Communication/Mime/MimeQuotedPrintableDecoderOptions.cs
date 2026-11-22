@@ -40,5 +40,16 @@ namespace DataStandardizer.Communication.Mime
         /// RFC 2045 §6.7 note (2) suggests this for a robust decoder. It includes an <c>=</c> at the end of the data.
         /// </remarks>
         AllowLiteralEqualsSigns = 4,
+
+        /// <summary>
+        /// In <see cref="MimeQuotedPrintableMode.Body"/> mode, accept encoded lines longer than 76 characters.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2045 §6.7 rule 5 requires that an encoded line, without its transport padding and CRLF, be at most 76 characters long,
+        /// and note (5) says a robust decoder might decode longer lines. The option is also for data whose soft line breaks have already
+        /// been removed, such as a vCard 2.1 value that has been unfolded. The "Q" modes have no lines, so this option has no effect on
+        /// them.
+        /// </remarks>
+        AllowLongLines = 8,
     }
 }

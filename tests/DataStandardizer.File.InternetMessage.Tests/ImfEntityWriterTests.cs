@@ -495,9 +495,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void WriteMessage_ForwardOnlyTextInQuotedPrintable_WritesBareLineFeedsAsLineBreaks()
+        public void WriteMessage_ForwardOnlyTextInQuotedPrintable_EncodesBareLineFeeds()
         {
             // arrange
+            // ref. RFC 2045 §6.7 rule 4: only a CRLF is a line break of text, so a bare LF is encoded, which keeps the content as it is.
             var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, new ForwardOnlyStream(Octets.Of("a\nb")));
             source.TransferEncoding = MimeTransferEncoding.QuotedPrintable;
 
@@ -505,7 +506,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source);
 
             // assert
-            testResult.Should().Be(Header + "Content-Transfer-Encoding: quoted-printable\r\n\r\na\r\nb");
+            testResult.Should().Be(Header + "Content-Transfer-Encoding: quoted-printable\r\n\r\na=0Ab");
         }
 
         [Fact]

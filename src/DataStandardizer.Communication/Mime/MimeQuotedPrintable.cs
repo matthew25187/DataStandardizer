@@ -23,7 +23,8 @@ namespace DataStandardizer.Communication.Mime
 
         private const MimeQuotedPrintableDecoderOptions AllDecoderOptions = MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits
             | MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds
-            | MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns;
+            | MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns
+            | MimeQuotedPrintableDecoderOptions.AllowLongLines;
 
         /// <summary>
         /// Gets the largest number of characters that some data can encode to.
