@@ -791,7 +791,7 @@ namespace DataStandardizer.Communication.Mime
             for (var index = 0; index < count; index++)
             {
                 var octet = octets[index];
-                length += octet == 0x20 || MimeQuotedPrintable.IsWrittenAsLiteral(octet, mode) ? 1 : 3;
+                length += octet == 0x20 || MimeQuotedPrintable.IsLiteral(octet, mode) ? 1 : 3;
             }
 
             return length;

@@ -144,9 +144,16 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string FullStopBWord = "=?UTF-8?B?YS5i?=";
         private const string FullStopText = "a.b";
 
-        // ref. RFC 2047 §5 (2): a comment's "Q" text may hold "\", although a writer encodes it.
+        // ref. RFC 2047 §5 (2), as corrected by erratum 504: a comment's "Q" text may not hold "\", which RFC 822 §3.3 ctext excludes, but
+        // may hold a double quote.
         private const string Backslash = "a\\b";
         private const string BackslashWord = "=?UTF-8?Q?a\\b?=";
+        private const string DoubleQuote = "a\"b";
+        private const string DoubleQuoteWord = "=?UTF-8?Q?a\"b?=";
+
+        // ref. RFC 2047 §8 and erratum 504: the "Andre Pirard" example's word with a double-quoted nickname, in a comment.
+        private const string AndreNicknameComment = "=?ISO-8859-1?Q?Andr=E9_\"Dede\"?=";
+        private const string AndreNickname = "Andr\x00E9 \"Dede\"";
 
         // ref. RFC 822 §3.3: linear-white-space = 1*([CRLF] LWSP-char), so a bare LF, or a CRLF with no SPACE or HTAB after it, is not
         // whitespace, and the words around it are one run of text.
@@ -397,9 +404,10 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, "=?UTF-8?Q?a(b.c?=" },
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, "=?UTF-8?Q?a=28b.c?=" },
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Phrase, "=?UTF-8?Q?a=28b=2Ec?=" },
-                // ref. RFC 5322 §3.2.2: "\" starts a quoted-pair in a comment, so it is encoded there.
+                // ref. RFC 2047 §5 (2), as corrected by erratum 504: "\" is encoded in a comment, and a double quote isn't.
                 { Backslash, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, BackslashWord },
                 { Backslash, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, "=?UTF-8?Q?a=5Cb?=" },
+                { DoubleQuote, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, DoubleQuoteWord },
                 { MaxLengthText, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, MaxLengthWord },
                 { Emoji, MimeEncodedWordEncoding.B, MimeEncodedWordContext.Phrase, EmojiWord },
             };
@@ -581,14 +589,40 @@ namespace DataStandardizer.Communication.Tests.Mime
             success.Should().Be(expected);
         }
 
-        [Fact]
-        public void Parse_QWordWithBackslashInComment_DecodesText()
+        [Theory]
+        [InlineData(MimeEncodedWordContext.Text, true)]
+        [InlineData(MimeEncodedWordContext.Comment, false)]
+        [InlineData(MimeEncodedWordContext.Phrase, false)]
+        public void TryParse_QWordWithBackslash_AcceptedOnlyInText(MimeEncodedWordContext context, bool expected)
         {
             // act
-            var result = MimeEncodedWord.Parse(BackslashWord, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+            var success = MimeEncodedWord.TryParse(BackslashWord, context, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default, out _);
 
             // assert
-            result.Text.Should().Be(Backslash);
+            success.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Parse_QWordWithDoubleQuoteInComment_DecodesText()
+        {
+            // act
+            var result = MimeEncodedWord.Parse(DoubleQuoteWord, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+
+            // assert
+            result.Text.Should().Be(DoubleQuote);
+        }
+
+        [Fact]
+        public void DecodeText_CommentWithDoubleQuotes_DisplaysText()
+        {
+            // arrange
+            var resolver = new Latin1CharsetResolver();
+
+            // act
+            var result = MimeEncodedWord.DecodeText(AndreNicknameComment, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, resolver);
+
+            // assert
+            result.Should().Be(AndreNickname);
         }
 
         [Fact]

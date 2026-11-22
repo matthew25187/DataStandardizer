@@ -257,16 +257,6 @@ namespace DataStandardizer.Communication.Mime
             return unit == ' ' || unit == '\t';
         }
 
-        // Whether an encoder writes an octet as itself, apart from whitespace in a body.
-        internal static bool IsWrittenAsLiteral(int unit, MimeQuotedPrintableMode mode)
-        {
-            // ref. RFC 5322 §3.2.2: ctext doesn't include "\", which starts a quoted-pair in a comment, and RFC 2047 §6.2: encoded words
-            // are decoded after the field is tokenized. A reader still accepts it, as RFC 2047 §5(2) doesn't forbid it.
-            if (mode == MimeQuotedPrintableMode.EncodedWordComment && unit == '\\') return false;
-
-            return IsLiteral(unit, mode);
-        }
-
         // Whether an octet can be written as itself, apart from whitespace in a body.
         internal static bool IsLiteral(int unit, MimeQuotedPrintableMode mode)
         {
@@ -279,8 +269,8 @@ namespace DataStandardizer.Communication.Mime
                     // ref. RFC 2047 §4.2 rule 3: printable ASCII other than "=", "?" and "_".
                     return unit >= 33 && unit <= 126 && unit != '=' && unit != '?' && unit != '_';
                 case MimeQuotedPrintableMode.EncodedWordComment:
-                    // ref. RFC 2047 §5(2): nor "(", ")" or the double quote.
-                    return unit >= 33 && unit <= 126 && unit != '=' && unit != '?' && unit != '_' && unit != '(' && unit != ')' && unit != '"';
+                    // ref. RFC 2047 §5(2), as corrected by erratum 504: nor "(", ")" or "\", the characters RFC 822 §3.3 ctext excludes.
+                    return unit >= 33 && unit <= 126 && unit != '=' && unit != '?' && unit != '_' && unit != '(' && unit != ')' && unit != '\\';
                 default:
                     // ref. RFC 2047 §5(3): letters, digits, "!", "*", "+", "-" and "/" ("=" and "_" have their "Q" meanings).
                     return (unit >= 'A' && unit <= 'Z') || (unit >= 'a' && unit <= 'z') || (unit >= '0' && unit <= '9')

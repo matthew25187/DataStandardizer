@@ -27,5 +27,5 @@ public enum MimeEncodedWordContext
 | Field | Value | Meaning |
 | --- | --- | --- |
 | `Text` | 0 | A word that replaces `text` in a `*text` header field, such as Subject (RFC 2047 §5(1)): any printable ASCII character other than `=`, `?` and `_` stands for itself. |
-| `Comment` | 1 | A word in a comment (RFC 2047 §5(2)): as `Text`, except that `(`, `)` and `"` don't stand for themselves. A word that's written also encodes `\`, as it would start a quoted-pair (RFC 5322 §3.2.2). |
+| `Comment` | 1 | A word in a comment (RFC 2047 §5(2), as corrected by erratum 504): as `Text`, except that `(`, `)` and `\` don't stand for themselves. These are the characters RFC 822 §3.3 `ctext` excludes; a double quote may appear. |
 | `Phrase` | 2 | A word that replaces a word in a phrase, such as the display name of an address (RFC 2047 §5(3)): only ASCII letters, digits, `!`, `*`, `+`, `-` and `/` stand for themselves. |

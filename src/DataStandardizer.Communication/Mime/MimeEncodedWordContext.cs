@@ -17,11 +17,11 @@ namespace DataStandardizer.Communication.Mime
         Text = 0,
 
         /// <summary>
-        /// An encoded word in a comment (RFC 2047 §5(2)): as <see cref="Text"/>, except that its "Q"-encoded text may not hold <c>(</c>,
-        /// <c>)</c> or <c>"</c>.
+        /// An encoded word in a comment (RFC 2047 §5(2), as corrected by erratum 504): as <see cref="Text"/>, except that its "Q"-encoded
+        /// text may not hold <c>(</c>, <c>)</c> or <c>\</c>.
         /// </summary>
         /// <remarks>
-        /// A word that is written also encodes <c>\</c>, as it would start a quoted-pair in a comment (RFC 5322 §3.2.2).
+        /// These are the characters that RFC 822 §3.3 <c>ctext</c> excludes. A double quote is ordinary <c>ctext</c>, and may appear.
         /// </remarks>
         Comment = 1,
 
