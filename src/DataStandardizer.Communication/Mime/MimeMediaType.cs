@@ -19,8 +19,8 @@ namespace DataStandardizer.Communication.Mime
     /// </para>
     /// <para>
     /// When parsed, a parameter value split into RFC 2231 sections is joined, and an RFC 2231 extended value is decoded, so that each
-    /// parameter appears once with its whole value. When a parameter is given both as <c>name</c> and in an RFC 2231 form, such as
-    /// <c>name*</c>, the RFC 2231 form is used.
+    /// parameter appears once with its whole value. A parameter given both as <c>name</c> and in an RFC 2231 form, such as <c>name*</c>,
+    /// is given more than once, so the media type is not valid (RFC 6838 §4.3).
     /// </para>
     /// </remarks>
     public readonly struct MimeMediaType : IEquatable<MimeMediaType>
@@ -785,7 +785,9 @@ namespace DataStandardizer.Communication.Mime
             {
                 if (group.HasDuplicatePlain) return false;
 
-                // ref. RFC 2231 §4: the RFC 2231 form is used in preference to a plain one, which is there for readers that don't know it.
+                // ref. RFC 2231 §3-§4: name* and the sections of name are encodings of the parameter name, not other parameters, so name with
+                // any of them gives the parameter more than once (RFC 6838 §4.3).  RFC 2231 prefers neither form.
+                if (group.PlainValue != null && group.Forms != null) return false;
 
                 MimeParameter parameter;
                 if (group.Forms is null)
@@ -805,7 +807,8 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// The forms of one parameter, which can be given in a plain form and in the sections of an RFC 2231 form.
+        /// The forms given for one parameter: its plain form, and the sections of its RFC 2231 form.  They are collected together so that a
+        /// parameter given in more than one of them can be rejected.
         /// </summary>
         private sealed class ParameterForms
         {

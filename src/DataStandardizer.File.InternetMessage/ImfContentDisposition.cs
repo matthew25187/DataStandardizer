@@ -13,7 +13,9 @@ namespace DataStandardizer.File.InternetMessage
     /// <remarks>
     /// <para>
     /// The type and the parameter names are compared case-insensitively, parameter values case-sensitively, and the order of the parameters doesn't matter.  Parameters
-    /// in the forms of RFC 2231 are joined and decoded when read, and each is written as <see cref="ImfMimeFields.FormatContentType"/> writes one.
+    /// in the forms of RFC 2231 are joined and decoded when read, and each is written as <see cref="ImfMimeFields.FormatContentType"/> writes one.  A parameter given
+    /// both as <c>filename</c> and in an RFC 2231 form, such as <c>filename*</c>, is one parameter given twice (RFC 2231 §3-§4), so the value is not valid, as
+    /// it is when <c>filename</c> is given twice.
     /// </para>
     /// <para>
     /// A file name comes from whoever sent the message, so treat it with care.  RFC 2183 §2.3 says not to respect any directory path in it, and §5 warns against a name

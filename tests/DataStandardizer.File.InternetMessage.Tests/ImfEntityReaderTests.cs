@@ -93,6 +93,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "Content-Type: text/plain (open\r\n\r\n", "" },
             { "Content-Type: text/plain; a=\"open\r\n\r\n", "" },
             { "Content-Type: multipart(c)ed/mixed; boundary=b\r\n\r\n", "" },
+
+            // ref. RFC 2231 §3-§4 and RFC 6838 §4.3: name* is a form of name, so this gives the parameter twice.
+            { "Content-Type: application/pdf; name=a.pdf; name*=UTF-8''a.pdf\r\n\r\n", "" },
             { "Content-Transfer-Encoding:\r\n\r\n", "" },
             { "Content-Transfer-Encoding: a b\r\n\r\n", "" },
             { "Content-Transfer-Encoding: (open\r\n\r\n", "" },

@@ -280,30 +280,31 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Parameters[0].Value.Should().Be("ab");
         }
 
-        [Theory]
-        [InlineData("text/plain;name=fallback;name*=UTF-8''real")]
-        [InlineData("text/plain;name*=UTF-8''real;name=fallback")]
-        [InlineData("text/plain;NAME=fallback;name*0=re;name*1=al")]
-        public void Parse_PlainAndRfc2231Forms_UsesRfc2231Form(string value)
-        {
-            // act
-            var result = MimeMediaType.Parse(value);
-
-            // assert
-            result.Parameters.Should().ContainSingle();
-            result.Parameters[0].Value.Should().Be("real");
-        }
-
         [Fact]
-        public void Parse_PlainAndRfc2231Forms_KeepsPositionOfFirstForm()
+        public void Parse_SectionsSplitByAnotherParameter_KeepsPositionOfFirstSection()
         {
             // act
-            var result = MimeMediaType.Parse("text/plain;name=fallback;x=1;name*=UTF-8''real");
+            var result = MimeMediaType.Parse("text/plain;name*0=a;x=1;name*1=b");
 
             // assert
             result.Parameters.Should().HaveCount(2);
             result.Parameters[0].Name.Should().Be(ParameterName);
+            result.Parameters[0].Value.Should().Be("ab");
             result.Parameters[1].Name.Should().Be("x");
+        }
+
+        [Theory]
+        // ref. RFC 6838 §4.3: name* and the sections of name are forms of the parameter name, so each of these gives it twice.
+        [InlineData("text/plain;name=fallback;name*=UTF-8''real")]
+        [InlineData("text/plain;name*=UTF-8''real;name=fallback")]
+        [InlineData("text/plain;NAME=fallback;name*0=re;name*1=al")]
+        public void TryParse_PlainAndRfc2231Forms_ReturnsFalse(string value)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, out _);
+
+            // assert
+            parsed.Should().BeFalse();
         }
 
         [Theory]

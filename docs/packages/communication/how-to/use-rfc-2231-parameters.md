@@ -39,8 +39,8 @@ split.TryGetParameter("url", out var url);
 Console.WriteLine(url.Value); // ftp://cs.utk.edu/pub/moore/bulk-mailer/bulk-mailer.tar
 ```
 
-When a parameter is given both as `name` and in an RFC 2231 form such as `name*`,
-the RFC 2231 form is used. Extended values are decoded with
+A parameter given both as `name` and in an RFC 2231 form such as `name*` is given
+more than once, so the media type is not valid (RFC 6838 §4.3). Extended values are decoded with
 `MimeCharsetResolver.Default`, or with a resolver you pass to `Parse` or `TryParse`.
 See [Resolve character sets](resolve-character-sets.md).
 
