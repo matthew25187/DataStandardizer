@@ -368,14 +368,21 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 2046 §4.1.2
         [InlineData(TextPlain, UsAsciiName)]
         [InlineData("TEXT/PLAIN", UsAsciiName)]
-        [InlineData("text/csv", UsAsciiName)]
         [InlineData("text/enriched", UsAsciiName)]
+        // ref. RFC 2318: the text/css registration sets no default of its own.
+        [InlineData("text/css", UsAsciiName)]
         [InlineData("text/x-unknown", UsAsciiName)]
         // ref. RFC 5545 §8.1; RFC 6350 §10.1
         [InlineData("text/calendar", Utf8Name)]
         [InlineData("Text/Calendar", Utf8Name)]
         [InlineData("text/vcard", Utf8Name)]
         [InlineData("text/VCARD", Utf8Name)]
+        // ref. RFC 7111 §5.1
+        [InlineData("text/csv", Utf8Name)]
+        [InlineData("TEXT/CSV", Utf8Name)]
+        // ref. RDF 1.1 Turtle Appendix B; WebVTT §10.1
+        [InlineData("text/turtle", Utf8Name)]
+        [InlineData("text/vtt", Utf8Name)]
         public void TryGetDefault_TextMediaType_ReturnsDefault(string mediaType, string expected)
         {
             // arrange
@@ -410,6 +417,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("TEXT/HTML")]
         [InlineData("text/xml")]
         [InlineData("text/markdown")]
+        // ref. RFC 9239 §4.2: a byte order mark gives the character set, and UTF-8 is used only without one.
+        [InlineData("text/javascript")]
+        [InlineData("text/ecmascript")]
         [InlineData("application/json")]
         [InlineData("application/xml")]
         [InlineData("image/png")]

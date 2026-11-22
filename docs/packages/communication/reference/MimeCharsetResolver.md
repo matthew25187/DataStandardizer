@@ -12,7 +12,8 @@ nav_exclude: true
 Namespace: `DataStandardizer.Communication.Mime`
 
 Gets the `Encoding` for a character set, from the encodings built into the package, then the
-encodings the runtime provides, and then, optionally, a resolver the caller supplies.
+encodings the runtime provides for the names registered with IANA, and then, optionally, a
+resolver the caller supplies.
 
 **Syntax**
 
@@ -36,7 +37,7 @@ character set is resolved, how the built-in encodings behave, and how to registe
 
 | Property | Type | Notes |
 | --- | --- | --- |
-| `Default` | `MimeCharsetResolver` | Static. Resolves the built-in encodings and those the runtime provides. |
+| `Default` | `MimeCharsetResolver` | Static. Resolves the built-in encodings and those the runtime provides for the names registered with IANA. |
 
 ## Methods
 

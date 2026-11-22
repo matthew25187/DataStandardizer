@@ -99,8 +99,12 @@ namespace DataStandardizer.Communication.Mime
         /// </para>
         /// <list type="bullet">
         /// <item><c>text/calendar</c> and <c>text/vcard</c> default to <c>UTF-8</c> (RFC 5545 §8.1, RFC 6350 §10.1).</item>
+        /// <item><c>text/csv</c> defaults to <c>UTF-8</c> (RFC 7111 §5.1).</item>
+        /// <item><c>text/turtle</c> and <c>text/vtt</c> are always <c>UTF-8</c> (RDF 1.1 Turtle Appendix B, WebVTT §10.1).</item>
         /// <item><c>text/html</c> and <c>text/xml</c> have no default, as the character set is given within the text (HTML Living Standard
         /// §16.1.2, RFC 7303 §3.2).</item>
+        /// <item><c>text/javascript</c> and <c>text/ecmascript</c> have no default, as a byte order mark at the start of the text gives the
+        /// character set, and <c>UTF-8</c> is used only without one (RFC 9239 §4.2).</item>
         /// <item><c>text/markdown</c> has no default, as its <c>charset</c> parameter is required (RFC 7763 §2).</item>
         /// </list>
         /// <para>
@@ -116,14 +120,17 @@ namespace DataStandardizer.Communication.Mime
             if (!MimeGrammar.EqualsIgnoreCase(mediaType.Type.AsSpan(), MimeTopLevelTypes.Text)) return false;
 
             var subtype = mediaType.Subtype.AsSpan();
-            if (MimeGrammar.EqualsIgnoreCase(subtype, "calendar") || MimeGrammar.EqualsIgnoreCase(subtype, "vcard"))
+            if (MimeGrammar.EqualsIgnoreCase(subtype, "calendar") || MimeGrammar.EqualsIgnoreCase(subtype, "vcard") ||
+                MimeGrammar.EqualsIgnoreCase(subtype, "csv") || MimeGrammar.EqualsIgnoreCase(subtype, "turtle") ||
+                MimeGrammar.EqualsIgnoreCase(subtype, "vtt"))
             {
                 charset = Utf8;
                 return true;
             }
 
             if (MimeGrammar.EqualsIgnoreCase(subtype, "html") || MimeGrammar.EqualsIgnoreCase(subtype, "xml") ||
-                MimeGrammar.EqualsIgnoreCase(subtype, "markdown"))
+                MimeGrammar.EqualsIgnoreCase(subtype, "markdown") || MimeGrammar.EqualsIgnoreCase(subtype, "javascript") ||
+                MimeGrammar.EqualsIgnoreCase(subtype, "ecmascript"))
             {
                 return false;
             }

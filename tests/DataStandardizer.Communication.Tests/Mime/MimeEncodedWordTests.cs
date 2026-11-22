@@ -958,6 +958,19 @@ namespace DataStandardizer.Communication.Tests.Mime
             result[0].ToString().Should().Be("=?UTF-8?Q?Smith=2C_J=C3=B6rgensen?=");
         }
 
+        [Theory]
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2, alias csUnicode, is in network byte order, so 00 41 00 42 is "AB".
+        [InlineData("=?ISO-10646-UCS-2?B?AEEAQg==?=")]
+        [InlineData("=?csUnicode?B?AEEAQg==?=")]
+        public void DecodeText_Ucs2Word_ReadsBigEndian(string value)
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            result.Should().Be("AB");
+        }
+
         [Fact]
         public void DecodeText_EncodedWords_DecodesTextOfEachWord()
         {

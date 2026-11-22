@@ -324,6 +324,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("UTF-16LE", new byte[] { 0xFF, 0xFE, 0x41, 0x00 })]
         [InlineData("UTF-32BE", new byte[] { 0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x41 })]
         [InlineData("UTF-32LE", new byte[] { 0xFF, 0xFE, 0x00, 0x00, 0x41, 0x00, 0x00, 0x00 })]
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2 is always in network byte order.
+        [InlineData("ISO-10646-UCS-2", new byte[] { 0xFE, 0xFF, 0x00, 0x41 })]
         public void TryGetEncoding_MarkedScheme_KeepsLeadingZeroWidthNoBreakSpace(string name, byte[] bytes)
         {
             // arrange
@@ -662,6 +664,42 @@ namespace DataStandardizer.Communication.Tests.Mime
             // assert
             testResult.Should().BeFalse();
             encoding.Should().BeNull();
+        }
+
+        [Theory]
+        // ref. RFC 2046 §4.1.2; IANA Character Sets registry: the runtime knows these names, but they aren't registered.
+        [InlineData("ascii")]
+        [InlineData("ucs-2")]
+        [InlineData("unicode")]
+        [InlineData("unicodeFFFE")]
+        public void TryGetEncoding_UnregisteredNameTheRuntimeKnows_ReturnsFalse(string name)
+        {
+            // arrange
+            var charset = MimeCharset.Parse(name);
+
+            // act
+            var testResult = MimeCharsetResolver.Default.TryGetEncoding(charset, out var encoding);
+
+            // assert
+            testResult.Should().BeFalse();
+            encoding.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryGetEncoding_UnregisteredNameTheRuntimeKnowsWithFallback_UsesFallback()
+        {
+            // arrange
+            var fallback = new StubResolver(Encoding.UTF8);
+            var resolver = new MimeCharsetResolver(fallback);
+            var charset = MimeCharset.Parse("unicode");
+
+            // act
+            var testResult = resolver.TryGetEncoding(charset, out var encoding);
+
+            // assert
+            testResult.Should().BeTrue();
+            encoding.Should().BeSameAs(Encoding.UTF8);
+            fallback.Requested.Should().Equal(charset);
         }
 
         [Fact]
