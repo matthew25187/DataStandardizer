@@ -92,6 +92,21 @@ Console.WriteLine(message.HtmlBody?.GetText());
 Either can be `null`. Line breaks are those of the content, which are CRLF in a `text`
 entity that follows RFC 2046 §4.1.1.
 
+With no `charset` parameter, the text is in the default for its type, which is US-ASCII
+unless the type's registration says otherwise (RFC 6657 §3). HTML has no default, as it gives
+its character set within the text (HTML Living Standard §16.1.2), and nor do `text/xml` and
+`text/markdown`. `GetText` throws `ImfFileException` for such an entity, so read
+`GetContent` and pass the bytes to an HTML or XML parser, which finds the character set:
+
+```csharp
+var html = message.HtmlBody;
+
+if (html is not null && !html.ContentType.TryGetParameter("charset", out _))
+{
+    ReadOnlyMemory<byte> bytes = html.GetContent();
+}
+```
+
 A character set such as `windows-1252` needs a step of its own on .NET Core and later.
 See [Read text in other character sets](register-code-pages.md).
 

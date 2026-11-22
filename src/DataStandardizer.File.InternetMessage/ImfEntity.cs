@@ -329,16 +329,23 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the content as text, in the character set of the <c>charset</c> parameter of the Content-Type field.  With no such parameter, it is the default for the type, or
-        /// otherwise US-ASCII (RFC 2046 §4.1.2, RFC 6657 §3).
+        /// Gets the content as text, in the character set of the <c>charset</c> parameter of the Content-Type field.  With no such parameter, it is the default for the type, which
+        /// is US-ASCII unless the type's registration says otherwise (RFC 2046 §4.1.2, RFC 6657 §3), as <see cref="MimeCharset.TryGetDefault"/> describes.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// <c>text/html</c>, <c>text/xml</c>, <c>text/xml-external-parsed-entity</c> and <c>text/markdown</c> have no default.  HTML and XML give the character set within the text
+        /// (HTML Living Standard §16.1.2, RFC 7303 §3.2), and <c>text/markdown</c> requires the parameter (RFC 7763 §2).  When such an entity has no <c>charset</c> parameter, read
+        /// <see cref="GetContent"/> and find the character set as the format says, such as with an HTML or XML parser.
+        /// </para>
+        /// <para>
         /// The character set is resolved by <see cref="ImfOptions.CharsetResolver"/>.  The line breaks are those of the content, which are CRLF in a <c>text</c> entity that follows
         /// RFC 2046 §4.1.1.
+        /// </para>
         /// </remarks>
         /// <returns>The text.</returns>
-        /// <exception cref="ImfFileException">The body is not valid in its transfer encoding, the character set can't be resolved, or the content is not valid in it and
-        /// <see cref="ImfOptions.AllowInvalidTextOctets"/> is not set.</exception>
+        /// <exception cref="ImfFileException">The body is not valid in its transfer encoding, there is no <c>charset</c> parameter and the type has no default, the character set
+        /// can't be resolved, or the content is not valid in it and <see cref="ImfOptions.AllowInvalidTextOctets"/> is not set.</exception>
         /// <exception cref="InvalidOperationException">The entity is not of the top-level type <c>text</c>.</exception>
         public string GetText()
         {
@@ -757,8 +764,12 @@ namespace DataStandardizer.File.InternetMessage
                 return charset;
             }
 
-            // ref. RFC 2046 §4.1.2: US-ASCII is what text with no charset parameter is taken to be, where its type has no default of its own (RFC 6657 §3).
-            return MimeCharset.TryGetDefault(contentType, out var defaultCharset) ? defaultCharset : MimeCharset.UsAscii;
+            // ref. RFC 6657 §3: the type's registration says what text with no charset parameter is in.  TryGetDefault gives US-ASCII (RFC 2046 §4.1.2) for a type that says
+            // nothing, and false for one whose text gives its own character set (HTML Living Standard §16.1.2, RFC 7303 §3.2) or that requires the parameter (RFC 7763 §2).
+            if (!MimeCharset.TryGetDefault(contentType, out var defaultCharset))
+                throw new ImfFileException($"The media type '{contentType.Type}/{contentType.Subtype}' has no charset parameter and no default character set, so the character set of the text isn't known (RFC 6657 §3).");
+
+            return defaultCharset;
         }
 
         private string DecodeText(ReadOnlyMemory<byte> content, MimeCharset charset)
