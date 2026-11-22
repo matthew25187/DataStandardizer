@@ -116,6 +116,21 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string LittleEndianLetterSplitAfterMark = "=?UTF-16?Q?=FF=FEa?= =?UTF-16?Q?=00?=";
         private const string LetterA = "a";
 
+        // ref. RFC 2781 §4.3: a little-endian byte order mark (FF FE) and a sharp s (DF 00) split between the words. Read by itself in
+        // the big-endian byte order, DF 00 would be U+DF00, a lone surrogate.
+        private const string LittleEndianSharpSSplitAfterMark = "=?UTF-16?Q?=FF=FE=DF?= =?UTF-16?Q?=00?=";
+
+        // ref. RFC 2781 §4.3 and The Unicode Standard §3.9, D76: the same in UTF-32, a little-endian byte order mark (FF FE 00 00) and a
+        // sharp s (DF 00 00 00). Read by itself in the big-endian byte order, DF 00 00 00 would be 0xDF000000, which isn't a scalar value.
+        private const string LittleEndianUtf32SharpSSplitAfterMark = "=?UTF-32?Q?=FF=FE=00=00=DF?= =?UTF-32?Q?=00=00=00?=";
+        private const string SharpS = "\x00DF";
+
+        // ref. RFC 2781 §4.3: UTF-16 with no byte order mark is big-endian, so "a" (00 61), U+FFFE (FF FE) split between the words, and
+        // U+00D8 (00 D8). The second word starts with FF FE, which isn't a byte order mark there: read by itself, it would be one, and D8
+        // 00 would be U+D800, a lone surrogate.
+        private const string BigEndianNoncharacterSplitBeforeMarkOctets = "=?UTF-16?Q?=00a=FF?= =?UTF-16?Q?=FE=00=D8?=";
+        private const string LetterANoncharacterOSlash = "a\xFFFE\x00D8";
+
         // ref. RFC 3629 §3: U+1F600 is F0 9F 98 80 in UTF-8, so each of these words holds a quarter of it.
         private const string SplitEmoji = "=?UTF-8?Q?=F0?= =?UTF-8?Q?=9F?= =?UTF-8?Q?=98?= =?UTF-8?Q?=80?=";
 
@@ -279,6 +294,9 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { EAcuteThenUnfinishedEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcuteThenUnfinishedEAcute },
                 { LittleEndianLetterSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterA },
                 { Utf16WordsWithByteOrderMarks, MimeEncodedWordParseOptions.AllowSplitCharacters, AB },
+                { LittleEndianSharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
+                { LittleEndianUtf32SharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
+                { BigEndianNoncharacterSplitBeforeMarkOctets, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterANoncharacterOSlash },
             };
 
         public static TheoryData<string> DecodeDeviationValues => new TheoryData<string>
@@ -289,6 +307,9 @@ namespace DataStandardizer.Communication.Tests.Mime
             LowercaseHexWord,
             InvalidOctetWord,
             SplitEAcute,
+            LittleEndianSharpSSplitAfterMark,
+            LittleEndianUtf32SharpSSplitAfterMark,
+            BigEndianNoncharacterSplitBeforeMarkOctets,
         };
 
         public static TheoryData<string, string> TextContextValues => new TheoryData<string, string>

@@ -176,6 +176,19 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
+        /// Gets the byte order mark that selects the byte order of some bytes: the little-endian mark if they start with it; otherwise the
+        /// big-endian mark, as bytes with no mark are big-endian.
+        /// </summary>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="index">The position of the first byte.</param>
+        /// <param name="count">The number of bytes.</param>
+        /// <returns>The byte order mark.</returns>
+        internal byte[] GetByteOrderMark(byte[] bytes, int index, int count)
+        {
+            return StartsWith(bytes, index, count, _littleEndianMark) ? _littleEndianMark : _bigEndianMark;
+        }
+
+        /// <summary>
         /// Get an inner encoding with the fallbacks of this encoding, which a caller may have changed on a clone.
         /// </summary>
         private Encoding WithFallbacks(Encoding inner)
