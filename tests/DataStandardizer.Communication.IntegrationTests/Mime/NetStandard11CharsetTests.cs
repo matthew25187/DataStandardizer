@@ -6,6 +6,7 @@ using DataStandardizer.Communication.Mime;
 using DataStandardizer.Communication.Tests.Mime;
 using FluentAssertions;
 using Xunit;
+using static DataStandardizer.Communication.Tests.Mime.MimeCharsetResolverTestData;
 
 namespace DataStandardizer.Communication.IntegrationTests.Mime
 {
@@ -21,9 +22,7 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         private const string NetStandard11FrameworkName = ".NETStandard,Version=v1.1";
 
         // ref. IANA Character Sets registry
-        private const string UsAsciiName = "US-ASCII";
         private const string Latin1Name = "latin1";
-        private const string Utf32BigEndianName = "UTF-32BE";
         private const string Utf32LittleEndianName = "UTF-32LE";
 
         private const string UnknownName = "x-no-such-charset";
@@ -346,6 +345,66 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
 
             // assert
             testResult.Should().Equal(bytes);
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetDecoder_BuiltInNameConvertNoBytes_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var decoder = NetStandard11Build.GetEncoding(name).GetDecoder();
+
+            // act
+            decoder.Convert(new byte[0], 0, 0, new char[0], 0, 0, true, out var bytesUsed, out var charsUsed, out var completed);
+
+            // assert
+            bytesUsed.Should().Be(0);
+            charsUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetEncoder_BuiltInNameConvertNoCharacters_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var encoder = NetStandard11Build.GetEncoding(name).GetEncoder();
+
+            // act
+            encoder.Convert(new char[0], 0, 0, new byte[0], 0, 0, true, out var charsUsed, out var bytesUsed, out var completed);
+
+            // assert
+            charsUsed.Should().Be(0);
+            bytesUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData(UsAsciiName)]
+        [InlineData(Iso88591Name)]
+        public void GetMaxByteCount_SingleByteName_AllowsForHeldBackHighSurrogate(string name)
+        {
+            // arrange
+            var encoding = NetStandard11Build.GetEncoding(name);
+
+            // act
+            var testResult = encoding.GetMaxByteCount(ThreeCharacters);
+
+            // assert
+            testResult.Should().Be(MaxBytesForThreeCharacters);
+        }
+
+        [Fact]
+        public void GetDecoder_Utf32BigEndianBlockAfterHeldBytes_FitsGetMaxCharCount()
+        {
+            // arrange
+            var encoding = NetStandard11Build.GetEncoding(Utf32BigEndianName);
+
+            // act
+            var testResult = EncodingBlocks.DecodeAfterHeldBytes(encoding, Utf32BigEndianHeldBytes, Utf32BigEndianBlockAfterHeldBytes);
+
+            // assert
+            testResult.Should().Be(Utf32BigEndianHeldAndBlockText);
         }
 
         [Fact]

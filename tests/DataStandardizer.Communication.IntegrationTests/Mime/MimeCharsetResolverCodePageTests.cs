@@ -70,19 +70,5 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
             MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse(name), out var encoding);
             return encoding;
         }
-
-        private static class CodePageProvider
-        {
-            /// <summary>
-            /// Makes the runtime's code pages available: on .NET, registers <c>CodePagesEncodingProvider</c>, which the runtime registers only
-            /// once however often it is called. .NET Framework has them already.
-            /// </summary>
-            public static void Register()
-            {
-#if !NETFRAMEWORK
-                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-#endif
-            }
-        }
     }
 }

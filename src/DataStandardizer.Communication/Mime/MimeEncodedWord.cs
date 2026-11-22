@@ -48,6 +48,10 @@ namespace DataStandardizer.Communication.Mime
         // at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3), UTF-16, UTF-32 and GB18030.
         private const int MaxCarriedOctets = 3;
 
+        // ref. ANSI X3.4 (US-ASCII): 0x41 is 'A'. EndsInInitialMode reads it after a word's octets.
+        private const byte ProbeOctet = 0x41;
+        private const string ProbeCharacter = "A";
+
         private const string InvalidFormatMessage = "The value is not a valid encoded word.";
         private const string UninitializedMessage = nameof(MimeEncodedWord) + " is uninitialized.";
 
@@ -930,8 +934,10 @@ namespace DataStandardizer.Communication.Mime
             if (charsetResolver.TryGetEncoding(charset, out encoding))
             {
                 // ref. RFC 2047 §6.3 (2): a word whose octets are not whole characters in its character set is incorrectly formed.
-                return MimeExtendedParameter.TryGetString(encoding, octets, octets.Length,
-                    (options & MimeEncodedWordParseOptions.AllowInvalidOctets) != 0, out text);
+                var allowInvalidOctets = (options & MimeEncodedWordParseOptions.AllowInvalidOctets) != 0;
+                if (!MimeExtendedParameter.TryGetString(encoding, octets, octets.Length, allowInvalidOctets, out text)) return false;
+
+                return allowInvalidOctets || EndsInInitialMode(encoding, octets, text);
             }
 
             if ((options & MimeEncodedWordParseOptions.AllowUnknownCharsets) == 0)
@@ -942,6 +948,26 @@ namespace DataStandardizer.Communication.Mime
 
             text = MimeExtendedParameter.DecodeLatin1(octets, octets.Length);
             return true;
+        }
+
+        // Indicates whether a word's octets leave its character set in the mode it starts in (ref. RFC 2047 §3: a word that switches out of
+        // ASCII mode, as ISO-2022-JP does (RFC 1468), must switch back to ASCII mode by its end). The word does if an ASCII octet after its
+        // octets is read as the ASCII character, as it is at the start. A character set that doesn't read the octet alone as that character,
+        // such as UTF-16, has no ASCII mode, and passes.
+        private static bool EndsInInitialMode(Encoding encoding, byte[] octets, string text)
+        {
+            string probeText;
+            if (!MimeExtendedParameter.TryGetString(encoding, new[] { ProbeOctet }, 1, false, out probeText) ||
+                probeText != ProbeCharacter)
+            {
+                return true;
+            }
+
+            var probed = new byte[octets.Length + 1];
+            Array.Copy(octets, probed, octets.Length);
+            probed[octets.Length] = ProbeOctet;
+            return MimeExtendedParameter.TryGetString(encoding, probed, probed.Length, false, out probeText) &&
+                string.Equals(probeText, text + ProbeCharacter, StringComparison.Ordinal);
         }
 
         private static string DecodeTextCore(ReadOnlySpan<char> text, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,
