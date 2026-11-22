@@ -30,9 +30,9 @@ RFC 6838 §4.2 naming rules. [MimeMediaTypeParseOptions](MimeMediaTypeParseOptio
 names each accommodation.
 
 **RFC 2231.** When parsed, a value split into sections is joined, and an extended value
-is decoded, so that each parameter appears once with its whole value. When a parameter
-is given both as `name` and in an RFC 2231 form such as `name*`, the RFC 2231 form is
-used.
+is decoded, so that each parameter appears once with its whole value. A parameter given
+both as `name` and in an RFC 2231 form such as `name*` is given more than once, so the
+media type is not valid (RFC 6838 §4.3).
 
 **Formatting.** A media type is written with no whitespace, and with each parameter
 value as a token if it is one, or otherwise as a quoted-string. A value that isn't

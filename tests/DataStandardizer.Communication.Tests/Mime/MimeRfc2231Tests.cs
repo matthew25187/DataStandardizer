@@ -281,29 +281,17 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
+        // ref. RFC 6838 §4.3: name* and the sections of name are forms of the parameter name, so each of these gives it twice.
         [InlineData("text/plain;name=fallback;name*=UTF-8''real")]
         [InlineData("text/plain;name*=UTF-8''real;name=fallback")]
         [InlineData("text/plain;NAME=fallback;name*0=re;name*1=al")]
-        public void Parse_PlainAndRfc2231Forms_UsesRfc2231Form(string value)
+        public void TryParse_PlainAndRfc2231Forms_ReturnsFalse(string value)
         {
             // act
-            var result = MimeMediaType.Parse(value);
+            var parsed = MimeMediaType.TryParse(value, out _);
 
             // assert
-            result.Parameters.Should().ContainSingle();
-            result.Parameters[0].Value.Should().Be("real");
-        }
-
-        [Fact]
-        public void Parse_PlainAndRfc2231Forms_KeepsPositionOfFirstForm()
-        {
-            // act
-            var result = MimeMediaType.Parse("text/plain;name=fallback;x=1;name*=UTF-8''real");
-
-            // assert
-            result.Parameters.Should().HaveCount(2);
-            result.Parameters[0].Name.Should().Be(ParameterName);
-            result.Parameters[1].Name.Should().Be("x");
+            parsed.Should().BeFalse();
         }
 
         [Theory]

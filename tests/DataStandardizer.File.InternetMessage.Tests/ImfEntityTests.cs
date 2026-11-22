@@ -62,7 +62,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private const string InvalidDisposition = Header + "Content-Disposition: ;;;\r\n\r\nbody";
 
-        private const string BothFileNames = Header + "Content-Type: application/pdf; name=name.pdf\r\nContent-Disposition: attachment; filename=plain.pdf; filename*=UTF-8''caf%C3%A9.pdf\r\n\r\nbody";
         private const string FileNameStar = Header + "Content-Type: application/pdf; name=name.pdf\r\nContent-Disposition: attachment; filename*=UTF-8''caf%C3%A9.pdf\r\n\r\nbody";
         private const string FileNamePlain = Header + "Content-Type: application/pdf; name=name.pdf\r\nContent-Disposition: attachment; filename=plain.pdf\r\n\r\nbody";
         private const string FileNameFromName = Header + "Content-Type: application/pdf; name=name.pdf\r\n\r\nbody";
@@ -75,7 +74,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public static TheoryData<string, string> FileNames => new TheoryData<string, string>
         {
             { FileNameStar, "caf\x00E9.pdf" },
-            { BothFileNames, "caf\x00E9.pdf" },
             { FileNamePlain, "plain.pdf" },
             { FileNameFromName, "name.pdf" },
         };

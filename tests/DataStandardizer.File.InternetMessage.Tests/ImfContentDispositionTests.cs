@@ -51,6 +51,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "attachment; filename=a b",
             "attachment; filename=\"a",
             "attachment; filename=a; filename=b",
+
+            // ref. RFC 6838 §4.3: filename* is a form of filename, so this gives it twice.
+            "attachment; filename=cafe.txt; filename*=UTF-8''caf%C3%A9.txt",
             "attachment; filename=\"caf\x00E9.txt\"",
 
             // ref. RFC 2231 §3 and §7
@@ -91,9 +94,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // A character may span sections (RFC 2231 §4.1).
             { "attachment; filename*0*=UTF-8''caf%C3; filename*1*=%A9.txt", AccentedFileName },
-
-            // ref. RFC 2231 §4: the extended form is used in preference to the plain one.
-            { "attachment; filename=cafe.txt; filename*=UTF-8''caf%C3%A9.txt", AccentedFileName },
         };
 
         public static TheoryData<string> Dispositions => new TheoryData<string>
