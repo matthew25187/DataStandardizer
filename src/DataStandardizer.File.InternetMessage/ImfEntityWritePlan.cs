@@ -934,9 +934,7 @@ namespace DataStandardizer.File.InternetMessage
             // message/global-headers, message/global-delivery-status and message/global-disposition-notification.
             return string.Equals(contentType.Type, MimeTopLevelTypes.Message, StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(contentType.Subtype, "global", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(contentType.Subtype, "global-headers", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(contentType.Subtype, "global-delivery-status", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(contentType.Subtype, "global-disposition-notification", StringComparison.OrdinalIgnoreCase);
+                && !ImfEntityScanner.IsRfc6533Subtype(contentType.Subtype);
         }
 
         private static bool IsTextType(MimeMediaType contentType)

@@ -83,6 +83,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "Content-Type: message/rfc822\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", "" },
             { "Content-Type: message/x-other\r\nContent-Transfer-Encoding: base64\r\n\r\n", "" },
 
+            // ref. RFC 6533 §6.3, §6.4 and §6.5: only quoted-printable and base64 are added to the identity encodings.
+            { "Content-Type: message/global-headers\r\nContent-Transfer-Encoding: x-other\r\n\r\n", "" },
+            { "Content-Type: message/global-delivery-status\r\nContent-Transfer-Encoding: x-other\r\n\r\n", "" },
+            { "Content-Type: message/global-disposition-notification\r\nContent-Transfer-Encoding: x-other\r\n\r\n", "" },
+
             // ref. RFC 2046 §5.2.2 and §5.2.3: these must be 7bit.
             { "Content-Type: message/partial; id=x; number=1\r\nContent-Transfer-Encoding: 8bit\r\n\r\n", "" },
             { "Content-Type: message/partial; id=x; number=1\r\nContent-Transfer-Encoding: binary\r\n\r\n", "" },
