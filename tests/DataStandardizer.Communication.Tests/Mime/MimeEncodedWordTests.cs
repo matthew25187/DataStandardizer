@@ -44,6 +44,29 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string MaxLengthText = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string LongText = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+        // ref. RFC 2047 §2: LongWord written back as a word of 75 characters and one of the rest, separated by a space.
+        private const string LongWordWritten = "=?UTF-8?Q?aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?= =?UTF-8?Q?a?=";
+
+        // A word of 77 characters with a language, whose "(" is written as itself in text but as "=28" in a phrase (RFC 2047 §5 (3)), so
+        // it is written back as "Q" words in the mode of a phrase, each of at most 75 characters.
+        private const string LongWordWithLanguage = "=?UTF-8*en?Q?(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?=";
+        private const string LongWordWithLanguageWritten = "=?UTF-8*en?Q?=28aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?= =?UTF-8*en?Q?aaaa?=";
+
+        // A word of 76 characters whose language leaves no room in a word of 75 characters for its one character.
+        private const string LongWordWithTooLongLanguage = "=?UTF-8*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh?Q?a?=";
+
+        // ref. RFC 2781 §4.3: a word of 76 characters whose octets are only a UTF-16 byte order mark, so its text is empty. Its language
+        // leaves room for a character.
+        private const string LongWordWithEmptyText = "=?UTF-16*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-ab?Q?=FE=FF?=";
+
+        // A word of 76 characters in a character set that no resolver knows.
+        private const string LongUnknownCharsetWord = "=?x-unknown?Q?aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?=";
+
+        // A word of 76 characters whose octets, read by RawUtf16CharsetResolver, are the unpaired surrogate U+D800, and LongWordWithUnpairedSurrogate
+        // written back: U+FFFD as UTF-8 (EF BF BD) in "B", the only encoding with room for it beside the language.
+        private const string LongWordWithUnpairedSurrogate = "=?x-raw*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abc?Q?=D8=00?=";
+        private const string LongWordWithUnpairedSurrogateWritten = "=?UTF-8*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abc?B?77+9?=";
+
         // Text that is 70 characters of encoded text in "Q", so it is split into a word of 75 characters and one of the rest.
         private const string SeventyLetters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string SevenLettersWord = "=?UTF-8?Q?aaaaaaa?=";
@@ -294,6 +317,20 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { LittleEndianSharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
                 { LittleEndianUtf32SharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
                 { BigEndianNoncharacterSplitBeforeMarkOctets, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterANoncharacterOSlash },
+            };
+
+        public static TheoryData<string, string> LongWordsWritten => new TheoryData<string, string>
+        {
+            { LongWord, LongWordWritten },
+            { LongWordWithLanguage, LongWordWithLanguageWritten },
+        };
+
+        public static TheoryData<string, MimeEncodedWordParseOptions> LongWordsNotWritable =>
+            new TheoryData<string, MimeEncodedWordParseOptions>
+            {
+                { LongWordWithTooLongLanguage, MimeEncodedWordParseOptions.AllowLongWords },
+                { LongWordWithEmptyText, MimeEncodedWordParseOptions.AllowLongWords },
+                { LongUnknownCharsetWord, MimeEncodedWordParseOptions.AllowLongWords | MimeEncodedWordParseOptions.AllowUnknownCharsets },
             };
 
         public static TheoryData<string> DecodeDeviationValues => new TheoryData<string>
@@ -664,6 +701,71 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Should().Be("=?iso-8859-1?q?Andr=E9?=");
+        }
+
+        [Theory]
+        [MemberData(nameof(LongWordsWritten))]
+        public void ToString_LongWordWithOption_WritesWordsWithinMaxLength(string value, string expected)
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(value, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords, MimeCharsetResolver.Default);
+
+            // act
+            var result = word.ToString();
+
+            // assert
+            result.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryFormat_LongWordWithOption_WritesWordsWithinMaxLength()
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(LongWord, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords, MimeCharsetResolver.Default);
+            var destination = new char[LongWordWritten.Length];
+
+            // act
+            var success = word.TryFormat(destination, out var charsWritten);
+
+            // assert
+            success.Should().BeTrue();
+            charsWritten.Should().Be(LongWordWritten.Length);
+            new string(destination).Should().Be(LongWordWritten);
+        }
+
+        [Theory]
+        [MemberData(nameof(LongWordsNotWritable))]
+        public void TryParse_LongWordThatCantBeWrittenWithinMaxLength_ReturnsFalse(string value, MimeEncodedWordParseOptions options)
+        {
+            // act
+            var success = MimeEncodedWord.TryParse(value, MimeEncodedWordContext.Text, options, MimeCharsetResolver.Default, out _);
+
+            // assert
+            success.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ToString_LongWordWithUnpairedSurrogate_WritesReplacementCharacter()
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(LongWordWithUnpairedSurrogate, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords,
+                new RawUtf16CharsetResolver());
+
+            // act
+            var result = word.ToString();
+
+            // assert
+            result.Should().Be(LongWordWithUnpairedSurrogateWritten);
+        }
+
+        [Fact]
+        public void DecodeText_LongWordWritten_ReadsText()
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(LongWordWritten);
+
+            // assert
+            result.Should().Be(LongText);
         }
 
         [Fact]
@@ -1116,6 +1218,53 @@ namespace DataStandardizer.Communication.Tests.Mime
             {
                 return MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Iso88591, out encoding);
             }
+        }
+
+        // Resolves every character set as RawUtf16Encoding, which reads octets as UTF-16 code units even when they are unpaired surrogates.
+        private sealed class RawUtf16CharsetResolver : IMimeCharsetResolver
+        {
+            public bool TryGetEncoding(MimeCharset charset, out Encoding encoding)
+            {
+                encoding = new RawUtf16Encoding();
+                return true;
+            }
+        }
+
+        // Reads each pair of octets as one big-endian UTF-16 code unit, with no check that it is a whole character.
+        private sealed class RawUtf16Encoding : Encoding
+        {
+            private const int OctetsPerCodeUnit = 2;
+            private const int BitsPerOctet = 8;
+
+            public override int GetByteCount(char[] chars, int index, int count) => count * OctetsPerCodeUnit;
+
+            public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
+            {
+                for (var offset = 0; offset < charCount; offset++)
+                {
+                    bytes[byteIndex + offset * OctetsPerCodeUnit] = (byte)(chars[charIndex + offset] >> BitsPerOctet);
+                    bytes[byteIndex + offset * OctetsPerCodeUnit + 1] = (byte)chars[charIndex + offset];
+                }
+
+                return charCount * OctetsPerCodeUnit;
+            }
+
+            public override int GetCharCount(byte[] bytes, int index, int count) => count / OctetsPerCodeUnit;
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+            {
+                var charCount = byteCount / OctetsPerCodeUnit;
+                for (var offset = 0; offset < charCount; offset++)
+                {
+                    chars[charIndex + offset] = (char)(bytes[byteIndex + offset * OctetsPerCodeUnit] << BitsPerOctet | bytes[byteIndex + offset * OctetsPerCodeUnit + 1]);
+                }
+
+                return charCount;
+            }
+
+            public override int GetMaxByteCount(int charCount) => charCount * OctetsPerCodeUnit;
+
+            public override int GetMaxCharCount(int byteCount) => byteCount / OctetsPerCodeUnit;
         }
     }
 }

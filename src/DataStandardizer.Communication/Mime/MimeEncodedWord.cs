@@ -12,9 +12,11 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A parsed word is written back as it was written. A word that is created is written in UTF-8. Two words are equal when their
-    /// character sets, languages, encodings and texts are equal, even when they are written differently, such as <c>=41</c> and <c>A</c> in
-    /// "Q"-encoded text. Character sets and languages are compared case-insensitively.
+    /// A parsed word is written back as it was written, unless it is longer than <see cref="MaxLength"/> characters, as
+    /// <see cref="MimeEncodedWordParseOptions.AllowLongWords"/> accepts: RFC 2047 §2 doesn't allow such a word, so its text is written as
+    /// encoded words in UTF-8 that are each within the limit, separated by spaces. A word that is created is written in UTF-8. Two words are
+    /// equal when their character sets, languages, encodings and texts are equal, even when they are written differently, such as
+    /// <c>=41</c> and <c>A</c> in "Q"-encoded text. Character sets and languages are compared case-insensitively.
     /// </para>
     /// <para>
     /// Use <see cref="EncodeText(string, MimeEncodedWordContext)"/> to write text of any length as encoded words, and
@@ -531,7 +533,8 @@ namespace DataStandardizer.Communication.Mime
 #endif
 
         /// <summary>
-        /// Formats the encoded word into a span: as it was written, if it was parsed.
+        /// Formats the encoded word into a span: as it was written, if it was parsed and is at most <see cref="MaxLength"/> characters
+        /// long.
         /// </summary>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
@@ -553,7 +556,7 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// Formats the encoded word: as it was written, if it was parsed.
+        /// Formats the encoded word: as it was written, if it was parsed and is at most <see cref="MaxLength"/> characters long.
         /// </summary>
         /// <returns>The word; an empty string if the <see cref="MimeEncodedWord"/> is not initialised.</returns>
         public override string ToString()
@@ -662,23 +665,52 @@ namespace DataStandardizer.Communication.Mime
 
             if (text.Length == 0) return new ReadOnlyCollection<MimeEncodedWord>(new List<MimeEncodedWord>());
 
-            var qWords = TryEncodeWords(text, MimeEncodedWordEncoding.Q, context, language);
-            var bWords = TryEncodeWords(text, MimeEncodedWordEncoding.B, context, language);
-            List<MimeEncodedWord> words;
-            if (qWords != null && (bWords is null || GetLength(qWords) <= GetLength(bWords)))
-            {
-                words = qWords;
-            }
-            else if (bWords != null)
-            {
-                words = bWords;
-            }
-            else
+            var words = TryEncodeShortestWords(text, context, language);
+            if (words is null)
             {
                 throw new ArgumentException("The language is too long for an encoded word of 75 characters to hold all of a character.", nameof(language));
             }
 
             return new ReadOnlyCollection<MimeEncodedWord>(words);
+        }
+
+        // Splits non-empty text into words in whichever of the "B" and "Q" encodings is shorter, "Q" when they are the same length, or
+        // returns null if one character doesn't fit in a word in either encoding.
+#if NETCOREAPP3_0_OR_GREATER
+        private static List<MimeEncodedWord>? TryEncodeShortestWords(string text, MimeEncodedWordContext context, string? language)
+#else
+        private static List<MimeEncodedWord> TryEncodeShortestWords(string text, MimeEncodedWordContext context, string language)
+#endif
+        {
+            var qWords = TryEncodeWords(text, MimeEncodedWordEncoding.Q, context, language);
+            var bWords = TryEncodeWords(text, MimeEncodedWordEncoding.B, context, language);
+            return qWords != null && (bWords is null || GetLength(qWords) <= GetLength(bWords)) ? qWords : bWords;
+        }
+
+        // Writes the text of a word longer than MaxLength, accepted with MimeEncodedWordParseOptions.AllowLongWords, as UTF-8 words that
+        // are each within MaxLength, separated by spaces, or returns null if the text is empty or its language leaves no room for a
+        // character. The "Q" mode of a phrase allows the fewest characters, so the words are valid wherever the word was. An unpaired
+        // surrogate, which a character set such as UTF-7 can decode to, is written as U+FFFD, as UTF-8 can't hold it.
+#if NETCOREAPP3_0_OR_GREATER
+        private static string? TryRewriteLongWord(string text, string? language)
+#else
+        private static string TryRewriteLongWord(string text, string language)
+#endif
+        {
+            if (text.Length == 0) return null;
+
+            var words = TryEncodeShortestWords(ReplaceUnpairedSurrogates(text), MimeEncodedWordContext.Phrase, language);
+            if (words is null) return null;
+
+            // ref. RFC 2047 §6.2: whitespace between adjacent encoded words is dropped when they are read, so the text is read back whole.
+            var builder = new StringBuilder(GetLength(words) + words.Count - 1);
+            for (var index = 0; index < words.Count; index++)
+            {
+                if (index > 0) builder.Append(' ');
+                builder.Append(words[index]._word);
+            }
+
+            return builder.ToString();
         }
 
         // Splits text into words of whole characters that each fit in MaxLength, with the shortest total length, or returns null if one
@@ -767,6 +799,31 @@ namespace DataStandardizer.Communication.Mime
             return new MimeEncodedWord(builder.ToString(), MimeCharset.Utf8, language, encoding, value);
         }
 
+        private static string ReplaceUnpairedSurrogates(string text)
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            StringBuilder? builder = null;
+#else
+            StringBuilder builder = null;
+#endif
+            for (var index = 0; index < text.Length; index++)
+            {
+                var c = text[index];
+                if (char.IsHighSurrogate(c) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (!char.IsSurrogate(c)) continue;
+
+                if (builder is null) builder = new StringBuilder(text);
+                builder[index] = MimeDecoderFallbacks.ReplacementString[0];
+            }
+
+            return builder is null ? text : builder.ToString();
+        }
+
         private static int GetLength(List<MimeEncodedWord> words)
         {
             var length = 0;
@@ -851,7 +908,30 @@ namespace DataStandardizer.Communication.Mime
                 return false;
             }
 
-            result = new MimeEncodedWord(value.ToString(), word.Charset, word.Language, word.Encoding, text);
+            // ref. RFC 2047 §2: "An 'encoded-word' may not be more than 75 characters long". A word that is longer is written back as
+            // words that aren't. The text of a word whose character set isn't resolved holds its octets, not its characters, so it can't be
+            // written in another character set.
+#if NETCOREAPP3_0_OR_GREATER
+            string? written;
+#else
+            string written;
+#endif
+            if (value.Length <= MaxLength)
+            {
+                written = value.ToString();
+            }
+            else
+            {
+                written = charsetResolver.TryGetEncoding(word.Charset, out _) ? TryRewriteLongWord(text, word.Language) : null;
+            }
+
+            if (written is null)
+            {
+                result = default(MimeEncodedWord);
+                return false;
+            }
+
+            result = new MimeEncodedWord(written, word.Charset, word.Language, word.Encoding, text);
             return true;
         }
 

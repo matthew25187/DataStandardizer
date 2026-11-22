@@ -30,6 +30,24 @@ namespace DataStandardizer.Communication.Mime
         /// Accept an encoded word longer than 75 characters, which RFC 2047 §2 doesn't allow, and which RFC 2047 §6.1 says to read as
         /// ordinary text.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A word that is accepted this way is written back as encoded words in UTF-8 that are each at most
+        /// <see cref="MimeEncodedWord.MaxLength"/> characters long, separated by spaces, as
+        /// <see cref="MimeEncodedWord.EncodeText(string, MimeEncodedWordContext)"/> writes text in a phrase, with the word's language. An
+        /// unpaired surrogate in its text is written as U+FFFD. A reader drops the spaces between the words (RFC 2047 §6.2), so
+        /// <see cref="MimeEncodedWord.DecodeText(string, MimeEncodedWordContext, MimeEncodedWordParseOptions, IMimeCharsetResolver)"/> reads
+        /// them back as the text, but <see cref="MimeEncodedWord.Parse(string)"/>, which reads one word, doesn't. The properties of the word
+        /// still describe it as it was written.
+        /// </para>
+        /// <para>
+        /// <see cref="MimeEncodedWord.TryParse(ReadOnlySpan{char}, MimeEncodedWordContext, MimeEncodedWordParseOptions, IMimeCharsetResolver, out MimeEncodedWord)"/>
+        /// rejects a long word that can't be written this way: one whose text is empty, whose language leaves no room in a word of
+        /// <see cref="MimeEncodedWord.MaxLength"/> characters for a character of its text, or whose character set the
+        /// <see cref="IMimeCharsetResolver"/> doesn't resolve, even with <see cref="AllowUnknownCharsets"/>. <c>DecodeText</c> still decodes
+        /// such a word, as it doesn't write it.
+        /// </para>
+        /// </remarks>
         AllowLongWords = 1 << 0,
 
         /// <summary>
