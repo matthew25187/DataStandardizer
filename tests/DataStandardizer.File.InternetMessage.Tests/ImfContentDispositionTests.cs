@@ -52,7 +52,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "attachment; filename=\"a",
             "attachment; filename=a; filename=b",
 
-            // ref. RFC 6838 §4.3: filename* is a form of filename, so this gives it twice.
+            // ref. RFC 2231 §3-§4: filename* is a form of filename, so this gives it twice.
             "attachment; filename=cafe.txt; filename*=UTF-8''caf%C3%A9.txt",
             "attachment; filename=\"caf\x00E9.txt\"",
 

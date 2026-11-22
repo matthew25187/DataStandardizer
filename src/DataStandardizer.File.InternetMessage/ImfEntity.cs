@@ -239,7 +239,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the suggested file name of the entity: the <c>filename</c> parameter of the Content-Disposition field, in the form of RFC 2231 if it has one (<c>filename*</c>), or the
+        /// Gets the suggested file name of the entity: the <c>filename</c> parameter of the Content-Disposition field, decoded if it is in the form of RFC 2231 (<c>filename*</c>), or the
         /// <c>name</c> parameter of the Content-Type field, which RFC 2046 §4.5.1 leaves in use for this; or <c>null</c> if it has none.
         /// </summary>
         /// <remarks>

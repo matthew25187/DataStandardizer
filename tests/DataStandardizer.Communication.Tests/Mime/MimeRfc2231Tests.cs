@@ -280,6 +280,19 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Parameters[0].Value.Should().Be("ab");
         }
 
+        [Fact]
+        public void Parse_SectionsSplitByAnotherParameter_KeepsPositionOfFirstSection()
+        {
+            // act
+            var result = MimeMediaType.Parse("text/plain;name*0=a;x=1;name*1=b");
+
+            // assert
+            result.Parameters.Should().HaveCount(2);
+            result.Parameters[0].Name.Should().Be(ParameterName);
+            result.Parameters[0].Value.Should().Be("ab");
+            result.Parameters[1].Name.Should().Be("x");
+        }
+
         [Theory]
         // ref. RFC 6838 §4.3: name* and the sections of name are forms of the parameter name, so each of these gives it twice.
         [InlineData("text/plain;name=fallback;name*=UTF-8''real")]

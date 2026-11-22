@@ -66,6 +66,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string FileNamePlain = Header + "Content-Type: application/pdf; name=name.pdf\r\nContent-Disposition: attachment; filename=plain.pdf\r\n\r\nbody";
         private const string FileNameFromName = Header + "Content-Type: application/pdf; name=name.pdf\r\n\r\nbody";
 
+        // ref. RFC 2231 §3-§4: filename* is a form of filename, so the Content-Disposition field gives it twice and isn't valid.
+        private const string BothFileNames = Header + "Content-Type: application/pdf; name=name.pdf\r\nContent-Disposition: attachment; filename=plain.pdf; filename*=UTF-8''caf%C3%A9.pdf\r\n\r\nbody";
+
         // ref. RFC 2047 §5: not allowed in a parameter, though mail programs write it.
         private const string EncodedName = "=?UTF-8?Q?caf=C3=A9?=";
         private const string EncodedWordName = Header + "Content-Type: application/pdf; name=\"" + EncodedName + "\"\r\n\r\nbody";
@@ -76,6 +79,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { FileNameStar, "caf\x00E9.pdf" },
             { FileNamePlain, "plain.pdf" },
             { FileNameFromName, "name.pdf" },
+            { BothFileNames, "name.pdf" },
         };
 
         public static TheoryData<string, string> Texts => new TheoryData<string, string>
