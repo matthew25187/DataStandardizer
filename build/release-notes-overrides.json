@@ -941,6 +941,46 @@
           "text": "`IcalValue.TryFormatUri`, `TryFormatCalAddress` and the `Url`, `Organizer`, `Source` and `TimeZoneUrl` setters write a `Uri` as given (`OriginalString`), not as `AbsoluteUri`, and throw `ArgumentException` for text the readers reject (RFC 5545 §3.3.13), such as a space, a non-ASCII character or a Windows file path; percent-encode such characters, and give an internationalized host in ASCII, before creating the `Uri`."
         }
       ]
+    },
+    "b75c6b31745af85d552af3b2d11b8837cabab3b0": {
+      "subject": "Quoted-printable body mode follows RFC 2045 §6.7 on line length, transport padding and bare LFs (#1139)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "In `MimeQuotedPrintableMode.Body`, the quoted-printable decoder rejects an encoded line longer than 76 characters, not counting its transport padding and CRLF (RFC 2045 §6.7 rule 5)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "added",
+          "text": "`MimeQuotedPrintableDecoderOptions.AllowLongLines` accepts quoted-printable lines longer than 76 characters (RFC 2045 §6.7 note 5)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "The quoted-printable decoder removes trailing spaces and tabs (transport padding) of any length, instead of rejecting a run of more than 76 before a line break",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "breaking",
+          "text": "The quoted-printable encoder writes a bare LF in text as `=0A`, not as a CRLF line break, so the encoded data decodes to the original octets (RFC 2045 §6.7 rule 4)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "changed",
+          "text": "A `text/*` body from a forward-only stream, written as quoted-printable, has its bare LFs encoded as `=0A` instead of written as CRLF line breaks, so the content is kept as it is (RFC 2045 §6.7 rule 4)",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
     }
   }
 }
