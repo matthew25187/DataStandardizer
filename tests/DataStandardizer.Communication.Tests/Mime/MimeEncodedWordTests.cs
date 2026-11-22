@@ -151,7 +151,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string DoubleQuote = "a\"b";
         private const string DoubleQuoteWord = "=?UTF-8?Q?a\"b?=";
 
-        // ref. RFC 2047 §8 and erratum 504: the "Andre Pirard" example's word with a double-quoted nickname, in a comment.
+        // Not a specification example: the "Andr=E9" word of RFC 2047 §8 with a double-quoted nickname added, to show that erratum 504
+        // lets a comment's "Q" text hold a double quote.
         private const string AndreNicknameComment = "=?ISO-8859-1?Q?Andr=E9_\"Dede\"?=";
         private const string AndreNickname = "Andr\x00E9 \"Dede\"";
 
