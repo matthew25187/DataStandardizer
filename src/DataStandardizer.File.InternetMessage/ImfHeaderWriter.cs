@@ -57,8 +57,6 @@ namespace DataStandardizer.File.InternetMessage
         , IAsyncDisposable
 #endif
     {
-        private const int InitialBufferSize = 1024;
-
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
         private static readonly byte[] Lf = { 0x0A };
 
@@ -134,7 +132,7 @@ namespace DataStandardizer.File.InternetMessage
             _acceptBareLineFeed = options.AcceptBareLineFeed;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
-            _buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
+            _buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
         }
 
         /// <summary>

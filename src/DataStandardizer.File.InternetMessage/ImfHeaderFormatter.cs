@@ -15,7 +15,7 @@ namespace DataStandardizer.File.InternetMessage
         internal const int TargetLineLength = 78;
 
         /// <summary>
-        /// The size of the buffer a caller of <see cref="Format"/> rents from the shared pool, which is enough for most fields.
+        /// The size of the buffer every caller of <see cref="Format"/> rents from the shared pool, which is enough for most fields.
         /// </summary>
         internal const int InitialBufferSize = 1024;
 
@@ -78,8 +78,10 @@ namespace DataStandardizer.File.InternetMessage
             var capacity = name.Length + 1 + bodyLength + (whitespaceCount + 2) * lineBreak.Length;
             if (buffer.Length < capacity)
             {
+                // Rented first, so that if renting fails the caller still holds a buffer it can return.
+                var larger = ArrayPool<byte>.Shared.Rent(capacity);
                 ArrayPool<byte>.Shared.Return(buffer);
-                buffer = ArrayPool<byte>.Shared.Rent(capacity);
+                buffer = larger;
             }
 
             name.CopyTo(buffer);

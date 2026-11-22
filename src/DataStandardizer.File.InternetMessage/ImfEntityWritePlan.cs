@@ -353,7 +353,7 @@ namespace DataStandardizer.File.InternetMessage
         private void FormatFields(Node node)
         {
             var output = new MemoryStream();
-            var buffer = ArrayPool<byte>.Shared.Rent(1024);
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
             try
             {
                 foreach (var field in node.Source.Fields)
@@ -815,7 +815,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private void AddGeneratedField(string name, string value, ItemBuilder builder)
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(1024);
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
             try
             {
                 var length = ImfHeaderFormatter.Format(ImfHeaderFormatter.GetBytes(name), ImfHeaderFormatter.GetBytes(value), ImfHeaderFieldKind.Structured,
