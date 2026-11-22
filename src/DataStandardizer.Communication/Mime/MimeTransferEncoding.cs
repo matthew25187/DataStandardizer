@@ -9,8 +9,10 @@ namespace DataStandardizer.Communication.Mime
     /// <remarks>
     /// <para>
     /// The known mechanisms are <c>7bit</c>, <c>8bit</c>, <c>binary</c>, <c>quoted-printable</c> and <c>base64</c>, which are written in
-    /// lower case. Any other token is an extension mechanism: an <c>x-</c> token, or one registered with IANA (RFC 4289 §3). An extension
-    /// mechanism is kept as written.
+    /// lower case. The only other mechanisms are extension mechanisms: an x-token, which is <c>x-</c> or <c>X-</c> followed by a token
+    /// (RFC 2045 §5.1), or an ietf-token registered with IANA (RFC 4289 §3). The IANA Transfer Encodings registry lists no mechanism beyond
+    /// the five above, so any other token, such as <c>uuencode</c> or <c>x-</c> alone, is not valid. An extension mechanism is kept as
+    /// written.
     /// </para>
     /// <para>
     /// Mechanisms are compared case-insensitively.
@@ -154,9 +156,24 @@ namespace DataStandardizer.Communication.Mime
             else if (MimeGrammar.EqualsIgnoreCase(value, Binary._name)) result = Binary;
             else if (MimeGrammar.EqualsIgnoreCase(value, QuotedPrintable._name)) result = QuotedPrintable;
             else if (MimeGrammar.EqualsIgnoreCase(value, Base64._name)) result = Base64;
-            else result = new MimeTransferEncoding(value.ToString(), Mechanism.Extension);
+            else if (IsXToken(value)) result = new MimeTransferEncoding(value.ToString(), Mechanism.Extension);
+            else
+            {
+                // An ietf-token is a mechanism registered with IANA (RFC 4289 §3). The Transfer Encodings registry lists only the five above,
+                // so any other token that isn't an x-token is not a mechanism.
+                result = default(MimeTransferEncoding);
+                return false;
+            }
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets whether a token is an x-token: "X-" or "x-" followed, with no intervening white space, by a token (RFC 2045 §5.1).
+        /// </summary>
+        private static bool IsXToken(ReadOnlySpan<char> token)
+        {
+            return token.Length > 2 && (token[0] == 'x' || token[0] == 'X') && token[1] == '-';
         }
 
         /// <summary>
