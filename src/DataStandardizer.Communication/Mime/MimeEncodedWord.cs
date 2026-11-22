@@ -689,7 +689,8 @@ namespace DataStandardizer.Communication.Mime
 
         // Writes the text of a word longer than MaxLength, accepted with MimeEncodedWordParseOptions.AllowLongWords, as UTF-8 words that
         // are each within MaxLength, separated by spaces, or returns null if the text is empty or its language leaves no room for a
-        // character. The "Q" mode of a phrase allows the fewest characters, so the words are valid wherever the word was.
+        // character. The "Q" mode of a phrase allows the fewest characters, so the words are valid wherever the word was. An unpaired
+        // surrogate, which a character set such as UTF-7 can decode to, is written as U+FFFD, as UTF-8 can't hold it.
 #if NETCOREAPP3_0_OR_GREATER
         private static string? TryRewriteLongWord(string text, string? language)
 #else
@@ -698,7 +699,7 @@ namespace DataStandardizer.Communication.Mime
         {
             if (text.Length == 0) return null;
 
-            var words = TryEncodeShortestWords(text, MimeEncodedWordContext.Phrase, language);
+            var words = TryEncodeShortestWords(ReplaceUnpairedSurrogates(text), MimeEncodedWordContext.Phrase, language);
             if (words is null) return null;
 
             // ref. RFC 2047 §6.2: whitespace between adjacent encoded words is dropped when they are read, so the text is read back whole.
@@ -798,6 +799,31 @@ namespace DataStandardizer.Communication.Mime
             return new MimeEncodedWord(builder.ToString(), MimeCharset.Utf8, language, encoding, value);
         }
 
+        private static string ReplaceUnpairedSurrogates(string text)
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            StringBuilder? builder = null;
+#else
+            StringBuilder builder = null;
+#endif
+            for (var index = 0; index < text.Length; index++)
+            {
+                var c = text[index];
+                if (char.IsHighSurrogate(c) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (!char.IsSurrogate(c)) continue;
+
+                if (builder is null) builder = new StringBuilder(text);
+                builder[index] = MimeDecoderFallbacks.ReplacementString[0];
+            }
+
+            return builder is null ? text : builder.ToString();
+        }
+
         private static int GetLength(List<MimeEncodedWord> words)
         {
             var length = 0;
@@ -883,8 +909,22 @@ namespace DataStandardizer.Communication.Mime
             }
 
             // ref. RFC 2047 §2: "An 'encoded-word' may not be more than 75 characters long". A word that is longer is written back as
-            // words that aren't.
-            var written = value.Length > MaxLength ? TryRewriteLongWord(text, word.Language) : value.ToString();
+            // words that aren't. The text of a word whose character set isn't resolved holds its octets, not its characters, so it can't be
+            // written in another character set.
+#if NETCOREAPP3_0_OR_GREATER
+            string? written;
+#else
+            string written;
+#endif
+            if (value.Length <= MaxLength)
+            {
+                written = value.ToString();
+            }
+            else
+            {
+                written = charsetResolver.TryGetEncoding(word.Charset, out _) ? TryRewriteLongWord(text, word.Language) : null;
+            }
+
             if (written is null)
             {
                 result = default(MimeEncodedWord);
