@@ -789,29 +789,40 @@ namespace DataStandardizer.File.InternetMessage
             output[length++] = value[position++];
             while (position < value.Length)
             {
+                if (!TrySkipFold(value, ref position)) return false;
+
                 var current = value[position];
-                if (current == (byte)'\r')
-                {
-                    // ref. RFC 5322 §3.2.2: only a CRLF before a space or tab is a fold, and only the CRLF goes.
-                    if (position + 2 >= value.Length || value[position + 1] != (byte)'\n' || !IsWhitespace(value[position + 2])) return false;
-
-                    position += 2;
-                    continue;
-                }
-
                 output[length++] = current;
                 position++;
                 if (current == (byte)'"') return true;
 
                 if (current == (byte)'\\')
                 {
-                    if (position == value.Length) return false;
+                    // ref. RFC 5322 §2.2.3: a field is unfolded before it is read, so a fold right after the backslash goes, and the
+                    // quoted-pair quotes the space or tab that follows it.
+                    if (position == value.Length || !TrySkipFold(value, ref position)) return false;
 
                     output[length++] = value[position++];
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Skips a fold at a position of a quoted-string.
+        /// </summary>
+        /// <returns><c>false</c> if a carriage return there is not part of a fold.</returns>
+        /// <remarks>
+        /// ref. RFC 5322 §3.2.2: only a CRLF before a space or tab is a fold, and only the CRLF goes.
+        /// </remarks>
+        private static bool TrySkipFold(ReadOnlySpan<byte> value, ref int position)
+        {
+            if (value[position] != (byte)'\r') return true;
+            if (position + 2 >= value.Length || value[position + 1] != (byte)'\n' || !IsWhitespace(value[position + 2])) return false;
+
+            position += 2;
+            return true;
         }
 
         private static bool TryReadVersionNumber(ReadOnlySpan<byte> value, ref int position, out int number)
