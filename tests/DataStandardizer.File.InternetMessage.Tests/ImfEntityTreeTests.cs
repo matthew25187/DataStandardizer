@@ -1078,6 +1078,28 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void WriteMessage_KeptBoundaryPutInsideAKeptBoundaryThatIsItsPrefix_Throws()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: each boundary was kept from its own read, and a delimiter of "b1" inside the entity of "b" starts with "--b")
+            const string Outer = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\n" + Header + "\r\none\r\n--b--\r\n";
+            const string Inner = Header + "Content-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\n\r\ntwo\r\n--b1--\r\n";
+            var subject = EntityTrees.Read(Outer);
+            var inner = EntityTrees.Read(Inner);
+            ((ImfMultipart)inner.Body).Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "changed"));
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = inner;
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
         public void WriteMessage_LineFeedMessageWithOnePartSet_KeepsItsLineBreaks()
         {
             // arrange

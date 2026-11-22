@@ -70,7 +70,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n--b--", "1" },
 
             // ref. RFC 2046 §5.1.1: no line of the content a boundary encloses starts with its delimiter, unless it is a delimiter.
-            { "Content-Type: multipart/mixed; boundary=abc\r\n\r\n--abc\r\n\r\nline one\r\n--abcX\r\nline three\r\n--abc--", "1" },
+            { BoundaryPrefixLine, "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA: 1\r\n--bX: 2\r\n\r\nx\r\n--b--", "1" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\nSubject: s\r\n--bX: 2\r\n\r\nx\r\n--b--", "1" },
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\n--bX\r\n--b--", "1" },
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--X\r\n--b--", "1" },
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b x\r\n--b--", "1" },
@@ -315,6 +317,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
                     "end 1",
                     "start 2", "type 2 text/plain", "body 2 [y]", "end 2",
                     "end /");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_NoCloseDelimiterBeforeAnOuterDelimiterThatStartsWithTheInnerBoundary_ThrowsWithTheOption()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: the line "--b1" is content of the open part of "b", so the option doesn't let it start with "--b")
+            const string message = "Content-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b1\r\n\r\ny\r\n--b1--";
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowMissingBoundaryTerminator = true }))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
             }
         }
 

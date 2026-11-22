@@ -69,7 +69,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             internal const string BoundaryInvalid = "The boundary parameter must be 1 to 70 characters of the set that RFC 2046 §5.1.1 allows, and must not end with a space.";
             internal const string BoundaryMissing = "A multipart entity requires a boundary parameter (RFC 2046 §5.1.1).";
-            internal const string BoundaryPrefixTemplate = "A line starts with the boundary '{0}' of the multipart entity that encloses it, and is not a delimiter (RFC 2046 §5.1.1).";
+            internal const string BoundaryPrefixTemplate = "A line inside the multipart entity with the boundary '{0}' starts with its delimiter, and is not one (RFC 2046 §5.1.1).";
             internal const string CloseWithoutPart = "Found the close delimiter of a multipart entity with no parts.  RFC 2046 §5.1.1 requires at least one.";
             internal const string CompositeEncodingTemplate = "The transfer encoding '{0}' is not allowed on a '{1}' entity, which may use only 7bit, 8bit or binary (RFC 2045 §6.4).";
             internal const string Rfc6533EncodingTemplate = "The transfer encoding '{0}' is not allowed on a '{1}' entity, which may use only 7bit, 8bit, binary, quoted-printable or base64 (RFC 2045 §6.4, RFC 6533 §6.3, §6.4 and §6.5).";
@@ -407,6 +407,7 @@ namespace DataStandardizer.File.InternetMessage
 
                         if (scanStatus == ImfHeaderScanner.ScanStatus.FieldRead)
                         {
+                            CheckFieldBoundaryPrefix();
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
                             KeepMessageField(CurrentFrame);
@@ -606,6 +607,21 @@ namespace DataStandardizer.File.InternetMessage
 
                 _diagnostics.Add(diagnostic);
             }
+        }
+
+        /// <summary>
+        /// Throws if the current field starts with the delimiter of an open boundary, as the header of a part is content of each multipart entity
+        /// around it (RFC 2046 §5.1.1).  The lines that continue a field start with white space, so only its first line can.
+        /// </summary>
+        private void CheckFieldBoundaryPrefix()
+        {
+            var field = _scanner.RawBytes.Span;
+            if (field.Length < DashLength || field[0] != Hyphen || field[1] != Hyphen) return;
+
+            var frameIndex = FindPrefixFrame(field.Slice(DashLength), -1);
+            if (frameIndex < 0) return;
+
+            throw _scanner.BuildCurrentFieldException(BuildBoundaryPrefixMessage(_frames[frameIndex].Boundary));
         }
 
         /// <summary>
@@ -1068,7 +1084,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (available >= windowLength)
                 {
                     _lineScan = -1;
-                    CheckBoundaryPrefix(lineStart, windowEnd, _frames.Count);
+                    CheckBoundaryPrefix(lineStart, windowEnd, -1);
                     resumeAt = windowEnd;
                     return LineMatch.NoMatch;
                 }
@@ -1084,7 +1100,7 @@ namespace DataStandardizer.File.InternetMessage
                 resumeAt = end;
                 if (available <= MaxLineLength && MatchDelimiter(lineStart, end, -1)) return LineMatch.Delimiter;
 
-                CheckBoundaryPrefix(lineStart, end, _frames.Count);
+                CheckBoundaryPrefix(lineStart, end, -1);
                 return LineMatch.NoMatch;
             }
 
@@ -1102,38 +1118,57 @@ namespace DataStandardizer.File.InternetMessage
                 else if (!_acceptBareLineFeed)
                 {
                     // ref. RFC 2046 §5.1.1: a bare line feed doesn't end a delimiter line, but the line still starts after a CRLF.
-                    CheckBoundaryPrefix(lineStart, lineFeed, _frames.Count);
+                    CheckBoundaryPrefix(lineStart, lineFeed, -1);
                     return LineMatch.NoMatch;
                 }
             }
 
             if (contentEnd - lineStart <= MaxLineLength && MatchDelimiter(lineStart, contentEnd, lineFeed + 1)) return LineMatch.Delimiter;
 
-            CheckBoundaryPrefix(lineStart, contentEnd, _frames.Count);
+            CheckBoundaryPrefix(lineStart, contentEnd, -1);
             return LineMatch.NoMatch;
         }
 
         /// <summary>
         /// Throws if a line starts with the delimiter of an open boundary of an entity that it is content of.  RFC 2046 §5.1.1: "The boundary
-        /// delimiter MUST NOT appear inside any of the encapsulated parts, on a line by itself or as the prefix of any line."
+        /// delimiter MUST NOT appear inside any of the encapsulated parts, on a line by itself or as the prefix of any line."  A preamble is held to
+        /// the same rule as the parts, as the writer holds it: by the note to implementors there, a reader compares the boundary with the beginning
+        /// of each candidate line, so a line of the preamble that starts with the delimiter would be taken for it.
         /// </summary>
         /// <param name="lineStart">The index in the block of the start of the line, which starts with <c>--</c>.</param>
         /// <param name="lineEnd">The index in the block of the end of the bytes of the line to look at, which are at least as many as the longest
         /// delimiter, or the whole line.</param>
-        /// <param name="frameCount">The number of entities, from the outermost, that the line is content of: all of them for a line that is not a
-        /// delimiter, or those around the entity whose delimiter it is.</param>
-        private void CheckBoundaryPrefix(int lineStart, int lineEnd, int frameCount)
+        /// <param name="matchedIndex">The index of the entity whose delimiter the line is, or -1 if it is not a delimiter.</param>
+        private void CheckBoundaryPrefix(int lineStart, int lineEnd, int matchedIndex)
         {
-            var token = new ReadOnlySpan<byte>(_scanner.Buffer, lineStart + DashLength, lineEnd - lineStart - DashLength);
-            for (var index = frameCount - 1; index >= 0; index--)
+            var frameIndex = FindPrefixFrame(new ReadOnlySpan<byte>(_scanner.Buffer, lineStart + DashLength, lineEnd - lineStart - DashLength), matchedIndex);
+            if (frameIndex < 0) return;
+
+            // The error is reported at the line, so the content before it is consumed.
+            _scanner.ConsumeBody(lineStart);
+            throw BuildError(BuildBoundaryPrefixMessage(_frames[frameIndex].Boundary));
+        }
+
+        /// <summary>
+        /// Finds an entity with an open boundary that the text after the <c>--</c> of a line starts with.
+        /// </summary>
+        /// <param name="token">The text of the line after its <c>--</c>.</param>
+        /// <param name="excludedIndex">The index of an entity not to look at, or -1.</param>
+        /// <returns>The index of the entity, or -1 if there is none.</returns>
+        private int FindPrefixFrame(ReadOnlySpan<byte> token, int excludedIndex)
+        {
+            for (var index = _frames.Count - 1; index >= 0; index--)
             {
                 var frame = _frames[index];
-                if (!frame.IsBoundaryActive || !token.StartsWith(frame.Boundary)) continue;
-
-                // The error is reported at the line, so the content before it is consumed.
-                _scanner.ConsumeBody(lineStart);
-                throw BuildError(string.Format(ErrorMessage.BoundaryPrefixTemplate, Encoding.UTF8.GetString(frame.Boundary, 0, frame.Boundary.Length)));
+                if (index != excludedIndex && frame.IsBoundaryActive && token.StartsWith(frame.Boundary)) return index;
             }
+
+            return -1;
+        }
+
+        private static string BuildBoundaryPrefixMessage(byte[] boundary)
+        {
+            return string.Format(ErrorMessage.BoundaryPrefixTemplate, Encoding.UTF8.GetString(boundary, 0, boundary.Length));
         }
 
         /// <summary>
@@ -1171,7 +1206,8 @@ namespace DataStandardizer.File.InternetMessage
 
                 if (!isOpen && !isClose) continue;
 
-                // ref. RFC 2046 §5.1.1: the line is content of each entity around the one whose delimiter it is.
+                // ref. RFC 2046 §5.1.1: the line is content of each entity around the one whose delimiter it is, and of each open one inside it,
+                // which it would end without a close delimiter of its own.
                 CheckBoundaryPrefix(lineStart, contentEnd, index);
 
                 _matchFrameIndex = index;

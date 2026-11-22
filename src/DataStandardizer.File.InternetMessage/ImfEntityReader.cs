@@ -27,9 +27,11 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Multipart entities.</b>  A delimiter is a line break, <c>--</c>, the boundary, optional spaces and tabs, and a line break.  A close delimiter has
     /// <c>--</c> after the boundary, and may end the data with no line break.  The line break before a delimiter belongs to the delimiter, not to the
     /// part (RFC 2046 §5.1.1).  So a part with no body ends with the empty line that shares its line break with the delimiter, and a part with headers
-    /// and no empty line before its delimiter is not valid.  A line is a delimiter of an open multipart entity only if it matches exactly, the innermost entity first, so a
-    /// boundary may be a prefix of another, and a line that merely starts with a boundary is content.  A line longer than the 998 octets that RFC 5322
-    /// §2.1.1 allows is never a delimiter.
+    /// and no empty line before its delimiter is not valid.  A line is a delimiter of an open multipart entity only if it matches exactly, the innermost entity first.  A line
+    /// longer than the 998 octets that RFC 5322 §2.1.1 allows is never a delimiter.  RFC 2046 §5.1.1 doesn't allow a boundary as the prefix of any line
+    /// inside its entity, so a line of a preamble, part or header there that starts with <c>--</c> and the boundary, and is not a delimiter of that entity
+    /// or of one around it, causes an <see cref="ImfFileException"/>.  So does the delimiter of a nested entity whose boundary starts with that of an
+    /// entity around it, while an inner boundary may be a prefix of an outer one.
     /// </para>
     /// <para>
     /// A delimiter of an enclosing entity ends every entity inside it.  A multipart entity that ends without its close delimiter, because of that or the

@@ -507,8 +507,10 @@ namespace DataStandardizer.File.InternetMessage
                 foreach (var enclosing in boundary.Enclosing)
                 {
                     // ref. RFC 2046 §5.1.1: a boundary that was read may be a prefix of one that encloses it, as no line of the enclosing entity's parts
-                    // then starts with the enclosing boundary.  The reader refuses an enclosing boundary that is a prefix of one inside it.
-                    if (!boundary.ConflictsWith(enclosing.Value) || (boundary.IsPreserved && enclosing.IsPreserved)) continue;
+                    // then starts with the enclosing boundary.  An enclosing boundary that is a prefix of one inside it is refused, even if both were read
+                    // on their own.
+                    if (!boundary.ConflictsWith(enclosing.Value)) continue;
+                    if (boundary.IsPreserved && enclosing.IsPreserved && !boundary.Value.StartsWith(enclosing.Value, StringComparison.Ordinal)) continue;
 
                     if (boundary.IsGenerated)
                     {
