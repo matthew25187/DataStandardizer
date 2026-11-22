@@ -438,13 +438,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void NestedMultiparts_DepthOfTwo_GivesEachBoundaryThePreviousAsAPrefix()
+        public void NestedMultiparts_DepthOfTwo_GivesEachBoundaryTheNextAsAPrefix()
         {
             // act
             var testResult = LongMessages.NestedMultiparts(2);
 
             // assert
-            testResult.Should().Be("Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: multipart/mixed; boundary=bb\r\n\r\n--bb\r\n\r\nx\r\n--bb--\r\n--b--");
+            testResult.Should().Be("Content-Type: multipart/mixed; boundary=bb\r\n\r\n--bb\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--\r\n--bb--");
         }
 
         [Fact]
