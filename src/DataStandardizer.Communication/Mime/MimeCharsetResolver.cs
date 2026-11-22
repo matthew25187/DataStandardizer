@@ -37,8 +37,9 @@ namespace DataStandardizer.Communication.Mime
     /// The built-in encodings don't throw: they read bytes that are not valid in the character set as U+FFFD, and write characters that
     /// the character set can't hold as <c>?</c> (<c>US-ASCII</c> and <c>ISO-8859-1</c>) or U+FFFD (the Unicode encodings). <c>UTF-16</c> and <c>UTF-32</c> are read as
     /// big-endian unless the bytes start with a byte order mark, which is removed (RFC 2781 §4.3); they are written as big-endian with no
-    /// byte order mark. <c>ISO-10646-UCS-2</c> is read and written as <c>UTF-16BE</c>, as the IANA registry gives it network byte order.
-    /// <c>UTF-8</c> is written with no byte order mark.
+    /// byte order mark. <c>ISO-10646-UCS-2</c> is big-endian, as the IANA registry gives it network byte order, and holds only the
+    /// characters of the Basic Multilingual Plane, so a surrogate code unit is read as U+FFFD, and a character outside that plane is
+    /// written as U+FFFD for each of its surrogates. <c>UTF-8</c> is written with no byte order mark.
     /// </para>
     /// <para>
     /// Each call returns a new instance of a built-in encoding, so a caller can change its <c>EncoderFallback</c> or
@@ -158,6 +159,7 @@ namespace DataStandardizer.Communication.Mime
             var utf8 = new UTF8Encoding(false);
             var utf16 = MimeUnicodeSchemeEncoding.Utf16;
             var utf32 = MimeUnicodeSchemeEncoding.Utf32;
+            var ucs2 = MimeUcs2Encoding.Instance;
 
             // ref. IANA Character Sets registry: each name, its preferred MIME name and its aliases. Names that are not valid mime-charset
             // names (RFC 2978 §2.3), such as ANSI_X3.4-1968 and ISO_8859-1:1987, are left out, as a MimeCharset can't hold them.
@@ -174,9 +176,9 @@ namespace DataStandardizer.Communication.Mime
                 { MimeCharset.Utf32.Name, utf32 }, { "csUTF32", utf32 },
                 { MimeCharset.Utf32BigEndian.Name, utf32.BigEndian }, { "csUTF32BE", utf32.BigEndian },
                 { MimeCharset.Utf32LittleEndian.Name, utf32.LittleEndian }, { "csUTF32LE", utf32.LittleEndian },
-                // The registry says ISO-10646-UCS-2 "needs to specify network byte order", so it is big-endian. The runtime reads it as
-                // little-endian UTF-16.
-                { "ISO-10646-UCS-2", utf16.BigEndian }, { "csUnicode", utf16.BigEndian },
+                // The runtime reads ISO-10646-UCS-2 as little-endian UTF-16, which neither has the byte order the registry gives it nor
+                // keeps to the Basic Multilingual Plane.
+                { "ISO-10646-UCS-2", ucs2 }, { "csUnicode", ucs2 },
             };
         }
     }

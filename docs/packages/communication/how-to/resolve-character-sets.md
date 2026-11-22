@@ -51,8 +51,8 @@ Console.WriteLine(charset); // US-ASCII
 | `text/calendar`, `text/vcard` | `UTF-8` | RFC 5545 §8.1, RFC 6350 §10.1 |
 | `text/csv` | `UTF-8` | RFC 7111 §5.1 |
 | `text/turtle`, `text/vtt` | `UTF-8`, the only character set they allow | RDF 1.1 Turtle Appendix B, WebVTT §10.1 |
-| `text/html`, `text/xml` | None: the text gives the character set | HTML Living Standard §16.1.2, RFC 7303 §3.2 |
-| `text/javascript`, `text/ecmascript` | None: a byte order mark gives the character set, and without one it's `UTF-8` | RFC 9239 §4.2 |
+| `text/javascript`, `text/ecmascript` | `UTF-8`, unless a byte order mark gives another | RFC 9239 §4.2 |
+| `text/html`, `text/xml`, `text/xml-external-parsed-entity` | None: the text gives the character set | HTML Living Standard §16.1.2, RFC 7303 §3.2, §9.4 |
 | `text/markdown` | None: the `charset` parameter is required | RFC 7763 §2 |
 | Any other `text` type | `US-ASCII` | RFC 2046 §4.1.2, RFC 6657 §3 |
 | Any other type | None | |
@@ -94,8 +94,11 @@ The built-in encodings don't throw. They read invalid bytes as U+FFFD, and write
 character that the character set can't hold as `?` (`US-ASCII` and `ISO-8859-1`) or
 U+FFFD (the Unicode encodings). `UTF-16` and `UTF-32` are read as big-endian unless the
 bytes start with a byte order mark, and are written as big-endian with no byte order
-mark. `ISO-10646-UCS-2` is read and written as `UTF-16BE`, as the IANA registry gives it
-network byte order. `UTF-8` is written with no byte order mark.
+mark. `ISO-10646-UCS-2` is big-endian, as the IANA registry gives it network byte order,
+and holds only the characters of the Basic Multilingual Plane: a surrogate code unit is
+read as U+FFFD, and a character outside that plane is written as U+FFFD for each of its
+surrogates. `UTF-8` is
+written with no byte order mark.
 
 ## Register the code pages
 

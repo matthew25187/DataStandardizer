@@ -972,6 +972,21 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Fact]
+        public void DecodeText_Ucs2WordWithSurrogatePair_KeepsWord()
+        {
+            // arrange
+            // ref. IANA Character Sets registry; The Unicode Standard §3.8, D71: D8 3D DE 00 is U+1F600 in UTF-16BE, but ISO-10646-UCS-2
+            // holds only the Basic Multilingual Plane, so its code units are invalid and the word isn't decoded (RFC 2047 §6.2).
+            const string value = "=?ISO-10646-UCS-2?B?2D3eAA==?=";
+
+            // act
+            var result = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            result.Should().Be(value);
+        }
+
+        [Fact]
         public void DecodeText_EncodedWords_DecodesTextOfEachWord()
         {
             // act

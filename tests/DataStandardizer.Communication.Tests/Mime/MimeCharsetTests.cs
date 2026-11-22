@@ -383,6 +383,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RDF 1.1 Turtle Appendix B; WebVTT §10.1
         [InlineData("text/turtle", Utf8Name)]
         [InlineData("text/vtt", Utf8Name)]
+        // ref. RFC 9239 §4.2
+        [InlineData("text/javascript", Utf8Name)]
+        [InlineData("text/ecmascript", Utf8Name)]
         public void TryGetDefault_TextMediaType_ReturnsDefault(string mediaType, string expected)
         {
             // arrange
@@ -412,14 +415,12 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        // ref. HTML Living Standard §16.1.2; RFC 7303 §3.2; RFC 7763 §2
+        // ref. HTML Living Standard §16.1.2; RFC 7303 §3.2, §9.4; RFC 7763 §2
         [InlineData("text/html")]
         [InlineData("TEXT/HTML")]
         [InlineData("text/xml")]
+        [InlineData("text/xml-external-parsed-entity")]
         [InlineData("text/markdown")]
-        // ref. RFC 9239 §4.2: a byte order mark gives the character set, and UTF-8 is used only without one.
-        [InlineData("text/javascript")]
-        [InlineData("text/ecmascript")]
         [InlineData("application/json")]
         [InlineData("application/xml")]
         [InlineData("image/png")]

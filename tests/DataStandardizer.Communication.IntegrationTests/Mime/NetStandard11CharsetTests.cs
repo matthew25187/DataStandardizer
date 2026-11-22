@@ -347,6 +347,81 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
             testResult.Should().Equal(bytes);
         }
 
+        // ref. IANA Character Sets registry; The Unicode Standard §3.8, D71: ISO-10646-UCS-2 holds only the Basic Multilingual Plane, so
+        // a surrogate code unit, and the byte of an incomplete code unit at the end, are each read as U+FFFD, after "A".
+        public static TheoryData<byte[], string> InvalidUcs2Bytes => new TheoryData<byte[], string>
+        {
+            { new byte[] { 0x00, 0x41, 0xD8, 0x00 }, "A\xFFFD" },
+            { new byte[] { 0x00, 0x41, 0xD8, 0x3D, 0xDE, 0x00 }, "A\xFFFD\xFFFD" },
+            { new byte[] { 0x00, 0x41, 0x00 }, "A\xFFFD" },
+        };
+
+        [Theory]
+        [MemberData(nameof(InvalidUcs2Bytes))]
+        public void GetString_Ucs2InvalidBytes_ReturnsReplacementCharacters(byte[] bytes, string expected)
+        {
+            // arrange
+            var encoding = NetStandard11Build.GetEncoding(Ucs2Name);
+
+            // act
+            var testResult = encoding.GetString(bytes);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidUcs2Bytes))]
+        public void GetDecoder_Ucs2InvalidBytesOneByteAtATime_ReturnsReplacementCharacters(byte[] bytes, string expected)
+        {
+            // arrange
+            var encoding = NetStandard11Build.GetEncoding(Ucs2Name);
+
+            // act
+            var testResult = EncodingBlocks.Decode(encoding, bytes, OneByte);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2 can't hold a surrogate, so it writes U+FFFD (FF FD) for an unpaired one, and
+        // for each surrogate of U+1F600, as the runtime's replacement fallback does; then "A" (00 41). An attribute can't hold the unpaired
+        // surrogates, as it keeps strings as UTF-8.
+        public static TheoryData<string, byte[]> Ucs2UnencodableCharacters => new TheoryData<string, byte[]>
+        {
+            { "\xD83DA", new byte[] { 0xFF, 0xFD, 0x00, 0x41 } },
+            { "\xDE00A", new byte[] { 0xFF, 0xFD, 0x00, 0x41 } },
+            { "\xD83D\xDE00A", new byte[] { 0xFF, 0xFD, 0xFF, 0xFD, 0x00, 0x41 } },
+        };
+
+        [Theory]
+        [MemberData(nameof(Ucs2UnencodableCharacters), DisableDiscoveryEnumeration = true)]
+        public void GetBytes_Ucs2UnencodableCharacter_WritesReplacementCharacters(string text, byte[] bytes)
+        {
+            // arrange
+            var encoding = NetStandard11Build.GetEncoding(Ucs2Name);
+
+            // act
+            var testResult = encoding.GetBytes(text);
+
+            // assert
+            testResult.Should().Equal(bytes);
+        }
+
+        [Theory]
+        [MemberData(nameof(Ucs2UnencodableCharacters), DisableDiscoveryEnumeration = true)]
+        public void GetEncoder_Ucs2UnencodableCharacterOneCharacterAtATime_WritesReplacementCharacters(string text, byte[] bytes)
+        {
+            // arrange
+            var encoding = NetStandard11Build.GetEncoding(Ucs2Name);
+
+            // act
+            var testResult = EncodingBlocks.EncodeOneCharacterAtATime(encoding, text);
+
+            // assert
+            testResult.Should().Equal(bytes);
+        }
+
         [Theory]
         [MemberData(nameof(BuiltInNameList))]
         public void GetDecoder_BuiltInNameConvertNoBytes_ConvertsNothingAndCompletes(string name)

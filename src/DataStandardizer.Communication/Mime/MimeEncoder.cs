@@ -1,4 +1,3 @@
-#if !(NETSTANDARD1_3_OR_GREATER || NETCOREAPP)
 using System;
 using System.Text;
 
@@ -39,4 +38,3 @@ namespace DataStandardizer.Communication.Mime
         }
     }
 }
-#endif
