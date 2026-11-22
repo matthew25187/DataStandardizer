@@ -55,9 +55,14 @@ namespace DataStandardizer.Communication.Mime
         AllowUnknownCharsets = 1 << 2,
 
         /// <summary>
-        /// Accept lower-case hexadecimal digits after <c>=</c> in "Q"-encoded text, as in <c>=c3=a9</c>, which RFC 2047 §4.2 (1) and
-        /// RFC 2045 §6.7 rule 1 say are written in upper case.
+        /// This option has no effect. Lower-case hexadecimal digits after <c>=</c> in "Q"-encoded text, as in <c>=c3=a9</c>, are always
+        /// accepted.
         /// </summary>
+        /// <remarks>
+        /// RFC 2047 §4.2 (1) only says that upper case should be used for the digits. The requirement of RFC 2045 §6.7 rule 1 is for
+        /// quoted-printable bodies, where <see cref="MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits"/> accepts lower-case
+        /// digits.
+        /// </remarks>
         AllowLowercaseHexDigits = 1 << 3,
 
         /// <summary>

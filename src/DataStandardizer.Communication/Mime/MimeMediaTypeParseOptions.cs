@@ -87,9 +87,13 @@ namespace DataStandardizer.Communication.Mime
         AllowQuotedExtendedValues = 1 << 6,
 
         /// <summary>
-        /// Accept lower-case hexadecimal digits in the <c>%</c> escapes of an extended parameter value, such as <c>%c3%a9</c>, which
-        /// RFC 2231 §7 doesn't allow.
+        /// This option has no effect. Lower-case hexadecimal digits in the <c>%</c> escapes of an extended parameter value, such as
+        /// <c>%c3%a9</c>, are always accepted.
         /// </summary>
+        /// <remarks>
+        /// The RFC 2231 §7 grammar is in the augmented BNF of RFC 822 (RFC 2045 §1), whose quoted literals may be upper or lower case
+        /// (RFC 822 §2.1), so <c>ext-octet</c> allows lower-case digits. A value is still written with upper-case digits.
+        /// </remarks>
         AllowLowercaseHexDigits = 1 << 7,
 
         /// <summary>
@@ -133,8 +137,8 @@ namespace DataStandardizer.Communication.Mime
         AllowNonstandardSections = AllowMissingSections | AllowDuplicateSections | AllowLeadingZeroSectionNumbers,
 
         /// <summary>
-        /// Accept an extended parameter value that breaks the RFC 2231 §7 grammar in either of the ways that mail clients commonly do:
-        /// <see cref="AllowQuotedExtendedValues"/> and <see cref="AllowLowercaseHexDigits"/>.
+        /// Accept an extended parameter value that breaks the RFC 2231 §7 grammar in the way that mail clients commonly do:
+        /// <see cref="AllowQuotedExtendedValues"/>. It also includes <see cref="AllowLowercaseHexDigits"/>, which has no effect.
         /// </summary>
         /// <remarks>
         /// <see cref="AllowUnknownCharsets"/> is not included, as it changes how a value is decoded rather than which values are accepted.

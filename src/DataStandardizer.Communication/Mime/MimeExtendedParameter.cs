@@ -138,7 +138,6 @@ namespace DataStandardizer.Communication.Mime
             var name = sections[0].Name;
             var anyExtended = false;
             var allowQuoted = (options & MimeMediaTypeParseOptions.AllowQuotedExtendedValues) != 0;
-            var allowLowercase = (options & MimeMediaTypeParseOptions.AllowLowercaseHexDigits) != 0;
             foreach (var section in sections)
             {
                 if (!section.IsExtended) continue;
@@ -191,7 +190,7 @@ namespace DataStandardizer.Communication.Mime
 
                 var start = 0;
                 if (index == 0 && (section.Section is null || section.Section == FirstSection) && !TryReadCharsetAndLanguage(text, ref start, out charsetName, out language)) return false;
-                if (!TryDecodeOctets(text, start, section.IsQuoted, allowLowercase, bytes, ref byteCount)) return false;
+                if (!TryDecodeOctets(text, start, section.IsQuoted, bytes, ref byteCount)) return false;
             }
 
             string value;
@@ -237,7 +236,9 @@ namespace DataStandardizer.Communication.Mime
         /// </remarks>
         internal static int WriteEncodedUnit(string value, int index, Span<char> destination, ref int position)
         {
-            // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char); ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
+            // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char); ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F"). The grammar is in the
+            // augmented BNF of RFC 822 (RFC 2045 §1), whose quoted literals are case-insensitive (RFC 822 §2.1), so lower-case digits are
+            // allowed too.
             int codePoint = value[index];
             if (codePoint < 0x80)
             {
@@ -460,7 +461,7 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        private static bool TryDecodeOctets(string text, int start, bool isQuoted, bool allowLowercase, byte[] bytes, ref int byteCount)
+        private static bool TryDecodeOctets(string text, int start, bool isQuoted, byte[] bytes, ref int byteCount)
         {
             for (var index = start; index < text.Length; index++)
             {
@@ -468,8 +469,8 @@ namespace DataStandardizer.Communication.Mime
                 if (c == '%')
                 {
                     int high, low;
-                    if (index + 2 >= text.Length || (high = HexValue(text[index + 1], allowLowercase)) < 0 ||
-                        (low = HexValue(text[index + 2], allowLowercase)) < 0)
+                    if (index + 2 >= text.Length || (high = HexValue(text[index + 1])) < 0 ||
+                        (low = HexValue(text[index + 2])) < 0)
                     {
                         return false;
                     }
@@ -622,12 +623,13 @@ namespace DataStandardizer.Communication.Mime
             destination[position++] = MimeQuotedPrintable.HexDigits[value & 0xF];
         }
 
-        private static int HexValue(char c, bool allowLowercase)
+        private static int HexValue(char c)
         {
-            // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
+            // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F"). The grammar is in the augmented BNF of
+            // RFC 822 (RFC 2045 §1), whose quoted literals may be upper or lower case (RFC 822 §2.1), so lower-case digits are allowed too.
             if (c >= '0' && c <= '9') return c - '0';
             if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-            if (allowLowercase && c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
 
             return -1;
         }

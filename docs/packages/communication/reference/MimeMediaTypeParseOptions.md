@@ -33,11 +33,11 @@ public enum MimeMediaTypeParseOptions
 | `AllowLeadingZeroSectionNumbers` | 16 | A section number such as `title*01` (RFC 2231 §3), read as section 1. |
 | `AllowUnknownCharsets` | 32 | An extended value whose character set the resolver doesn't resolve, or whose octets aren't US-ASCII when it gives no character set (RFC 2231 §4). The name must still be a valid `mime-charset` (RFC 2978 §2.3). Each octet is read as the character with the same number. |
 | `AllowQuotedExtendedValues` | 64 | An extended value written as a quoted-string (RFC 2231 §7). |
-| `AllowLowercaseHexDigits` | 128 | Lower-case digits in the `%` escapes of an extended value, such as `%c3%a9` (RFC 2231 §7). |
+| `AllowLowercaseHexDigits` | 128 | Has no effect. Lower-case digits in the `%` escapes of an extended value, such as `%c3%a9`, are always accepted, as the quoted literals of the RFC 2231 §7 grammar may be upper or lower case (RFC 822 §2.1). |
 | `AllowInvalidOctets` | 256 | An extended value whose octets aren't valid in its character set (RFC 2231 §4, and RFC 3629 §3 for UTF-8). Each invalid sequence is read as U+FFFD. |
 | `AllowUtf8QuotedStrings` | 512 | Non-ASCII characters in a parameter value written as a quoted-string, which the US-ASCII grammar of RFC 2045 §5.1 doesn't allow and RFC 6532 §3.2 does, for the header of a message that uses UTF-8. A token, an extended value (RFC 2231 §7) and a section joined with extended ones (RFC 2231 §4.1) must still be US-ASCII, and an unpaired surrogate is never accepted (RFC 3629 §3). |
 | `AllowNonstandardSections` | 28 | `AllowMissingSections`, `AllowDuplicateSections` and `AllowLeadingZeroSectionNumbers`. |
-| `AllowNonstandardExtendedValues` | 192 | `AllowQuotedExtendedValues` and `AllowLowercaseHexDigits`. `AllowUnknownCharsets` isn't included, as it changes how a value is decoded. |
+| `AllowNonstandardExtendedValues` | 192 | `AllowQuotedExtendedValues`, and `AllowLowercaseHexDigits`, which has no effect. `AllowUnknownCharsets` isn't included, as it changes how a value is decoded. |
 
 ## Remarks
 

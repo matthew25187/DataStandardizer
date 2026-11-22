@@ -101,11 +101,14 @@ invalid. Mail clients do write such values, so each can be accepted with a
 | `AllowLeadingZeroSectionNumbers` | A section number such as `title*01`. | RFC 2231 §3 |
 | `AllowUnknownCharsets` | A character set the resolver doesn't resolve. Each octet is read as the character with the same number, so you can recover the octets and decode them yourself. | RFC 2231 §4 |
 | `AllowQuotedExtendedValues` | An extended value written as a quoted-string. | RFC 2231 §7 |
-| `AllowLowercaseHexDigits` | `%c3%a9` in an extended value. | RFC 2231 §7 |
 | `AllowInvalidOctets` | Octets that aren't valid in the character set. Each invalid sequence is read as U+FFFD. | RFC 2231 §4 |
 
 `AllowNonstandardSections` combines the first three. `AllowNonstandardExtendedValues`
-combines `AllowQuotedExtendedValues` and `AllowLowercaseHexDigits`.
+includes `AllowQuotedExtendedValues`.
+
+Lower-case hexadecimal digits in an extended value, such as `%c3%a9`, are always accepted,
+as the quoted literals of the RFC 2231 §7 grammar may be upper or lower case (RFC 822 §2.1).
+The `AllowLowercaseHexDigits` flag has no effect. A value is written with upper-case digits.
 
 ```csharp
 MimeMediaType.TryParse("a/b;t*0=x;t*2=y", out _); // false

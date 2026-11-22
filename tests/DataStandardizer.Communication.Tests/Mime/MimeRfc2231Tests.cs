@@ -354,7 +354,6 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("text/plain;a*0=x;a*0=y", MimeMediaTypeParseOptions.AllowNonstandardSections)]
         [InlineData("text/plain;a*00=x;a*01=y", MimeMediaTypeParseOptions.AllowNonstandardSections)]
         [InlineData("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowNonstandardExtendedValues)]
-        [InlineData("text/plain;a*=UTF-8''%C3%a9", MimeMediaTypeParseOptions.AllowNonstandardExtendedValues)]
         public void TryParse_DeviationWithItsGroupOption_ReturnsTrue(string value, MimeMediaTypeParseOptions options)
         {
             // act
@@ -383,6 +382,49 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             parsed.Should().BeFalse();
+        }
+
+        // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F"), in the augmented BNF of RFC 822 (RFC 2045 §1),
+        // whose quoted literals may be upper or lower case (RFC 822 §2.1).
+        public static TheoryData<string, string> LowercaseHexDigitValues => new TheoryData<string, string>
+        {
+            { "text/plain;a*=utf-8''na%c3%afve.txt", NaiveFileName },
+            { "text/plain;a*=UTF-8''%C3%a9", EAcute },
+            { "text/plain;a*0*=UTF-8''x;a*1*=%c3%A9", "x\xE9" },
+        };
+
+        [Theory]
+        [MemberData(nameof(LowercaseHexDigitValues))]
+        public void Parse_LowercaseHexDigitsByDefault_DecodesValue(string value, string expected)
+        {
+            // act
+            var result = MimeMediaType.Parse(value);
+
+            // assert
+            result.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryParse_LowercaseHexDigitsWithTheOptionThatHasNoEffect_ReturnsTrue()
+        {
+            // act
+            var parsed = MimeMediaType.TryParse("text/plain;a*=UTF-8''%c3%a9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, out _);
+
+            // assert
+            parsed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void ToString_ParsedLowercaseHexDigits_WritesUpperCase()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse("text/plain;name*=UTF-8''%c3%a9").Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be("name*=UTF-8''%C3%A9");
         }
 
         [Theory]
@@ -1308,10 +1350,6 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
                 ("text/plain;a*=\"UTF-8'en'a b;c\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b;c"),
                 ("text/plain;a*0*=\"UTF-8''a%20\";a*1*=b", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
-                // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
-                ("text/plain;a*=utf-8''na%c3%afve.txt", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, NaiveFileName),
-                ("text/plain;a*=UTF-8''%C3%a9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, EAcute),
-                ("text/plain;a*0*=UTF-8''x;a*1*=%c3%A9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, "x\xE9"),
             };
         }
 

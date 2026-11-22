@@ -35,7 +35,10 @@ namespace DataStandardizer.Communication.Mime
         internal MimeQuotedPrintableDecoderState(MimeQuotedPrintableMode mode, MimeQuotedPrintableDecoderOptions options)
         {
             _mode = mode;
-            _allowLowercase = (options & MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits) != 0;
+            // ref. RFC 2047 §4.2 (1) only says that upper case "should" be used in the "Q" modes; the MUST of RFC 2045 §6.7 rule 1 is
+            // for bodies.
+            _allowLowercase = mode != MimeQuotedPrintableMode.Body
+                || (options & MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits) != 0;
             _allowBareLineFeeds = (options & MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds) != 0;
             _allowLiteralEquals = (options & MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns) != 0;
             _allowLongLines = (options & MimeQuotedPrintableDecoderOptions.AllowLongLines) != 0;
@@ -403,7 +406,7 @@ namespace DataStandardizer.Communication.Mime
             _whitespaceCount = 0;
         }
 
-        // Gets the value of a hexadecimal digit, or -1. ref. RFC 2045 §6.7 rule 1: the digits are upper case.
+        // Gets the value of a hexadecimal digit, or -1. ref. RFC 2045 §6.7 rule 1: the digits of a body are upper case.
         private int GetDigitValue(int unit)
         {
             if (unit >= '0' && unit <= '9') return unit - '0';

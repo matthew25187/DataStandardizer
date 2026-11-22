@@ -26,6 +26,6 @@ public enum MimeQuotedPrintableDecoderOptions
 | Field | Value | Accepts |
 | --- | --- | --- |
 | `None` | 0 | Only the forms the mode allows. |
-| `AllowLowercaseHexDigits` | 1 | Lower-case digits after `=`, as in `=3d`. RFC 2045 §6.7 rule 1 requires upper-case digits, and says a robust decoder might accept lower-case ones. |
+| `AllowLowercaseHexDigits` | 1 | In `Body` mode, lower-case digits after `=`, as in `=3d`. RFC 2045 §6.7 rule 1 requires upper-case digits in a body, and says a robust decoder might accept lower-case ones. The "Q" modes always accept lower-case digits, as RFC 2047 §4.2 (1) only says upper case should be used, so this flag has no effect on them. |
 | `AllowBareLineFeeds` | 2 | In `Body` mode, a bare LF as a line break, decoded as LF. RFC 2045 §6.7 allows only CRLF. Trailing whitespace before a bare LF is removed, and `=` before it is a soft line break. A bare CR is never accepted. |
 | `AllowLiteralEqualsSigns` | 4 | An `=` that isn't followed by two hexadecimal digits or a line break, decoded as itself, with the characters after it. RFC 2045 §6.7 note (2) suggests this for a robust decoder. It includes an `=` at the end of the data. |

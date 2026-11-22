@@ -320,8 +320,7 @@ namespace DataStandardizer.File.InternetMessage
         /// each of the accommodations of <see cref="MimeEncodedWordParseOptions"/> applies: a word longer than the 75 characters of §2
         /// (<see cref="MimeEncodedWordParseOptions.AllowLongWords"/>), a word not separated from the text next to it, which §5 requires
         /// (<see cref="MimeEncodedWordParseOptions.AllowEmbeddedWords"/>), a character set that <see cref="CharsetResolver"/> can't resolve, which §6.2 lets a reader
-        /// show as it can (<see cref="MimeEncodedWordParseOptions.AllowUnknownCharsets"/>), lower-case hexadecimal digits, which §4.2 doesn't allow
-        /// (<see cref="MimeEncodedWordParseOptions.AllowLowercaseHexDigits"/>), octets that aren't valid in the character set, which §6.3 calls incorrectly formed
+        /// show as it can (<see cref="MimeEncodedWordParseOptions.AllowUnknownCharsets"/>), octets that aren't valid in the character set, which §6.3 calls incorrectly formed
         /// (<see cref="MimeEncodedWordParseOptions.AllowInvalidOctets"/>), and a character split between words, which §5 doesn't allow
         /// (<see cref="MimeEncodedWordParseOptions.AllowSplitCharacters"/>).
         /// </remarks>

@@ -257,7 +257,6 @@ namespace DataStandardizer.Communication.Tests.Mime
             {
                 { LongWord, MimeEncodedWordParseOptions.AllowLongWords, LongText },
                 { UnknownCharsetWord, MimeEncodedWordParseOptions.AllowUnknownCharsets, CafeInLatin1 },
-                { LowercaseHexWord, MimeEncodedWordParseOptions.AllowLowercaseHexDigits, CafeInLatin1 },
                 { InvalidOctetWord, MimeEncodedWordParseOptions.AllowInvalidOctets, ReplacementCharacter },
             };
 
@@ -265,7 +264,6 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             LongWord,
             UnknownCharsetWord,
-            LowercaseHexWord,
             InvalidOctetWord,
         };
 
@@ -279,7 +277,6 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { "=?UTF-8?Q?a?=x =?UTF-8?Q?b?=", MimeEncodedWordParseOptions.AllowEmbeddedWords, "ax b" },
                 { "a=?UTF-8?Q?b?b=?UTF-8?Q?c?=", MimeEncodedWordParseOptions.AllowEmbeddedWords, "a=?UTF-8?Q?b?bc" },
                 { UnknownThenKnownWords, MimeEncodedWordParseOptions.AllowUnknownCharsets, AB },
-                { LowercaseHexWord, MimeEncodedWordParseOptions.AllowLowercaseHexDigits, CafeInLatin1 },
                 { InvalidOctetWord, MimeEncodedWordParseOptions.AllowInvalidOctets, ReplacementCharacter },
                 { SplitEAcute, MimeEncodedWordParseOptions.AllowInvalidOctets, TwoReplacementCharacters },
                 { SplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcute },
@@ -304,7 +301,6 @@ namespace DataStandardizer.Communication.Tests.Mime
             LongWord,
             EmbeddedWord,
             AdjacentWords,
-            LowercaseHexWord,
             InvalidOctetWord,
             SplitEAcute,
             LittleEndianSharpSSplitAfterMark,
@@ -1052,6 +1048,35 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Should().Be(expected);
+        }
+
+        // ref. RFC 2047 §4.2 (1): upper case "should" be used for the hexadecimal digits, so lower case is allowed. The option that used to
+        // accept them has no effect.
+        [Theory]
+        [InlineData(MimeEncodedWordParseOptions.None)]
+        [InlineData(MimeEncodedWordParseOptions.AllowLowercaseHexDigits)]
+        public void TryParse_LowercaseHexDigits_DecodesText(MimeEncodedWordParseOptions options)
+        {
+            // act
+            var success = MimeEncodedWord.TryParse(LowercaseHexWord, MimeEncodedWordContext.Text, options, MimeCharsetResolver.Default,
+                out var result);
+
+            // assert
+            success.Should().BeTrue();
+            result.Text.Should().Be(CafeInLatin1);
+        }
+
+        [Theory]
+        [InlineData(MimeEncodedWordContext.Text)]
+        [InlineData(MimeEncodedWordContext.Comment)]
+        [InlineData(MimeEncodedWordContext.Phrase)]
+        public void DecodeText_LowercaseHexDigitsByDefault_DecodesText(MimeEncodedWordContext context)
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(LowercaseHexWord, context, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+
+            // assert
+            result.Should().Be(CafeInLatin1);
         }
 
         // Resolves every character set as ISO-8859-1, so that the octets of a word are the same on every target.

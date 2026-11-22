@@ -15,10 +15,12 @@ namespace DataStandardizer.Communication.Mime
         None = 0,
 
         /// <summary>
-        /// Accept lower-case hexadecimal digits after <c>=</c>, as in <c>=3d</c>.
+        /// In <see cref="MimeQuotedPrintableMode.Body"/> mode, accept lower-case hexadecimal digits after <c>=</c>, as in <c>=3d</c>.
         /// </summary>
         /// <remarks>
-        /// RFC 2045 §6.7 rule 1 requires upper-case digits, and says a robust decoder might accept lower-case ones.
+        /// RFC 2045 §6.7 rule 1 requires upper-case digits in a body, and says a robust decoder might accept lower-case ones. The "Q" modes
+        /// always accept lower-case digits, as RFC 2047 §4.2 (1) only says that upper case should be used, so this option has no effect on
+        /// them.
         /// </remarks>
         AllowLowercaseHexDigits = 1,
 

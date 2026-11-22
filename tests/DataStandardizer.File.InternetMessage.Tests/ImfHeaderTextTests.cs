@@ -66,9 +66,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // ref. RFC 2047 §6.2
             { "=?x-unknown?Q?a?=", "a" },
 
-            // ref. RFC 2047 §4.2
-            { "=?UTF-8?Q?=c3=a9?=", EAcute },
-
             // ref. RFC 2047 §6.3 (2)
             { "=?UTF-8?Q?=FF?=", "\xFFFD" },
 
@@ -81,7 +78,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
             LongWord,
             "x" + EncodedA,
             "=?x-unknown?Q?a?=",
-            "=?UTF-8?Q?=c3=a9?=",
             "=?UTF-8?Q?=FF?=",
             "=?UTF-8?Q?=C3?=",
         };
@@ -281,6 +277,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be("=?UTF-8?Q?=C3?= =?UTF-8?Q?=A9?=");
+        }
+
+        [Fact]
+        public void DecodeUnstructured_LowercaseHexDigitsByDefault_DecodesWord()
+        {
+            // act
+            var testResult = ImfHeaderText.DecodeUnstructured("=?UTF-8?Q?=c3=a9?=");
+
+            // assert
+            testResult.Should().Be(EAcute);
         }
 
         [Theory]

@@ -60,13 +60,13 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         }
 
         [Fact]
-        public void DecodeText_LowercaseHexWithoutOption_LeavesWordAsWritten()
+        public void DecodeText_LowercaseHexWithoutOption_ReturnsText()
         {
             // act
             var testResult = NetStandard11Build.DecodeText(LowercaseHexEncodedWord, NoOptions);
 
             // assert
-            testResult.Should().Be(LowercaseHexEncodedWord);
+            testResult.Should().Be(EncodedWordText);
         }
 
         [Fact]

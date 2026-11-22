@@ -915,10 +915,12 @@ namespace DataStandardizer.Communication.Mime
                 case 'q':
                     // ref. RFC 2047 §4.2, §5: each "=" is followed by two hexadecimal digits in the same word.
                     word.Encoding = MimeEncodedWordEncoding.Q;
-                    var qOptions = (options & MimeEncodedWordParseOptions.AllowLowercaseHexDigits) != 0
-                        ? MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits
-                        : MimeQuotedPrintableDecoderOptions.None;
-                    if (!MimeQuotedPrintable.TryDecode(encodedText, GetMode(context), qOptions, out octets)) return false;
+                    // The "Q" modes accept lower-case hexadecimal digits, which RFC 2047 §4.2 (1) allows.
+                    if (!MimeQuotedPrintable.TryDecode(encodedText, GetMode(context), MimeQuotedPrintableDecoderOptions.None, out octets))
+                    {
+                        return false;
+                    }
+
                     break;
                 default:
                     return false;
