@@ -792,7 +792,7 @@ namespace DataStandardizer.Communication.Mime
                 MimeParameter parameter;
                 if (group.Forms is null)
                 {
-                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue ?? string.Empty, null, null);
+                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue ?? string.Empty, null, null, false);
                 }
                 else if (!MimeExtendedParameter.TryJoin(group.Forms, options, charsetResolver, out parameter))
                 {

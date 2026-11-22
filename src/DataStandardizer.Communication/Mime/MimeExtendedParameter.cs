@@ -161,7 +161,7 @@ namespace DataStandardizer.Communication.Mime
                     builder.Append(section.Value);
                 }
 
-                parameter = MimeParameter.CreateUnchecked(name, builder.ToString(), null, null);
+                parameter = MimeParameter.CreateUnchecked(name, builder.ToString(), null, null, false);
                 return true;
             }
 
@@ -200,26 +200,11 @@ namespace DataStandardizer.Communication.Mime
             }
 
             string value;
-            if (!TryDecodeText(bytes, byteCount, charsetName, options, charsetResolver, out value)) return false;
+            bool isOctets;
+            if (!TryDecodeText(bytes, byteCount, charsetName, options, charsetResolver, out value, out isOctets)) return false;
 
-            parameter = MimeParameter.CreateUnchecked(name, value, charsetName.Length == 0 ? null : charsetName, language.Length == 0 ? null : language);
+            parameter = MimeParameter.CreateUnchecked(name, value, charsetName.Length == 0 ? null : charsetName, language.Length == 0 ? null : language, isOctets);
             return true;
-        }
-
-        /// <summary>
-        /// Get the number of characters a value takes when written as an RFC 2231 extended value, without its character set and language.
-        /// </summary>
-        internal static int GetEncodedLength(string value)
-        {
-            var length = 0;
-            for (var index = 0; index < value.Length;)
-            {
-                int charCount;
-                length += GetEncodedUnitLength(value, index, out charCount);
-                index += charCount;
-            }
-
-            return length;
         }
 
         /// <summary>
@@ -297,6 +282,34 @@ namespace DataStandardizer.Communication.Mime
             WriteOctet((byte)(0x80 | ((codePoint >> 6) & 0x3F)), destination, ref position);
             WriteOctet((byte)(0x80 | (codePoint & 0x3F)), destination, ref position);
             return 2;
+        }
+
+        /// <summary>
+        /// Get the number of characters that one octet of a value takes when written in an RFC 2231 extended value.
+        /// </summary>
+        /// <param name="octet">The octet, held as the character with the same number.</param>
+        internal static int GetOctetUnitLength(char octet)
+        {
+            return octet < '\x80' && IsAttributeChar(octet) ? 1 : 3;
+        }
+
+        /// <summary>
+        /// Write one octet of a value as it is, if it is an attribute-char, and otherwise percent-encoded.
+        /// </summary>
+        /// <param name="octet">The octet, held as the character with the same number.</param>
+        /// <param name="destination">The span to write to, which must have room for the unit.</param>
+        /// <param name="position">The position to write at; moved past what was written.</param>
+        internal static void WriteOctetUnit(char octet, Span<char> destination, ref int position)
+        {
+            // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char)
+            if (octet < '\x80' && IsAttributeChar(octet))
+            {
+                destination[position++] = octet;
+            }
+            else
+            {
+                WriteOctet((byte)octet, destination, ref position);
+            }
         }
 
         /// <summary>
@@ -481,9 +494,10 @@ namespace DataStandardizer.Communication.Mime
         }
 
         private static bool TryDecodeText(byte[] bytes, int byteCount, string charsetName, MimeMediaTypeParseOptions options,
-            IMimeCharsetResolver charsetResolver, out string value)
+            IMimeCharsetResolver charsetResolver, out string value, out bool isOctets)
         {
             value = string.Empty;
+            isOctets = false;
 
 #if NETCOREAPP3_0_OR_GREATER
             Encoding? encoding;
@@ -514,6 +528,7 @@ namespace DataStandardizer.Communication.Mime
             if ((options & MimeMediaTypeParseOptions.AllowUnknownCharsets) == 0) return false;
 
             value = DecodeLatin1(bytes, byteCount);
+            isOctets = true;
             return true;
         }
 

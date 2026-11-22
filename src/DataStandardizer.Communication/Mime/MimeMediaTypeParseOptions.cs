@@ -75,7 +75,8 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// Each octet of the value is read as the character with the same number, as ISO-8859-1 does, so that the caller can recover the
-        /// octets and decode them. <see cref="MimeParameter.Charset"/> holds the character set name as written.
+        /// octets and decode them. <see cref="MimeParameter.Charset"/> holds the character set name as written. The parameter is written
+        /// back as the same octets in that character set, not in UTF-8, as <see cref="MimeParameter.Charset"/> describes.
         /// </remarks>
         AllowUnknownCharsets = 1 << 5,
 

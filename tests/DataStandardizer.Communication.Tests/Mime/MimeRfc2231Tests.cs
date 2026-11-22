@@ -93,6 +93,19 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string Emoji = "\xD83D\xDE00";
         private const string CafeWithSpecials = "caf\xE9 *'%";
 
+        // Octets in character sets that the default resolver doesn't know, which AllowUnknownCharsets keeps as they are, and those
+        // parameters as they are written back.
+        private const string UnknownCharsetOctetsMediaType = "text/plain;a*=x-no-such-charset'fr'%D0%D2%C9%D7%C5%D4";
+        private const string UnknownCharsetOctetsParameter = "a*=x-no-such-charset'fr'%D0%D2%C9%D7%C5%D4";
+        private const string UpperCaseUnknownCharsetOctetsMediaType = "text/plain;a*=X-NO-SUCH-CHARSET'fr'%D0%D2%C9%D7%C5%D4";
+        private const string OtherUnknownCharsetOctetsMediaType = "text/plain;a*=x-other-charset'fr'%D0%D2%C9%D7%C5%D4";
+        private const string UnknownCharsetOctets = "\xD0\xD2\xC9\xD7\xC5\xD4";
+        private const string NoCharsetOctetsMediaType = "text/plain;a*=''%E9";
+
+        // ref. RFC 1428 §3: the registered character set for octets in a character set that is not known.
+        private const string Unknown8BitOctetsMediaType = "text/plain;a*=UNKNOWN-8BIT''%E9";
+        private const string Unknown8BitOctetsParameter = "a*=UNKNOWN-8BIT''%E9";
+
         public delegate bool TryParseCall(out MimeMediaType result);
 
         public static TheoryData<string> DeviationValues => CreateDeviationValues();
@@ -881,6 +894,197 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Parsed.Should().Be(result.Constructed);
+        }
+
+        [Fact]
+        public void ToString_OctetsInUnknownCharset_WritesOctetsInThatCharset()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be(UnknownCharsetOctetsParameter);
+        }
+
+        [Fact]
+        public void ToString_UsAsciiOctetsInUnknownCharset_WritesExtendedValueInThatCharset()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse("text/plain;a*=x-no-such-charset''abc", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be("a*=x-no-such-charset''abc");
+        }
+
+        [Fact]
+        public void ToString_OctetsThatAreNotUsAsciiWithNoCharset_WritesOctetsInUnknown8Bit()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(NoCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be(Unknown8BitOctetsParameter);
+        }
+
+        [Fact]
+        public void ToString_MediaTypeWithOctetsInUnknownCharset_WritesOctetsInThatCharset()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets);
+
+            // act
+            var result = mediaType.ToString();
+
+            // assert
+            result.Should().Be(UnknownCharsetOctetsMediaType);
+        }
+
+        [Fact]
+        public void TryFormat_OctetsInUnknownCharset_WritesOctetsInThatCharset()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var destination = new char[UnknownCharsetOctetsParameter.Length];
+
+            // act
+            var result = parameter.TryFormat(destination, out var charsWritten);
+
+            // assert
+            result.Should().BeTrue();
+            new string(destination, 0, charsWritten).Should().Be(UnknownCharsetOctetsParameter);
+        }
+
+        [Fact]
+        public void FormatSections_OctetsInUnknownCharset_SplitsAtOctetsInThatCharset()
+        {
+            // arrange
+            const int maxSectionLength = 30;
+            var parameter = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.FormatSections(maxSectionLength);
+
+            // assert
+            result.Should().Equal("a*0*=x-no-such-charset'fr'%D0", "a*1*=%D2%C9%D7%C5%D4");
+        }
+
+        [Fact]
+        public void Parse_SectionsOfOctetsInUnknownCharset_JoinsOctets()
+        {
+            // act
+            var result = MimeMediaType.Parse("text/plain;a*0*=x-no-such-charset'fr'%D0;a*1*=%D2%C9%D7%C5%D4",
+                MimeMediaTypeParseOptions.AllowUnknownCharsets);
+
+            // assert
+            result.Parameters.Should().ContainSingle();
+            result.Parameters[0].Value.Should().Be(UnknownCharsetOctets);
+        }
+
+        [Fact]
+        public void Equals_SameOctetsInUnknownCharsetInAnyCase_ReturnsTrue()
+        {
+            // arrange
+            var lower = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var upper = MimeMediaType.Parse(UpperCaseUnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = lower.Equals(upper);
+
+            // assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_SameOctetsInUnknownCharsetInAnyCase_ReturnsSameHashCode()
+        {
+            // arrange
+            var lower = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var upper = MimeMediaType.Parse(UpperCaseUnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = (Lower: lower.GetHashCode(), Upper: upper.GetHashCode());
+
+            // assert
+            result.Lower.Should().Be(result.Upper);
+        }
+
+        [Fact]
+        public void Equals_SameOctetsInDifferentUnknownCharsets_ReturnsFalse()
+        {
+            // arrange
+            var left = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var right = MimeMediaType.Parse(OtherUnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = left.Equals(right);
+
+            // assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_OctetsInUnknownCharsetAndDecodedValueOfSameCharacters_ReturnsFalse()
+        {
+            // arrange
+            var octets = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var decoded = new MimeParameter("a", UnknownCharsetOctets, "fr");
+
+            // act
+            var result = octets.Equals(decoded);
+
+            // assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_OctetsWithNoCharsetAndSameOctetsInUnknown8Bit_ReturnsTrue()
+        {
+            // arrange
+            var noCharset = MimeMediaType.Parse(NoCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var unknown8Bit = MimeMediaType.Parse(Unknown8BitOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = noCharset.Equals(unknown8Bit);
+
+            // assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_OctetsWithNoCharsetAndSameOctetsInUnknown8Bit_ReturnsSameHashCode()
+        {
+            // arrange
+            var noCharset = MimeMediaType.Parse(NoCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var unknown8Bit = MimeMediaType.Parse(Unknown8BitOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = (NoCharset: noCharset.GetHashCode(), Unknown8Bit: unknown8Bit.GetHashCode());
+
+            // assert
+            result.NoCharset.Should().Be(result.Unknown8Bit);
+        }
+
+        [Fact]
+        public void Equals_CharsetParameterOctetsInUnknownCharsetThatDifferAsLatin1Case_ReturnsFalse()
+        {
+            // arrange
+            var left = MimeMediaType.Parse("text/plain;charset*=x-no-such-charset''%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var right = MimeMediaType.Parse("text/plain;charset*=x-no-such-charset''%C9", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = left.Equals(right);
+
+            // assert
+            result.Should().BeFalse();
         }
 
         [Fact]
