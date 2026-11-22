@@ -1014,6 +1014,22 @@
           ]
         }
       ]
+    },
+    "6ff883a6dd00e722e0e7593b421deadff119c42d": {
+      "subject": "MIME quoted-strings accept the control characters that RFC 822 allows (#1150)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Quoted parameter values accept the US-ASCII control characters that RFC 822 allows, as text or as quoted-pairs, instead of rejecting them"
+        },
+        {
+          "category": "fixed",
+          "text": "Content-Type and Content-Disposition fields accept a quoted-pair whose backslash ends a folded line, such as `filename=\"a\\<CRLF> b\"`, and read it as the space after the fold (RFC 5322 §2.2.3); before, the field was rejected",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
     }
   }
 }
