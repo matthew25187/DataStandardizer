@@ -14,6 +14,11 @@ namespace DataStandardizer.File.InternetMessage
         internal const int MaxLineLength = 998;
         internal const int TargetLineLength = 78;
 
+        /// <summary>
+        /// The size of the buffer a caller of <see cref="Format"/> rents from the shared pool, which is enough for most fields.
+        /// </summary>
+        internal const int InitialBufferSize = 1024;
+
         private const byte CarriageReturn = 0x0D;
         private const byte Colon = 0x3A;
         private const byte LineFeed = 0x0A;

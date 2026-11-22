@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -138,11 +139,18 @@ namespace DataStandardizer.File.InternetMessage
         private static byte[] GetHeaderBytes(ImfMessage message, byte[] lineBreak, out byte[] headerEnd)
         {
             var output = new MemoryStream();
-            var buffer = new byte[1024];
-            foreach (var field in message.Fields)
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
+            try
             {
-                var bytes = field.GetOutput(ImfHeaderEncoding.Utf8, lineBreak, ref buffer).ToArray();
-                output.Write(bytes, 0, bytes.Length);
+                foreach (var field in message.Fields)
+                {
+                    var bytes = field.GetOutput(ImfHeaderEncoding.Utf8, lineBreak, ref buffer).ToArray();
+                    output.Write(bytes, 0, bytes.Length);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             // A writer adds the empty line if a body needs one, as there would otherwise be no way to tell where the body starts.

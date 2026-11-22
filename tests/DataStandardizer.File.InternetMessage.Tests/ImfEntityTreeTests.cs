@@ -211,6 +211,19 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private const string NewBody = "new";
 
+        // 300 words: their folds and line breaks take the formatted field past the 1024 bytes its writers start with, so the formatter has to rent a larger buffer.
+        private const string LongFieldText =
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a";
+
         private const string Utf8FieldName = "X-Note";
         private const string Utf8FieldBody = "caf\x00E9";
         private const string Utf8RawBody = "body";
@@ -1524,6 +1537,53 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ImfFileException>();
+        }
+
+        [Fact]
+        public void Body_NewFieldLongerThanTheFormatBuffer_IsRead()
+        {
+            // arrange
+            var subject = new ImfMessage();
+            subject.Fields.Add(new ImfHeaderField("Date", " Fri, 21 Nov 1997 09:55:06 -0600", ImfHeaderFieldKind.Structured));
+            subject.Fields.Add(new ImfHeaderField("From", " a@b.test", ImfHeaderFieldKind.Structured));
+            subject.Fields.Add(ImfHeaderField.FromText(Utf8FieldName, LongFieldText));
+            subject.RawBody = EntityTrees.Bytes(Utf8RawBody);
+
+            // act
+            var testResult = EntityTrees.ContentOf(subject.Body);
+
+            // assert
+            testResult.Should().Be(Utf8RawBody);
+        }
+
+        [Fact]
+        public void WriteMessage_LongFieldOfOnePartSet_ReadsBackTheField()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoParts);
+            EntityTrees.At(subject, "2").ContentDescription = LongFieldText;
+
+            // act
+            var testResult = EntityTrees.At(EntityTrees.Read(EntityTrees.Write(subject)), "2").ContentDescription;
+
+            // assert
+            testResult.Should().Be(LongFieldText);
+        }
+
+        [Fact]
+        public void WriteMessage_LongFieldOfPartWithNewContent_ReadsBackTheField()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoParts);
+            var part = EntityTrees.At(subject, "1");
+            part.SetContent(EntityTrees.Bytes(NewBody));
+            part.ContentDescription = LongFieldText;
+
+            // act
+            var testResult = EntityTrees.At(EntityTrees.Read(EntityTrees.Write(subject)), "1").ContentDescription;
+
+            // assert
+            testResult.Should().Be(LongFieldText);
         }
 
         /// <summary>

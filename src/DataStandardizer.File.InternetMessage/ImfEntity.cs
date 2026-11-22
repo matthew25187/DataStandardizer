@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -639,10 +640,17 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal void AddFields(ImfEntitySource source, ImfHeaderEncoding encoding, byte[] lineBreak, [AllowNull] string omittedName)
         {
-            var buffer = new byte[1024];
-            foreach (var field in Fields)
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
+            try
             {
-                if (omittedName is null || !field.HasName(omittedName)) source.AddOutputField(field.GetOutput(encoding, lineBreak, ref buffer));
+                foreach (var field in Fields)
+                {
+                    if (omittedName is null || !field.HasName(omittedName)) source.AddOutputField(field.GetOutput(encoding, lineBreak, ref buffer));
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
@@ -687,10 +695,17 @@ namespace DataStandardizer.File.InternetMessage
         private List<byte[]> GetFieldOutput(ImfHeaderEncoding encoding, byte[] lineBreak)
         {
             var output = new List<byte[]>(Fields.Count);
-            var buffer = new byte[1024];
-            foreach (var field in Fields)
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
+            try
             {
-                output.Add(field.GetOutput(encoding, lineBreak, ref buffer).ToArray());
+                foreach (var field in Fields)
+                {
+                    output.Add(field.GetOutput(encoding, lineBreak, ref buffer).ToArray());
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return output;
