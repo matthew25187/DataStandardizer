@@ -15,26 +15,27 @@ namespace DataStandardizer.File.ContentLine
     /// The System.Xml of .NET Framework, which Mono, and so Unity, build from the same reference source, treats a task as a successful write
     /// when it has completed and has no exception, which a canceled task never has.  Its own async methods await the output, and the async
     /// method builder cancels their tasks for an <see cref="OperationCanceledException"/>, so any cancellation from the output that completes
-    /// before the call returns, whether the output throws it, returns a task faulted with it, or returns a task that has already been canceled, is lost one level up, and the XML writer
-    /// carries on as though the write succeeded.  .NET (Core) checks for successful completion instead, and the <c>net10.0</c> build writes to its
-    /// output directly.
+    /// before the call returns, whether the output throws it, returns a task faulted with it, or returns a task that has already been canceled,
+    /// is lost one level up, and the XML writer carries on as though the write succeeded.  .NET (Core) checks for successful completion instead,
+    /// and the <c>net10.0</c> build writes to its output directly.
     /// </para>
     /// <para>
     /// <see cref="XmlOutputTextWriter"/> and <see cref="XmlOutputStream"/> wrap such an exception in an <see cref="XmlOutputCanceledException"/>,
-    /// which faults System.Xml's tasks rather than canceling them, and <see cref="Unwrap"/> gives the original back once it has reached the writer.
+    /// which faults System.Xml's tasks rather than canceling them, and <see cref="Unwrap"/> gives the original back once it has reached the
+    /// writer.
     /// </para>
     /// <para>
-    /// Only the <c>netstandard2.0</c> build can run on .NET Framework.  The <c>netstandard2.1</c> build wraps the output too, for Mono and Unity,
-    /// which can run it.  Both builds wrap the output on every runtime, .NET (Core) included, where it does nothing, rather than guess from the
-    /// runtime which System.Xml they are running on.  It costs an async state machine only for a write or flush that hasn't completed by the
-    /// time it returns, once for each buffer of the XML writer.
+    /// Only the <c>netstandard2.0</c> build can run on .NET Framework.  The <c>netstandard2.1</c> build wraps the output too, for Mono and
+    /// Unity, which can run it.  Both builds wrap the output on every runtime, .NET (Core) included, where it does nothing, rather than guess
+    /// from the runtime which System.Xml they are running on.  It costs an async state machine only for a write or flush that hasn't completed
+    /// by the time it returns, once for each buffer of the XML writer.
     /// </para>
     /// </remarks>
     internal static class XmlOutputCancellation
     {
         /// <summary>
-        /// Gives the exception the output failed with, when <paramref name="exception"/> carried it across the XML writer, or else
-        /// <paramref name="exception"/>.
+        /// Gives the exception the output failed with, when <paramref name="exception"/> carried it across the XML writer, or else <paramref
+        /// name="exception"/>.
         /// </summary>
         public static Exception Unwrap(Exception exception)
         {
@@ -54,13 +55,13 @@ namespace DataStandardizer.File.ContentLine
     }
 
     /// <summary>
-    /// A text writer over the caller's text writer, for an asynchronous <see cref="System.Xml.XmlWriter"/>, that carries each cancellation of an
-    /// asynchronous write or flush across the XML writer, as <see cref="XmlOutputCancellation"/> describes.
+    /// A text writer over the caller's text writer, for an asynchronous <see cref="System.Xml.XmlWriter"/>, that carries each cancellation of
+    /// an asynchronous write or flush across the XML writer, as <see cref="XmlOutputCancellation"/> describes.
     /// </summary>
     /// <remarks>
     /// Every member passes through to the caller's writer, but the synchronous <c>WriteLine</c> overloads, which the base class writes through
-    /// <see cref="Write(char[], int, int)"/> with the same line break.  Disposing it disposes the caller's writer, which the XML writer does only when its
-    /// <see cref="System.Xml.XmlWriterSettings.CloseOutput"/> setting is <c>true</c>.
+    /// <see cref="Write(char[], int, int)"/> with the same line break.  Disposing it disposes the caller's writer, which the XML writer does
+    /// only when its <see cref="System.Xml.XmlWriterSettings.CloseOutput"/> setting is <c>true</c>.
     /// </remarks>
     internal sealed class XmlOutputTextWriter : TextWriter
     {
