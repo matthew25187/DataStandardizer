@@ -81,6 +81,20 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string QuotedValueUri = "data:text/plain;name=%22a%2C%20b%22,x";
         private static readonly byte[] LetterX = { 0x78 };
 
+        // A media type with a quoted parameter value, "a;b", whose ";" is a delimiter in a data URI (RFC 2397 §3), and the data URI of "x"
+        // in it.
+        private const string MediaTypeWithDelimiterInQuotedValue = "text/plain;name=\"a;b\"";
+        private const string DelimiterInQuotedValueUri = "data:text/plain;name=%22a%3Bb%22,x";
+
+        // A media type whose subtype and parameter name are RFC 2045 §5.1 tokens but not RFC 6838 §4.2 restricted names, and the data URI
+        // of "x" in it.
+        private const string MediaTypeWithRfc2045Tokens = "text/x-a~b;a%b=1";
+        private const string Rfc2045TokensUri = "data:text/x-a~b;a%25b=1,x";
+
+        // A data URI whose subtype has an escaped token character, "a", and the subtype it stands for.
+        private const string EscapedTokenCharUri = "data:text/pl%61in,x";
+        private const string PlainSubtype = "plain";
+
         // Room for the three bytes of Base64OfThreeBytes and one more, and too little for them.
         private const int RoomForThreeBytes = 4;
         private const int TooLittleForThreeBytes = 2;
@@ -113,6 +127,18 @@ namespace DataStandardizer.Communication.Tests.Mime
             "data:text/plain;charset=a;charset=b,a",
             "data:text/plain;name=%E2%82%AC,a",
             "data:text plain,a",
+            // ref. RFC 2397 §3: the delimiters of a media type are literal, and an escaped one is part of a token, which can't hold it.
+            "data:text%2Fplain,a",
+            "data:text%2Fplain%3Bcharset%3Dutf-8,a",
+            "data:text/plain%3Bcharset=utf-8,a",
+            "data:text/plain;charset%3Dutf-8,a",
+            "data:text/plain;name=a%3Bb,a",
+            "data:text/plain;name=a%2Fb,a",
+            "data:text/plain;name=a%20b,a",
+            "data:text/plain;name=%22a;b%22,a",
+            "data:text/plain;name=%22a%22b,a",
+            "data:text/plain/html,a",
+            "data:text/plain;name=a=b,a",
             // Invalid percent-encoding.
             "data:,%",
             "data:,%4",
@@ -601,6 +627,68 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testResult.MediaType.Should().Be(mediaType);
+        }
+
+        [Fact]
+        public void Create_DelimiterInQuotedParameterValue_PercentEncodesIt()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(MediaTypeWithDelimiterInQuotedValue);
+
+            // act
+            var testResult = MimeDataUri.Create(mediaType, LetterX, false);
+
+            // assert
+            testResult.ToString().Should().Be(DelimiterInQuotedValueUri);
+        }
+
+        [Fact]
+        public void Parse_CreatedWithDelimiterInQuotedParameterValue_KeepsMediaType()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(MediaTypeWithDelimiterInQuotedValue);
+
+            // act
+            var testResult = MimeDataUri.Parse(DelimiterInQuotedValueUri);
+
+            // assert
+            testResult.MediaType.Should().Be(mediaType);
+        }
+
+        [Fact]
+        public void Create_Rfc2045Tokens_PercentEncodesPercentSign()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(MediaTypeWithRfc2045Tokens, MimeMediaTypeParseOptions.AllowRfc2045Tokens);
+
+            // act
+            var testResult = MimeDataUri.Create(mediaType, LetterX, false);
+
+            // assert
+            testResult.ToString().Should().Be(Rfc2045TokensUri);
+        }
+
+        [Fact]
+        public void Parse_Rfc2045Tokens_KeepsMediaType()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(MediaTypeWithRfc2045Tokens, MimeMediaTypeParseOptions.AllowRfc2045Tokens);
+
+            // act
+            var testResult = MimeDataUri.Parse(Rfc2045TokensUri);
+
+            // assert
+            testResult.MediaType.Should().Be(mediaType);
+        }
+
+        [Fact]
+        public void Parse_EscapedTokenCharacter_DecodesIt()
+        {
+            // act
+            var testResult = MimeDataUri.Parse(EscapedTokenCharUri);
+
+            // assert
+            testResult.MediaType.Subtype.Should().Be(PlainSubtype);
         }
 
         [Theory]
