@@ -92,8 +92,9 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// The writer refuses an encoding that doesn't fit: <c>7bit</c> or <c>8bit</c> for data outside that domain (RFC 2045 §2.7 and §2.8), or anything but
-        /// an identity encoding for a multipart or message entity (RFC 2045 §6.4).  An extension encoding can't be written, as the writer can't apply it.  For
-        /// that, write the entity with <see cref="FromRaw(ReadOnlyMemory{byte})"/>.
+        /// an identity encoding for a multipart or message entity (RFC 2045 §6.4), other than <c>message/global</c> (RFC 6532 §3.7), <c>message/global-headers</c>,
+        /// <c>message/global-delivery-status</c> and <c>message/global-disposition-notification</c> (RFC 6533 §6.3, §6.4 and §6.5).  An extension encoding can't
+        /// be written, as the writer can't apply it.  For that, write the entity with <see cref="FromRaw(ReadOnlyMemory{byte})"/>.
         /// </remarks>
         /// <exception cref="InvalidOperationException">On set: the entity is written from its raw bytes.</exception>
         public MimeTransferEncoding TransferEncoding

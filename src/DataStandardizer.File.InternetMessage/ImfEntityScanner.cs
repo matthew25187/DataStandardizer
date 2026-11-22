@@ -148,6 +148,9 @@ namespace DataStandardizer.File.InternetMessage
         private const string DigestSubtype = "digest";
         private const string ExternalBodySubtype = "external-body";
         private const string GlobalSubtype = "global";
+        private const string GlobalDeliveryStatusSubtype = "global-delivery-status";
+        private const string GlobalDispositionNotificationSubtype = "global-disposition-notification";
+        private const string GlobalHeadersSubtype = "global-headers";
         private const string PartialSubtype = "partial";
         private const string Rfc822Subtype = "rfc822";
 
@@ -759,9 +762,10 @@ namespace DataStandardizer.File.InternetMessage
                 }
 
                 // ref. RFC 6532 §3.7: unlike the other message types, message/global may have any transfer encoding, so it can only be followed
-                // when that leaves the embedded message readable.
+                // when that leaves the embedded message readable.  RFC 6533 §6.3, §6.4 and §6.5 allow quoted-printable and base64 on the types it
+                // defines too.
                 var isGlobal = EqualsIgnoreCase(subtype, GlobalSubtype);
-                if (!isGlobal)
+                if (!isGlobal && !IsRfc6533Subtype(subtype))
                 {
                     CheckCompositeEncoding(frame);
                 }
@@ -782,6 +786,13 @@ namespace DataStandardizer.File.InternetMessage
 
             var parent = _frames[_frames.Count - 2];
             return EqualsIgnoreCase(parent.ContentType.Type, MimeTopLevelTypes.Multipart) && EqualsIgnoreCase(parent.ContentType.Subtype, DigestSubtype);
+        }
+
+        private static bool IsRfc6533Subtype(string subtype)
+        {
+            return EqualsIgnoreCase(subtype, GlobalHeadersSubtype)
+                || EqualsIgnoreCase(subtype, GlobalDeliveryStatusSubtype)
+                || EqualsIgnoreCase(subtype, GlobalDispositionNotificationSubtype);
         }
 
         private void CheckCompositeEncoding(Frame frame)
