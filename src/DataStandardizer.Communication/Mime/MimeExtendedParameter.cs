@@ -177,7 +177,8 @@ namespace DataStandardizer.Communication.Mime
                 var text = section.Value;
                 if (!section.IsExtended)
                 {
-                    // A value that is not extended is printable US-ASCII, or else its characters have no octets to join with those of the extended sections.
+                    // A value that is not extended is US-ASCII, controls included (ref. RFC 822 §3.3), or else its characters have no octets to join
+                    // with those of the extended sections.
                     foreach (var c in text)
                     {
                         if (c > '\x7F') return false;

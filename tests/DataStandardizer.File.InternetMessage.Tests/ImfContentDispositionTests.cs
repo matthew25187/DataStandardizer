@@ -50,6 +50,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "attachment; filename=",
             "attachment; filename=a b",
             "attachment; filename=\"a",
+            "attachment; filename=\"a\\\rb.txt\"",
             "attachment; filename=a; filename=b",
 
             // ref. RFC 2231 §3-§4: filename* is a form of filename, so this gives it twice.
@@ -85,6 +86,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "attachment; filename=\"a\r\n b.txt\"", "a b.txt" },
             { "attachment; filename=\"a\\\"b.txt\"", "a\"b.txt" },
             { "attachment; filename=\"=?x?=\"", "=?x?=" },
+
+            // ref. RFC 5322 §2.2.3: the field is unfolded first, so the quoted-pair quotes the space after the fold.
+            { "attachment; filename=\"a\\\r\n b.txt\"", "a b.txt" },
 
             // ref. RFC 2231 §4 and §4.1
             { "attachment; filename*=UTF-8''caf%C3%A9.txt", AccentedFileName },

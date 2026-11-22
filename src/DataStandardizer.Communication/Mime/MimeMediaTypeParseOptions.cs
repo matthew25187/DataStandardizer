@@ -82,7 +82,8 @@ namespace DataStandardizer.Communication.Mime
 
         /// <summary>
         /// Accept an extended parameter value written as a quoted-string, such as <c>title*="utf-8''a%20b"</c>, which RFC 2231 §7 doesn't
-        /// allow. The value may then also hold spaces and the other characters that a quoted-string can.
+        /// allow. The value may then also hold spaces, tabs and the other printable US-ASCII characters that a quoted-string can, but not
+        /// control characters.
         /// </summary>
         AllowQuotedExtendedValues = 1 << 6,
 

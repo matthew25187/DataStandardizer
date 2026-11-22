@@ -40,6 +40,12 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string QuotedLettersValue = "text/plain;name=\"\\a\\b\"";
         private const string EmptyQuotedValue = "text/plain;name=\"\"";
 
+        // ref. RFC 822 §3.3: quoted-strings that hold the control characters U+0001 and DEL as qtext.
+        private const string QuotedStartOfHeadingValue = "a/b;c=\"\x0001\"";
+        private const string QuotedDeleteValue = "a/b;c=\"\x007F\"";
+        private const string StartOfHeading = "\x0001";
+        private const string Delete = "\x007F";
+
         // Media types with short parameters, and a parameter value that isn't a token.
         private const string A = "a";
         private const string B = "b";
@@ -360,12 +366,12 @@ namespace DataStandardizer.Communication.Tests.Mime
         public static TheoryData<string, string> ControlsInQuotedStrings => new TheoryData<string, string>
         {
             { "a/b;c=\"\x0000\"", "\x0000" },
-            { "a/b;c=\"\x0001\"", "\x0001" },
+            { QuotedStartOfHeadingValue, StartOfHeading },
             { "a/b;c=\"\n\"", "\n" },
-            { "a/b;c=\"\x007F\"", "\x007F" },
+            { QuotedDeleteValue, Delete },
             { "a/b;c=\"\\\x0000\"", "\x0000" },
             { "a/b;c=\"\\\r\"", "\r" },
-            { "a/b;c=\"\\\x007F\"", "\x007F" },
+            { "a/b;c=\"\\\x007F\"", Delete },
         };
 
         // Not enumerated at discovery, as control characters in a test's name would make its TRX results file unreadable.
@@ -378,6 +384,26 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testResult.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Parse_ControlInQuotedStringWithUtf8Option_ReturnsItInTheValue()
+        {
+            // act
+            var testResult = MimeMediaType.Parse(QuotedDeleteValue, MimeMediaTypeParseOptions.AllowUtf8QuotedStrings);
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be(Delete);
+        }
+
+        [Fact]
+        public void TryParse_ControlInQuotedExtendedValueWithOption_ReturnsFalse()
+        {
+            // act
+            var testResult = MimeMediaType.TryParse("a/b;c*=\"UTF-8''\x0001\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, out _);
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Fact]
@@ -394,7 +420,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         public void ToString_ValueReadWithAControl_WritesTheExtendedForm()
         {
             // arrange
-            var subject = MimeMediaType.Parse("a/b;c=\"\x0001\"");
+            var subject = MimeMediaType.Parse(QuotedStartOfHeadingValue);
 
             // act
             var testResult = subject.ToString();
