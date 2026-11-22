@@ -47,6 +47,52 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "one\r\n" +
             "--b--\r\n";
 
+        private const string KeptBoundaryAroundSeparatelyReadText =
+            Header +
+            "Content-Type: multipart/mixed; boundary=b\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "Content-Type: message/rfc822\r\n" +
+            "\r\n" +
+            Header +
+            "\r\n" +
+            "two\r\n" +
+            "--b--\r\n";
+
+        private const string SeparatelyReadHoldsDelimiter = Header + "\r\n--b\r\n";
+        private const string SeparatelyReadText = Header + "\r\ntwo";
+        private const string SeparatelyReadPreambleHoldsDelimiter = Header + "Content-Type: multipart/mixed; boundary=c\r\n\r\n--b\r\n--c\r\n\r\ntwo\r\n--c--\r\n";
+
+        private const string MovedPartHoldsDelimiter =
+            Header +
+            "Content-Type: multipart/mixed; boundary=a\r\n" +
+            "\r\n" +
+            "--a\r\n" +
+            "Content-Type: multipart/mixed; boundary=c\r\n" +
+            "\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "two\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "--c--\r\n" +
+            "--a--\r\n";
+
+        private const string KeptPreambleHoldsAnotherBoundary =
+            Header +
+            "Content-Type: multipart/mixed; boundary=b\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "Content-Type: multipart/mixed; boundary=c\r\n" +
+            "\r\n" +
+            "--z\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "two\r\n" +
+            "--c--\r\n" +
+            "--b--\r\n";
+
         private const string TwoParts =
             Header +
             "Content-Type: multipart/mixed; boundary=b\r\n" +
@@ -238,6 +284,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a";
 
         private const string NoteFieldName = "X-Note";
+        private const string NoteFieldBody = "changed";
+        private const string OtherBoundary = "z";
         private const string Utf8FieldBody = "caf\x00E9";
         private const string NewMessageRawBody = "body";
         private const string Utf8FieldMessage = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nX-Note: caf\xC3\xA9\r\n\r\nbody";
@@ -1117,9 +1165,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_SeparatelyReadMessageSetUnderAKeptBoundaryThatItHolds_Throws()
         {
             // arrange (ref. RFC 2046 §5.1.1: the message was read on its own, so nothing found that it doesn't hold a delimiter of "b")
-            const string Inner = Header + "\r\n--b\r\n";
             var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
-            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = EntityTrees.Read(Inner);
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = EntityTrees.Read(SeparatelyReadHoldsDelimiter);
             var output = new MemoryStream();
             using (var writer = new ImfWriter(output))
             {
@@ -1136,26 +1183,23 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_SeparatelyReadMessageSetUnderAKeptBoundary_WritesItAsItWasRead()
         {
             // arrange
-            const string Inner = Header + "\r\ntwo";
-            const string Expected = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\n" + Header + "\r\ntwo\r\n--b--\r\n";
             var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
-            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = EntityTrees.Read(Inner);
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = EntityTrees.Read(SeparatelyReadText);
 
             // act
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Expected);
+            testResult.Should().Be(KeptBoundaryAroundSeparatelyReadText);
         }
 
         [Fact]
         public void WriteMessage_SeparatelyReadMessageWhosePreambleHoldsAKeptBoundary_Throws()
         {
             // arrange (ref. RFC 2046 §5.1.1: the delimiters, preamble and epilogue of "c" are kept from a read that found nothing about "b")
-            const string Inner = Header + "Content-Type: multipart/mixed; boundary=c\r\n\r\n--b\r\n--c\r\n\r\ntwo\r\n--c--\r\n";
             var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
-            var inner = EntityTrees.Read(Inner);
-            ((ImfMultipart)inner.Body).Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "changed"));
+            var inner = EntityTrees.Read(SeparatelyReadPreambleHoldsDelimiter);
+            ((ImfMultipart)inner.Body).Parts[0].Fields.Add(ImfHeaderField.FromText(NoteFieldName, NoteFieldBody));
             ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = inner;
             var output = new MemoryStream();
             using (var writer = new ImfWriter(output))
@@ -1173,11 +1217,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_UnchangedPartOfAMovedMultipartHoldsAKeptBoundary_Throws()
         {
             // arrange (ref. RFC 2046 §5.1.1: the second part of "c" was found not to hold a delimiter of "a", and that says nothing about "b")
-            const string HoldsDelimiter = Header + "Content-Type: multipart/mixed; boundary=a\r\n\r\n--a\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\n\r\ntwo\r\n--c\r\n\r\n--b\r\n--c--\r\n--a--\r\n";
-            var source = EntityTrees.Read(HoldsDelimiter);
+            var source = EntityTrees.Read(MovedPartHoldsDelimiter);
             var moved = (ImfMultipart)EntityTrees.At(source, "1");
             ((ImfMultipart)source.Body).Parts.RemoveAt(0);
-            moved.Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "changed"));
+            moved.Parts[0].Fields.Add(ImfHeaderField.FromText(NoteFieldName, NoteFieldBody));
             var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
             ((ImfMessagePart)EntityTrees.At(subject, "1")).Message.Body = moved;
             var output = new MemoryStream();
@@ -1196,10 +1239,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_KeptPreambleHoldsTheNewBoundaryAroundIt_Throws()
         {
             // arrange (ref. RFC 2046 §5.1.1: the preamble of "c" is kept, and the boundary around it is now "z")
-            const string Nested = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--z\r\n--c\r\n\r\ntwo\r\n--c--\r\n--b--\r\n";
-            var subject = EntityTrees.Read(Nested);
-            ((ImfMultipart)EntityTrees.At(subject, "1")).Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "changed"));
-            subject.Body.ContentType = MimeMediaType.MultipartMixed.WithParameter("boundary", "z");
+            var subject = EntityTrees.Read(KeptPreambleHoldsAnotherBoundary);
+            ((ImfMultipart)EntityTrees.At(subject, "1")).Parts[0].Fields.Add(ImfHeaderField.FromText(NoteFieldName, NoteFieldBody));
+            subject.Body.ContentType = MimeMediaType.MultipartMixed.WithParameter("boundary", OtherBoundary);
             var output = new MemoryStream();
             using (var writer = new ImfWriter(output))
             {
