@@ -26,12 +26,12 @@ namespace DataStandardizer.Communication.Mime
         EncodedWordText = 1,
 
         /// <summary>
-        /// The "Q" encoding of RFC 2047 §4.2, for an encoded word in a comment (RFC 2047 §5(2)): as
-        /// <see cref="EncodedWordText"/>, except that <c>(</c>, <c>)</c> and <c>"</c> are encoded too.
+        /// The "Q" encoding of RFC 2047 §4.2, for an encoded word in a comment (RFC 2047 §5(2), as corrected by erratum 504): as
+        /// <see cref="EncodedWordText"/>, except that <c>(</c>, <c>)</c> and <c>\</c> are encoded too.
         /// </summary>
         /// <remarks>
-        /// When encoding, <c>\</c> is written as <c>=5C</c> as well, as it would start a quoted-pair in a comment (RFC 5322 §3.2.2). When
-        /// decoding, a literal <c>\</c> is accepted, as RFC 2047 §5(2) allows it.
+        /// These are the characters that RFC 822 §3.3 <c>ctext</c> excludes. A double quote is ordinary <c>ctext</c>, and is written as
+        /// itself.
         /// </remarks>
         EncodedWordComment = 2,
 

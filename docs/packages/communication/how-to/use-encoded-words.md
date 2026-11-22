@@ -47,7 +47,7 @@ space, and any other character has to be written as an escape.
 | Context | Place | Characters that stand for themselves |
 | --- | --- | --- |
 | `Text` | Unstructured text, such as Subject (RFC 2047 §5(1)). | Any printable ASCII character other than `=`, `?` and `_`. |
-| `Comment` | A comment (RFC 2047 §5(2)). | As `Text`, but not `(`, `)` or `"`. A word that's written also encodes `\`. |
+| `Comment` | A comment (RFC 2047 §5(2), as corrected by erratum 504). | As `Text`, but not `(`, `)` or `\`, the characters RFC 822 §3.3 `ctext` excludes. A double quote may appear. |
 | `Phrase` | A phrase, such as the display name of an address (RFC 2047 §5(3)). | Only ASCII letters, digits, `!`, `*`, `+`, `-` and `/`. |
 
 The overloads with no context use `Text`.

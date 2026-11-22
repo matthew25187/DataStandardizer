@@ -1368,7 +1368,7 @@ namespace DataStandardizer.Communication.Tests.Mime
 
         [Theory]
         [InlineData(MimeQuotedPrintableMode.EncodedWordText, "a_b=3D=3F=5F()\".,=09=0D=0A")]
-        [InlineData(MimeQuotedPrintableMode.EncodedWordComment, "a_b=3D=3F=5F=28=29=22.,=09=0D=0A")]
+        [InlineData(MimeQuotedPrintableMode.EncodedWordComment, "a_b=3D=3F=5F=28=29\".,=09=0D=0A")]
         [InlineData(MimeQuotedPrintableMode.EncodedWordPhrase, "a_b=3D=3F=5F=28=29=22=2E=2C=09=0D=0A")]
         public void Encode_QContext_EncodesWhatTheContextRequires(MimeQuotedPrintableMode mode, string expected)
         {
@@ -1379,24 +1379,39 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Should().Be(expected);
         }
 
+        // ref. RFC 2047 §5(2), as corrected by erratum 504: "Q" text in a comment can't hold "\", but a double quote is ordinary ctext
+        // (RFC 822 §3.3).
+        private const string BackslashText = "a\\b";
+        private const string DoubleQuoteText = "a\"b";
+
         [Fact]
         public void Encode_BackslashInComment_IsEncoded()
         {
             // act
-            var testResult = MimeQuotedPrintable.Encode(Latin1("a\\b"), MimeQuotedPrintableMode.EncodedWordComment, Text);
+            var testResult = MimeQuotedPrintable.Encode(Latin1(BackslashText), MimeQuotedPrintableMode.EncodedWordComment, Text);
 
             // assert
             testResult.Should().Be("a=5Cb");
         }
 
         [Fact]
-        public void Decode_BackslashInComment_IsAccepted()
+        public void Encode_DoubleQuoteInComment_IsLiteral()
         {
             // act
-            var testResult = MimeQuotedPrintable.Decode("a\\b".AsSpan(), MimeQuotedPrintableMode.EncodedWordComment, Strict);
+            var testResult = MimeQuotedPrintable.Encode(Latin1(DoubleQuoteText), MimeQuotedPrintableMode.EncodedWordComment, Text);
 
             // assert
-            testResult.Should().Equal(Latin1("a\\b"));
+            testResult.Should().Be(DoubleQuoteText);
+        }
+
+        [Fact]
+        public void Decode_DoubleQuoteInComment_IsAccepted()
+        {
+            // act
+            var testResult = MimeQuotedPrintable.Decode(DoubleQuoteText.AsSpan(), MimeQuotedPrintableMode.EncodedWordComment, Strict);
+
+            // assert
+            testResult.Should().Equal(Latin1(DoubleQuoteText));
         }
 
         // ref. RFC 2047 §5(3): the characters that a "Q" encoded word may hold as themselves in a phrase.
@@ -1432,7 +1447,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData(MimeQuotedPrintableMode.EncodedWordText, "a\x00E9")]
         [InlineData(MimeQuotedPrintableMode.EncodedWordComment, "a(b")]
         [InlineData(MimeQuotedPrintableMode.EncodedWordComment, "a)b")]
-        [InlineData(MimeQuotedPrintableMode.EncodedWordComment, "a\"b")]
+        [InlineData(MimeQuotedPrintableMode.EncodedWordComment, BackslashText)]
         [InlineData(MimeQuotedPrintableMode.EncodedWordPhrase, "a.b")]
         [InlineData(MimeQuotedPrintableMode.EncodedWordPhrase, "a,b")]
         [InlineData(MimeQuotedPrintableMode.EncodedWordPhrase, "a(b")]
