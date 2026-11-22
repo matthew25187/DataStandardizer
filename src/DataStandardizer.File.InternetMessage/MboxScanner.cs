@@ -990,6 +990,9 @@ namespace DataStandardizer.File.InternetMessage
             }
             else
             {
+                // CheckQuotedLine reads the octet before a line feed, whichever way the content was consumed.
+                if (count > 0) _previousOctet = bytes[count - 1];
+
                 while (true)
                 {
                     var lineFeed = bytes.IndexOf(LineFeed);
