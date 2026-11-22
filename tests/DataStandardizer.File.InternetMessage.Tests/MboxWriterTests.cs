@@ -303,7 +303,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 Action testAction = () => subject.WriteMessage(Envelope, message);
 
                 // assert
-                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+                exception.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
             }
         }
 
