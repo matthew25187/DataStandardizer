@@ -462,6 +462,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
+        // A quoted-printable line of 80 characters, longer than the 76 of RFC 2045 §6.7 rule 5.
+        private const string QuotedPrintableLineOf80Letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        [Fact]
+        public void ReadEvent_LongQuotedPrintableLineWithAllowLongLines_DecodesIt()
+        {
+            // arrange
+            const string message = "Content-Transfer-Encoding: quoted-printable\r\n\r\n" + QuotedPrintableLineOf80Letters;
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowLongLines = true, DecodeTransferEncoding = true }))
+            {
+                // act
+                var testResult = EntityEvents.ReadOutline(reader);
+
+                // assert
+                testResult.Should().Equal("start /", "field / Content-Transfer-Encoding", "type / text/plain", "body / [" + QuotedPrintableLineOf80Letters + "]", "end /");
+            }
+        }
+
         [Fact]
         public void ReadEvent_LineFeedIsLineBreak_ReadsLineFeedsAsTheContainerFormatsDo()
         {

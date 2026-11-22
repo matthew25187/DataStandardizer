@@ -125,8 +125,9 @@ namespace DataStandardizer.File.vCard
 
             if (transferEncoding == MimeTransferEncoding.QuotedPrintable)
             {
-                // ref. vCard 2.1 §2.9: quoted-printable = <MIME RFC 1521 quoted-printable text>.  The reader has joined its soft line breaks.
-                if (!MimeQuotedPrintable.TryDecode(line.Value.AsSpan(), MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out var octets))
+                // ref. vCard 2.1 §2.9: quoted-printable = <MIME RFC 1521 quoted-printable text>.  The reader has joined its soft line breaks, so the
+                // value is one long line.
+                if (!MimeQuotedPrintable.TryDecode(line.Value.AsSpan(), MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.AllowLongLines, out var octets))
                 {
                     throw VcardContentLineErrorFactory.BuildValueException(ErrorMessage.InvalidQuotedPrintable, line);
                 }

@@ -17,8 +17,9 @@ namespace DataStandardizer.Communication.Mime
     /// <para>
     /// In <see cref="MimeQuotedPrintableMode.Body"/> mode, the encoder writes lines of at most 76 characters, with soft line breaks
     /// (<c>=</c> and CRLF) where a line of the data is longer. A space or tab at the end of a line is encoded. Unless
-    /// <see cref="MimeQuotedPrintableEncoderOptions.Binary"/> is set, each CRLF or bare LF in the data is written as a CRLF line break,
-    /// and a bare CR is encoded. The encoder writes no line break at the end of the data.
+    /// <see cref="MimeQuotedPrintableEncoderOptions.Binary"/> is set, each CRLF in the data is written as a CRLF line break, and a bare
+    /// CR or LF is encoded (RFC 2045 §6.7 rule 4). Converting the line breaks of text to CRLF first is the caller's canonicalization
+    /// step (RFC 2049 §4). The encoder writes no line break at the end of the data.
     /// </para>
     /// <para>
     /// In the "Q" modes, a space is written as <c>_</c>, and the characters that can't be written as themselves in the mode's context

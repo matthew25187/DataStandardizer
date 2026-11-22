@@ -347,6 +347,23 @@ namespace DataStandardizer.File.InternetMessage.Tests
             testResult.Should().Be(Cafe);
         }
 
+        // A quoted-printable line of 80 characters, longer than the 76 of RFC 2045 §6.7 rule 5.
+        private const string QuotedPrintableLineOf80Letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string LongQuotedPrintableLine = Header + "Content-Type: text/plain\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n" + QuotedPrintableLineOf80Letters;
+
+        [Fact]
+        public void GetContent_LongQuotedPrintableLineWithAllowLongLines_DecodesIt()
+        {
+            // arrange
+            var subject = EntityTrees.Read(LongQuotedPrintableLine, new ImfOptions { AllowLongLines = true }).Body;
+
+            // act
+            var testResult = EntityTrees.ContentOf(subject);
+
+            // assert
+            testResult.Should().Be(QuotedPrintableLineOf80Letters);
+        }
+
         [Fact]
         public void GetContent_ReadWithDecodingOption_IsDecodedOnce()
         {

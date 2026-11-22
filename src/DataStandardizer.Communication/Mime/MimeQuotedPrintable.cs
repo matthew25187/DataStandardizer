@@ -17,13 +17,18 @@ namespace DataStandardizer.Communication.Mime
         // ref. RFC 2045 §6.7 rule 5: the encoded lines must not be longer than 76 characters, not counting the CRLF.
         internal const int MaxLineLength = 76;
 
+        // The longest run of spaces and tabs that a decoder allowing long lines holds while it waits to see whether a line break follows.
+        // ref. RFC 5322 §2.1.1: a line of a message is at most 998 characters.
+        internal const int MaxHeldWhitespace = 998;
+
         internal const string HexDigits = "0123456789ABCDEF";
 
         private const string InvalidFormatMessage = "The value is not valid quoted-printable.";
 
         private const MimeQuotedPrintableDecoderOptions AllDecoderOptions = MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits
             | MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds
-            | MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns;
+            | MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns
+            | MimeQuotedPrintableDecoderOptions.AllowLongLines;
 
         /// <summary>
         /// Gets the largest number of characters that some data can encode to.
@@ -57,7 +62,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="length">The number of characters of encoded data.</param>
         /// <returns>The largest number of bytes the data can decode to, whatever its mode and options.</returns>
         /// <remarks>
-        /// A <see cref="MimeQuotedPrintableDecoder"/> that holds data from an earlier call can write up to 77 more bytes in one call.
+        /// A <see cref="MimeQuotedPrintableDecoder"/> that holds data from an earlier call can write up to 77 more bytes in one call, or up
+        /// to 1,000 more with <see cref="MimeQuotedPrintableDecoderOptions.AllowLongLines"/>.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="length"/> is negative.</exception>
         public static int GetMaxDecodedLength(int length)

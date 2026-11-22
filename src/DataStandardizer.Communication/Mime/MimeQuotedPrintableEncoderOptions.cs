@@ -9,8 +9,8 @@ namespace DataStandardizer.Communication.Mime
     public enum MimeQuotedPrintableEncoderOptions
     {
         /// <summary>
-        /// Encode the data as text: in <see cref="MimeQuotedPrintableMode.Body"/> mode, each CRLF or bare LF in the data is a line break,
-        /// and is written as a CRLF line break.
+        /// Encode the data as text: in <see cref="MimeQuotedPrintableMode.Body"/> mode, each CRLF in the data is a line break, and is
+        /// written as a CRLF line break. A bare CR or LF is not a line break, and is written as <c>=0D</c> or <c>=0A</c>.
         /// </summary>
         None = 0,
 

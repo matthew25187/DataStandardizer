@@ -263,7 +263,7 @@ namespace DataStandardizer.File.vCard
             int dataLength;
             byte[] octets;
             return MimeQuotedPrintable.EndsWithSoftLineBreak(value, out dataLength) &&
-                   !MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out octets);
+                   !MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.AllowLongLines, out octets);
         }
 
         private static bool IsValidValue(VcardContentLine line, bool isDefined)

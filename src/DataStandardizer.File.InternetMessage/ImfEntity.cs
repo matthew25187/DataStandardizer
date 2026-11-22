@@ -727,7 +727,7 @@ namespace DataStandardizer.File.InternetMessage
             else if (transferEncoding == MimeTransferEncoding.QuotedPrintable)
             {
                 decoded = new byte[MimeQuotedPrintable.GetMaxDecodedLength(raw.Length)];
-                var options = Options.AcceptBareLineFeed || _lineFeedIsLineBreak ? MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds : MimeQuotedPrintableDecoderOptions.None;
+                var options = ImfEntityScanner.GetQuotedPrintableOptions(Options, _lineFeedIsLineBreak);
                 status = new MimeQuotedPrintableDecoder(MimeQuotedPrintableMode.Body, options).Decode(raw.Span, decoded, out bytesConsumed, out bytesWritten, true);
             }
             else
