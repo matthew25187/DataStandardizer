@@ -64,7 +64,6 @@ namespace DataStandardizer.File.InternetMessage
 #endif
     {
         private const int BlockSize = 16 * 1024;
-        private const int InitialBufferSize = 1024;
 
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
         private static readonly byte[] Lf = { 0x0A };
@@ -647,7 +646,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             var diagnostics = CheckConformance(message);
             var fields = new ReadOnlyMemory<byte>[message.Fields.Count];
-            var buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
             try
             {
                 for (var index = 0; index < fields.Length; index++)

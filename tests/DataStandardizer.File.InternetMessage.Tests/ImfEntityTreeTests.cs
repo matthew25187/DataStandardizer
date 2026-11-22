@@ -211,9 +211,23 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private const string NewBody = "new";
 
-        private const string Utf8FieldName = "X-Note";
+        // 300 words, about 600 bytes: the formatter allows a line break at each of the 299 spaces, which takes its estimate of the room the field needs past the 1024 bytes its
+        // callers start with, so it has to rent a larger buffer.
+        private const string LongFieldText =
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a";
+
+        private const string NoteFieldName = "X-Note";
         private const string Utf8FieldBody = "caf\x00E9";
-        private const string Utf8RawBody = "body";
+        private const string NewMessageRawBody = "body";
         private const string Utf8FieldMessage = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nX-Note: caf\xC3\xA9\r\n\r\nbody";
 
         public static TheoryData<string, string[]> Trees => new TheoryData<string, string[]>
@@ -1478,7 +1492,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.ContentOf(subject.Body);
 
             // assert
-            testResult.Should().Be(Utf8RawBody);
+            testResult.Should().Be(NewMessageRawBody);
         }
 
         [Theory]
@@ -1526,16 +1540,67 @@ namespace DataStandardizer.File.InternetMessage.Tests
             testAction.Should().Throw<ImfFileException>();
         }
 
+        [Fact]
+        public void Body_NewFieldThatGrowsTheFormatBuffer_IsRead()
+        {
+            // arrange
+            var subject = NewMessageWithField(new ImfOptions(), ImfHeaderField.FromText(NoteFieldName, LongFieldText));
+
+            // act
+            var testResult = EntityTrees.ContentOf(subject.Body);
+
+            // assert
+            testResult.Should().Be(NewMessageRawBody);
+        }
+
+        [Fact]
+        public void WriteMessage_LongFieldOfOnePartSet_ReadsBackTheField()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoParts);
+            EntityTrees.At(subject, "2").ContentDescription = LongFieldText;
+
+            // act
+            var testResult = EntityTrees.At(EntityTrees.Read(EntityTrees.Write(subject)), "2").ContentDescription;
+
+            // assert
+            testResult.Should().Be(LongFieldText);
+        }
+
+        [Fact]
+        public void WriteMessage_LongFieldOfPartWithNewContent_ReadsBackTheField()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoParts);
+            var part = EntityTrees.At(subject, "1");
+            part.SetContent(EntityTrees.Bytes(NewBody));
+            part.ContentDescription = LongFieldText;
+
+            // act
+            var testResult = EntityTrees.At(EntityTrees.Read(EntityTrees.Write(subject)), "1").ContentDescription;
+
+            // assert
+            testResult.Should().Be(LongFieldText);
+        }
+
         /// <summary>
         /// Builds a message that wasn't read, with a field body that isn't US-ASCII and a raw body whose entities haven't been read yet.
         /// </summary>
         private static ImfMessage NewMessageWithUtf8Field(ImfOptions options)
         {
+            return NewMessageWithField(options, new ImfHeaderField(NoteFieldName, " " + Utf8FieldBody, ImfHeaderFieldKind.Unstructured));
+        }
+
+        /// <summary>
+        /// Builds a message that wasn't read, with a Date, a From and one more field, and a raw body whose entities haven't been read yet.
+        /// </summary>
+        private static ImfMessage NewMessageWithField(ImfOptions options, ImfHeaderField field)
+        {
             var message = new ImfMessage(options);
             message.Fields.Add(new ImfHeaderField("Date", " Fri, 21 Nov 1997 09:55:06 -0600", ImfHeaderFieldKind.Structured));
             message.Fields.Add(new ImfHeaderField("From", " a@b.test", ImfHeaderFieldKind.Structured));
-            message.Fields.Add(new ImfHeaderField(Utf8FieldName, " " + Utf8FieldBody, ImfHeaderFieldKind.Unstructured));
-            message.RawBody = EntityTrees.Bytes(Utf8RawBody);
+            message.Fields.Add(field);
+            message.RawBody = EntityTrees.Bytes(NewMessageRawBody);
             return message;
         }
 
