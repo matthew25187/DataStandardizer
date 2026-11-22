@@ -19,6 +19,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string NoMimeVersion = Header + "Content-Type: text/plain\r\n\r\nx\r\n";
         private const string WithMimeVersion = MimeHeader + "Content-Type: text/plain\r\n\r\nx\r\n";
 
+        // ref. RFC 2045 §4: a writer that changes a part of a multipart it read adds the field the top-level header lacks, after the fields it keeps.
+        private const string MultipartNoMimeVersion = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nx\r\n--b--\r\n";
+        private const string MultipartWithMimeVersion = MimeHeader + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nx\r\n--b--\r\n";
+        private const string MultipartWithAddedMimeVersion = Header + "Content-Type: multipart/mixed; boundary=b\r\nMIME-Version: 1.0\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\ny\r\n--b--\r\n";
+
+        private const string EmbeddedInMessageNoMimeVersion = Header + "Content-Type: message/rfc822\r\n\r\nSubject: y\r\nX-Note: z\r\n\r\nx\r\n";
+        private const string EmbeddedInMessageWithAddedMimeVersion = Header + "Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\n\r\nSubject: y\r\n\r\nx\r\n";
+
+        // ref. RFC 2045 §4: an embedded message that was read keeps the header it had, however it is written.
+        private const string EmbeddedMultipartNoMimeVersion = MimeHeader + "Content-Type: message/rfc822\r\n\r\n"
+            + "Subject: y\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nContent-Type: text/plain\r\n\r\nx\r\n--c--\r\n";
+        private const string EmbeddedMultipartChanged = MimeHeader + "Content-Type: message/rfc822\r\n\r\n"
+            + "Subject: y\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nContent-Type: text/plain\r\n\r\ny\r\n--c--\r\n";
+        private const string EmbeddedMultipartChangedContent = "Subject: y\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nContent-Type: text/plain\r\n\r\ny\r\n--c--\r\n";
+
         // ref. RFC 2045 §4: an embedded message needs the field only if it claims to follow MIME.
         private const string EmbeddedNoMimeVersion = MimeHeader + "Content-Type: message/rfc822\r\n\r\nSubject: y\r\nContent-Type: text/plain\r\n\r\nz\r\n";
 
@@ -371,6 +386,104 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 Octets.ToText(output.ToArray()).Should().Be(NoMimeVersion);
                 subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
             }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartOfMultipartReadWithNoMimeVersion_AddsMimeVersion()
+        {
+            // arrange
+            var read = Read(MultipartNoMimeVersion, new ImfOptions { AllowMissingMimeVersion = true });
+            ((ImfMultipart)read.Body).Parts[0].SetContent(Octets.Of("y"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(MultipartWithAddedMimeVersion);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartOfMultipartWithMimeVersionRemoved_AddsMimeVersion()
+        {
+            // arrange
+            var read = Read(MultipartWithMimeVersion, new ImfOptions());
+            read.Fields.RemoveAll("MIME-Version");
+            ((ImfMultipart)read.Body).Parts[0].SetContent(Octets.Of("y"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(MultipartWithAddedMimeVersion);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedEmbeddedMessageReadWithNoMimeVersion_AddsMimeVersionToTheTopLevelOnly()
+        {
+            // arrange
+            var read = Read(EmbeddedInMessageNoMimeVersion, new ImfOptions { AllowMissingMimeVersion = true });
+            ((ImfMessagePart)read.Body).Message.Fields.RemoveAll("X-Note");
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(EmbeddedInMessageWithAddedMimeVersion);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartOfEmbeddedMultipartWithNoMimeVersion_WritesTheEmbeddedHeaderAsItWasRead()
+        {
+            // arrange
+            var read = Read(EmbeddedMultipartNoMimeVersion, new ImfOptions());
+            ((ImfMultipart)((ImfMessagePart)read.Body).Message.Body).Parts[0].SetContent(Octets.Of("y"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(EmbeddedMultipartChanged);
+            }
+        }
+
+        [Fact]
+        public void GetContent_ChangedPartOfEmbeddedMultipartWithNoMimeVersion_WritesTheEmbeddedHeaderAsItWasRead()
+        {
+            // arrange
+            var read = Read(EmbeddedMultipartNoMimeVersion, new ImfOptions());
+            var subject = (ImfMessagePart)read.Body;
+            ((ImfMultipart)subject.Message.Body).Parts[0].SetContent(Octets.Of("y"));
+
+            // act
+            var testResult = subject.GetContent();
+
+            // assert
+            Octets.ToText(testResult.ToArray()).Should().Be(EmbeddedMultipartChangedContent);
+        }
+
+        [Fact]
+        public void Validate_ChangedPartOfMultipartReadWithNoMimeVersion_ReportsNothing()
+        {
+            // arrange
+            var subject = Read(MultipartNoMimeVersion, new ImfOptions { AllowMissingMimeVersion = true });
+            ((ImfMultipart)subject.Body).Parts[0].SetContent(Octets.Of("y"));
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         [Fact]

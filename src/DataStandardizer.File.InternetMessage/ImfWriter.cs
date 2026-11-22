@@ -594,7 +594,9 @@ namespace DataStandardizer.File.InternetMessage
         {
             diagnostics = CheckConformance(message);
             message.Body.CheckChangedDepth(_options.MaxNestingDepth);
-            return message.Body.ToSource(_options, _lineBreak, _boundaryGenerator);
+            var source = message.Body.ToSource(_options, _lineBreak, _boundaryGenerator);
+            source.IsTopLevelMessage = true;
+            return source;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

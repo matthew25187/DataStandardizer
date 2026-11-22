@@ -148,6 +148,12 @@ namespace DataStandardizer.File.InternetMessage
         internal bool HasChangedHeader { get; set; }
 
         /// <summary>
+        /// Gets or sets a flag indicating that the entity is the body of the top-level message that <see cref="ImfWriter"/> writes, which gets a MIME-Version field (RFC 2045 §4) even when
+        /// it is otherwise kept as it was read.  An embedded message, which can be written on its own, never has it.
+        /// </summary>
+        internal bool IsTopLevelMessage { get; set; }
+
+        /// <summary>
         /// Gets or sets the number of entities that raw bytes hold besides the one they are, which <see cref="ImfOptions.MaxPartCount"/> counts as if the writer had written each of them.
         /// </summary>
         internal int HeldEntityCount { get; set; }
