@@ -113,10 +113,12 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// Determine if a character may appear in a parameter value, either as itself or as a quoted-pair.
+        /// Determine if a character may be written in a regular parameter value, either as itself or as a quoted-pair.
         /// </summary>
         /// <remarks>
-        /// Printable US-ASCII, SPACE and HTAB (ref. RFC 5322 §3.2.4: qtext, quoted-pair).
+        /// Printable US-ASCII, SPACE and HTAB (ref. RFC 5322 §3.2.4: qtext, quoted-pair). A quoted-string that is read may also hold
+        /// the other US-ASCII characters (ref. RFC 822 §3.3), but RFC 5322 §4 doesn't allow them to be generated, so a value that holds
+        /// one is written as an RFC 2231 extended value instead.
         /// </remarks>
         internal static bool IsValueChar(char c)
         {
@@ -249,8 +251,9 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="value">The decoded value.</param>
         /// <returns><c>true</c> if a well-formed quoted-string was read; otherwise <c>false</c>.</returns>
         /// <remarks>
-        /// quoted-string = DQUOTE *([FWS] qcontent) [FWS] DQUOTE; qcontent = qtext / quoted-pair (ref. RFC 5322 §3.2.4).
-        /// Folding is not accepted, as the caller unfolds header fields first.
+        /// RFC 2045 §5.1 takes its quoted-string from RFC 822 §3.3: quoted-string = &lt;"&gt; *(qtext/quoted-pair) &lt;"&gt;, where
+        /// qtext is any CHAR except &lt;"&gt;, "\" and CR, and quoted-pair = "\" CHAR. CHAR is any US-ASCII character, controls
+        /// included. Folding is not accepted, as the caller unfolds header fields first.
         /// </remarks>
         internal static bool TryReadQuotedString(ReadOnlySpan<char> source, ref int position, bool allowUtf8, out string value)
         {
@@ -269,10 +272,10 @@ namespace DataStandardizer.Communication.Mime
 
                 if (c == '\\')
                 {
-                    // ref. RFC 5322 §3.2.1: quoted-pair = ("\" (VCHAR / WSP))
+                    // ref. RFC 822 §3.3: quoted-pair = "\" CHAR
                     if (index + 1 >= source.Length) return false;
 
-                    var pairLength = GetQuotedCharLength(source, index + 1, allowUtf8);
+                    var pairLength = GetQuotedCharLength(source, index + 1, allowUtf8, true);
                     if (pairLength == 0) return false;
 
                     escapeCount++;
@@ -280,7 +283,7 @@ namespace DataStandardizer.Communication.Mime
                     continue;
                 }
 
-                var charLength = GetQuotedCharLength(source, index, allowUtf8);
+                var charLength = GetQuotedCharLength(source, index, allowUtf8, false);
                 if (charLength == 0) return false;
 
                 index += charLength;
@@ -310,14 +313,20 @@ namespace DataStandardizer.Communication.Mime
         /// <summary>
         /// Get the number of UTF-16 code units of the character at a position of a quoted-string, or 0 if it can't appear there.
         /// </summary>
+        /// <param name="source">Text to read.</param>
+        /// <param name="index">Position of the character.</param>
+        /// <param name="allowUtf8">Whether to accept UTF8-non-ascii (ref. RFC 6532 §3.2).</param>
+        /// <param name="isQuotedPair">Whether the character follows the backslash of a quoted-pair, rather than being qtext.</param>
         /// <remarks>
-        /// An unpaired surrogate is never accepted, as no UTF-8 sequence stands for one (ref. RFC 3629 §3).
+        /// ref. RFC 822 §3.3: qtext is any CHAR except &lt;"&gt;, "\" and CR, and a quoted-pair may quote any CHAR. The caller has
+        /// already dealt with &lt;"&gt; and "\". An unpaired surrogate is never accepted, as no UTF-8 sequence stands for one
+        /// (ref. RFC 3629 §3).
         /// </remarks>
-        private static int GetQuotedCharLength(ReadOnlySpan<char> source, int index, bool allowUtf8)
+        private static int GetQuotedCharLength(ReadOnlySpan<char> source, int index, bool allowUtf8, bool isQuotedPair)
         {
             var c = source[index];
-            if (IsValueChar(c)) return 1;
-            if (!allowUtf8 || c < '\x80') return 0;
+            if (c < '\x80') return isQuotedPair || c != '\r' ? 1 : 0;
+            if (!allowUtf8) return 0;
             if (!char.IsSurrogate(c)) return 1;
 
             return char.IsHighSurrogate(c) && index + 1 < source.Length && char.IsLowSurrogate(source[index + 1]) ? 2 : 0;

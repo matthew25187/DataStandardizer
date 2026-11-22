@@ -347,15 +347,61 @@ namespace DataStandardizer.Communication.Tests.Mime
         };
 
         // ref. RFC 2045 §5.1: a token is US-ASCII.  RFC 2231 §7: an extended value holds only US-ASCII, and §4.1: a raw character has no octets to join with extended sections.
-        // ref. RFC 5322 §3.2.4: qtext doesn't hold controls, which RFC 6532 §3.2 leaves as they are.
         public static TheoryData<string> Utf8OutsideQuotedStrings => new TheoryData<string>
         {
             "a/b;c=\x00E9",
             "a/b;\x00E9=d",
             "a/b;c*=\"UTF-8''\x00E9\"",
             "a/b;c*0*=UTF-8''d;c*1=\"\x00E9\"",
-            "a/b;c=\"\x007F\"",
         };
+
+        // ref. RFC 822 §3.3, which RFC 2045 §5.1 takes its quoted-string from: qtext is any CHAR except <">, "\" and CR, a quoted-pair
+        // is "\" followed by any CHAR, and CHAR is any US-ASCII character, control characters included.
+        public static TheoryData<string, string> ControlsInQuotedStrings => new TheoryData<string, string>
+        {
+            { "a/b;c=\"\x0000\"", "\x0000" },
+            { "a/b;c=\"\x0001\"", "\x0001" },
+            { "a/b;c=\"\n\"", "\n" },
+            { "a/b;c=\"\x007F\"", "\x007F" },
+            { "a/b;c=\"\\\x0000\"", "\x0000" },
+            { "a/b;c=\"\\\r\"", "\r" },
+            { "a/b;c=\"\\\x007F\"", "\x007F" },
+        };
+
+        // Not enumerated at discovery, as control characters in a test's name would make its TRX results file unreadable.
+        [Theory]
+        [MemberData(nameof(ControlsInQuotedStrings), DisableDiscoveryEnumeration = true)]
+        public void Parse_ControlInQuotedString_ReturnsItInTheValue(string value, string expected)
+        {
+            // act
+            var testResult = MimeMediaType.Parse(value);
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryParse_CarriageReturnAsQtext_ReturnsFalse()
+        {
+            // act
+            var testResult = MimeMediaType.TryParse("a/b;c=\"\r\"", out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ToString_ValueReadWithAControl_WritesTheExtendedForm()
+        {
+            // arrange
+            var subject = MimeMediaType.Parse("a/b;c=\"\x0001\"");
+
+            // act
+            var testResult = subject.ToString();
+
+            // assert
+            testResult.Should().Be("a/b;c*=UTF-8''%01");
+        }
 
         // ref. RFC 3629 §3: no UTF-8 sequence stands for a surrogate.  These are delegates because a test runner replaces an unpaired surrogate in a string theory argument
         // when it serializes it, so the code would never see one.
