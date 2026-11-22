@@ -15,7 +15,12 @@ namespace DataStandardizer.Communication.Mime
     /// </para>
     /// <para>
     /// In <see cref="MimeBase64Mode.Mime"/> mode, the encoder breaks lines after 76 characters with CRLF. It writes no line break at the
-    /// end of the data.
+    /// end of the data. When a line is full and the destination has room for the line break but not for the 4 characters after it, the
+    /// encoder writes the line break on its own and returns <see cref="OperationStatus.DestinationTooSmall"/>.
+    /// </para>
+    /// <para>
+    /// Each quantum of 4 characters is written whole, so a call makes progress whenever the destination has room for at least 4 bytes or
+    /// characters.
     /// </para>
     /// <para>
     /// After a call with <c>isFinalBlock</c> set to <c>true</c> returns <see cref="OperationStatus.Done"/>, the encoder is ready to

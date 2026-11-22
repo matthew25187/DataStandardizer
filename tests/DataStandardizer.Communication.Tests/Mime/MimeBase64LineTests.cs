@@ -57,11 +57,19 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string Line = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         private const string LineBreak = "\r\n";
 
+        // The least room in which the encoder makes progress: the 4 characters of a quantum. A line break is written on its own when the
+        // quantum after it doesn't fit.
+        private const int SmallestDestination = 4;
+
         // The most room that a quantum takes: its 4 characters, and the line break before it.
-        private const int SmallestDestination = 6;
+        private const int LineBreakAndQuantum = 6;
+
+        // A line, and room for the line break after it but not the quantum after that.
+        private const int LineAndShortOfLineBreakAndQuantum = 81;
+        private const int LineAndLineBreak = 78;
 
         private static readonly int[] BlockSizes = { 1, 2, 3, 4, 5, 56, 57, 58, 113, 114, 115, 1000 };
-        private static readonly int[] DestinationLengths = { SmallestDestination, 7, 8, 9, 76, 77, 78, 79, 80, 81, 82, 1000 };
+        private static readonly int[] DestinationLengths = { SmallestDestination, 5, LineBreakAndQuantum, 7, 8, 9, 76, 77, 78, 79, 80, 81, 82, 1000 };
 
         public static TheoryData<int, int, int, string> Runs
         {
@@ -119,11 +127,11 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Fact]
-        public void EncodeToUtf8_DestinationEndsAtALineEnd_HoldsTheLineBreakUntilThereIsRoomForAQuantum()
+        public void EncodeToUtf8_DestinationEndsShortOfAQuantumAfterALineEnd_WritesTheLineBreakOnItsOwn()
         {
             // arrange
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
-            var destination = new byte[Line.Length + SmallestDestination - 1];
+            var destination = new byte[LineAndShortOfLineBreakAndQuantum];
 
             // act
             var status = encoder.Encode(new byte[OctetsPerLine + 3], destination, out var consumed, out var written, true);
@@ -131,15 +139,15 @@ namespace DataStandardizer.Communication.Tests.Mime
             // assert
             status.Should().Be(OperationStatus.DestinationTooSmall);
             consumed.Should().Be(OctetsPerLine);
-            written.Should().Be(Line.Length);
+            written.Should().Be(LineAndLineBreak);
         }
 
         [Fact]
-        public void EncodeToChars_DestinationEndsAtALineEnd_HoldsTheLineBreakUntilThereIsRoomForAQuantum()
+        public void EncodeToChars_DestinationEndsShortOfAQuantumAfterALineEnd_WritesTheLineBreakOnItsOwn()
         {
             // arrange
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
-            var destination = new char[Line.Length + SmallestDestination - 1];
+            var destination = new char[LineAndShortOfLineBreakAndQuantum];
 
             // act
             var status = encoder.Encode(new byte[OctetsPerLine + 3], destination, out var consumed, out var written, true);
@@ -147,7 +155,7 @@ namespace DataStandardizer.Communication.Tests.Mime
             // assert
             status.Should().Be(OperationStatus.DestinationTooSmall);
             consumed.Should().Be(OctetsPerLine);
-            written.Should().Be(Line.Length);
+            written.Should().Be(LineAndLineBreak);
         }
 
         [Fact]
@@ -155,7 +163,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             // arrange
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
-            var destination = new byte[Line.Length + SmallestDestination];
+            var destination = new byte[Line.Length + LineBreakAndQuantum];
 
             // act
             var status = encoder.Encode(new byte[OctetsPerLine + 3], destination, out var consumed, out var written, true);
@@ -163,7 +171,7 @@ namespace DataStandardizer.Communication.Tests.Mime
             // assert
             status.Should().Be(OperationStatus.Done);
             consumed.Should().Be(OctetsPerLine + 3);
-            written.Should().Be(Line.Length + SmallestDestination);
+            written.Should().Be(Line.Length + LineBreakAndQuantum);
         }
 
         [Fact]
@@ -173,7 +181,7 @@ namespace DataStandardizer.Communication.Tests.Mime
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
             var destination = new byte[Line.Length];
             encoder.Encode(new byte[OctetsPerLine], destination, out _, out _, false);
-            var next = new byte[SmallestDestination];
+            var next = new byte[LineBreakAndQuantum];
 
             // act
             encoder.Encode(new byte[3], next, out _, out var written, true);

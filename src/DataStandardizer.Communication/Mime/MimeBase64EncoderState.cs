@@ -24,8 +24,12 @@ namespace DataStandardizer.Communication.Mime
             _lineLength = 0;
         }
 
-        // A quantum is 4 characters, and in MIME mode the line break before it if the line is full.
-        private int QuantumLength => _wrapLines && _lineLength == MimeBase64.MaxLineLength ? 6 : 4;
+        // The characters of a quantum. In MIME mode, the line break before a quantum is written on its own (BreakFullLine), so a
+        // destination that holds a quantum always makes progress.
+        private const int QuantumLength = 4;
+
+        // In MIME mode, whether the line is full, so the next quantum needs a line break before it.
+        private bool IsLineFull => _wrapLines && _lineLength == MimeBase64.MaxLineLength;
 
         internal void Reset()
         {
@@ -40,16 +44,10 @@ namespace DataStandardizer.Communication.Mime
             var written = 0;
             while (_heldCount + source.Length - consumed >= 3)
             {
+                BreakFullLine(destination, ref written);
 #if NET10_0_OR_GREATER
                 if (_heldCount == 0)
                 {
-                    if (_wrapLines && _lineLength == MimeBase64.MaxLineLength && destination.Length - written >= QuantumLength)
-                    {
-                        destination[written++] = (byte)'\r';
-                        destination[written++] = (byte)'\n';
-                        _lineLength = 0;
-                    }
-
                     var count = GetRunLength(source.Length - consumed, destination.Length - written);
                     if (count > 0)
                     {
@@ -84,6 +82,7 @@ namespace DataStandardizer.Communication.Mime
             }
             else if (_heldCount + source.Length - consumed > 0)
             {
+                BreakFullLine(destination, ref written);
                 if (destination.Length - written < QuantumLength)
                 {
                     bytesConsumed = consumed;
@@ -111,16 +110,10 @@ namespace DataStandardizer.Communication.Mime
             var written = 0;
             while (_heldCount + source.Length - consumed >= 3)
             {
+                BreakFullLine(destination, ref written);
 #if NET10_0_OR_GREATER
                 if (_heldCount == 0)
                 {
-                    if (_wrapLines && _lineLength == MimeBase64.MaxLineLength && destination.Length - written >= QuantumLength)
-                    {
-                        destination[written++] = '\r';
-                        destination[written++] = '\n';
-                        _lineLength = 0;
-                    }
-
                     var count = GetRunLength(source.Length - consumed, destination.Length - written);
                     if (count > 0)
                     {
@@ -155,6 +148,7 @@ namespace DataStandardizer.Communication.Mime
             }
             else if (_heldCount + source.Length - consumed > 0)
             {
+                BreakFullLine(destination, ref written);
                 if (destination.Length - written < QuantumLength)
                 {
                     bytesConsumed = consumed;
@@ -208,15 +202,20 @@ namespace DataStandardizer.Communication.Mime
             return group << (8 * (3 - count));
         }
 
-        private void WriteQuantum(int group, int byteCount, Span<byte> destination, ref int written)
+        // Writes the line break before the next quantum if the line is full and the break fits, whether or not the quantum fits after it.
+        private void BreakFullLine(Span<byte> destination, ref int written)
         {
-            if (_wrapLines && _lineLength == MimeBase64.MaxLineLength)
+            if (IsLineFull && destination.Length - written >= 2)
             {
                 destination[written++] = (byte)'\r';
                 destination[written++] = (byte)'\n';
                 _lineLength = 0;
             }
+        }
 
+        // Writes a quantum; the line break before it, if the line was full, has already been written by BreakFullLine.
+        private void WriteQuantum(int group, int byteCount, Span<byte> destination, ref int written)
+        {
             if (byteCount == 3)
             {
                 destination[written++] = (byte)MimeBase64.Alphabet[(group >> 18) & 0x3F];
@@ -242,15 +241,20 @@ namespace DataStandardizer.Communication.Mime
             _heldCount = 0;
         }
 
-        private void WriteQuantum(int group, int byteCount, Span<char> destination, ref int written)
+        // Writes the line break before the next quantum if the line is full and the break fits, whether or not the quantum fits after it.
+        private void BreakFullLine(Span<char> destination, ref int written)
         {
-            if (_wrapLines && _lineLength == MimeBase64.MaxLineLength)
+            if (IsLineFull && destination.Length - written >= 2)
             {
                 destination[written++] = '\r';
                 destination[written++] = '\n';
                 _lineLength = 0;
             }
+        }
 
+        // Writes a quantum; the line break before it, if the line was full, has already been written by BreakFullLine.
+        private void WriteQuantum(int group, int byteCount, Span<char> destination, ref int written)
+        {
             if (byteCount == 3)
             {
                 destination[written++] = MimeBase64.Alphabet[(group >> 18) & 0x3F];
