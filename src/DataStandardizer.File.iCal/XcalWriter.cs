@@ -1065,7 +1065,8 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentException("Expected a stream supporting write.", "xcalStream");
 
 #if NETSTANDARD2_0_OR_GREATER
-            // On .NET Framework, System.Xml would lose a cancellation from the output (XmlOutputCancellation).
+            // System.Xml from the .NET Framework reference source, on .NET Framework, Mono or Unity, would lose a cancellation from the output
+            // (XmlOutputCancellation).  It does nothing on .NET (Core).
             stream = new XmlOutputStream(stream);
 #endif
             return XmlWriter.Create(stream, CreateSettings(options, options.Encoding ?? DefaultEncoding, ownsStream));
@@ -1103,7 +1104,8 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(options));
 
 #if NETSTANDARD2_0_OR_GREATER
-            // On .NET Framework, System.Xml would lose a cancellation from the output (XmlOutputCancellation).
+            // System.Xml from the .NET Framework reference source, on .NET Framework, Mono or Unity, would lose a cancellation from the output
+            // (XmlOutputCancellation).  It does nothing on .NET (Core).
             writer = new XmlOutputTextWriter(writer);
 #endif
             return XmlWriter.Create(writer, CreateSettings(options, DefaultEncoding, false));

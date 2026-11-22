@@ -8,13 +8,13 @@ namespace DataStandardizer.File.ContentLine
 {
     /// <summary>
     /// Carries an <see cref="OperationCanceledException"/> from the caller's output across an asynchronous <see cref="System.Xml.XmlWriter"/>
-    /// on .NET Framework, which would otherwise lose it.
+    /// whose System.Xml comes from .NET Framework, which would otherwise lose it.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// On .NET Framework, System.Xml treats a task as a successful write when it has completed and has no exception, which a canceled task never
-    /// has.  Its own async methods await the output, and the async method builder cancels their tasks for an
-    /// <see cref="OperationCanceledException"/>, so any cancellation from the output that completes before the call returns, whether the output
+    /// The System.Xml of .NET Framework, which Mono, and so Unity, build from the same reference source, treats a task as a successful write
+    /// when it has completed and has no exception, which a canceled task never has.  Its own async methods await the output, and the async
+    /// method builder cancels their tasks for an <see cref="OperationCanceledException"/>, so any cancellation from the output that completes before the call returns, whether the output
     /// throws it, returns a task faulted with it, or returns a task that has already been canceled, is lost one level up, and the XML writer
     /// carries on as though the write succeeded.  .NET (Core) checks for successful completion instead, and the <c>net10.0</c> build writes to its
     /// output directly.
@@ -24,9 +24,10 @@ namespace DataStandardizer.File.ContentLine
     /// which faults System.Xml's tasks rather than canceling them, and <see cref="Unwrap"/> gives the original back once it has reached the writer.
     /// </para>
     /// <para>
-    /// The <c>netstandard2.x</c> builds wrap the output on every runtime, .NET (Core) included, rather than guess from the runtime which
-    /// System.Xml they are running on.  It costs an async state machine only for a write or flush that hasn't completed by the time it returns,
-    /// once for each buffer of the XML writer.
+    /// Only the <c>netstandard2.0</c> build can run on .NET Framework.  The <c>netstandard2.1</c> build wraps the output too, for Mono and Unity,
+    /// which can run it.  Both builds wrap the output on every runtime, .NET (Core) included, where it does nothing, rather than guess from the
+    /// runtime which System.Xml they are running on.  It costs an async state machine only for a write or flush that hasn't completed by the
+    /// time it returns, once for each buffer of the XML writer.
     /// </para>
     /// </remarks>
     internal static class XmlOutputCancellation
