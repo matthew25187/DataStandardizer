@@ -146,7 +146,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string UnknownCharset = "x-unknown";
         private const string CafeInLatin1 = "caf\x00E9";
 
-        // ref. RFC 2047 §4.2 (1): hexadecimal digits are written in upper case.
+        // ref. RFC 2047 §4.2 (1): upper case "should" be used for hexadecimal digits, so lower case is allowed.
         private const string LowercaseHexWord = "=?ISO-8859-1?Q?caf=e9?=";
 
         // ref. RFC 3629 §3: 0xFF never appears in UTF-8.
@@ -1054,7 +1054,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         // accept them has no effect.
         [Theory]
         [InlineData(MimeEncodedWordParseOptions.None)]
+#pragma warning disable CS0618 // The option is obsolete, and has no effect, which is what this shows.
         [InlineData(MimeEncodedWordParseOptions.AllowLowercaseHexDigits)]
+#pragma warning restore CS0618
         public void TryParse_LowercaseHexDigits_DecodesText(MimeEncodedWordParseOptions options)
         {
             // act

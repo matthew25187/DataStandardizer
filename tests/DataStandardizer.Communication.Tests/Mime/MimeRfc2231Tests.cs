@@ -408,7 +408,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         public void TryParse_LowercaseHexDigitsWithTheOptionThatHasNoEffect_ReturnsTrue()
         {
             // act
+#pragma warning disable CS0618 // The option is obsolete, and has no effect, which is what this shows.
             var parsed = MimeMediaType.TryParse("text/plain;a*=UTF-8''%c3%a9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, out _);
+#pragma warning restore CS0618
 
             // assert
             parsed.Should().BeTrue();

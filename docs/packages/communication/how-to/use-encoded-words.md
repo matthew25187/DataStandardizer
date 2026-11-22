@@ -139,7 +139,7 @@ is written. Many mail clients do break these rules, so each can be accepted with
 
 Lower-case hexadecimal digits in "Q"-encoded text, such as `=c3=a9`, are always accepted,
 as RFC 2047 §4.2 only says that upper case should be used. The `AllowLowercaseHexDigits`
-flag has no effect.
+flag is obsolete and has no effect.
 
 ```csharp
 MimeEncodedWord.DecodeText("Re:=?UTF-8?Q?caf=C3=A9?=");

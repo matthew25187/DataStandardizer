@@ -108,7 +108,7 @@ includes `AllowQuotedExtendedValues`.
 
 Lower-case hexadecimal digits in an extended value, such as `%c3%a9`, are always accepted,
 as the quoted literals of the RFC 2231 §7 grammar may be upper or lower case (RFC 822 §2.1).
-The `AllowLowercaseHexDigits` flag has no effect. A value is written with upper-case digits.
+The `AllowLowercaseHexDigits` flag is obsolete and has no effect. A value is written with upper-case digits.
 
 ```csharp
 MimeMediaType.TryParse("a/b;t*0=x;t*2=y", out _); // false

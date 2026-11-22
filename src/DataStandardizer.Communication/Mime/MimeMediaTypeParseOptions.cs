@@ -94,6 +94,7 @@ namespace DataStandardizer.Communication.Mime
         /// The RFC 2231 §7 grammar is in the augmented BNF of RFC 822 (RFC 2045 §1), whose quoted literals may be upper or lower case
         /// (RFC 822 §2.1), so <c>ext-octet</c> allows lower-case digits. A value is still written with upper-case digits.
         /// </remarks>
+        [Obsolete("MimeMediaTypeParseOptions.AllowLowercaseHexDigits has no effect: lower-case hexadecimal digits in an extended parameter value are always accepted (RFC 2231 §7, RFC 822 §2.1).  It will be removed in a future major version.")]
         AllowLowercaseHexDigits = 1 << 7,
 
         /// <summary>
@@ -144,6 +145,8 @@ namespace DataStandardizer.Communication.Mime
         /// <see cref="AllowUnknownCharsets"/> is not included, as it changes how a value is decoded rather than which values are accepted.
         /// Give it as well to accept character sets that the <see cref="IMimeCharsetResolver"/> doesn't resolve.
         /// </remarks>
+#pragma warning disable CS0618 // AllowLowercaseHexDigits is obsolete, and kept here so the value of this member doesn't change.
         AllowNonstandardExtendedValues = AllowQuotedExtendedValues | AllowLowercaseHexDigits,
+#pragma warning restore CS0618
     }
 }

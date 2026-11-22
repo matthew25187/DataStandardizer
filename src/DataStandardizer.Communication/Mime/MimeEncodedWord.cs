@@ -60,12 +60,15 @@ namespace DataStandardizer.Communication.Mime
         private const string InvalidFormatMessage = "The value is not a valid encoded word.";
         private const string UninitializedMessage = nameof(MimeEncodedWord) + " is uninitialized.";
 
+        // AllowLowercaseHexDigits is obsolete and has no effect, but a caller that still gives it isn't refused.
+#pragma warning disable CS0618
         private const MimeEncodedWordParseOptions AllOptions = MimeEncodedWordParseOptions.AllowLongWords
             | MimeEncodedWordParseOptions.AllowEmbeddedWords
             | MimeEncodedWordParseOptions.AllowUnknownCharsets
             | MimeEncodedWordParseOptions.AllowLowercaseHexDigits
             | MimeEncodedWordParseOptions.AllowInvalidOctets
             | MimeEncodedWordParseOptions.AllowSplitCharacters;
+#pragma warning restore CS0618
 
         private static readonly Encoding Utf8 = new UTF8Encoding(false);
 

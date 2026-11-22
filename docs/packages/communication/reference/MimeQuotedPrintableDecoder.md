@@ -35,8 +35,10 @@ spaces and tabs isn't valid. The decoder doesn't otherwise check the line length
 In the "Q" modes, `_` is decoded as a space, and only the characters that the mode's context
 allows can appear as themselves. Spaces, tabs and line breaks aren't valid.
 
-In every mode, an `=` must be followed by two upper-case hexadecimal digits (or in a body by a
-line break), and control characters and characters outside ASCII aren't valid.
+In every mode, an `=` must be followed by two hexadecimal digits (or in a body by a line
+break). In a body they must be upper case (RFC 2045 §6.7 rule 1); in the "Q" modes they may be
+upper or lower case (RFC 2047 §4.2 (1)). Control characters and characters outside ASCII aren't
+valid.
 [MimeQuotedPrintableDecoderOptions](MimeQuotedPrintableDecoderOptions.md) names the forms that
 can be accepted as well.
 

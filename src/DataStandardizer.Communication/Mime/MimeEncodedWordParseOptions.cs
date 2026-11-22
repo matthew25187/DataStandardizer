@@ -63,6 +63,7 @@ namespace DataStandardizer.Communication.Mime
         /// quoted-printable bodies, where <see cref="MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits"/> accepts lower-case
         /// digits.
         /// </remarks>
+        [Obsolete("MimeEncodedWordParseOptions.AllowLowercaseHexDigits has no effect: lower-case hexadecimal digits in \"Q\"-encoded text are always accepted (RFC 2047 §4.2 (1)).  It will be removed in a future major version.")]
         AllowLowercaseHexDigits = 1 << 3,
 
         /// <summary>
