@@ -59,8 +59,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="bytesWritten">The number of bytes written.</param>
         /// <param name="isFinalBlock"><c>true</c> if <paramref name="source"/> ends the data; <c>false</c> if more data may follow.</param>
         /// <returns><see cref="OperationStatus.Done"/> if all of <paramref name="source"/> was consumed;
-        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> is full, in which case call again with the
-        /// rest of <paramref name="source"/>.</returns>
+        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> has no room for the next quantum, in which case
+        /// call again with the rest of <paramref name="source"/>.</returns>
         public OperationStatus Encode(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesConsumed, out int bytesWritten, bool isFinalBlock)
         {
             return _state.Encode(source, destination, out bytesConsumed, out bytesWritten, isFinalBlock);
@@ -76,8 +76,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="charsWritten">The number of characters written.</param>
         /// <param name="isFinalBlock"><c>true</c> if <paramref name="source"/> ends the data; <c>false</c> if more data may follow.</param>
         /// <returns><see cref="OperationStatus.Done"/> if all of <paramref name="source"/> was consumed;
-        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> is full, in which case call again with the
-        /// rest of <paramref name="source"/>.</returns>
+        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> has no room for the next quantum, in which case
+        /// call again with the rest of <paramref name="source"/>.</returns>
         public OperationStatus Encode(ReadOnlySpan<byte> source, Span<char> destination, out int bytesConsumed, out int charsWritten, bool isFinalBlock)
         {
             return _state.Encode(source, destination, out bytesConsumed, out charsWritten, isFinalBlock);

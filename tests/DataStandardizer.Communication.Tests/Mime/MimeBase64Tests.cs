@@ -598,8 +598,9 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Should().Be(OperationStatus.DestinationTooSmall, "{0} characters don't hold {1}", destinationLength, expected);
         }
 
-        // Destinations that hold the line break but not the four characters of the quantum after it.
-        private const int DestinationForQuantumOnly = 4;
+        // A destination of exactly one quantum's 4 characters: room for the line break, or for a quantum, but not both.
+        private const int DestinationOfOneQuantum = 4;
+        // A destination 1 character short of the line break and the quantum after it.
         private const int DestinationShortOfLineBreakAndQuantum = 5;
         // A destination too small even for the line break.
         private const int DestinationShortOfLineBreak = 1;
@@ -609,7 +610,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string QuantumOfZeros = "AAAA";
 
         [Theory]
-        [InlineData(DestinationForQuantumOnly)]
+        [InlineData(DestinationOfOneQuantum)]
         [InlineData(DestinationShortOfLineBreakAndQuantum)]
         public void Encode_FullLineAndDestinationShortOfQuantumAfterLineBreak_WritesLineBreakOnly(int destinationLength)
         {
@@ -629,7 +630,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        [InlineData(DestinationForQuantumOnly)]
+        [InlineData(DestinationOfOneQuantum)]
         [InlineData(DestinationShortOfLineBreakAndQuantum)]
         public void EncodeToUtf8_FullLineAndDestinationShortOfQuantumAfterLineBreak_WritesLineBreakOnly(int destinationLength)
         {
@@ -671,8 +672,8 @@ namespace DataStandardizer.Communication.Tests.Mime
             // arrange
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
             encoder.Encode(new byte[BytesPerMimeLine], new char[MimeLineLength], out _, out _, false);
-            encoder.Encode(new byte[OneQuantum], new char[DestinationForQuantumOnly], out _, out _, true);
-            var destination = new char[DestinationForQuantumOnly];
+            encoder.Encode(new byte[OneQuantum], new char[DestinationOfOneQuantum], out _, out _, true);
+            var destination = new char[DestinationOfOneQuantum];
 
             // act
             var testResult = encoder.Encode(new byte[OneQuantum], destination, out var consumed, out _, true);
@@ -689,8 +690,8 @@ namespace DataStandardizer.Communication.Tests.Mime
             // arrange
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
             encoder.Encode(new byte[BytesPerMimeLine], new byte[MimeLineLength], out _, out _, false);
-            encoder.Encode(new byte[OneQuantum], new byte[DestinationForQuantumOnly], out _, out _, true);
-            var destination = new byte[DestinationForQuantumOnly];
+            encoder.Encode(new byte[OneQuantum], new byte[DestinationOfOneQuantum], out _, out _, true);
+            var destination = new byte[DestinationOfOneQuantum];
 
             // act
             var testResult = encoder.Encode(new byte[OneQuantum], destination, out var consumed, out _, true);
@@ -707,8 +708,8 @@ namespace DataStandardizer.Communication.Tests.Mime
             // arrange
             var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
             encoder.Encode(new byte[BytesPerMimeLine], new char[MimeLineLength], out _, out _, false);
-            encoder.Encode(new byte[PartialQuantum], new char[DestinationForQuantumOnly], out _, out _, false);
-            var destination = new char[DestinationForQuantumOnly];
+            encoder.Encode(new byte[PartialQuantum], new char[DestinationOfOneQuantum], out _, out _, false);
+            var destination = new char[DestinationOfOneQuantum];
 
             // act
             var testResult = encoder.Encode(ReadOnlySpan<byte>.Empty, destination, out _, out var written, true);
@@ -717,6 +718,24 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Should().Be(OperationStatus.DestinationTooSmall);
             written.Should().Be(LineBreak.Length);
             new string(destination, 0, LineBreak.Length).Should().Be(LineBreak);
+        }
+
+        [Fact]
+        public void EncodeToUtf8_FullLineAndHeldBytesInDestinationShortOfQuantumAfterLineBreak_WritesLineBreakOnly()
+        {
+            // arrange
+            var encoder = new MimeBase64Encoder(MimeBase64Mode.Mime);
+            encoder.Encode(new byte[BytesPerMimeLine], new byte[MimeLineLength], out _, out _, false);
+            encoder.Encode(new byte[PartialQuantum], new byte[DestinationOfOneQuantum], out _, out _, false);
+            var destination = new byte[DestinationOfOneQuantum];
+
+            // act
+            var testResult = encoder.Encode(ReadOnlySpan<byte>.Empty, destination, out _, out var written, true);
+
+            // assert
+            testResult.Should().Be(OperationStatus.DestinationTooSmall);
+            written.Should().Be(LineBreak.Length);
+            Encoding.ASCII.GetString(destination, 0, LineBreak.Length).Should().Be(LineBreak);
         }
 
         [Fact]
