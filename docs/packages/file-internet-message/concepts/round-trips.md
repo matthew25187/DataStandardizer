@@ -41,6 +41,13 @@ delimiter, under `ImfOptions.AllowMissingBoundaryTerminator`, gets one if it is 
 again after a change. One that hasn't changed is copied as it is, so a writer refuses it
 unless its own options set `AllowMissingBoundaryTerminator` too.
 
+Copied bytes are still checked against the boundaries around the place they are written,
+unless they were read in that same place. A part moved from another multipart entity, or
+a message read on its own and set as `ImfMessagePart.Message`, is refused with
+`ImfFileException` if a line in it starts with the delimiter of a boundary around it
+(RFC 2046 §5.1.1). So is a kept preamble or epilogue that holds the delimiter of a
+boundary that has changed around it.
+
 ## Line breaks in other file formats
 
 RFC 5322 §2.1 requires CRLF line breaks in a message. RFC 4155 Appendix A requires LF

@@ -124,7 +124,7 @@ namespace DataStandardizer.File.InternetMessage
             _lineBreaksChange = lineBreaksChange;
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
             _boundaryGenerator = boundaryGenerator;
-            _root = Walk(source, EntityPathOfMessage, 0, true, NoBoundaries);
+            _root = Walk(source, EntityPathOfMessage, 0, true, NoBoundaries, 0);
             ResolveBoundaryConflicts();
             PendingScans = new List<ImfBodyScan>(_scans);
         }
@@ -204,8 +204,14 @@ namespace DataStandardizer.File.InternetMessage
             return builder.Items;
         }
 
-        private Node Walk(ImfEntitySource source, string path, int depth, bool isMessage, ImfBoundary[] enclosing)
+        /// <summary>
+        /// Plans an entity.  <paramref name="checkedFrom"/> is the index of the first of the <paramref name="enclosing"/> boundaries that were around what was read in it, and
+        /// so were checked against what it keeps: a reader found no delimiter of those in it, and says nothing about the others.
+        /// </summary>
+        private Node Walk(ImfEntitySource source, string path, int depth, bool isMessage, ImfBoundary[] enclosing, int checkedFrom)
         {
+            if (source.IsReadElsewhere) checkedFrom = enclosing.Length;
+
             if (depth > _options.MaxNestingDepth)
                 throw BuildError($"The entities are nested more than {_options.MaxNestingDepth} levels deep, the most that ImfOptions.MaxNestingDepth allows.", path);
 
@@ -221,7 +227,7 @@ namespace DataStandardizer.File.InternetMessage
 
             if (source.Kind == ImfEntitySource.SourceKind.Raw)
             {
-                AddRawScan(node, depth, enclosing);
+                AddRawScan(node, depth, enclosing, checkedFrom);
                 return node;
             }
 
@@ -238,18 +244,18 @@ namespace DataStandardizer.File.InternetMessage
                     AddContentScan(node, enclosing);
                     break;
                 case ImfEntitySource.SourceKind.Multipart:
-                    WalkMultipart(node, depth, enclosing);
+                    WalkMultipart(node, depth, enclosing, checkedFrom);
                     break;
                 default:
                     // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
-                    node.Children.Add(Walk(source.Children[0], !isMessage ? path : path.Length == 0 ? "1" : path + ".1", depth + 1, true, enclosing));
+                    node.Children.Add(Walk(source.Children[0], !isMessage ? path : path.Length == 0 ? "1" : path + ".1", depth + 1, true, enclosing, checkedFrom));
                     break;
             }
 
             return node;
         }
 
-        private void WalkMultipart(Node node, int depth, ImfBoundary[] enclosing)
+        private void WalkMultipart(Node node, int depth, ImfBoundary[] enclosing, int checkedFrom)
         {
             var source = node.Source;
             MimeParameter parameter;
@@ -266,6 +272,19 @@ namespace DataStandardizer.File.InternetMessage
             _boundaries.Add(boundary);
             node.Boundary = boundary;
 
+            if (!(source.RawFraming is null))
+            {
+                // The delimiters, preamble and epilogue that were read are written as they are, so they are checked like any other bytes that were read.
+                var uncheckedBoundaries = WithoutPreserved(enclosing, checkedFrom);
+                if (uncheckedBoundaries.Length > 0)
+                {
+                    foreach (var framing in source.RawFraming)
+                    {
+                        AddScan(framing, Stream.Null, uncheckedBoundaries);
+                    }
+                }
+            }
+
             var inner = new ImfBoundary[enclosing.Length + 1];
             Array.Copy(enclosing, inner, enclosing.Length);
             inner[enclosing.Length] = boundary;
@@ -278,7 +297,7 @@ namespace DataStandardizer.File.InternetMessage
             for (var index = 0; index < source.Children.Count; index++)
             {
                 var number = (index + 1).ToString(CultureInfo.InvariantCulture);
-                node.Children.Add(Walk(source.Children[index], node.Path.Length == 0 ? number : node.Path + "." + number, depth + 1, false, inner));
+                node.Children.Add(Walk(source.Children[index], node.Path.Length == 0 ? number : node.Path + "." + number, depth + 1, false, inner, checkedFrom));
             }
 
             if (source.Epilogue is ReadOnlyMemory<byte> epilogue)
@@ -287,13 +306,13 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
-        private void AddRawScan(Node node, int depth, ImfBoundary[] enclosing)
+        private void AddRawScan(Node node, int depth, ImfBoundary[] enclosing, int checkedFrom)
         {
             // A whole message written from its raw bytes has nothing to be checked against, and nothing depends on its domain.
             if (depth == 0) return;
 
             CheckCanRead(node.Source, node.Path);
-            node.BodyScan = AddScan(node.Source.Content, node.Source.ContentStream, node.Source.IsPreserved ? WithoutPreserved(enclosing) : enclosing);
+            node.BodyScan = AddScan(node.Source.Content, node.Source.ContentStream, node.Source.IsPreserved ? WithoutPreserved(enclosing, checkedFrom) : enclosing);
         }
 
         private void AddContentScan(Node node, ImfBoundary[] enclosing)
@@ -333,11 +352,18 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the boundaries that bytes that were read have to be checked against: a reader found none of the others in them.
+        /// Gets the boundaries that bytes that were read have to be checked against: a reader found no delimiter in them of a boundary that was kept from the same read,
+        /// from <paramref name="checkedFrom"/> on, and says nothing about the others.
         /// </summary>
-        private static ImfBoundary[] WithoutPreserved(ImfBoundary[] boundaries)
+        private static ImfBoundary[] WithoutPreserved(ImfBoundary[] boundaries, int checkedFrom)
         {
-            return new List<ImfBoundary>(boundaries).FindAll(boundary => !boundary.IsPreserved).ToArray();
+            var result = new List<ImfBoundary>(boundaries.Length);
+            for (var index = 0; index < boundaries.Length; index++)
+            {
+                if (index < checkedFrom || !boundaries[index].IsPreserved) result.Add(boundaries[index]);
+            }
+
+            return result.ToArray();
         }
 
         private ImfBodyScan AddScan(ReadOnlyMemory<byte> memory, Stream stream, ImfBoundary[] enclosing)
@@ -510,8 +536,8 @@ namespace DataStandardizer.File.InternetMessage
                 foreach (var enclosing in boundary.Enclosing)
                 {
                     // ref. RFC 2046 §5.1.1: a boundary that was read may be a prefix of one that encloses it, as no line of the enclosing entity's parts
-                    // then starts with the enclosing boundary.  An enclosing boundary that is a prefix of one inside it is refused, even if both were read
-                    // on their own.
+                    // then starts with the enclosing boundary: the reader found none, or, for what was read somewhere else, the writer looks for them.  An
+                    // enclosing boundary that is a prefix of one inside it is refused, even if both were read on their own.
                     if (!boundary.ConflictsWith(enclosing.Value)) continue;
                     if (boundary.IsPreserved && enclosing.IsPreserved && !boundary.Value.StartsWith(enclosing.Value, StringComparison.Ordinal)) continue;
 

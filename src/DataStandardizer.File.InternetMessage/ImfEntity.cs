@@ -554,7 +554,12 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
         internal ImfEntitySource ToSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
         {
-            if (HasChangedBody) return ToChangedSource(options, lineBreak, boundaryGenerator);
+            if (HasChangedBody)
+            {
+                var changed = ToChangedSource(options, lineBreak, boundaryGenerator);
+                changed.IsReadElsewhere |= _isMoved;
+                return changed;
+            }
 
             var encoding = options.HeaderEncoding;
 
@@ -578,6 +583,7 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             source.IsPreserved = !_isMoved;
+            source.IsReadElsewhere = _isMoved;
             source.HasChangedHeader = HasChangedFields;
             return source;
         }
