@@ -86,11 +86,34 @@ transfer encoding and its character set:
 
 ```csharp
 Console.WriteLine(message.TextBody?.GetText());
-Console.WriteLine(message.HtmlBody?.GetText());
 ```
 
 Either can be `null`. Line breaks are those of the content, which are CRLF in a `text`
 entity that follows RFC 2046 §4.1.1.
+
+With no `charset` parameter, the text is in the default for its type, which is US-ASCII
+unless the type's registration says otherwise (RFC 6657 §3). `text/html`, `text/xml` and
+`text/xml-external-parsed-entity` have no default, as HTML and XML give the character set
+within the text (HTML Living Standard §16.1.2, RFC 7303 §3.2), and nor does `text/markdown`,
+which requires the parameter (RFC 7763 §2). `GetText` throws `ImfFileException` for such an
+entity, so read `GetContent` and pass the bytes to an HTML or XML parser, which finds the
+character set:
+
+```csharp
+var html = message.HtmlBody;
+
+if (html is not null)
+{
+    if (html.ContentType.TryGetParameter("charset", out _))
+    {
+        Console.WriteLine(html.GetText());
+    }
+    else
+    {
+        ReadOnlyMemory<byte> bytes = html.GetContent();
+    }
+}
+```
 
 A character set such as `windows-1252` needs a step of its own on .NET Core and later.
 See [Read text in other character sets](register-code-pages.md).
