@@ -170,6 +170,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string LongestFromLineWithNoCloseDelimiterEml = MultipartEmlStart + LongestFromLine + "\r\n";
         private static readonly string LongestFromLineInPartEml = MultipartEmlStart + LongestFromLine + "\r\n--b--\r\n";
         private static readonly ImfOptions AllowNoCloseDelimiterAndLongLines = new ImfOptions { AllowMissingBoundaryTerminator = true, AllowLongLines = true };
+        private const string ShortLineWithNoCloseDelimiterEml = MultipartEmlStart + "short\r\n";
+        private const string TopLevelPath = "";
+
+        // The same multipart body with no close delimiter, whose part holds a long line, a line that a quote takes past the limit, or neither.
+        public static TheoryData<string> NoCloseDelimiterMessages => new TheoryData<string>
+        {
+            LongLineWithNoCloseDelimiterEml,
+            LongestFromLineWithNoCloseDelimiterEml,
+            ShortLineWithNoCloseDelimiterEml,
+        };
+
+        // The same messages, and what a writer that accepts both records for each: the delimiter for the multipart body, and a long line or a quoted line for its part.
+        public static TheoryData<string, ImfDiagnosticKind[], string[]> NoCloseDelimiterMessagesWithOption => new TheoryData<string, ImfDiagnosticKind[], string[]>
+        {
+            { LongLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure, ImfDiagnosticKind.LongBodyLine }, new[] { TopLevelPath, FirstPartPath } },
+            { LongestFromLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure, ImfDiagnosticKind.LongBodyLine }, new[] { TopLevelPath, FirstPartPath } },
+            { ShortLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure }, new[] { TopLevelPath } },
+        };
 
         public static TheoryData<MboxVariant> QuotingVariants => new TheoryData<MboxVariant> { MboxVariant.Mboxrd, MboxVariant.Mboxo, MboxVariant.Mboxcl };
 
@@ -270,33 +288,41 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
-        [Fact]
-        public void WriteMessage_LongLineWithNoCloseDelimiterAndOnlyLongLineOption_ThrowsForTheDelimiterWithNoKind()
+        [Theory]
+        [MemberData(nameof(NoCloseDelimiterMessages))]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiter_ThrowsForTheDelimiterWhateverItsLines(string eml)
         {
             // arrange
-            var message = Mailboxes.ReadMessage(LongLineWithNoCloseDelimiterEml, AllowNoCloseDelimiterAndLongLines);
-            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxrd, new ImfOptions { AllowLongLines = true }))
+            var message = Mailboxes.ReadMessage(eml, AllowNoCloseDelimiterAndLongLines);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, new ImfOptions { AllowLongLines = true }))
             {
                 // act
                 Action testAction = () => subject.WriteMessage(Envelope, message);
 
                 // assert
-                testAction.Should().Throw<ImfFileException>().WithMessage(NoCloseDelimiterMessagePattern).Which.Data.Contains(ImfFileException.DataItemName.DiagnosticKind).Should().BeFalse();
+                var exception = testAction.Should().Throw<ImfFileException>().WithMessage(NoCloseDelimiterMessagePattern).Which;
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+                exception.Data[ImfFileException.DataItemName.EntityPath].Should().Be(TopLevelPath);
+                output.Length.Should().Be(0);
             }
         }
 
-        [Fact]
-        public void WriteMessage_QuotedLineWithNoCloseDelimiter_ThrowsForTheDelimiterWithItsEntityPath()
+        [Theory]
+        [MemberData(nameof(NoCloseDelimiterMessagesWithOption))]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_RecordsTheDelimiterWhateverItsLines(string eml, ImfDiagnosticKind[] expectedKinds, string[] expectedPaths)
         {
             // arrange
-            var message = Mailboxes.ReadMessage(LongestFromLineWithNoCloseDelimiterEml, AllowNoCloseDelimiterAndLongLines);
-            using (var subject = new MboxWriter(new MemoryStream()))
+            var message = Mailboxes.ReadMessage(eml, AllowNoCloseDelimiterAndLongLines);
+            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxrd, AllowNoCloseDelimiterAndLongLines))
             {
                 // act
-                Action testAction = () => subject.WriteMessage(Envelope, message);
+                subject.WriteMessage(Envelope, message);
 
                 // assert
-                testAction.Should().Throw<ImfFileException>().WithMessage(NoCloseDelimiterMessagePattern).Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                subject.MessagesWritten.Should().Be(1);
+                subject.Diagnostics.Select(diagnostic => diagnostic.Kind).Should().Equal(expectedKinds);
+                subject.Diagnostics.Select(diagnostic => diagnostic.EntityPath).Should().Equal(expectedPaths);
             }
         }
 

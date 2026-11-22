@@ -38,7 +38,8 @@ Each of these rewrites that thing and leaves the rest alone:
 
 One thing changes without being asked: a multipart entity that was read with no close
 delimiter, under `ImfOptions.AllowMissingBoundaryTerminator`, gets one if it is written
-again after a change.
+again after a change. One that hasn't changed is copied as it is, so a writer refuses it
+unless its own options set `AllowMissingBoundaryTerminator` too.
 
 ## Line breaks in other file formats
 

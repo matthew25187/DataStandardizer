@@ -23,7 +23,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
     /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity has only to have one of From, Subject or Date, as RFC 2046 §5.2.1 says.  A message with a MIME field and no MIME-Version field (RFC 2045 §4),
     /// and a body that hasn't changed and that breaks the rules of RFC 5322 §2.1.1 and §2.3 or of its transfer encoding, are refused the same way, unless
-    /// <see cref="ImfOptions.AllowMissingMimeVersion"/>, <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
+    /// <see cref="ImfOptions.AllowMissingMimeVersion"/>, <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.  So is a multipart entity that was
+    /// read with no close delimiter and hasn't changed (RFC 2046 §5.1.1), unless <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> is set, which writes it as it was read.
     /// </para>
     /// <para>
     /// <b>Unchanged fields.</b>  A field that was read is written byte for byte, whichever options it was read under, so that signatures over it stay valid.  That includes any
@@ -38,7 +39,7 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Body.</b>  A body that hasn't changed is written from <see cref="ImfMessage.RawBody"/>, as it is.  If anything in <see cref="ImfMessage.Body"/> has changed, only what has
     /// changed is written again, as <see cref="ImfEntityWriter"/> writes it.  So an entity whose content was set gets a transfer encoding of its own, and everything else, including
-    /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter gets one.
+    /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter and has changed gets one.
     /// </para>
     /// <para>
     /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
@@ -636,7 +637,7 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var diagnostic in diagnostics)
             {
-                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
+                if (!ImfConformance.IsAllowedWhenWriting(diagnostic, _options))
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 
