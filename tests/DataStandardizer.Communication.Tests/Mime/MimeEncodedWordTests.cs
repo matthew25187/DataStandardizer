@@ -958,6 +958,34 @@ namespace DataStandardizer.Communication.Tests.Mime
             result[0].ToString().Should().Be("=?UTF-8?Q?Smith=2C_J=C3=B6rgensen?=");
         }
 
+        [Theory]
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2, alias csUnicode, is in network byte order, so 00 41 00 42 is "AB".
+        [InlineData("=?ISO-10646-UCS-2?B?AEEAQg==?=")]
+        [InlineData("=?csUnicode?B?AEEAQg==?=")]
+        public void DecodeText_Ucs2Word_ReadsBigEndian(string value)
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            result.Should().Be("AB");
+        }
+
+        [Fact]
+        public void DecodeText_Ucs2WordWithSurrogatePair_KeepsWord()
+        {
+            // arrange
+            // ref. IANA Character Sets registry; The Unicode Standard §3.8, D71: D8 3D DE 00 is U+1F600 in UTF-16BE, but ISO-10646-UCS-2
+            // holds only the Basic Multilingual Plane, so its code units are invalid and the word isn't decoded (RFC 2047 §6.2).
+            const string value = "=?ISO-10646-UCS-2?B?2D3eAA==?=";
+
+            // act
+            var result = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            result.Should().Be(value);
+        }
+
         [Fact]
         public void DecodeText_EncodedWords_DecodesTextOfEachWord()
         {

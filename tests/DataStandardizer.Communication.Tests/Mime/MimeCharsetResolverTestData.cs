@@ -27,6 +27,11 @@ namespace DataStandardizer.Communication.Tests.Mime
         private static readonly byte[] Utf32BigEndianBytes = { 0x00, 0x00, 0x00, 0xE9, 0x00, 0x01, 0xF6, 0x00 };
         private static readonly byte[] Utf32LittleEndianBytes = { 0xE9, 0x00, 0x00, 0x00, 0x00, 0xF6, 0x01, 0x00 };
 
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2 is the Basic Multilingual Plane in network byte order, so it is big-endian.
+        public const string Ucs2Name = "ISO-10646-UCS-2";
+        private const string BasicMultilingualPlaneText = "\x00E9\x4E2D";
+        private static readonly byte[] Ucs2Bytes = { 0x00, 0xE9, 0x4E, 0x2D };
+
         // ref. IANA Character Sets registry.
         public const string UsAsciiName = "US-ASCII";
         public const string Iso88591Name = "ISO-8859-1";
@@ -91,6 +96,11 @@ namespace DataStandardizer.Communication.Tests.Mime
             foreach (var name in new[] { "UTF-32LE", "csUTF32LE" })
             {
                 yield return new object[] { name, UnicodeText, Utf32LittleEndianBytes };
+            }
+
+            foreach (var name in new[] { Ucs2Name, "csUnicode" })
+            {
+                yield return new object[] { name, BasicMultilingualPlaneText, Ucs2Bytes };
             }
         }
 

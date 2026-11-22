@@ -56,9 +56,6 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         private const string Iso2022JpJisC6226Parameter = "t/s;n*=iso-2022-jp''%1B%24%40%46%7C%4B%5C%1B%28%42";
         private const string Iso2022JpJisC6226Text = "\x65E5\x672C";
 
-        // ref. RFC 20 §2: 0xFF isn't a US-ASCII octet. "ascii" isn't one of the resolver's built-in names, so the runtime resolves it.
-        private const string RuntimeAsciiInvalidOctetParameter = "t/s;a*=ascii''%FF";
-
         // 0x81 is the first octet of a Shift_JIS character, so it isn't a character by itself.
         private const string ShiftJisIncompleteCharacterParameter = "t/s;a*=shift_jis''%81";
 
@@ -178,7 +175,6 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         }
 
         [Theory]
-        [InlineData(RuntimeAsciiInvalidOctetParameter)]
         [InlineData(ShiftJisIncompleteCharacterParameter)]
         [InlineData(BuiltInAsciiInvalidOctetParameter)]
         [InlineData(BuiltInUtf32InvalidCodeUnitParameter)]
@@ -196,7 +192,6 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         }
 
         [Theory]
-        [InlineData(RuntimeAsciiInvalidOctetParameter)]
         [InlineData(ShiftJisIncompleteCharacterParameter)]
         [InlineData(BuiltInAsciiInvalidOctetParameter)]
         [InlineData(BuiltInUtf32InvalidCodeUnitParameter)]
