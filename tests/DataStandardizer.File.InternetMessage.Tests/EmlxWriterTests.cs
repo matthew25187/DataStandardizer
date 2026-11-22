@@ -93,6 +93,25 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. PNG (ISO/IEC 15948) §5.2: the PNG signature, which holds CRLF, LF and control octets, followed by more of each, as content that is not text.
         private static readonly byte[] AttachmentWithLineBreaks = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01, 0x0A, 0x0D, 0x0A, 0xFF };
 
+        private const string DataFileName = "a.bin";
+        private const string DataMediaType = "application/octet-stream";
+        private const string TextMediaType = "text/plain";
+
+        // Content of seven-bit octets whose CRLF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithCrLf = { 0x61, 0x0D, 0x0A, 0x62 };
+
+        // Content with an octet above 127 and a CRLF that is data, which 8bit would cover if the line breaks didn't change.
+        private static readonly byte[] EightBitDataWithCrLf = { 0x61, 0x0D, 0x0A, 0xE9 };
+
+        // ref. RFC 2045 §6.2: content with a CRLF that is data, each with an identity encoding other than binary that covers its octets, and so would let a change of line
+        // breaks alter it.  Binary has its own test.
+        public static TheoryData<byte[], MimeTransferEncoding> DataWithCrLfLabelledWithAnIdentityEncoding => new TheoryData<byte[], MimeTransferEncoding>
+        {
+            { SevenBitDataWithCrLf, MimeTransferEncoding.SevenBit },
+            { SevenBitDataWithCrLf, MimeTransferEncoding.EightBit },
+            { EightBitDataWithCrLf, MimeTransferEncoding.EightBit },
+        };
+
         // A property list of 22 octets.
         private const string ShortMetadataFile = "57\n" + Message + "<plist><dict/></plist>";
         private const int ShortMetadataLength = 22;
@@ -428,6 +447,95 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentOfSevenBitOctetsWithCrLf_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file).Message.Body).Parts[OnlyAttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithCrLf);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentOfEightBitOctetsWithCrLfAndEightBitAllowed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowEightBitTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), EightBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry, options);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file, options).Message.Body).Parts[OnlyAttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(EightBitDataWithCrLf);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentWithCrLf_EncodesItQuotedPrintable()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file).Message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.QuotedPrintable);
+        }
+
+        [Theory]
+        [MemberData(nameof(DataWithCrLfLabelledWithAnIdentityEncoding), DisableDiscoveryEnumeration = true)]
+        public void WriteEntry_BuiltAttachmentWithCrLfLabelledWithAnIdentityEncoding_Throws(byte[] content, MimeTransferEncoding encoding)
+        {
+            // arrange
+            var options = new ImfOptions { AllowEightBitTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), content);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = encoding;
+            var entry = new EmlxEntry(message, new EmlxMetadata());
+
+            // act
+            Action testAction = () => EmlxFiles.Write(entry, options);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltTextWithCrLf_LabelsItSevenBit()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(TextMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file).Message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.SevenBit);
         }
 
         [Fact]

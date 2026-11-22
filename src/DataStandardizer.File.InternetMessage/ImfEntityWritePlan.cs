@@ -82,6 +82,8 @@ namespace DataStandardizer.File.InternetMessage
         private const string EntityPathOfMessage = "";
         private const int MaxBoundaryAttempts = 16;
 
+        private const string LineBreakDataMessage = "The line breaks of the message are changed, and a CR or LF in the content of an entity that isn't text is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1), which an identity transfer encoding would let the change alter.  Its transfer encoding, from its TransferEncoding or a Content-Transfer-Encoding field, must be quoted-printable or base64.";
+
         // ref. RFC 2046 §5.1.1: boundary := 0*69<bchars> bcharsnospace
         private const int MaxBoundaryLength = 70;
         private const string MimeVersionFieldName = "MIME-Version";
@@ -112,7 +114,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="options">The options.</param>
         /// <param name="lineFeedIsLineBreak"><c>true</c> if a line break is LF, or <c>false</c> if it is CRLF.</param>
         /// <param name="lineBreaksChange"><c>true</c> if the line breaks of the output will be changed after it is written, which no entity labelled <c>binary</c>
-        /// can have (RFC 2045 §2.9), so the plan doesn't choose that label, and refuses an entity that gets it.</param>
+        /// can have (RFC 2045 §2.9), so the plan doesn't choose that label, and refuses an entity that gets it.  Nor can a body whose CR and LF octets are data have
+        /// <c>7bit</c> or <c>8bit</c>, so the plan encodes it, and refuses one that asks for either.</param>
         /// <param name="boundaryGenerator">The source of boundaries.</param>
         internal ImfEntityWritePlan(ImfEntitySource source, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator)
         {
@@ -621,24 +624,33 @@ namespace DataStandardizer.File.InternetMessage
             var requested = node.RequestedEncoding;
             var isExplicit = requested != default(MimeTransferEncoding);
             node.EncodeLineBreaks = scan.HasBareLineBreak || !IsTextType(source.ContentType);
+
+            // ref. RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1: only in text, or in the lines of what holds other entities, is a CRLF a line break.  In any other body a CR or LF
+            // is data, which an identity encoding leaves as it is, so changing the line breaks of the output would change the body.
+            var lineBreaksAreData = _lineBreaksChange && scan.HasLineBreakOctet && !IsLineOrientedType(source.ContentType);
             if (isExplicit)
             {
                 if (requested.IsIdentity && requested.Domain < domain)
                     throw BuildError($"The content does not fit the transfer encoding '{requested.Name}' (RFC 2045 §2.7 and §2.8): its lines must be at most 998 octets with CRLF line breaks, and it must have no NULs.  7bit must also have no octets above 127.", node.Path);
+
+                // Binary is refused for every entity by CheckLineBreaksCanChange.
+                if (requested.IsIdentity && requested != MimeTransferEncoding.Binary && lineBreaksAreData)
+                    throw BuildError(LineBreakDataMessage, node.Path);
 
                 CheckRestrictedType(node, requested.Domain);
                 node.Encoding = requested;
                 return requested.Domain;
             }
 
-            if (domain == MimeDataDomain.SevenBit)
+            // A body whose CR and LF octets are data, and whose line breaks will be changed, is encoded.
+            if (domain == MimeDataDomain.SevenBit && !lineBreaksAreData)
             {
                 node.Encoding = MimeTransferEncoding.SevenBit;
                 return domain;
             }
 
             // A body whose line breaks will be changed is given another encoding than binary.
-            if (domain == MimeDataDomain.EightBit && (_options.AllowEightBitTransferEncoding || MayUseBinary))
+            if (domain == MimeDataDomain.EightBit && !lineBreaksAreData && (_options.AllowEightBitTransferEncoding || MayUseBinary))
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = _options.AllowEightBitTransferEncoding ? MimeTransferEncoding.EightBit : MimeTransferEncoding.Binary;
@@ -945,6 +957,17 @@ namespace DataStandardizer.File.InternetMessage
         private static bool IsTextType(MimeMediaType contentType)
         {
             return string.Equals(contentType.Type, MimeTopLevelTypes.Text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Gets a flag indicating that a CRLF in a body of a media type is a line break: one of text, or of a message or multipart entity, whose lines hold the header and
+        /// delimiters of what it holds (RFC 2046 §5).
+        /// </summary>
+        private static bool IsLineOrientedType(MimeMediaType contentType)
+        {
+            return IsTextType(contentType)
+                || string.Equals(contentType.Type, MimeTopLevelTypes.Message, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsValidBoundary(string boundary)

@@ -84,7 +84,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Describes the message for a writer whose line break is <paramref name="lineBreak"/>.  A message with other line breaks, such as one read from an mbox or EMLX file that
         /// is held by a message with CRLF line breaks, is written with its own, and then changed to those of the writer (RFC 5322 §2.1), as a writer changes such a message on its
-        /// own.  It can't be changed if it has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3).  The caller has checked the depth of what has changed
+        /// own.  It can't be changed if it has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), and a body whose CR and LF octets are data isn't
+        /// labelled <c>7bit</c> or <c>8bit</c>.  The caller has checked the depth of what has changed
         /// (<see cref="ImfEntity.CheckChangedDepth"/>), which takes in the message.
         /// </summary>
         /// <exception cref="ImfFileException">The message can't be written, or can't change its line breaks.</exception>

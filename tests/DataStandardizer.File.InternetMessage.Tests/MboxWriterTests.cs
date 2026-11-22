@@ -69,6 +69,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 3501 §6.4.5: the parts of a multipart message body are numbered from 1.
         private const string FirstPartPath = "1";
         private const string SecondPartPath = "2";
+        private const string DataFileName = "a.bin";
+        private const string DataMediaType = "application/octet-stream";
+
+        // Content of seven-bit octets whose LF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it in a file of LF if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithLineFeed = { 0x61, 0x0A, 0x62 };
+
+        // Content of seven-bit octets whose CRLF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithCrLf = { 0x61, 0x0D, 0x0A, 0x62 };
         private const string SecondMessageInFile = Separator + Header + "\ntwo\n\n";
         private const string TwoDistinctMessagesInFile = MessageInFile + SecondMessageInFile;
         private const string ExtensionEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: x-private\r\n\r\nx\r\n";
@@ -720,6 +728,142 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
                 output.Length.Should().Be(0);
             }
+        }
+
+        [Fact]
+        public void WriteMessage_CrLfFileWithAPartOfSevenBitOctetsWithLineFeedAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+
+            // act
+            var written = Mailboxes.WriteOne(Envelope, message, MboxVariant.Mboxrd, MboxLineBreak.CarriageReturnLineFeed);
+            var testResult = ((ImfMultipart)Mailboxes.ReadFirst(written, options: AllowCrLf).Message.Body).Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartOfSevenBitOctetsWithLineFeedAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+
+            // act
+            var written = WriteStandalone(message);
+            var testResult = ((ImfMultipart)Mailboxes.ReadMessage(written).Body).Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartWithLineFeedLabelledSevenBitAddedToAMessageFromAMailbox_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_LineFeedFileWithABuiltAttachmentWithCrLfLabelledSevenBit_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_LineFeedFileWithABuiltAttachmentOfSevenBitOctetsWithCrLf_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+
+            // act
+            var written = Mailboxes.WriteOne(Envelope, message);
+            var testResult = ((ImfMultipart)Mailboxes.ReadFirst(written).Message.Body).Parts[OnlyAttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithCrLf);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterForwardingAMessageFromAMailboxWithAPartWithLineFeedLabelledSevenBit_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions();
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)forwarded.Body).Parts.Add(part);
+            var message = BuildForwarding(forwarded, options);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterForwardingAMessageFromAMailboxWithAPartOfSevenBitOctetsWithLineFeed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions();
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)forwarded.Body).Parts.Add(part);
+            var message = BuildForwarding(forwarded, options);
+
+            // act
+            var written = WriteStandalone(message, options);
+            var held = (ImfMessagePart)((ImfMultipart)Mailboxes.ReadMessage(written).Body).Parts[AttachmentPartIndex];
+            var testResult = ((ImfMultipart)held.Message.Body).Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
         }
 
         [Theory]

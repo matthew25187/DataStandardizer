@@ -31,6 +31,9 @@ namespace DataStandardizer.File.InternetMessage
     /// one, which causes an <see cref="ImfFileException"/>.
     /// The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body
     /// that would have had it is encoded instead.
+    /// Nor does it give the <c>7bit</c> or <c>8bit</c> transfer encoding to a body that holds a CR or LF and isn't of a <c>text</c>, <c>message</c> or <c>multipart</c> type, as a CR or
+    /// LF there is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1).  Such a body is encoded too, and one whose <see cref="ImfEntity.ContentTransferEncoding"/> asks for <c>7bit</c> or
+    /// <c>8bit</c> causes an <see cref="ImfFileException"/>.
     /// </para>
     /// <para>
     /// <b>Seven bits.</b>  RFC 4155 Appendix A requires seven-bit characters, so an octet above 127 causes an <see cref="ImfFileException"/>, unless
