@@ -100,6 +100,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "Content-Transfer-Encoding: a b\r\n\r\n", "" },
             { "Content-Transfer-Encoding: (open\r\n\r\n", "" },
 
+            // ref. RFC 2045 §6.1 and RFC 4289 §3: a mechanism that is neither registered with IANA nor an x-token.
+            { "Content-Transfer-Encoding: uuencode\r\n\r\n", "" },
+            { "Content-Transfer-Encoding: x-\r\n\r\n", "" },
+
             // ref. RFC 2045 §6.4: a composite entity has only the identity encodings.
             { "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: base64\r\n\r\n", "" },
             { "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", "" },
