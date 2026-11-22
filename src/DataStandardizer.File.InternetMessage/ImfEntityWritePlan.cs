@@ -791,9 +791,9 @@ namespace DataStandardizer.File.InternetMessage
 
         private void AddGeneratedFields(Node node, ItemBuilder builder)
         {
-            // ref. RFC 2045 §4.  The writer only writes a message whose body has changed through this plan, and ImfConformance.CheckContent leaves the field of that message to it, so the
-            // top-level message gets the field even when what holds its parts is kept as it was read.  An embedded message that was read stays as it was.
-            if (node.IsMessage && !node.HasMimeVersion && (ReferenceEquals(node, _root) || !node.Source.IsPreserved))
+            // ref. RFC 2045 §4.  ImfWriter only writes a message whose body has changed through this plan, and ImfConformance.CheckContent leaves the field of that message to it, so the
+            // top-level message gets the field even when what holds its parts is kept as it was read.  An embedded message that was read stays as it was, however it is written.
+            if (node.IsMessage && !node.HasMimeVersion && (node.Source.IsTopLevelMessage || !node.Source.IsPreserved))
             {
                 AddGeneratedField(MimeVersionFieldName, MimeVersionValue, builder);
             }
