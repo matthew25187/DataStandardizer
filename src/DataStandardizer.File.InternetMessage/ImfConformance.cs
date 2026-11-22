@@ -14,6 +14,7 @@ namespace DataStandardizer.File.InternetMessage
         private const string EntityPath = "";
 
         private const string InvalidValueMessage = "The body of the {0} field does not follow its grammar (RFC 5322 §3.6, RFC 6854 §2.1).";
+        private const string MissingCloseDelimiterMessage = "A multipart entity that hasn't changed has no close delimiter (RFC 2046 §5.1.1).  ImfOptions.AllowMissingBoundaryTerminator accepts it.";
         private const string MissingMimeVersionMessage = "The header has a MIME field and no MIME-Version field, which RFC 2045 §4 requires.  ImfOptions.AllowMissingMimeVersion accepts it.";
         private const string MissingEmbeddedFieldMessage = "An embedded message has none of From, Subject or Date, one of which RFC 2046 §5.2.1 requires.  ImfOptions.AllowMissingRequiredFields accepts it.";
         private const string MissingFieldMessage = "The header has no {0} field, which RFC 5322 §3.6 requires.";
@@ -122,6 +123,9 @@ namespace DataStandardizer.File.InternetMessage
                     return options.AllowInvalidEmlxByteCount;
                 case ImfDiagnosticKind.InvalidEmlxMetadata:
                     return options.AllowInvalidEmlxMetadata;
+                case ImfDiagnosticKind.InvalidBodyStructure:
+                    // The only problem of this kind that is recorded, not thrown, is an unchanged multipart entity with no close delimiter.
+                    return options.AllowMissingBoundaryTerminator;
                 default:
                     return false;
             }
@@ -225,6 +229,12 @@ namespace DataStandardizer.File.InternetMessage
                 }
                 else if (item.Entity is ImfMultipart multipart)
                 {
+                    // ref. RFC 2046 §5.1.1.  One that has changed is written again, with a close delimiter, but one that hasn't is written as it was read.
+                    if (multipart.WasReadWithNoCloseDelimiter && multipart.IsRead && !multipart.HasChangedBody)
+                    {
+                        diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyStructure, MissingCloseDelimiterMessage, -1, item.Path));
+                    }
+
                     CheckBytes(multipart.Preamble ?? default(ReadOnlyMemory<byte>), item.Check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
                     CheckBytes(multipart.Epilogue ?? default(ReadOnlyMemory<byte>), item.Check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
                     for (var index = multipart.Parts.Count - 1; index >= 0; index--)

@@ -1011,11 +1011,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_RawBodySetAndBodyNeverAskedFor_WritesItAsItIs()
         {
             // arrange
-            var subject = EntityTrees.Read(TwoParts, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            // ref. RFC 2046 §5.1.1: the new body has no delimiters, so a writer too has to accept a multipart entity with no close delimiter.
+            var options = new ImfOptions { AllowMissingBoundaryTerminator = true };
+            var subject = EntityTrees.Read(TwoParts, options);
             subject.RawBody = EntityTrees.Bytes(NewBody);
 
             // act
-            var testResult = EntityTrees.Write(subject);
+            var testResult = EntityTrees.Write(subject, options);
 
             // assert
             testResult.Should().Be(TwoPartsHeaderWithNewRawBody);

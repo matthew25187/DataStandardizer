@@ -113,6 +113,12 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
+        /// <summary>
+        /// Gets a flag indicating if this entity was read with no close delimiter, which <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> allows.  One read with no delimiter
+        /// at all has no parts, so it has no close delimiter either, as one can only follow a part.
+        /// </summary>
+        internal bool WasReadWithNoCloseDelimiter => _rawFraming.Length == 1 || (_rawFraming.Length > 1 && _rawFraming[_rawFraming.Length - 1].IsEmpty);
+
         private bool IsFramingKept
         {
             get

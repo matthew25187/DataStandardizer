@@ -80,7 +80,8 @@
         LongBodyLine = 13,
 
         /// <summary>
-        /// <see cref="ImfMessage.Validate"/> found that the body breaks a rule of RFC 2046 §5 that the options don't accept, so what it holds could not be checked.
+        /// <see cref="ImfMessage.Validate"/> found that the body breaks a rule of RFC 2046 §5 that the options don't accept, so what it holds could not be checked.  Also a multipart entity
+        /// that was read with no close delimiter, which <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> allows, and that hasn't changed, so a writer would write it with none (RFC 2046 §5.1.1).
         /// </summary>
         InvalidBodyStructure = 14,
 

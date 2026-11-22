@@ -374,6 +374,10 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfEntityReader"/> throws an <see cref="ImfFileException"/> if the data ends, or a delimiter of an enclosing multipart
         /// entity is found, first.  When <c>true</c>, the multipart entity ends there.  One with no delimiter at all then has no parts, and its
         /// whole body is its preamble.
+        /// <para>
+        /// A writer gives a multipart entity that was read with no close delimiter one when the entity has changed.  One that hasn't changed is written as it was read, so a writer
+        /// throws an <see cref="ImfFileException"/> for it when <c>false</c>, and records an <see cref="ImfDiagnosticKind.InvalidBodyStructure"/> problem in its diagnostics and writes it when <c>true</c>.
+        /// </para>
         /// </remarks>
         public bool AllowMissingBoundaryTerminator
         {
