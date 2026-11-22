@@ -87,6 +87,21 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Determines if the options of a writer accept a problem that <see cref="Check"/> or <see cref="CheckContent"/> found.
+        /// </summary>
+        /// <remarks>
+        /// Of the problems of the kind <see cref="ImfDiagnosticKind.InvalidBodyStructure"/>, only an unchanged multipart entity with no close delimiter is accepted, and only by
+        /// <see cref="ImfOptions.AllowMissingBoundaryTerminator"/>.
+        /// </remarks>
+        internal static bool IsAllowedWhenWriting(ImfDiagnostic diagnostic, ImfOptions options)
+        {
+            if (diagnostic.Kind == ImfDiagnosticKind.InvalidBodyStructure)
+                return options.AllowMissingBoundaryTerminator && string.Equals(diagnostic.Message, MissingCloseDelimiterMessage, StringComparison.Ordinal);
+
+            return IsAllowed(diagnostic.Kind, options);
+        }
+
+        /// <summary>
         /// Determines if some options accept a kind of problem.
         /// </summary>
         internal static bool IsAllowed(ImfDiagnosticKind kind, ImfOptions options)
@@ -123,9 +138,6 @@ namespace DataStandardizer.File.InternetMessage
                     return options.AllowInvalidEmlxByteCount;
                 case ImfDiagnosticKind.InvalidEmlxMetadata:
                     return options.AllowInvalidEmlxMetadata;
-                case ImfDiagnosticKind.InvalidBodyStructure:
-                    // The only problem of this kind that is recorded, not thrown, is an unchanged multipart entity with no close delimiter.
-                    return options.AllowMissingBoundaryTerminator;
                 default:
                     return false;
             }

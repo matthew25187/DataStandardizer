@@ -637,7 +637,7 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var diagnostic in diagnostics)
             {
-                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
+                if (!ImfConformance.IsAllowedWhenWriting(diagnostic, _options))
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 

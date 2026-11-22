@@ -1065,10 +1065,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
-        [InlineData(NoCloseDelimiter)]
-        [InlineData(NoDelimiterAtAll)]
-        [InlineData(NestedNoCloseDelimiter)]
-        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_WritesItAsReadAndRecordsADiagnostic(string message)
+        [InlineData(NoCloseDelimiter, TopLevelPath)]
+        [InlineData(NoDelimiterAtAll, TopLevelPath)]
+        [InlineData(NestedNoCloseDelimiter, FirstPartPath)]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_WritesItAsReadAndRecordsADiagnostic(string message, string expectedPath)
         {
             // arrange
             var options = new ImfOptions { AllowMissingBoundaryTerminator = true };
@@ -1081,8 +1081,44 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 Octets.ToText(output.ToArray()).Should().Be(message);
-                subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+                var diagnostic = subject.Diagnostics.Should().ContainSingle().Which;
+                diagnostic.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+                diagnostic.EntityPath.Should().Be(expectedPath);
             }
+        }
+
+        [Fact]
+        public void WriteMessage_MultipartWithNoCloseDelimiterWhoseFieldsAloneChanged_ThrowsWithItsPath()
+        {
+            // arrange
+            var read = Read(NestedNoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            ((ImfMultipart)read.Body).Parts[0].ContentDescription = "z";
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(read);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteEntry_UnchangedMultipartWithNoCloseDelimiter_ThrowsByDefaultAndWritesNothing()
+        {
+            // arrange
+            var entry = new EmlxEntry(Read(NoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true }), new EmlxMetadata());
+            var output = new MemoryStream();
+            var subject = new EmlxWriter(output);
+
+            // act
+            Action testAction = () => subject.WriteEntry(entry);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+            output.Length.Should().Be(0);
         }
 
         [Fact]
@@ -1103,17 +1139,22 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
-        [Fact]
-        public void Validate_UnchangedMultipartWithNoCloseDelimiter_GivesTheProblem()
+        [Theory]
+        [InlineData(NoCloseDelimiter, TopLevelPath)]
+        [InlineData(NoDelimiterAtAll, TopLevelPath)]
+        [InlineData(NestedNoCloseDelimiter, FirstPartPath)]
+        public void Validate_UnchangedMultipartWithNoCloseDelimiter_GivesTheProblem(string message, string expectedPath)
         {
             // arrange
-            var subject = Read(NoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            var subject = Read(message, new ImfOptions { AllowMissingBoundaryTerminator = true });
 
             // act
             var testResult = subject.Validate();
 
             // assert
-            testResult.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+            var diagnostic = testResult.Should().ContainSingle().Which;
+            diagnostic.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+            diagnostic.EntityPath.Should().Be(expectedPath);
         }
 
         [Fact]

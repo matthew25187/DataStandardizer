@@ -83,6 +83,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Setting this replaces <see cref="Body"/>, which is read again from these bytes when it is next asked for.  A change made through <see cref="Body"/> doesn't change these
         /// bytes: a writer writes the change, and this still gives what was read or set.
         /// </para>
+        /// <para>
+        /// A writer checks these bytes as <see cref="ImfWriter"/> describes before it writes them.  So bytes that hold a multipart entity with no close delimiter, which
+        /// <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> lets them be read with, are refused unless the options of the writer set it too (RFC 2046 §5.1.1).
+        /// </para>
         /// </remarks>
         public ReadOnlyMemory<byte> RawBody
         {

@@ -181,6 +181,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
             ShortLineWithNoCloseDelimiterEml,
         };
 
+        // The same messages, and what a writer that accepts both records for each: the delimiter for the multipart body, and a long line or a quoted line for its part.
+        public static TheoryData<string, ImfDiagnosticKind[], string[]> NoCloseDelimiterMessagesWithOption => new TheoryData<string, ImfDiagnosticKind[], string[]>
+        {
+            { LongLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure, ImfDiagnosticKind.LongBodyLine }, new[] { TopLevelPath, FirstPartPath } },
+            { LongestFromLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure, ImfDiagnosticKind.LongBodyLine }, new[] { TopLevelPath, FirstPartPath } },
+            { ShortLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure }, new[] { TopLevelPath } },
+        };
+
         public static TheoryData<MboxVariant> QuotingVariants => new TheoryData<MboxVariant> { MboxVariant.Mboxrd, MboxVariant.Mboxo, MboxVariant.Mboxcl };
 
         [Theory]
@@ -301,8 +309,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
-        [MemberData(nameof(NoCloseDelimiterMessages))]
-        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_RecordsADiagnosticWhateverItsLines(string eml)
+        [MemberData(nameof(NoCloseDelimiterMessagesWithOption))]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_RecordsTheDelimiterWhateverItsLines(string eml, ImfDiagnosticKind[] expectedKinds, string[] expectedPaths)
         {
             // arrange
             var message = Mailboxes.ReadMessage(eml, AllowNoCloseDelimiterAndLongLines);
@@ -312,7 +320,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 subject.WriteMessage(Envelope, message);
 
                 // assert
-                subject.Diagnostics.Should().Contain(diagnostic => diagnostic.Kind == ImfDiagnosticKind.InvalidBodyStructure);
+                subject.MessagesWritten.Should().Be(1);
+                subject.Diagnostics.Select(diagnostic => diagnostic.Kind).Should().Equal(expectedKinds);
+                subject.Diagnostics.Select(diagnostic => diagnostic.EntityPath).Should().Equal(expectedPaths);
             }
         }
 
