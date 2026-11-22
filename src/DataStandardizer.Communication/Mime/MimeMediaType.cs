@@ -11,7 +11,7 @@ namespace DataStandardizer.Communication.Mime
     /// <remarks>
     /// <para>
     /// The type, subtype and parameter names are compared case-insensitively. Parameter values are compared case-sensitively, except for the
-    /// value of <c>charset</c>, and the order of the parameters doesn't matter.
+    /// values of <c>charset</c> and <c>access-type</c>, and the order of the parameters doesn't matter.
     /// </para>
     /// <para>
     /// A media type is written with no whitespace, and with each parameter value as a token if it is one, or otherwise as a quoted-string.
@@ -550,7 +550,7 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// The type, subtype and parameter names are compared case-insensitively. Parameter values are compared case-sensitively, except for
-        /// the value of <c>charset</c>, and the order of the parameters doesn't matter.
+        /// the values of <c>charset</c> and <c>access-type</c>, and the order of the parameters doesn't matter.
         /// </remarks>
         public bool Equals(MimeMediaType other)
         {

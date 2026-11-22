@@ -10,8 +10,8 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c> (RFC 2046 §4.1.2).
-    /// Languages are compared case-insensitively. The character set an extended value was written in is not compared, as it doesn't change
+    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> (RFC 2046 §4.1.2)
+    /// and <c>access-type</c> (RFC 2046 §5.2.3). Languages are compared case-insensitively. The character set an extended value was written in is not compared, as it doesn't change
     /// the value, except for a value read in a character set that couldn't be resolved, as <see cref="Charset"/> describes.
     /// </para>
     /// <para>
@@ -25,6 +25,9 @@ namespace DataStandardizer.Communication.Mime
     public readonly struct MimeParameter : IEquatable<MimeParameter>
     {
         private const string CharsetParameterName = "charset";
+
+        // ref. RFC 2046 §5.2.3: the parameter of message/external-body that names how the body is reached.
+        private const string AccessTypeParameterName = "access-type";
 
         // ref. RFC 1428 §3: the registered character set name for octets in a character set that is not known.
         private const string UnknownCharsetName = "UNKNOWN-8BIT";
@@ -198,11 +201,17 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
-        /// <returns><c>true</c> if the parameter was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="InvalidOperationException">The <see cref="MimeParameter"/> is not initialised.</exception>
+        /// <returns>
+        /// <c>true</c> if the parameter was written, or if the <see cref="MimeParameter"/> is not initialised, when nothing is written;
+        /// <c>false</c> if <paramref name="destination"/> is too short.
+        /// </returns>
         public bool TryFormat(Span<char> destination, out int charsWritten)
         {
-            if (_name is null) throw new InvalidOperationException(UninitializedMessage);
+            if (_name is null)
+            {
+                charsWritten = 0;
+                return true;
+            }
 
             var position = 0;
             if (!TryWrite(destination, ref position))
@@ -299,7 +308,8 @@ namespace DataStandardizer.Communication.Mime
         /// Indicates whether this parameter equals another.
         /// </summary>
         /// <remarks>
-        /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c>. Languages are
+        /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> and
+        /// <c>access-type</c>. Languages are
         /// compared case-insensitively. The character set is not compared, except for a value that holds the octets of a character set that
         /// couldn't be resolved, as <see cref="Charset"/> describes.
         /// </remarks>
@@ -355,9 +365,11 @@ namespace DataStandardizer.Communication.Mime
 
         private StringComparison GetValueComparison()
         {
-            // ref. RFC 2046 §4.1.2: the values of the charset parameter are not case sensitive. Octets in a character set that couldn't be
-            // resolved are not known to be letters, so they are compared as they are.
-            return HasName(CharsetParameterName) && !_isOctets ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            // ref. RFC 2046 §4.1.2 and §5.2.3: the values of the charset and access-type parameters are not case sensitive. Octets in a
+            // character set that couldn't be resolved are not known to be letters, so they are compared as they are.
+            return (HasName(CharsetParameterName) || HasName(AccessTypeParameterName)) && !_isOctets
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
         }
 
         private string GetOctetsCharsetName()
