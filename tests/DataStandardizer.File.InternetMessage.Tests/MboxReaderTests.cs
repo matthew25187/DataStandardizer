@@ -130,6 +130,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string TooLongQuotedLineBesideBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b\n\n" + TooLongQuotedLine + "\n--b--\n\n";
         private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
 
+        // A carriage return that ends the file with no line feed after it is an octet of the line, not a line break, so this line is 999 octets.
+        private static readonly string TooLongQuotedLineEndingInCarriageReturnAtTheEnd = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\r";
+
+        // Once a message has shown both an 8-bit line and a CRLF line, the line-length limit still sees how its quoted From line ends.
+        private const string EightBitBodyHeader = Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n\n";
+        private static readonly string LongestQuotedLineWithCrLfAfterEightBitAndCrLf = Separator1 + EightBitBodyHeader + "caf\x00E9\none\r\n>From " + new string('x', ShorterFromLinePadding) + "\r\n\n";
+        private static readonly string TooLongQuotedLineAfterCrLfAndEightBitWithCrLf = Separator1 + EightBitBodyHeader + "one\r\ncaf\x00E9\r\n" + TooLongQuotedLine + "\n\n";
+        private static readonly ImfOptions AllowCrLfAndEightBit = new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowEightBitMboxContent = true };
+
         private const string EnvelopeAndBody1 = Envelope1 + "|one\n";
         private const string EnvelopeAndBody2 = Envelope2 + "|two\n";
         private const string EnvelopeAndQuotableBody = Envelope1 + "|" + QuotableBody;
@@ -1070,6 +1079,30 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadMessage_LongestQuotedLineEndingInCrLfAfterEightBitAndCrLfLines_IsNotTooLong()
+        {
+            // arrange
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(LongestQuotedLineWithCrLfAfterEightBitAndCrLf, MboxVariant.Mboxrd, AllowCrLfAndEightBit);
+
+            // assert
+            testResult.Should().NotContain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_TooLongQuotedLineAfterCrLfAndEightBitLines_Throws()
+        {
+            // arrange
+
+            // act
+            Action testAction = () => Mailboxes.ReadFirst(TooLongQuotedLineAfterCrLfAndEightBitWithCrLf, MboxVariant.Mboxrd, AllowCrLfAndEightBit);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
         public void ReadMessage_LineTooLongInTheFileWithNoLineBreakAtTheEnd_RecordsADiagnostic()
         {
             // arrange
@@ -1077,6 +1110,19 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineAtTheEnd, MboxVariant.Mboxrd, options);
+
+            // assert
+            testResult.Should().Contain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_QuotedLineEndingInCarriageReturnWithNoLineFeedAtTheEnd_CountsTheCarriageReturn()
+        {
+            // arrange
+            var options = new ImfOptions { AllowLongLines = true, AllowMissingMboxBlankLine = true, AllowInvalidBodyOctets = true };
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineEndingInCarriageReturnAtTheEnd, MboxVariant.Mboxrd, options);
 
             // assert
             testResult.Should().Contain(ImfDiagnosticKind.LongBodyLine);
