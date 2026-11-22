@@ -99,7 +99,82 @@ namespace DataStandardizer.Communication.Tests.Mime
             var testResult = Resolve(nameInOtherCase);
 
             // assert
-            testResult.Should().BeSameAs(encoding);
+            testResult.Should().BeOfType(encoding.GetType());
+            testResult.WebName.Should().Be(encoding.WebName);
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void TryGetEncoding_BuiltInNameResolvedTwice_ReturnsNewInstanceEachTime(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = Resolve(name);
+
+            // assert
+            testResult.Should().NotBeSameAs(encoding);
+        }
+
+        public static TheoryData<string, byte[], string> InvalidBytes => new TheoryData<string, byte[], string>
+        {
+            { UsAsciiName, new byte[] { 0x41, 0x80 }, "A\xFFFD" },
+            { Utf8Name, new byte[] { 0x41, 0xFF }, "A\xFFFD" },
+        };
+
+        public static TheoryData<string, byte[]> InvalidByteSequences => new TheoryData<string, byte[]>
+        {
+            { UsAsciiName, new byte[] { 0x41, 0x80 } },
+            { Utf8Name, new byte[] { 0x41, 0xFF } },
+        };
+
+        [Theory]
+        [MemberData(nameof(InvalidBytes))]
+        public void GetString_AnotherCallerChangedItsDecoderFallback_ReturnsReplacementCharacters(string name, byte[] bytes, string text)
+        {
+            // arrange
+            var changed = Resolve(name);
+            changed.DecoderFallback = DecoderFallback.ExceptionFallback;
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetString(bytes);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [InlineData(UsAsciiName)]
+        [InlineData(Iso88591Name)]
+        public void GetBytes_AnotherCallerChangedItsEncoderFallback_WritesQuestionMark(string name)
+        {
+            // arrange
+            var changed = Resolve(name);
+            changed.EncoderFallback = EncoderFallback.ExceptionFallback;
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetBytes("\x0100");
+
+            // assert
+            testResult.Should().Equal((byte)'?');
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidByteSequences))]
+        public void GetString_CallerChangedItsDecoderFallback_UsesThatFallback(string name, byte[] bytes)
+        {
+            // arrange
+            var encoding = Resolve(name);
+            encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+
+            // act
+            Action testAction = () => encoding.GetString(bytes);
+
+            // assert
+            testAction.Should().Throw<DecoderFallbackException>();
         }
 
         [Theory]

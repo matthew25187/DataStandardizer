@@ -32,6 +32,11 @@ namespace DataStandardizer.Communication.Mime
     /// byte order mark. <c>UTF-8</c> is written with no byte order mark.
     /// </para>
     /// <para>
+    /// Each call returns a new instance of a built-in encoding, so a caller can change its <c>EncoderFallback</c> or
+    /// <c>DecoderFallback</c> without changing the encoding that other callers get. The netstandard1.1 build has no fallbacks to change.
+    /// The encodings the runtime provides are returned as the runtime returns them.
+    /// </para>
+    /// <para>
     /// The encodings the runtime provides depend on the runtime, not on the target framework of the package. .NET Framework has the Windows
     /// code pages, such as <c>windows-1252</c> and <c>Shift_JIS</c>. .NET Core and .NET 5 and later have only the Unicode encodings,
     /// <c>US-ASCII</c> and <c>ISO-8859-1</c>, until the application registers the code pages, once, at startup:
@@ -89,7 +94,14 @@ namespace DataStandardizer.Communication.Mime
         {
             if (!charset.IsInitialized) throw new ArgumentException("The character set is not initialised.", nameof(charset));
 
-            if (BuiltInEncodings.TryGetValue(charset.Name, out encoding)) return true;
+            if (BuiltInEncodings.TryGetValue(charset.Name, out encoding))
+            {
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+                // The built-in encodings are shared, and some are writable, so each caller gets its own copy to change.
+                encoding = (Encoding)encoding.Clone();
+#endif
+                return true;
+            }
 
             try
             {
