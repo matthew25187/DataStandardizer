@@ -30,6 +30,14 @@ namespace DataStandardizer.Communication.Mime
         /// Accept an encoded word longer than 75 characters, which RFC 2047 §2 doesn't allow, and which RFC 2047 §6.1 says to read as
         /// ordinary text.
         /// </summary>
+        /// <remarks>
+        /// A word that is accepted this way is written back as encoded words in UTF-8 that are each at most
+        /// <see cref="MimeEncodedWord.MaxLength"/> characters long, separated by spaces, as
+        /// <see cref="MimeEncodedWord.EncodeText(string, MimeEncodedWordContext)"/> writes text in a phrase, with the word's language. A reader
+        /// drops the spaces between them (RFC 2047 §6.2). The properties of the word still describe it as it was written. A word whose text
+        /// is empty, or whose language leaves no room in a word of <see cref="MimeEncodedWord.MaxLength"/> characters for a character of its
+        /// text, can't be written this way, and is still rejected.
+        /// </remarks>
         AllowLongWords = 1 << 0,
 
         /// <summary>

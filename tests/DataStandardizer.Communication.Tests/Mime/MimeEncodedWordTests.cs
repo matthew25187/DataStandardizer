@@ -44,6 +44,17 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string MaxLengthText = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string LongText = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+        // ref. RFC 2047 §2: LongWord written back as a word of 75 characters and one of the rest, separated by a space.
+        private const string LongWordWritten = "=?UTF-8?Q?aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?= =?UTF-8?Q?a?=";
+
+        // A word of 77 characters with a language, whose "(" is written as itself in text but as "=28" in a phrase (RFC 2047 §5 (3)), so
+        // it is written back as "Q" words in the mode of a phrase, each of at most 75 characters.
+        private const string LongWordWithLanguage = "=?UTF-8*en?Q?(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?=";
+        private const string LongWordWithLanguageWritten = "=?UTF-8*en?Q?=28aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?= =?UTF-8*en?Q?aaaa?=";
+
+        // A word of 76 characters whose language leaves no room in a word of 75 characters for its one character.
+        private const string LongWordWithTooLongLanguage = "=?UTF-8*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh?Q?a?=";
+
         // Text that is 70 characters of encoded text in "Q", so it is split into a word of 75 characters and one of the rest.
         private const string SeventyLetters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string SevenLettersWord = "=?UTF-8?Q?aaaaaaa?=";
@@ -295,6 +306,12 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { LittleEndianUtf32SharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
                 { BigEndianNoncharacterSplitBeforeMarkOctets, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterANoncharacterOSlash },
             };
+
+        public static TheoryData<string, string> LongWordsWritten => new TheoryData<string, string>
+        {
+            { LongWord, LongWordWritten },
+            { LongWordWithLanguage, LongWordWithLanguageWritten },
+        };
 
         public static TheoryData<string> DecodeDeviationValues => new TheoryData<string>
         {
@@ -664,6 +681,47 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Should().Be("=?iso-8859-1?q?Andr=E9?=");
+        }
+
+        [Theory]
+        [MemberData(nameof(LongWordsWritten))]
+        public void ToString_LongWordWithOption_WritesWordsWithinMaxLength(string value, string expected)
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(value, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords, MimeCharsetResolver.Default);
+
+            // act
+            var result = word.ToString();
+
+            // assert
+            result.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryFormat_LongWordWithOption_WritesWordsWithinMaxLength()
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(LongWord, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords, MimeCharsetResolver.Default);
+            var destination = new char[LongWordWritten.Length];
+
+            // act
+            var success = word.TryFormat(destination, out var charsWritten);
+
+            // assert
+            success.Should().BeTrue();
+            charsWritten.Should().Be(LongWordWritten.Length);
+            new string(destination).Should().Be(LongWordWritten);
+        }
+
+        [Fact]
+        public void TryParse_LongWordWithOptionAndLanguageLeavingNoRoom_ReturnsFalse()
+        {
+            // act
+            var success = MimeEncodedWord.TryParse(LongWordWithTooLongLanguage, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords,
+                MimeCharsetResolver.Default, out _);
+
+            // assert
+            success.Should().BeFalse();
         }
 
         [Fact]
