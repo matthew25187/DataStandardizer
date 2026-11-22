@@ -296,7 +296,6 @@ namespace DataStandardizer.Communication.Tests.Mime
             () => _ = default(MimeParameter).Value,
             () => _ = default(MimeParameter).Charset,
             () => _ = default(MimeParameter).Language,
-            () => default(MimeParameter).FormatSections(RecommendedLineLength),
         };
 
         [Theory]
@@ -308,6 +307,19 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void FormatSections_DefaultInstance_ReturnsNoSections()
+        {
+            // arrange
+            var parameter = default(MimeParameter);
+
+            // act
+            var testResult = parameter.FormatSections(RecommendedLineLength);
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         [Fact]

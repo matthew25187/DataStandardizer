@@ -10,9 +10,10 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> (RFC 2046 §4.1.2)
-    /// and <c>access-type</c> (RFC 2046 §5.2.3). Languages are compared case-insensitively. The character set an extended value was written in is not compared, as it doesn't change
-    /// the value, except for a value read in a character set that couldn't be resolved, as <see cref="Charset"/> describes.
+    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> (RFC 2046
+    /// §4.1.2) and <c>access-type</c> (RFC 2046 §5.2.3), whatever the media type the parameter belongs to. Languages are compared
+    /// case-insensitively. The character set an extended value was written in is not compared, as it doesn't change the value, except for a
+    /// value read in a character set that couldn't be resolved, as <see cref="Charset"/> describes.
     /// </para>
     /// <para>
     /// A value of printable US-ASCII characters, spaces and horizontal tabs, with no language, is written as a token when it is one, and
@@ -279,13 +280,15 @@ namespace DataStandardizer.Communication.Mime
         /// decoded. A section is longer than <paramref name="maxSectionLength"/> only when its name and a single character, or octet, of the
         /// value don't fit in it. An empty value that doesn't fit is written as one section, <c>name*0=""</c>.
         /// </para>
+        /// <para>
+        /// A <see cref="MimeParameter"/> that is not initialised has no sections.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSectionLength"/> is less than 1.</exception>
-        /// <exception cref="InvalidOperationException">The <see cref="MimeParameter"/> is not initialised.</exception>
         public IReadOnlyList<string> FormatSections(int maxSectionLength)
         {
-            if (_name is null) throw new InvalidOperationException(UninitializedMessage);
             if (maxSectionLength < 1) throw new ArgumentOutOfRangeException(nameof(maxSectionLength), maxSectionLength, "The length must be at least 1.");
+            if (_name is null) return new ReadOnlyCollection<string>(new List<string>());
 
             var sections = new List<string>();
             if (GetFormattedLength() <= maxSectionLength)
@@ -309,9 +312,9 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> and
-        /// <c>access-type</c>. Languages are
-        /// compared case-insensitively. The character set is not compared, except for a value that holds the octets of a character set that
-        /// couldn't be resolved, as <see cref="Charset"/> describes.
+        /// <c>access-type</c>, whatever the media type the parameter belongs to. Languages are compared case-insensitively. The character set
+        /// is not compared, except for a value that holds the octets of a character set that couldn't be resolved, as <see cref="Charset"/>
+        /// describes.
         /// </remarks>
         public bool Equals(MimeParameter other)
         {
