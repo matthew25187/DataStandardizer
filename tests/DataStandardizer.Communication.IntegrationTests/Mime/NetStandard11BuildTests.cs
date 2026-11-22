@@ -12,12 +12,17 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
     {
         // The names of MimeEncodedWordParseOptions and MimeMediaTypeParseOptions members.
         private const string NoOptions = "None";
-        private const string AllowLowercaseHexDigits = "AllowLowercaseHexDigits";
+        private const string AllowEmbeddedWords = "AllowEmbeddedWords";
 
         // ref. RFC 2047 §4.2: "café" in UTF-8, Q-encoded with upper-case and with lower-case hexadecimal digits.
         private const string EncodedWord = "=?UTF-8?Q?caf=C3=A9?=";
         private const string LowercaseHexEncodedWord = "=?UTF-8?Q?caf=c3=a9?=";
         private const string EncodedWordText = "caf\xE9";
+
+        // ref. RFC 2047 §5 (1): an encoded word must be separated from the text before it by whitespace, so this one is decoded only with
+        // AllowEmbeddedWords.
+        private const string EmbeddedEncodedWord = "Re:=?UTF-8?Q?caf=C3=A9?=";
+        private const string EmbeddedEncodedWordText = "Re:caf\xE9";
 
         [Fact]
         public void ParseFirstParameterValue_MediaTypeWithParameters_ReturnsFirstValue()
@@ -60,23 +65,33 @@ namespace DataStandardizer.Communication.IntegrationTests.Mime
         }
 
         [Fact]
-        public void DecodeText_LowercaseHexWithoutOption_LeavesWordAsWritten()
+        public void DecodeText_LowercaseHexWithoutOption_ReturnsText()
         {
             // act
             var testResult = NetStandard11Build.DecodeText(LowercaseHexEncodedWord, NoOptions);
 
             // assert
-            testResult.Should().Be(LowercaseHexEncodedWord);
+            testResult.Should().Be(EncodedWordText);
         }
 
         [Fact]
-        public void DecodeText_LowercaseHexWithOption_ReturnsText()
+        public void DecodeText_EmbeddedWordWithoutOption_LeavesTextAsWritten()
         {
             // act
-            var testResult = NetStandard11Build.DecodeText(LowercaseHexEncodedWord, AllowLowercaseHexDigits);
+            var testResult = NetStandard11Build.DecodeText(EmbeddedEncodedWord, NoOptions);
 
             // assert
-            testResult.Should().Be(EncodedWordText);
+            testResult.Should().Be(EmbeddedEncodedWord);
+        }
+
+        [Fact]
+        public void DecodeText_EmbeddedWordWithOption_ReturnsText()
+        {
+            // act
+            var testResult = NetStandard11Build.DecodeText(EmbeddedEncodedWord, AllowEmbeddedWords);
+
+            // assert
+            testResult.Should().Be(EmbeddedEncodedWordText);
         }
     }
 }

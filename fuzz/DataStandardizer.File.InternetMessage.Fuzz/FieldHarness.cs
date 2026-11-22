@@ -20,7 +20,7 @@ internal static class FieldHarness
 
     private static readonly MimeEncodedWordParseOptions AllEncodedWordOptions =
         MimeEncodedWordParseOptions.AllowLongWords | MimeEncodedWordParseOptions.AllowEmbeddedWords | MimeEncodedWordParseOptions.AllowUnknownCharsets
-        | MimeEncodedWordParseOptions.AllowLowercaseHexDigits | MimeEncodedWordParseOptions.AllowInvalidOctets | MimeEncodedWordParseOptions.AllowSplitCharacters;
+        | MimeEncodedWordParseOptions.AllowInvalidOctets | MimeEncodedWordParseOptions.AllowSplitCharacters;
 
     private static readonly MimeMediaTypeParseOptions AllMediaTypeOptions =
         MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens | MimeMediaTypeParseOptions.AllowNonstandardSections

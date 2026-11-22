@@ -1474,13 +1474,13 @@ namespace DataStandardizer.Communication.Tests.Mime
 
         [Theory]
         [MemberData(nameof(QModes))]
-        public void TryDecode_QLowercaseEscapeByDefault_ReturnsFalse(MimeQuotedPrintableMode mode)
+        public void Decode_QLowercaseEscapeByDefault_ReturnsOctet(MimeQuotedPrintableMode mode)
         {
             // act
-            var testResult = MimeQuotedPrintable.TryDecode(LowercaseEscapeOfLatin1Letter.AsSpan(), mode, Strict, out _);
+            var testResult = MimeQuotedPrintable.Decode(LowercaseEscapeOfLatin1Letter.AsSpan(), mode, Strict);
 
             // assert
-            testResult.Should().BeFalse();
+            testResult.Should().Equal(0xE9);
         }
 
         [Theory]

@@ -134,9 +134,12 @@ is written. Many mail clients do break these rules, so each can be accepted with
 | `AllowLongWords` | A word longer than 75 characters. | RFC 2047 §2 |
 | `AllowEmbeddedWords` | In `DecodeText`, a word with no whitespace beside it, such as `Re:=?UTF-8?Q?caf=C3=A9?=`. | RFC 2047 §5 |
 | `AllowUnknownCharsets` | A character set the resolver doesn't resolve. Each octet is read as the character with the same number, so you can recover the octets and decode them yourself. | RFC 2047 §6.2 |
-| `AllowLowercaseHexDigits` | `=c3=a9` in "Q"-encoded text. | RFC 2047 §4.2, RFC 2045 §6.7 |
 | `AllowInvalidOctets` | Octets that aren't valid in the character set, such as `=?UTF-8?Q?=FF?=`. Each invalid sequence is read as U+FFFD. | RFC 2047 §6.3 |
 | `AllowSplitCharacters` | In `DecodeText`, a character that one word ends partway through and the next words finish. | RFC 2047 §5 |
+
+Lower-case hexadecimal digits in "Q"-encoded text, such as `=c3=a9`, are always accepted,
+as RFC 2047 §4.2 only says that upper case should be used. The `AllowLowercaseHexDigits`
+flag is obsolete and has no effect.
 
 ```csharp
 MimeEncodedWord.DecodeText("Re:=?UTF-8?Q?caf=C3=A9?=");

@@ -111,7 +111,7 @@ accept what many producers write anyway:
 
 | Flag | Accepts |
 | --- | --- |
-| `AllowLowercaseHexDigits` | `=c3=a9` as well as `=C3=A9`. |
+| `AllowLowercaseHexDigits` | `=c3=a9` as well as `=C3=A9`, in `Body` mode. The "Q" modes always accept lower-case digits, as RFC 2047 §4.2 only says upper case should be used. |
 | `AllowBareLineFeeds` | A bare LF as a line break, in `Body` mode. |
 | `AllowLiteralEqualsSigns` | An `=` that isn't followed by two hexadecimal digits or a line break, decoded as itself. |
 

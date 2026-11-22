@@ -60,12 +60,15 @@ namespace DataStandardizer.Communication.Mime
         private const string InvalidFormatMessage = "The value is not a valid encoded word.";
         private const string UninitializedMessage = nameof(MimeEncodedWord) + " is uninitialized.";
 
+        // AllowLowercaseHexDigits is obsolete and has no effect, but a caller that still gives it isn't refused.
+#pragma warning disable CS0618
         private const MimeEncodedWordParseOptions AllOptions = MimeEncodedWordParseOptions.AllowLongWords
             | MimeEncodedWordParseOptions.AllowEmbeddedWords
             | MimeEncodedWordParseOptions.AllowUnknownCharsets
             | MimeEncodedWordParseOptions.AllowLowercaseHexDigits
             | MimeEncodedWordParseOptions.AllowInvalidOctets
             | MimeEncodedWordParseOptions.AllowSplitCharacters;
+#pragma warning restore CS0618
 
         private static readonly Encoding Utf8 = new UTF8Encoding(false);
 
@@ -915,10 +918,12 @@ namespace DataStandardizer.Communication.Mime
                 case 'q':
                     // ref. RFC 2047 §4.2, §5: each "=" is followed by two hexadecimal digits in the same word.
                     word.Encoding = MimeEncodedWordEncoding.Q;
-                    var qOptions = (options & MimeEncodedWordParseOptions.AllowLowercaseHexDigits) != 0
-                        ? MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits
-                        : MimeQuotedPrintableDecoderOptions.None;
-                    if (!MimeQuotedPrintable.TryDecode(encodedText, GetMode(context), qOptions, out octets)) return false;
+                    // The "Q" modes accept lower-case hexadecimal digits, which RFC 2047 §4.2 (1) allows.
+                    if (!MimeQuotedPrintable.TryDecode(encodedText, GetMode(context), MimeQuotedPrintableDecoderOptions.None, out octets))
+                    {
+                        return false;
+                    }
+
                     break;
                 default:
                     return false;

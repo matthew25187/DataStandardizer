@@ -29,7 +29,6 @@ namespace DataStandardizer.File.InternetMessage
         internal const MimeEncodedWordParseOptions MalformedWordOptions = MimeEncodedWordParseOptions.AllowLongWords
             | MimeEncodedWordParseOptions.AllowEmbeddedWords
             | MimeEncodedWordParseOptions.AllowUnknownCharsets
-            | MimeEncodedWordParseOptions.AllowLowercaseHexDigits
             | MimeEncodedWordParseOptions.AllowInvalidOctets
             | MimeEncodedWordParseOptions.AllowSplitCharacters;
 

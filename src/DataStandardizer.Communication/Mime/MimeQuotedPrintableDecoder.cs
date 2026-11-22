@@ -25,7 +25,8 @@ namespace DataStandardizer.Communication.Mime
     /// themselves. Spaces, tabs and line breaks are not valid.
     /// </para>
     /// <para>
-    /// In every mode, an <c>=</c> must be followed by two upper-case hexadecimal digits (or in a body by a line break), and control
+    /// In every mode, an <c>=</c> must be followed by two hexadecimal digits (or in a body by a line break), which in a body must be
+    /// upper case (RFC 2045 §6.7 rule 1) and in the "Q" modes may be upper or lower case (RFC 2047 §4.2 (1)). Control
     /// characters and characters outside ASCII are not valid. <see cref="MimeQuotedPrintableDecoderOptions"/> names the forms that
     /// can be accepted as well.
     /// </para>
