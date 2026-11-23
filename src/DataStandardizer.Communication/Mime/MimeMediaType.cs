@@ -861,10 +861,6 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        /// <summary>
-        /// The forms given for one parameter: its plain form, and the sections of its RFC 2231 form.  They are collected together so that a
-        /// parameter given in more than one of them can be rejected.
-        /// </summary>
         // Which parameter values Equals and GetHashCode compare case-insensitively, besides charset.
         private enum ValueCaseRules
         {
@@ -878,6 +874,10 @@ namespace DataStandardizer.Communication.Mime
             ExternalBodyWithMode,
         }
 
+        /// <summary>
+        /// The forms given for one parameter: its plain form, and the sections of its RFC 2231 form.  They are collected together so that a
+        /// parameter given in more than one of them can be rejected.
+        /// </summary>
         private sealed class ParameterForms
         {
             public ParameterForms(string name)
