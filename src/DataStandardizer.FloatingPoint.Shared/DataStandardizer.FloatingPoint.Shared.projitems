@@ -9,6 +9,7 @@
     <Import_RootNamespace>DataStandardizer.FloatingPoint</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)NearestDoubleParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ShortestDoubleFormatter.cs" />
   </ItemGroup>
 </Project>

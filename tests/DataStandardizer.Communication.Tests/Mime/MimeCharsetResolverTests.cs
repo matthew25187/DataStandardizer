@@ -11,8 +11,6 @@ namespace DataStandardizer.Communication.Tests.Mime
     public class MimeCharsetResolverTests
     {
         // ref. IANA Character Sets registry
-        private const string UsAsciiName = "US-ASCII";
-        private const string Iso88591Name = "ISO-8859-1";
         private const string Utf8Name = "UTF-8";
         private const string Utf7Name = "UTF-7";
         private const string Windows1252Name = "windows-1252";
@@ -90,7 +88,7 @@ namespace DataStandardizer.Communication.Tests.Mime
 
         [Theory]
         [MemberData(nameof(BuiltInNamesInOtherCase))]
-        public void TryGetEncoding_BuiltInNameInOtherCase_ReturnsSameEncoding(string name, string nameInOtherCase)
+        public void TryGetEncoding_BuiltInNameInOtherCase_ReturnsEqualEncoding(string name, string nameInOtherCase)
         {
             // arrange
             var encoding = Resolve(name);
@@ -99,7 +97,160 @@ namespace DataStandardizer.Communication.Tests.Mime
             var testResult = Resolve(nameInOtherCase);
 
             // assert
-            testResult.Should().BeSameAs(encoding);
+            testResult.Should().Be(encoding);
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void TryGetEncoding_BuiltInNameResolvedTwice_ReturnsNewInstanceEachTime(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = Resolve(name);
+
+            // assert
+            testResult.Should().NotBeSameAs(encoding);
+        }
+
+        // 'A', then 0x80, which is above US-ASCII's 7-bit range (RFC 20).
+        private static readonly byte[] UsAsciiInvalidBytes = { 0x41, 0x80 };
+
+        // 'A', then 0xFF, which never appears in UTF-8 (RFC 3629 §1).
+        private static readonly byte[] Utf8InvalidBytes = { 0x41, 0xFF };
+
+        // 'A' in UTF-16BE, then half of a two-octet code unit (RFC 2781 §2).
+        private static readonly byte[] Utf16TruncatedBytes = { 0x00, 0x41, 0x00 };
+
+        // 'A' in UTF-32BE, then one octet of a four-octet code unit (The Unicode Standard §3.9, D90).
+        private static readonly byte[] Utf32TruncatedBytes = { 0x00, 0x00, 0x00, 0x41, 0x00 };
+
+        // 'A' in ISO-10646-UCS-2, then 0xD800, which UTF-16 uses for a high surrogate, so isn't a character (The Unicode Standard §3.8,
+        // D71).
+        private static readonly byte[] Ucs2SurrogateCodeUnitBytes = { 0x00, 0x41, 0xD8, 0x00 };
+
+        // U+1F600, outside the Basic Multilingual Plane, as a surrogate pair in UTF-16BE (RFC 2781 §2.1): ISO-10646-UCS-2 can't hold it,
+        // and reads each of its code units as an invalid surrogate code unit.
+        private const string CharacterOutsideBasicMultilingualPlane = "\xD83D\xDE00";
+        private static readonly byte[] SurrogatePairBytes = { 0xD8, 0x3D, 0xDE, 0x00 };
+        private const string TwoReplacementCharacters = "\xFFFD\xFFFD";
+
+        // U+FFFD twice in UTF-16BE, which a replacement fallback writes for a surrogate pair: once for each surrogate, as the runtime's
+        // EncoderReplacementFallback does.
+        private static readonly byte[] TwoUtf16BigEndianReplacementBytes = { 0xFF, 0xFD, 0xFF, 0xFD };
+
+        // 'A', then the U+FFFD that a replacement fallback reads for the invalid octets after it.
+        private const string TextWithReplacementCharacter = "A\xFFFD";
+
+        // U+0100 LATIN CAPITAL LETTER A WITH MACRON, which neither US-ASCII nor ISO-8859-1 can hold.
+        private const string CharacterAboveLatin1 = "\x0100";
+
+        // A high surrogate with no low surrogate after it, which no Unicode encoding form can write (The Unicode Standard §3.9, D91).
+        private const string UnpairedSurrogate = "\xD800";
+
+        // '?', which US-ASCII and ISO-8859-1 write for a character they can't hold.
+        private static readonly byte[] QuestionMarkBytes = { 0x3F };
+
+        // U+FFFD in UTF-8, UTF-16BE and UTF-32BE, which the Unicode encodings write for an unpaired surrogate.
+        private static readonly byte[] Utf8ReplacementBytes = { 0xEF, 0xBF, 0xBD };
+        private static readonly byte[] Utf16BigEndianReplacementBytes = { 0xFF, 0xFD };
+        private static readonly byte[] Utf32BigEndianReplacementBytes = { 0x00, 0x00, 0xFF, 0xFD };
+
+        public static TheoryData<string, byte[]> InvalidByteSequences => new TheoryData<string, byte[]>
+        {
+            { UsAsciiName, UsAsciiInvalidBytes },
+            { Utf8Name, Utf8InvalidBytes },
+            { Utf16Name, Utf16TruncatedBytes },
+            { Utf32Name, Utf32TruncatedBytes },
+            { Ucs2Name, Utf16TruncatedBytes },
+            { Ucs2Name, Ucs2SurrogateCodeUnitBytes },
+        };
+
+        public static TheoryData<string, string, byte[]> UnencodableCharacters => new TheoryData<string, string, byte[]>
+        {
+            { UsAsciiName, CharacterAboveLatin1, QuestionMarkBytes },
+            { Iso88591Name, CharacterAboveLatin1, QuestionMarkBytes },
+            { Utf8Name, UnpairedSurrogate, Utf8ReplacementBytes },
+            { Utf16Name, UnpairedSurrogate, Utf16BigEndianReplacementBytes },
+            { Utf32Name, UnpairedSurrogate, Utf32BigEndianReplacementBytes },
+            { Ucs2Name, UnpairedSurrogate, Utf16BigEndianReplacementBytes },
+            { Ucs2Name, CharacterOutsideBasicMultilingualPlane, TwoUtf16BigEndianReplacementBytes },
+        };
+
+        public static TheoryData<string, string> CharactersThatFallBack => new TheoryData<string, string>
+        {
+            { UsAsciiName, CharacterAboveLatin1 },
+            { Iso88591Name, CharacterAboveLatin1 },
+            { Utf8Name, UnpairedSurrogate },
+            { Utf16Name, UnpairedSurrogate },
+            { Utf32Name, UnpairedSurrogate },
+            { Ucs2Name, UnpairedSurrogate },
+            { Ucs2Name, CharacterOutsideBasicMultilingualPlane },
+        };
+
+        [Theory]
+        [MemberData(nameof(InvalidByteSequences))]
+        public void GetString_AnotherCallerChangedItsDecoderFallback_ReturnsReplacementCharacter(string name, byte[] bytes)
+        {
+            // arrange
+            var changed = Resolve(name);
+            changed.DecoderFallback = DecoderFallback.ExceptionFallback;
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetString(bytes);
+
+            // assert
+            testResult.Should().Be(TextWithReplacementCharacter);
+        }
+
+        [Theory]
+        // Not enumerated at discovery: xUnit's serialisation would replace the unpaired surrogate with U+FFFD.
+        [MemberData(nameof(UnencodableCharacters), DisableDiscoveryEnumeration = true)]
+        public void GetBytes_AnotherCallerChangedItsEncoderFallback_WritesReplacement(string name, string text, byte[] bytes)
+        {
+            // arrange
+            var changed = Resolve(name);
+            changed.EncoderFallback = EncoderFallback.ExceptionFallback;
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetBytes(text);
+
+            // assert
+            testResult.Should().Equal(bytes);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidByteSequences))]
+        public void GetString_CallerChangedItsDecoderFallback_UsesThatFallback(string name, byte[] bytes)
+        {
+            // arrange
+            var encoding = Resolve(name);
+            encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+
+            // act
+            Action testAction = () => encoding.GetString(bytes);
+
+            // assert
+            testAction.Should().Throw<DecoderFallbackException>();
+        }
+
+        [Theory]
+        // Not enumerated at discovery: xUnit's serialisation would replace the unpaired surrogate with U+FFFD.
+        [MemberData(nameof(CharactersThatFallBack), DisableDiscoveryEnumeration = true)]
+        public void GetBytes_CallerChangedItsEncoderFallback_UsesThatFallback(string name, string text)
+        {
+            // arrange
+            var encoding = Resolve(name);
+            encoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+
+            // act
+            Action testAction = () => encoding.GetBytes(text);
+
+            // assert
+            testAction.Should().Throw<EncoderFallbackException>();
         }
 
         [Theory]
@@ -193,6 +344,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("UTF-16LE", new byte[] { 0xFF, 0xFE, 0x41, 0x00 })]
         [InlineData("UTF-32BE", new byte[] { 0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x41 })]
         [InlineData("UTF-32LE", new byte[] { 0xFF, 0xFE, 0x00, 0x00, 0x41, 0x00, 0x00, 0x00 })]
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2 is always in network byte order.
+        [InlineData(Ucs2Name, new byte[] { 0xFE, 0xFF, 0x00, 0x41 })]
         public void TryGetEncoding_MarkedScheme_KeepsLeadingZeroWidthNoBreakSpace(string name, byte[] bytes)
         {
             // arrange
@@ -204,6 +357,45 @@ namespace DataStandardizer.Communication.Tests.Mime
             // assert
             // ref. RFC 2781 §3.2: in UTF-16BE and UTF-16LE, U+FEFF at the start is a ZERO WIDTH NO-BREAK SPACE, not a byte order mark
             testResult.Should().Be("\xFEFFA");
+        }
+
+        [Fact]
+        public void GetString_Ucs2SurrogatePair_ReturnsReplacementCharacterForEachCodeUnit()
+        {
+            // arrange
+            var encoding = Resolve(Ucs2Name);
+
+            // act
+            var testResult = encoding.GetString(SurrogatePairBytes);
+
+            // assert
+            testResult.Should().Be(TwoReplacementCharacters);
+        }
+
+        [Fact]
+        public void GetDecoder_Ucs2SurrogatePairOneByteAtATime_ReturnsReplacementCharacterForEachCodeUnit()
+        {
+            // arrange
+            var encoding = Resolve(Ucs2Name);
+
+            // act
+            var testResult = EncodingBlocks.Decode(encoding, SurrogatePairBytes, OneByte);
+
+            // assert
+            testResult.Should().Be(TwoReplacementCharacters);
+        }
+
+        [Fact]
+        public void GetEncoder_Ucs2CharacterOutsideBasicMultilingualPlaneOneCharacterAtATime_WritesReplacementForEachSurrogate()
+        {
+            // arrange
+            var encoding = Resolve(Ucs2Name);
+
+            // act
+            var testResult = EncodingBlocks.EncodeOneCharacterAtATime(encoding, CharacterOutsideBasicMultilingualPlane);
+
+            // assert
+            testResult.Should().Equal(TwoUtf16BigEndianReplacementBytes);
         }
 
         // Bytes of an unmarked scheme that end before a byte order mark or a code unit could, with the text they decode to once the decoder
@@ -533,6 +725,42 @@ namespace DataStandardizer.Communication.Tests.Mime
             encoding.Should().BeNull();
         }
 
+        [Theory]
+        // ref. RFC 2046 §4.1.2; IANA Character Sets registry: the runtime knows these names, but they aren't registered.
+        [InlineData("ascii")]
+        [InlineData("ucs-2")]
+        [InlineData("unicode")]
+        [InlineData("unicodeFFFE")]
+        public void TryGetEncoding_UnregisteredNameTheRuntimeKnows_ReturnsFalse(string name)
+        {
+            // arrange
+            var charset = MimeCharset.Parse(name);
+
+            // act
+            var testResult = MimeCharsetResolver.Default.TryGetEncoding(charset, out var encoding);
+
+            // assert
+            testResult.Should().BeFalse();
+            encoding.Should().BeNull();
+        }
+
+        [Fact]
+        public void TryGetEncoding_UnregisteredNameTheRuntimeKnowsWithFallback_UsesFallback()
+        {
+            // arrange
+            var fallback = new StubResolver(Encoding.UTF8);
+            var resolver = new MimeCharsetResolver(fallback);
+            var charset = MimeCharset.Parse("unicode");
+
+            // act
+            var testResult = resolver.TryGetEncoding(charset, out var encoding);
+
+            // assert
+            testResult.Should().BeTrue();
+            encoding.Should().BeSameAs(Encoding.UTF8);
+            fallback.Requested.Should().Equal(charset);
+        }
+
         [Fact]
         public void TryGetEncoding_UnknownNameWithFallback_UsesFallback()
         {
@@ -703,6 +931,128 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetDecoder_BuiltInNameConvertNoBytes_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+
+            // act
+            decoder.Convert(new byte[0], 0, 0, new char[0], 0, 0, true, out var bytesUsed, out var charsUsed, out var completed);
+
+            // assert
+            bytesUsed.Should().Be(0);
+            charsUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+
+#if NETCOREAPP
+        // Decoder.Convert(ReadOnlySpan<byte>, ...) is only on .NET, and calls Decoder.Convert(byte*, ...).
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetDecoder_BuiltInNameConvertEmptySpan_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+
+            // act
+            decoder.Convert(ReadOnlySpan<byte>.Empty, Span<char>.Empty, true, out var bytesUsed, out var charsUsed, out var completed);
+
+            // assert
+            bytesUsed.Should().Be(0);
+            charsUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+#endif
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetEncoder_BuiltInNameConvertNoCharacters_ConvertsNothingAndCompletes(string name)
+        {
+            // arrange
+            var encoder = Resolve(name).GetEncoder();
+
+            // act
+            encoder.Convert(new char[0], 0, 0, new byte[0], 0, 0, true, out var charsUsed, out var bytesUsed, out var completed);
+
+            // assert
+            charsUsed.Should().Be(0);
+            bytesUsed.Should().Be(0);
+            completed.Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData(UsAsciiName)]
+        [InlineData(Iso88591Name)]
+        public void GetMaxByteCount_SingleByteName_AllowsForHeldBackHighSurrogate(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetMaxByteCount(ThreeCharacters);
+
+            // assert
+            testResult.Should().Be(MaxBytesForThreeCharacters);
+        }
+
+        [Fact]
+        public void GetDecoder_Utf32BigEndianBlockAfterHeldBytes_FitsGetMaxCharCount()
+        {
+            // arrange
+            var encoding = Resolve(Utf32BigEndianName);
+
+            // act
+            var testResult = EncodingBlocks.DecodeAfterHeldBytes(encoding, Utf32BigEndianHeldBytes, Utf32BigEndianBlockAfterHeldBytes);
+
+            // assert
+            testResult.Should().Be(Utf32BigEndianHeldAndBlockText);
+        }
+
+        [Theory]
+        [InlineData(Utf16Name)]
+        [InlineData(Utf32Name)]
+        public void BodyName_UnmarkedScheme_IsCharsetName(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.BodyName;
+
+            // assert
+            testResult.Should().BeEquivalentTo(name);
+        }
+
+        [Theory]
+        [InlineData(Utf16Name)]
+        [InlineData(Utf32Name)]
+        public void HeaderName_UnmarkedScheme_IsCharsetName(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.HeaderName;
+
+            // assert
+            testResult.Should().BeEquivalentTo(name);
+        }
+
+        [Fact]
+        public void IsSingleByte_Iso88591_ReturnsTrue()
+        {
+            // arrange
+            var encoding = Resolve(Iso88591Name);
+
+            // act
+            var testResult = encoding.IsSingleByte;
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         private static Encoding Resolve(string name)

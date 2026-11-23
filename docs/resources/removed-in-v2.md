@@ -309,6 +309,62 @@ version 1.x loaded now throws `FormatException` unless you pass
 `SubtagRegistryLoadOptions.AcceptMissingFinalLineBreak` as well for a copy whose last
 line has no line break.
 
+## LanguageTag keyed subtag conversion from string
+
+In version 1.x, the explicit conversion from `string` to `Bcp47KeyedSubtag`
+accepted any string. `(Bcp47KeyedSubtag)"ab-cd"` returned an instance whose
+`Singleton` was `'a'`, and `(Bcp47KeyedSubtag)" u-ca"` one whose `Singleton` was a
+space.
+
+In version 2.0, the conversion accepts only one extension (RFC 5646 §2.2.6) or one
+private use sequence (§2.2.7):
+
+| String | Version 1.x | Version 2.0 |
+| --- | --- | --- |
+| One extension, such as `u-ca-gregory` | A new instance | A new instance |
+| One private use sequence, such as `x-abc` | A new instance | A new instance |
+| Any other string, such as `ab-cd`, `u`, `x` or the empty string | A new instance | Throws `InvalidCastException` |
+| `null` | Throws `InvalidCastException` | Throws `InvalidCastException` |
+
+Code that casts a string that may not be a keyed subtag, such as user input,
+should check it first with `Bcp47LanguageTag.CheckExtensionSubtag` or
+`Bcp47LanguageTag.CheckPrivateUseSubtag`:
+
+```csharp
+// Before
+var subtag = (Bcp47KeyedSubtag)input;
+
+// After
+if (Bcp47LanguageTag.CheckExtensionSubtag(input) || Bcp47LanguageTag.CheckPrivateUseSubtag(input))
+{
+    var subtag = (Bcp47KeyedSubtag)input;
+}
+```
+
+## LanguageTag keyed subtag singleton type
+
+In version 1.x, `Bcp47KeyedSubtag.Singleton` was a `char?`. Since every instance
+now holds an extension or a private use sequence, each of which starts with its
+singleton, version 2.0 makes it a `char`. It still throws
+`InvalidOperationException` on a default (uninitialised) instance.
+
+Code that reads `.Value` or `.HasValue`, calls `GetValueOrDefault()`, or applies
+`??`, `?.` or `is null` to it, no longer compiles. A comparison with `null`, such as
+`Singleton == null`, still compiles with warning CS0472 but is always `false`, so a
+branch guarded by it never runs. An assembly compiled against the `char?` property
+fails with `MissingMethodException` until it is recompiled. Use the property
+directly:
+
+```csharp
+// Before
+char singleton = keyedSubtag.Singleton!.Value;
+
+// After
+char singleton = keyedSubtag.Singleton;
+```
+
+Assigning it to a `char?` still compiles.
+
 ## The netstandard1.0 target
 
 Version 2.0 also drops the `netstandard1.0` target from three packages that stay:

@@ -40,7 +40,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="uri">The URI, which must be absolute.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="sourceId"/> is not positive.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="uri"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, or was given with characters a URI value can't hold, such as a space.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, was given with characters a URI value can't hold, such as a space, or was given as text
+        /// whose scheme is one letter, such as the drive path <c>C:/dir/file</c>.</exception>
         public VcardClientPidMap(long sourceId, Uri uri)
         {
             if (sourceId <= 0)
@@ -75,6 +76,10 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Parses a value, such as <c>1;urn:uuid:3df403f4-5924-4bb7-b077-3c711d9eb34b</c>.
         /// </summary>
+        /// <remarks>
+        /// A value whose URI gives no <see cref="System.Uri"/> from <see cref="VcardValue.TryParseUri"/>, such as one whose scheme is one letter, gives <c>false</c>, though the value is
+        /// valid.  <see cref="TryParseParts"/> gives its parts.
+        /// </remarks>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The value, if it is valid.</param>

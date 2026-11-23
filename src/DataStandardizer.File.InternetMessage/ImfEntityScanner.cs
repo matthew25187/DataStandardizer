@@ -16,10 +16,11 @@ namespace DataStandardizer.File.InternetMessage
     /// The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
     /// </para>
     /// <para>
-    /// The search for a delimiter looks at each line start once.  A line is compared with the open boundaries only if it starts with <c>--</c> and
-    /// has been found to end within the longest line that RFC 5322 §2.1.1 allows, so the scanner holds back at most that much of a body, and the
-    /// search resumes at the end of a line that is not a delimiter.  The work is linear in the input for a given depth of nesting, however the input
-    /// is split.
+    /// The search for a delimiter looks at each line start once.  A line is compared with the open boundaries only if it starts with <c>--</c>.  It
+    /// can be a delimiter only if it has been found to end within the longest line that RFC 5322 §2.1.1 allows, so the scanner holds back at most
+    /// that much of a body, and the search resumes at the end of a line that is not a delimiter.  A line that starts with the delimiter of an open
+    /// boundary is an error unless it is a delimiter of that boundary or of one around it, as RFC 2046 §5.1.1 doesn't allow a boundary as the prefix
+    /// of any line of the parts it encloses.  The work is linear in the input for a given depth of nesting, however the input is split.
     /// </para>
     /// </remarks>
     internal sealed class ImfEntityScanner
@@ -68,8 +69,10 @@ namespace DataStandardizer.File.InternetMessage
         {
             internal const string BoundaryInvalid = "The boundary parameter must be 1 to 70 characters of the set that RFC 2046 §5.1.1 allows, and must not end with a space.";
             internal const string BoundaryMissing = "A multipart entity requires a boundary parameter (RFC 2046 §5.1.1).";
+            internal const string BoundaryPrefixTemplate = "A line inside the multipart entity with the boundary '{0}' starts with its delimiter, and is not one (RFC 2046 §5.1.1).";
             internal const string CloseWithoutPart = "Found the close delimiter of a multipart entity with no parts.  RFC 2046 §5.1.1 requires at least one.";
             internal const string CompositeEncodingTemplate = "The transfer encoding '{0}' is not allowed on a '{1}' entity, which may use only 7bit, 8bit or binary (RFC 2045 §6.4).";
+            internal const string Rfc6533EncodingTemplate = "The transfer encoding '{0}' is not allowed on a '{1}' entity, which may use only 7bit, 8bit, binary, quoted-printable or base64 (RFC 2045 §6.4, RFC 6533 §6.3, §6.4 and §6.5).";
             internal const string ContentTypeDuplicate = "The header section has more than one Content-Type field (RFC 2045 §3).";
             internal const string ContentTypeInvalid = "The Content-Type field is not valid (RFC 2045 §5.1).";
             internal const string InvalidBase64 = "The body is not valid base64 (RFC 2045 §6.8).";
@@ -148,6 +151,9 @@ namespace DataStandardizer.File.InternetMessage
         private const string DigestSubtype = "digest";
         private const string ExternalBodySubtype = "external-body";
         private const string GlobalSubtype = "global";
+        private const string GlobalDeliveryStatusSubtype = "global-delivery-status";
+        private const string GlobalDispositionNotificationSubtype = "global-disposition-notification";
+        private const string GlobalHeadersSubtype = "global-headers";
         private const string PartialSubtype = "partial";
         private const string Rfc822Subtype = "rfc822";
 
@@ -230,12 +236,22 @@ namespace DataStandardizer.File.InternetMessage
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _maxNestingDepth = options.MaxNestingDepth;
             _maxPartCount = options.MaxPartCount;
-            _quotedPrintableDecoder = new MimeQuotedPrintableDecoder(
-                MimeQuotedPrintableMode.Body,
-                options.AcceptBareLineFeed || lineFeedIsLineBreak ? MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds : MimeQuotedPrintableDecoderOptions.None);
+            _quotedPrintableDecoder = new MimeQuotedPrintableDecoder(MimeQuotedPrintableMode.Body, GetQuotedPrintableOptions(options, lineFeedIsLineBreak));
 
             _frames.Add(new Frame { IsMessage = true });
             _entitiesRead = 1;
+        }
+
+        /// <summary>
+        /// Gets the options a quoted-printable body is decoded with: bare line feeds as the reading options or the container format accept them, and long lines
+        /// (RFC 2045 §6.7 rule 5) when <see cref="ImfOptions.AllowLongLines"/> is set.
+        /// </summary>
+        internal static MimeQuotedPrintableDecoderOptions GetQuotedPrintableOptions(ImfOptions options, bool lineFeedIsLineBreak)
+        {
+            var result = options.AcceptBareLineFeed || lineFeedIsLineBreak ? MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds : MimeQuotedPrintableDecoderOptions.None;
+            if (options.AllowLongLines) result |= MimeQuotedPrintableDecoderOptions.AllowLongLines;
+
+            return result;
         }
 
         /// <summary>
@@ -401,6 +417,7 @@ namespace DataStandardizer.File.InternetMessage
 
                         if (scanStatus == ImfHeaderScanner.ScanStatus.FieldRead)
                         {
+                            CheckFieldBoundaryPrefix();
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
                             KeepMessageField(CurrentFrame);
@@ -603,6 +620,21 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Throws if the current field starts with the delimiter of an open boundary, as the header of a part is content of each multipart entity
+        /// around it (RFC 2046 §5.1.1).  The lines that continue a field start with white space, so only its first line can.
+        /// </summary>
+        private void CheckFieldBoundaryPrefix()
+        {
+            var field = _scanner.RawBytes.Span;
+            if (field.Length < DashLength || field[0] != Hyphen || field[1] != Hyphen) return;
+
+            var frameIndex = FindPrefixFrame(field.Slice(DashLength), -1);
+            if (frameIndex < 0) return;
+
+            throw _scanner.BuildCurrentFieldException(BuildBoundaryPrefixMessage(_frames[frameIndex].Boundary));
+        }
+
+        /// <summary>
         /// Checks the current field of a nested entity against the entity that holds it, whose encoding limits what it holds (RFC 2045 §6.4).  The header of the message itself has nothing
         /// holding it, and RFC 6532 lets it hold UTF-8.
         /// </summary>
@@ -759,9 +791,14 @@ namespace DataStandardizer.File.InternetMessage
                 }
 
                 // ref. RFC 6532 §3.7: unlike the other message types, message/global may have any transfer encoding, so it can only be followed
-                // when that leaves the embedded message readable.
+                // when that leaves the embedded message readable.  RFC 6533 §6.3, §6.4 and §6.5 allow quoted-printable and base64 on the types it
+                // defines too.
                 var isGlobal = EqualsIgnoreCase(subtype, GlobalSubtype);
-                if (!isGlobal)
+                if (IsRfc6533Subtype(subtype))
+                {
+                    CheckRfc6533Encoding(frame);
+                }
+                else if (!isGlobal)
                 {
                     CheckCompositeEncoding(frame);
                 }
@@ -782,6 +819,25 @@ namespace DataStandardizer.File.InternetMessage
 
             var parent = _frames[_frames.Count - 2];
             return EqualsIgnoreCase(parent.ContentType.Type, MimeTopLevelTypes.Multipart) && EqualsIgnoreCase(parent.ContentType.Subtype, DigestSubtype);
+        }
+
+        /// <summary>
+        /// Determines if a subtype of <c>message</c> is one that RFC 6533 §6.3, §6.4 and §6.5 allow to be <c>quoted-printable</c> or <c>base64</c>, as well
+        /// as an identity encoding.
+        /// </summary>
+        internal static bool IsRfc6533Subtype(string subtype)
+        {
+            return EqualsIgnoreCase(subtype, GlobalHeadersSubtype)
+                || EqualsIgnoreCase(subtype, GlobalDeliveryStatusSubtype)
+                || EqualsIgnoreCase(subtype, GlobalDispositionNotificationSubtype);
+        }
+
+        private void CheckRfc6533Encoding(Frame frame)
+        {
+            // ref. RFC 6533 §6.3, §6.4 and §6.5: quoted-printable or base64, besides the identity encodings of RFC 2045 §6.4.
+            var encoding = frame.TransferEncoding;
+            if (!encoding.IsIdentity && encoding != MimeTransferEncoding.QuotedPrintable && encoding != MimeTransferEncoding.Base64)
+                throw BuildError(string.Format(ErrorMessage.Rfc6533EncodingTemplate, encoding.Name, frame.ContentType.Type + "/" + frame.ContentType.Subtype));
         }
 
         private void CheckCompositeEncoding(Frame frame)
@@ -1038,6 +1094,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (available >= windowLength)
                 {
                     _lineScan = -1;
+                    CheckBoundaryPrefix(lineStart, windowEnd, -1);
                     resumeAt = windowEnd;
                     return LineMatch.NoMatch;
                 }
@@ -1051,9 +1108,10 @@ namespace DataStandardizer.File.InternetMessage
                 // ref. RFC 2046 §5.1.1: only the close delimiter can be the last thing in the data.
                 _lineScan = -1;
                 resumeAt = end;
-                if (available > MaxLineLength) return LineMatch.NoMatch;
+                if (available <= MaxLineLength && MatchDelimiter(lineStart, end, -1)) return LineMatch.Delimiter;
 
-                return MatchDelimiter(lineStart, end, -1) ? LineMatch.Delimiter : LineMatch.NoMatch;
+                CheckBoundaryPrefix(lineStart, end, -1);
+                return LineMatch.NoMatch;
             }
 
             _lineScan = -1;
@@ -1069,13 +1127,58 @@ namespace DataStandardizer.File.InternetMessage
                 }
                 else if (!_acceptBareLineFeed)
                 {
+                    // ref. RFC 2046 §5.1.1: a bare line feed doesn't end a delimiter line, but the line still starts after a CRLF.
+                    CheckBoundaryPrefix(lineStart, lineFeed, -1);
                     return LineMatch.NoMatch;
                 }
             }
 
-            if (contentEnd - lineStart > MaxLineLength) return LineMatch.NoMatch;
+            if (contentEnd - lineStart <= MaxLineLength && MatchDelimiter(lineStart, contentEnd, lineFeed + 1)) return LineMatch.Delimiter;
 
-            return MatchDelimiter(lineStart, contentEnd, lineFeed + 1) ? LineMatch.Delimiter : LineMatch.NoMatch;
+            CheckBoundaryPrefix(lineStart, contentEnd, -1);
+            return LineMatch.NoMatch;
+        }
+
+        /// <summary>
+        /// Throws if a line starts with the delimiter of an open boundary of an entity that it is content of.  RFC 2046 §5.1.1: "The boundary
+        /// delimiter MUST NOT appear inside any of the encapsulated parts, on a line by itself or as the prefix of any line."  A preamble is held to
+        /// the same rule as the parts, as the writer holds it: by the note to implementors there, a reader compares the boundary with the beginning
+        /// of each candidate line, so a line of the preamble that starts with the delimiter would be taken for it.
+        /// </summary>
+        /// <param name="lineStart">The index in the block of the start of the line, which starts with <c>--</c>.</param>
+        /// <param name="lineEnd">The index in the block of the end of the bytes of the line to look at, which are at least as many as the longest
+        /// delimiter, or the whole line.</param>
+        /// <param name="matchedIndex">The index of the entity whose delimiter the line is, or -1 if it is not a delimiter.</param>
+        private void CheckBoundaryPrefix(int lineStart, int lineEnd, int matchedIndex)
+        {
+            var frameIndex = FindPrefixFrame(new ReadOnlySpan<byte>(_scanner.Buffer, lineStart + DashLength, lineEnd - lineStart - DashLength), matchedIndex);
+            if (frameIndex < 0) return;
+
+            // The error is reported at the line, so the content before it is consumed.
+            _scanner.ConsumeBody(lineStart);
+            throw BuildError(BuildBoundaryPrefixMessage(_frames[frameIndex].Boundary));
+        }
+
+        /// <summary>
+        /// Finds an entity with an open boundary that the text after the <c>--</c> of a line starts with.
+        /// </summary>
+        /// <param name="token">The text of the line after its <c>--</c>.</param>
+        /// <param name="excludedIndex">The index of an entity not to look at, or -1.</param>
+        /// <returns>The index of the entity, or -1 if there is none.</returns>
+        private int FindPrefixFrame(ReadOnlySpan<byte> token, int excludedIndex)
+        {
+            for (var index = _frames.Count - 1; index >= 0; index--)
+            {
+                var frame = _frames[index];
+                if (index != excludedIndex && frame.IsBoundaryActive && token.StartsWith(frame.Boundary)) return index;
+            }
+
+            return -1;
+        }
+
+        private static string BuildBoundaryPrefixMessage(byte[] boundary)
+        {
+            return string.Format(ErrorMessage.BoundaryPrefixTemplate, Encoding.UTF8.GetString(boundary, 0, boundary.Length));
         }
 
         /// <summary>
@@ -1112,6 +1215,10 @@ namespace DataStandardizer.File.InternetMessage
                     && token[token.Length - 2] == Hyphen;
 
                 if (!isOpen && !isClose) continue;
+
+                // ref. RFC 2046 §5.1.1: the line is content of each entity around the one whose delimiter it is, and of each open one inside it,
+                // which it would end without a close delimiter of its own.
+                CheckBoundaryPrefix(lineStart, contentEnd, index);
 
                 _matchFrameIndex = index;
                 _matchIsClose = isClose;

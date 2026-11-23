@@ -80,6 +80,17 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         /// <summary>
+        /// Reads every card of some text.
+        /// </summary>
+        public static List<VcardCard> ReadAll(string text, VcardOptions options = null)
+        {
+            using (var reader = new VcardReader(new StringReader(text), options ?? new VcardOptions { MaxLineLength = null }))
+            {
+                return reader.ReadCards().ToList();
+            }
+        }
+
+        /// <summary>
         /// Reads a card, and leaves a <see cref="VcardFileException"/> for the test to go on from.
         /// </summary>
         public static void ReadPastFailure(VcardReader reader)

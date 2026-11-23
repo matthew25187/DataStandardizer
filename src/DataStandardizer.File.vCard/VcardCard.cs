@@ -38,11 +38,11 @@ namespace DataStandardizer.File.vCard
     {
         private static readonly VcardPropertyCodec<string> KindCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Kind);
         private static readonly VcardPropertyCodec<VcardName> NameCodec = VcardPropertyCodecs.Name();
-        private static readonly VcardPropertyCodec<VcardTypedValue> BirthdayCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Birthday);
+        private static readonly VcardPropertyCodec<VcardTypedValue> BirthdayCodec = VcardPropertyCodecs.Birthday();
         private static readonly VcardPropertyCodec<VcardTypedValue> AnniversaryCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Anniversary);
         private static readonly VcardPropertyCodec<VcardGender> GenderCodec = VcardPropertyCodecs.Gender();
         private static readonly VcardPropertyCodec<string> ProductIdCodec = VcardPropertyCodecs.Text(VcardPropertyNames.ProductId);
-        private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Timestamp(VcardPropertyNames.Revision);
+        private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Revision();
         private static readonly VcardPropertyCodec<VcardTimestamp> CreatedCodec = VcardPropertyCodecs.Timestamp(VcardPropertyNames.Created);
         private static readonly VcardPropertyCodec<Bcp47LanguageTag> DefaultLanguageCodec = VcardPropertyCodecs.LanguageTag(VcardPropertyNames.DefaultLanguage);
         private static readonly VcardPropertyCodec<VcardTypedValue> UidCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Uid);
@@ -61,7 +61,7 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<string> EmailsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Email);
         private static readonly VcardPropertyCodec<Uri> InstantMessagingCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.InstantMessaging);
         private static readonly VcardPropertyCodec<Bcp47LanguageTag> LanguagesCodec = VcardPropertyCodecs.LanguageTag(VcardPropertyNames.Language);
-        private static readonly VcardPropertyCodec<VcardTypedValue> TimeZonesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.TimeZone);
+        private static readonly VcardPropertyCodec<VcardTypedValue> TimeZonesCodec = VcardPropertyCodecs.TimeZone();
         private static readonly VcardPropertyCodec<Uri> GeoLocationsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Geo);
         private static readonly VcardPropertyCodec<string> TitlesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Title);
         private static readonly VcardPropertyCodec<string> RolesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Role);
@@ -148,7 +148,7 @@ namespace DataStandardizer.File.vCard
         /// Gets the properties, in order.  It can be changed.
         /// </summary>
         /// <remarks>
-        /// It doesn't hold <c>BEGIN</c>, <c>VERSION</c> or <c>END</c>.  <see cref="Validate"/> reports any that are added.
+        /// It doesn't hold <c>BEGIN</c>, <c>VERSION</c> or <c>END</c>.  <see cref="Validate()"/> reports any that are added.
         /// </remarks>
         public IList<VcardContentLine> Properties { get; } = new NonNullCollection();
 
@@ -704,7 +704,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// Two UIDs match if they are equivalent as RFC 6350 §7.1.1 says: by RFC 3986 §6 for URIs, and with the case of a <c>urn:uuid:</c> ignored, as RFC 4122 §3 says.  Free-form
-        /// text has to be identical.
+        /// text has to be identical.  So does a URI that <see cref="Uid"/> leaves out, such as one whose scheme is one letter, which is compared by the simple string comparison of
+        /// RFC 3986 §6.2.1.
         /// </remarks>
         /// <param name="cards">The cards.</param>
         /// <param name="uid">The UID, as it appears in the card with any escaping removed.</param>
@@ -727,8 +728,8 @@ namespace DataStandardizer.File.vCard
                 if (card is null)
                     throw new ArgumentException("The cards cannot contain null.", nameof(cards));
 
-                var cardUid = card.Uid;
-                if (cardUid != null && AreEquivalentUids(cardUid.Value, uid)) return card;
+                VcardTypedValue cardUid;
+                if (card.TryGetUidToMatch(out cardUid) && AreEquivalentUids(cardUid, uid)) return card;
             }
 
             return null;
@@ -761,7 +762,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// ref. RFC 9554 §4.7: an application "SHOULD assign a unique identifier to each sibling property of the same name", and "Resolving duplicate identifier conflicts is specific to the
-        /// application".  So a duplicate isn't an error that <see cref="Validate"/> reports, and this is how to find one.  The same value on a property of another name isn't a duplicate.
+        /// application".  So a duplicate isn't an error that <see cref="Validate()"/> reports, and this is how to find one.  The same value on a property of another name isn't a duplicate.
         /// Values are compared without regard to case, since a <c>PROP-ID</c> isn't quoted (RFC 6350 §5).
         /// </remarks>
         /// <returns>The groups, each of two or more instances.</returns>
@@ -887,10 +888,10 @@ namespace DataStandardizer.File.vCard
                 if (card is null)
                     throw new ArgumentException("The cards cannot contain null.", nameof(cards));
 
-                var cardUid = card.Uid;
-                if (cardUid != null)
+                VcardTypedValue cardUid;
+                if (card.TryGetUidToMatch(out cardUid))
                 {
-                    candidates.Add(new KeyValuePair<VcardCard, VcardTypedValue>(card, cardUid.Value));
+                    candidates.Add(new KeyValuePair<VcardCard, VcardTypedValue>(card, cardUid));
                 }
             }
 
@@ -1365,6 +1366,39 @@ namespace DataStandardizer.File.vCard
             return parameters;
         }
 
+        /// <summary>
+        /// Gets the card's <c>UID</c> to match another against.  A URI that <see cref="Uid"/> leaves out, because no <see cref="Uri"/> is made from it on any runtime, such as one whose
+        /// scheme is one letter (see <see cref="VcardValue.HasOneLetterScheme"/>) or one longer than <see cref="VcardValue.MaxUriLengthOnEveryRuntime"/>, is given as text, so that it
+        /// matches only identical text: the simple string comparison of RFC 3986 §6.2.1.
+        /// </summary>
+        private bool TryGetUidToMatch(out VcardTypedValue uid)
+        {
+            var property = Uid;
+            if (property != null)
+            {
+                uid = property.Value;
+                return true;
+            }
+
+            foreach (var line in Properties)
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                string? text;
+#else
+                string text;
+#endif
+                if (string.Equals(line.Name, VcardPropertyNames.Uid, StringComparison.OrdinalIgnoreCase) && VcardValueTypeRegistry.GetValueType(line) == VcardValueType.Uri &&
+                    VcardValue.TryGetUriText(line.Value, out text))
+                {
+                    uid = new VcardTypedValue(text);
+                    return true;
+                }
+            }
+
+            uid = default(VcardTypedValue);
+            return false;
+        }
+
         private static bool AreEquivalentUids(VcardTypedValue cardUid, string right)
         {
             // Free-form text has no equivalence of its own, whatever it looks like.
@@ -1391,6 +1425,19 @@ namespace DataStandardizer.File.vCard
         private VcardProperty<TValue> GetSingle<TValue>(VcardPropertyCodec<TValue> codec)
 #endif
         {
+            return GetSingle(codec, null);
+        }
+
+        /// <summary>
+        /// Gets the instance of a property that may appear once, which can be one whose value the card keeps in the form of <paramref name="sourceVersion"/>, because vCard 4.0 has no
+        /// form for it.  Only a view of an older version passes a version.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private VcardProperty<TValue>? GetSingle<TValue>(VcardPropertyCodec<TValue> codec, VcardVersion? sourceVersion)
+#else
+        private VcardProperty<TValue> GetSingle<TValue>(VcardPropertyCodec<TValue> codec, VcardVersion? sourceVersion)
+#endif
+        {
             // ref. RFC 9554 §4.6: a property with PHONETIC is how to pronounce another of the same name, so it is not the value unless there's nothing else.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             VcardProperty<TValue>? phonetic = null;
@@ -1404,7 +1451,7 @@ namespace DataStandardizer.File.vCard
 #else
                 VcardProperty<TValue> property;
 #endif
-                if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, out property))
+                if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, sourceVersion, out property))
                 {
                     if (VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) is null ||
                         !VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Phonetic, line.Name))
@@ -1429,15 +1476,22 @@ namespace DataStandardizer.File.vCard
 #endif
         {
             // Create the line first, so that a value that can't be written leaves the card as it was.
-            var newLine = codec.CreateLine(value, parameters);
+            SetSingleLine(codec.Name, codec.CreateLine(value, parameters));
+        }
+
+        /// <summary>
+        /// Puts a line in place of the properties of its name, where the first of them was.
+        /// </summary>
+        private void SetSingleLine(string name, VcardContentLine newLine)
+        {
             var position = -1;
             for (var index = 0; index < Properties.Count; index++)
             {
-                if (string.Equals(Properties[index].Name, codec.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Properties[index].Name, name, StringComparison.OrdinalIgnoreCase))
                 {
                     // ref. RFC 9554 §4.4: 'When present with a value of "true", clients MUST NOT update the property.'
                     if (VcardPropertyParameterReader.IsDerived(Properties[index]))
-                        throw new InvalidOperationException("The property " + codec.Name + " has DERIVED=true, which RFC 9554 §4.4 says a client must not update.  Remove it first to work it out again.");
+                        throw new InvalidOperationException("The property " + name + " has DERIVED=true, which RFC 9554 §4.4 says a client must not update.  Remove it first to work it out again.");
 
                     if (position < 0)
                     {
@@ -1446,7 +1500,7 @@ namespace DataStandardizer.File.vCard
                 }
             }
 
-            RemoveProperties(codec.Name);
+            RemoveProperties(name);
             Properties.Insert(position < 0 ? Properties.Count : position, newLine);
         }
 

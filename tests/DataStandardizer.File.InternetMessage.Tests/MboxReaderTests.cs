@@ -130,6 +130,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string TooLongQuotedLineBesideBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b\n\n" + TooLongQuotedLine + "\n--b--\n\n";
         private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
 
+        // A carriage return that ends the file with no line feed after it is an octet of the line, not a line break, so this line is 999 octets.
+        private static readonly string TooLongQuotedLineEndingInCarriageReturnAtTheEnd = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\r";
+
+        // Once a message has shown both an 8-bit line and a CRLF line, the line-length limit still sees how its quoted From line ends.
+        private const string EightBitBodyHeader = Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n\n";
+        private static readonly string LongestQuotedLineWithCrLfAfterEightBitAndCrLf = Separator1 + EightBitBodyHeader + "caf\x00E9\none\r\n>From " + new string('x', ShorterFromLinePadding) + "\r\n\n";
+        private static readonly string TooLongQuotedLineAfterCrLfAndEightBitWithCrLf = Separator1 + EightBitBodyHeader + "one\r\ncaf\x00E9\r\n" + TooLongQuotedLine + "\n\n";
+        private static readonly ImfOptions AllowCrLfAndEightBit = new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowEightBitMboxContent = true };
+
         private const string EnvelopeAndBody1 = Envelope1 + "|one\n";
         private const string EnvelopeAndBody2 = Envelope2 + "|two\n";
         private const string EnvelopeAndQuotableBody = Envelope1 + "|" + QuotableBody;
@@ -157,6 +166,23 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string LargeMessage = Header + "\n" + string.Concat(Enumerable.Repeat(new string('x', LargeBodyLineLength) + "\n", LargeBodyLineCount));
         private static readonly string LargeMailbox = Separator1 + LargeMessage + "\n" + Separator2 + Message2 + "\n";
         private static readonly byte[] ManyMessagesMailbox = Mailboxes.Repeat(OneMessageWithEmptyLine, ManyMessages);
+
+        // The reader skips the rest of a message through a buffer of 4096 octets (MboxReader.DiscardBufferSize, pinned by a test below).  CrLfHeader is 56 octets and the skipped
+        // body's full lines 4000, so a last line of 39 octets leaves one octet of that buffer for the CRLF that ends it, which is let go only when the next separator line is found.
+        // The lengths either side of it are controls.
+        private const int SkipBufferSize = 4096;
+        private const int SkippedBodyLineCount = 4;
+        private const int SkippedLastLineLeavingTwoOctets = 38;
+        private const int SkippedLastLineLeavingOneOctet = 39;
+        private const int SkippedLastLineLeavingNoOctets = 40;
+        private static readonly string SkippedBodyLines = string.Concat(Enumerable.Repeat(new string('x', LargeBodyLineLength) + "\r\n", SkippedBodyLineCount));
+
+        public static TheoryData<string> SkippedMessageAlignments => new TheoryData<string>
+        {
+            SkippedThenSecond(SkippedLastLineLeavingTwoOctets),
+            SkippedThenSecond(SkippedLastLineLeavingOneOctet),
+            SkippedThenSecond(SkippedLastLineLeavingNoOctets),
+        };
 
         private static readonly ImfOptions AllowCrLf = new ImfOptions { AllowMboxCarriageReturnLineFeed = true };
         private static readonly ImfOptions AllowEightBit = new ImfOptions { AllowEightBitMboxContent = true };
@@ -1053,6 +1079,30 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadMessage_LongestQuotedLineEndingInCrLfAfterEightBitAndCrLfLines_IsNotTooLong()
+        {
+            // arrange
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(LongestQuotedLineWithCrLfAfterEightBitAndCrLf, MboxVariant.Mboxrd, AllowCrLfAndEightBit);
+
+            // assert
+            testResult.Should().NotContain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_TooLongQuotedLineAfterCrLfAndEightBitLines_Throws()
+        {
+            // arrange
+
+            // act
+            Action testAction = () => Mailboxes.ReadFirst(TooLongQuotedLineAfterCrLfAndEightBitWithCrLf, MboxVariant.Mboxrd, AllowCrLfAndEightBit);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
         public void ReadMessage_LineTooLongInTheFileWithNoLineBreakAtTheEnd_RecordsADiagnostic()
         {
             // arrange
@@ -1060,6 +1110,19 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineAtTheEnd, MboxVariant.Mboxrd, options);
+
+            // assert
+            testResult.Should().Contain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_QuotedLineEndingInCarriageReturnWithNoLineFeedAtTheEnd_CountsTheCarriageReturn()
+        {
+            // arrange
+            var options = new ImfOptions { AllowLongLines = true, AllowMissingMboxBlankLine = true, AllowInvalidBodyOctets = true };
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineEndingInCarriageReturnAtTheEnd, MboxVariant.Mboxrd, options);
 
             // assert
             testResult.Should().Contain(ImfDiagnosticKind.LongBodyLine);
@@ -1453,6 +1516,49 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [MemberData(nameof(SkippedMessageAlignments))]
+        public void ReadMessage_SkippedMessageEndingAtTheDiscardBufferEnd_ReadsTheNextMessage(string mailbox)
+        {
+            // act
+            var testResult = Mailboxes.ReadSecondAfterSkipping(mailbox, CrLfAndBlankLineOptions());
+
+            // assert
+            testResult.Should().Be(CrLfMessage2);
+        }
+
+        [Theory]
+        [MemberData(nameof(SkippedMessageAlignments))]
+        public async Task ReadMessageAsync_SkippedMessageEndingAtTheDiscardBufferEnd_ReadsTheNextMessage(string mailbox)
+        {
+            // act
+            var testResult = await Mailboxes.ReadSecondAfterSkippingAsync(mailbox, CrLfAndBlankLineOptions());
+
+            // assert
+            testResult.Should().Be(CrLfMessage2);
+        }
+
+        [Fact]
+        public void DiscardBufferSize_Value_IsTheSizeTheSkipTestsAreAlignedTo()
+        {
+            // act
+            var testResult = MboxReader.DiscardBufferSize;
+
+            // assert
+            testResult.Should().Be(SkipBufferSize);
+        }
+
+        private static ImfOptions CrLfAndBlankLineOptions()
+        {
+            return new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowMissingMboxBlankLine = true };
+        }
+
+        // A CRLF file of a message with no empty line after it, whose last line has the given length, then a second message.
+        private static string SkippedThenSecond(int lastLineLength)
+        {
+            return CrLfSeparator + CrLfHeader + SkippedBodyLines + new string('x', lastLineLength) + "\r\n" + Envelope2 + "\r\n" + CrLfMessage2 + "\r\n";
         }
     }
 }

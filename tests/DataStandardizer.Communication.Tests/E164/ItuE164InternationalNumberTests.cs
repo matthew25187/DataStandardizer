@@ -23,6 +23,7 @@ namespace DataStandardizer.Communication.Tests.E164
 
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
+
         private const ulong GlobalSubscriberNumber = 8001234567L;
         private const ulong SubscriberNumber = 1234567L;
         private const ulong TwelveDigitSubscriberNumber = 123456789012L;
@@ -58,6 +59,29 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TooShortNumber = "991";
         private const string TooLongNumber = "9911012345678901";
         private const string NotANumber = "Not A Number";
+
+        // A network number with a one-digit Subscriber Number: Country Code 881 (GMSS), Identification Code 6, Subscriber Number 5.
+        private const string OneSubscriberDigitNetworkNumberText = "88165";
+        private const ulong OneSubscriberDigitNetworkNumber = 88165L;
+        private const string OneSubscriberDigitText = "5";
+
+        // The same Country Code and Identification Code with no Subscriber Number, which a network number must have.
+        private const string NoSubscriberDigitNetworkNumberText = "8816";
+
+        // A trial number with no Subscriber Number, which a trial number may leave out: Country Code 991 and Trial Identification Code 1.
+        private const string NoSubscriberDigitTrialNumberText = "9911";
+
+        // Number styles with a bit that no ItuE164InternationalNumberStyles value defines: that bit alone, 0x08, and with every
+        // defined style, 0x0F; and the highest bit alone, 0x80000000.
+        private const ItuE164InternationalNumberStyles UndefinedNumberStyles = (ItuE164InternationalNumberStyles)0x08;
+        private const ItuE164InternationalNumberStyles UndefinedNumberStylesWithAny = (ItuE164InternationalNumberStyles)0x0F;
+        private const ItuE164InternationalNumberStyles HighestUndefinedNumberStyles = (ItuE164InternationalNumberStyles)0x80000000;
+        private const string NumberStylesParameterName = "numberStyles";
+
+        // A number for a group of countries with a one-digit Subscriber Number: Country Code 388, Group Identification Code 3,
+        // Subscriber Number 1.
+        private const string OneSubscriberDigitGroupOfCountriesNumberText = "38831";
+        private const ulong OneSubscriberDigitGroupOfCountriesNumber = 38831L;
 
         // 800 is a Country Code for a global service, not a geographic area.
         private const ulong GlobalServiceCountryCodeNumber = 800123;
@@ -99,9 +123,9 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TypeFullName = "DataStandardizer.Communication.E164.ItuE164InternationalNumber";
 
         // A custom pattern that begins with 'i', a digit of the identification code, rather than a standard format; and NetworkNumber
-        // (country code 883, identification code 110) in that pattern.
-        private const string IdentificationCodeFirstPattern = "iii-ccc";
-        private const string NetworkNumberInIdentificationCodeFirstPattern = "110-883";
+        // (country code 883, identification code 110, subscriber number 1234567) in that pattern.
+        private const string IdentificationCodeFirstPattern = "iii-ccc sssssss";
+        private const string NetworkNumberInIdentificationCodeFirstPattern = "110-883 1234567";
 
         // Format providers that supply no ICustomFormatter.
         public static TheoryData<IFormatProvider> ProvidersWithoutCustomFormatter => new TheoryData<IFormatProvider>
@@ -140,6 +164,35 @@ namespace DataStandardizer.Communication.Tests.E164
             { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber), "+443071234567" },
             { ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber), "+8004121234567" },
             { ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber), "+8831101234567" },
+        };
+
+        public static TheoryData<Func<bool>> TryParseCallsWithNullInput => new TheoryData<Func<bool>>
+        {
+            () => ItuE164InternationalNumber.TryParse(null, out _),
+            () => ItuE164InternationalNumber.TryParse(null, ItuE164InternationalNumberStyles.None, out _),
+            () => ItuE164InternationalNumber.TryParse(null, ItuE164InternationalNumberStyles.Any, out _)
+        };
+
+        public static TheoryData<Action> ParseCallsWithNullInput => new TheoryData<Action>
+        {
+            () => ItuE164InternationalNumber.Parse(null),
+            () => ItuE164InternationalNumber.Parse(null, ItuE164InternationalNumberStyles.None),
+            () => ItuE164InternationalNumber.Parse(null, ItuE164InternationalNumberStyles.Any)
+        };
+
+        public static TheoryData<Action> ParseCallsWithUndefinedNumberStyles => new TheoryData<Action>
+        {
+            () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, UndefinedNumberStyles),
+            () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, UndefinedNumberStylesWithAny),
+            () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, HighestUndefinedNumberStyles)
+        };
+
+        public static TheoryData<Action> TryParseCallsWithUndefinedNumberStyles => new TheoryData<Action>
+        {
+            () => ItuE164InternationalNumber.TryParse(GreatBritainNumberText, UndefinedNumberStyles, out _),
+            () => ItuE164InternationalNumber.TryParse(GreatBritainNumberText, UndefinedNumberStylesWithAny, out _),
+            () => ItuE164InternationalNumber.TryParse(GreatBritainNumberText, HighestUndefinedNumberStyles, out _),
+            () => ItuE164InternationalNumber.TryParse(null, UndefinedNumberStyles, out _)
         };
 
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
@@ -1452,11 +1505,33 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("'10000' is not a valid Identification Code.*");
         }
 
+        // Identification Codes are assigned under one Country Code each (ITU-T list of E.164 assigned country codes,
+        // International Shared Country Codes): 6 to 9 under 881, two-digit codes under 882, and three- and four-digit
+        // codes under 883.
+        [Theory]
+        [InlineData(ItuE164AssignedCountryCodesForNetworks.GMSS, ItuE164AssignedIdentificationCodesForNetworks.IC110, "5550100", "Identification Code '110' is not assigned under Country Code '881'.*")]
+        [InlineData(ItuE164AssignedCountryCodesForNetworks.IN2, ItuE164AssignedIdentificationCodesForNetworks.IC37, "0555", "Identification Code '37' is not assigned under Country Code '883'.*")]
+        [InlineData(ItuE164AssignedCountryCodesForNetworks.IN1, ItuE164AssignedIdentificationCodesForNetworks.IC6, "1234567", "Identification Code '6' is not assigned under Country Code '882'.*")]
+        public void CreateNumberForNetwork_IdentificationCodeOfAnotherCountryCode_ThrowsArgumentException(ItuE164AssignedCountryCodesForNetworks countryCode, ItuE164AssignedIdentificationCodesForNetworks identificationCode, string subscriberNumberDigits, string expectedMessage)
+        {
+            // arrange
+            var subscriberNumber = new ItuE164SubscriberNumber(subscriberNumberDigits);
+
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentException>()
+                .WithMessage(expectedMessage)
+                .And.ParamName.Should().Be("identificationCode");
+        }
+
         [Fact]
         public void CreateNumberForNetwork_SubscriberNumberTooLong_ThrowsArgumentOutOfRangeException()
         {
             // arrange
-            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN1;
+            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN2;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC190;
             const ulong subscriberNumber = TwelveDigitSubscriberNumber;
 
@@ -1473,11 +1548,11 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForNetwork_CountryCodeAndIdentificationCodeAndSubscriberNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.GMSS;
+            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN2;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC110;
             const ulong subscriberNumber = SubscriberNumber;
 
-            const ulong expectedResult = 8811101234567L;
+            const ulong expectedResult = 8831101234567L;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
@@ -2029,6 +2104,49 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().BeFalse();
         }
 
+        // ITU-T E.164 defines an international number as a string of decimal digits, so no style allows a character between them.
+        [Theory]
+        [InlineData("64 212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("1-205-555-0199", ItuE164InternationalNumberStyles.None),
+         InlineData("64#212*345%678", ItuE164InternationalNumberStyles.None),
+         InlineData("64'212\"345!678", ItuE164InternationalNumberStyles.None),
+         InlineData("64@212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("64\\212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("64?212&345678", ItuE164InternationalNumberStyles.None),
+         InlineData("64\x00A0212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("64\t212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("64\r212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("64\n212345678", ItuE164InternationalNumberStyles.None),
+         InlineData("+64 212345678", ItuE164InternationalNumberStyles.Any),
+         InlineData("+64-212345678", ItuE164InternationalNumberStyles.Any),
+         InlineData("800 4121234567", ItuE164InternationalNumberStyles.None),
+         InlineData("8004121234-567", ItuE164InternationalNumberStyles.None),
+         InlineData("+800 4121234567", ItuE164InternationalNumberStyles.Any),
+         InlineData("883 1101234567", ItuE164InternationalNumberStyles.None),
+         InlineData("883110 1234567", ItuE164InternationalNumberStyles.None),
+         InlineData("+883 110 1234567", ItuE164InternationalNumberStyles.Any)]
+        public void TryParse_CharacterBetweenDigits_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("44 307 123-4567", "The input string '44 307 123-4567' was not in a correct format.")]
+        public void Parse_SpaceAndHyphenBetweenDigitsWithDefaultStyle_ThrowsFormatException(string testNumber, string expectedMessage)
+        {
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber);
+
+            // assert
+            testAction.Should()
+                .Throw<FormatException>()
+                .WithMessage(expectedMessage);
+        }
+
         [Theory]
         [InlineData(" 211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGeographicAreaNumber),
          InlineData("\x000B211123456789012", ItuE164InternationalNumberStyles.AllowLeadingWhite, FifteenDigitGeographicAreaNumber),
@@ -2063,10 +2181,159 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().BeFalse();
         }
 
+        // ITU-T E.164 numbers are made of the decimal digits 0-9 only, so a Unicode decimal digit from another script isn't one.
+        [Theory]
+        [InlineData("44٣071234567", ItuE164InternationalNumberStyles.None),
+         // Guards the Country Code, which only ever matched assigned ASCII codes; the other rows guard the Subscriber Number.
+         InlineData("٤٤3071234567", ItuE164InternationalNumberStyles.None),
+         InlineData("+44٣٠٧1234567", ItuE164InternationalNumberStyles.Any),
+         InlineData("+44307123456१", ItuE164InternationalNumberStyles.Any),
+         InlineData("64２１２345678", ItuE164InternationalNumberStyles.None),
+         InlineData("800412123456٣", ItuE164InternationalNumberStyles.None),
+         InlineData("+8004121234567٣", ItuE164InternationalNumberStyles.Any),
+         InlineData("883110123456٣", ItuE164InternationalNumberStyles.None),
+         InlineData("+8831101234567٣", ItuE164InternationalNumberStyles.Any)]
+        public void TryParse_NonAsciiDecimalDigit_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("44٣٠٧1234567", "The input string '44٣٠٧1234567' was not in a correct format.")]
+        public void Parse_NonAsciiDecimalDigit_ThrowsFormatException(string testNumber, string expectedMessage)
+        {
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber);
+
+            // assert
+            testAction.Should()
+                .Throw<FormatException>()
+                .WithMessage(expectedMessage);
+        }
+
+        [Fact]
+        public void TryParse_NetworkNumberWithOneSubscriberDigit_ReturnsNumber()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(OneSubscriberDigitNetworkNumberText, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(OneSubscriberDigitNetworkNumber);
+            ((IItuE164InternationalNumberForNetworks)actualResult).IdentificationCode.Should().Be(ItuE164AssignedIdentificationCodesForNetworks.IC6);
+            ((IItuE164InternationalNumberForNetworks)actualResult).SubscriberNumber.ToString().Should().Be(OneSubscriberDigitText);
+        }
+
+        [Fact]
+        public void Parse_NetworkNumberWithOneSubscriberDigit_ReturnsNumber()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(OneSubscriberDigitNetworkNumberText);
+
+            // assert
+            testResult.Number.Should().Be(OneSubscriberDigitNetworkNumber);
+        }
+
+        [Fact]
+        public void TryParse_NetworkNumberWithNoSubscriberDigit_ReturnsFalse()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(NoSubscriberDigitNetworkNumberText, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void CreateNumberForNetwork_OneSubscriberDigit_ReturnsInternationalNumber()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.CreateNumberForNetwork(OneSubscriberDigitNetworkNumber);
+
+            // assert
+            testResult.Number.Should().Be(OneSubscriberDigitNetworkNumber);
+            ((IItuE164InternationalNumberForNetworks)testResult).SubscriberNumber.ToString().Should().Be(OneSubscriberDigitText);
+        }
+
+        [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        public void TryParse_GroupOfCountriesNumberWithOneSubscriberDigit_ReturnsNumber()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(OneSubscriberDigitGroupOfCountriesNumberText, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(OneSubscriberDigitGroupOfCountriesNumber);
+        }
+
+        [Fact(Skip = NumberForTrialsSkipMessage)]
+        public void TryParse_TrialNumberWithNoSubscriberNumber_ReturnsNumberWithNoSubscriberNumber()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(NoSubscriberDigitTrialNumberText, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            ((IItuE164InternationalNumberForTrials)actualResult).SubscriberNumber.Should().BeNull();
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseCallsWithNullInput))]
+        public void TryParse_NullInput_ReturnsFalse(Func<bool> tryParseCall)
+        {
+            // act
+            var testResult = tryParseCall();
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(ParseCallsWithNullInput))]
+        public void Parse_NullInput_ThrowsArgumentNullException(Action parseCall)
+        {
+            // act
+            var testAction = parseCall;
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentNullException>()
+                .WithParameterName("s");
+        }
+
+        [Theory]
+        [MemberData(nameof(ParseCallsWithUndefinedNumberStyles))]
+        public void Parse_UndefinedNumberStyles_ThrowsArgumentOutOfRangeException(Action parseCall)
+        {
+            // act
+            var testAction = parseCall;
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentOutOfRangeException>()
+                .WithParameterName(NumberStylesParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseCallsWithUndefinedNumberStyles))]
+        public void TryParse_UndefinedNumberStyles_ThrowsArgumentOutOfRangeException(Action tryParseCall)
+        {
+            // act
+            var testAction = tryParseCall;
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentOutOfRangeException>()
+                .WithParameterName(NumberStylesParameterName);
+        }
+
         public class ParseTestCaseGenerator
         {
             private static readonly string[] Prefixes = new string[] { string.Empty, InternationalPrefixSymbol.ToString() };
-            private static readonly string[] Separators = new string[] { string.Empty, " ", "-" };
             private static readonly string[] WhiteSpace = new string[] { string.Empty, " ", "  ", "\t", "\t\t" };
 
             public static IEnumerable<object[]> InternationalNumberForGeographicAreasTestCases
@@ -2077,21 +2344,18 @@ namespace DataStandardizer.Communication.Tests.E164
                     var subscriberNumberIndex = 0;
                     foreach (var countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForGeographicAreas)).Cast<ushort>().Distinct())
                     {
-                        foreach (var separator in Separators)
+                        foreach (var leadingWhiteSpace in WhiteSpace)
                         {
-                            foreach (var leadingWhiteSpace in WhiteSpace)
+                            foreach (var trailingWhiteSpace in WhiteSpace)
                             {
-                                foreach (var trailingWhiteSpace in WhiteSpace)
+                                foreach (var prefix in Prefixes)
                                 {
-                                    foreach (var prefix in Prefixes)
-                                    {
-                                        var subscriberNumber = 5550000 + (100 + subscriberNumberIndex++ % 100);
-                                        var testInput = string.Concat(leadingWhiteSpace, prefix, leadingWhiteSpace, countryCode, separator, areaCode, separator, subscriberNumber, trailingWhiteSpace);
+                                    var subscriberNumber = 5550000 + (100 + subscriberNumberIndex++ % 100);
+                                    var testInput = string.Concat(leadingWhiteSpace, prefix, leadingWhiteSpace, countryCode, areaCode, subscriberNumber, trailingWhiteSpace);
 
-                                        var expectedResult = countryCode * 10_000_000_000L + areaCode * 10_000_000L + subscriberNumber;
+                                    var expectedResult = countryCode * 10_000_000_000L + areaCode * 10_000_000L + subscriberNumber;
 
-                                        yield return new object[] { testInput, expectedResult };
-                                    }
+                                    yield return new object[] { testInput, expectedResult };
                                 }
                             }
                         }
@@ -2106,21 +2370,18 @@ namespace DataStandardizer.Communication.Tests.E164
                     var subscriberNumberIndex = 0;
                     foreach (var countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForGlobalServices)).Cast<ushort>())
                     {
-                        foreach (var separator in Separators)
+                        foreach (var leadingWhiteSpace in WhiteSpace)
                         {
-                            foreach (var leadingWhiteSpace in WhiteSpace)
+                            foreach (var trailingWhiteSpace in WhiteSpace)
                             {
-                                foreach (var trailingWhiteSpace in WhiteSpace)
+                                foreach (var prefix in Prefixes)
                                 {
-                                    foreach (var prefix in Prefixes)
-                                    {
-                                        var subscriberNumber = 5550000 + (100 + subscriberNumberIndex++ % 100);
-                                        var testInput = string.Concat(leadingWhiteSpace, prefix, leadingWhiteSpace, countryCode, separator, subscriberNumber, trailingWhiteSpace);
+                                    var subscriberNumber = 5550000 + (100 + subscriberNumberIndex++ % 100);
+                                    var testInput = string.Concat(leadingWhiteSpace, prefix, leadingWhiteSpace, countryCode, subscriberNumber, trailingWhiteSpace);
 
-                                        var expectedResult = countryCode * 10_000_000L + subscriberNumber;
+                                    var expectedResult = countryCode * 10_000_000L + subscriberNumber;
 
-                                        yield return new object[] { testInput, expectedResult };
-                                    }
+                                    yield return new object[] { testInput, expectedResult };
                                 }
                             }
                         }
@@ -2138,21 +2399,18 @@ namespace DataStandardizer.Communication.Tests.E164
                     {
                         foreach (var identificationCode in kvp)
                         {
-                            foreach (var separator in Separators)
+                            foreach (var leadingWhiteSpace in WhiteSpace)
                             {
-                                foreach (var leadingWhiteSpace in WhiteSpace)
+                                foreach (var trailingWhiteSpace in WhiteSpace)
                                 {
-                                    foreach (var trailingWhiteSpace in WhiteSpace)
+                                    foreach (var prefix in Prefixes)
                                     {
-                                        foreach (var prefix in Prefixes)
-                                        {
-                                            var subscriberNumber = 5550000 + (100 + subscriberNumberIndex++ % 100);
-                                            var testInput = string.Concat(leadingWhiteSpace, prefix, leadingWhiteSpace, kvp.Key, separator, identificationCode, separator, subscriberNumber, trailingWhiteSpace);
+                                        var subscriberNumber = 5550000 + (100 + subscriberNumberIndex++ % 100);
+                                        var testInput = string.Concat(leadingWhiteSpace, prefix, leadingWhiteSpace, kvp.Key, identificationCode, subscriberNumber, trailingWhiteSpace);
 
-                                            var expectedResult = ulong.Parse($"{kvp.Key}{identificationCode}{subscriberNumber}");
+                                        var expectedResult = ulong.Parse($"{kvp.Key}{identificationCode}{subscriberNumber}");
 
-                                            yield return new object[] { testInput, expectedResult };
-                                        }
+                                        yield return new object[] { testInput, expectedResult };
                                     }
                                 }
                             }

@@ -7,6 +7,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Money
 {
+    /// <summary>
+    /// Provides extension methods that give the names, symbols, minor units and kind of ISO 4217 currency codes.
+    /// </summary>
     public static class Iso4217Extensions
     {
         #region Metadata Caches

@@ -16,6 +16,7 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Messages.</b>  Each message is checked and written as an <see cref="ImfWriter"/> does, under the same options, so a message that it refuses leaves nothing in the output, and writing
     /// can continue with another.  A message read from a file with the same line breaks stays byte for byte as it was, apart from what the variant adds.
+    /// A message that one of them holds, in a <c>message/rfc822</c> or <c>message/global</c> entity, and that has other line breaks than the one that holds it, is given the line breaks of that one, which it can't be if it has a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism (§6.3).
     /// </para>
     /// <para>
     /// <b>Variants.</b>  With <see cref="MboxVariant.Mboxrd"/> and <see cref="MboxVariant.Mboxcl2"/>, a message reads back exactly.  With <see cref="MboxVariant.Mboxo"/> and
@@ -28,6 +29,11 @@ namespace DataStandardizer.File.InternetMessage
     /// given.  So one read from an <c>.eml</c> file changes when written here.  A line that still ends in CRLF in a file of LF, from a file read with
     /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>, causes an <see cref="ImfFileException"/> unless that option is set.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism (§6.3), as a line break in it may not be
     /// one, which causes an <see cref="ImfFileException"/>.
+    /// The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body
+    /// that would have had it is encoded instead.
+    /// Nor does it give the <c>7bit</c> or <c>8bit</c> transfer encoding to a body that holds a CR or LF and isn't of a <c>text</c>, <c>message</c> or <c>multipart</c> type, as a CR or
+    /// LF there is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1).  Such a body is encoded too, and one whose <see cref="ImfEntity.ContentTransferEncoding"/> asks for <c>7bit</c> or
+    /// <c>8bit</c> causes an <see cref="ImfFileException"/>.
     /// </para>
     /// <para>
     /// <b>Seven bits.</b>  RFC 4155 Appendix A requires seven-bit characters, so an octet above 127 causes an <see cref="ImfFileException"/>, unless
@@ -36,7 +42,10 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Line length.</b>  RFC 4155 Appendix A requires each message to follow the formatting rules of RFC 2822, so RFC 5322 §2.1.1 limits each line in the file to 998 octets.  A quote that takes
     /// a line past that causes an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowLongLines"/> is set, or it is in a body that has no line limit, such as a <c>binary</c> one.  A
-    /// variant that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.
+    /// variant that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.  To find the entity that holds a line too long for the file, the message is read back
+    /// under the same options, and a message that can't be read that way causes the <see cref="ImfFileException"/> the reader gives, with its own
+    /// <see cref="ImfFileException.DataItemName.DiagnosticKind"/>, if it has one.  Its <see cref="ImfFileException.DataItemName.BytePosition"/> and
+    /// <see cref="ImfFileException.DataItemName.LineNumber"/> count from the start of the message, in the line breaks of the file, with no separator line and no quotes.
     /// </para>
     /// <para>
     /// <b>Last line.</b>  The empty line that ends a message has to be a line of its own, so a message whose last line has no line break gets one.  With
@@ -535,7 +544,8 @@ namespace DataStandardizer.File.InternetMessage
                 // A message is written in the line breaks it has, so that what hasn't changed stays as it is, and then they are changed all at once if the file has others.
                 var output = new MemoryStream();
                 var hasLineFeedBreaks = message.LineFeedIsLineBreak;
-                using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, _boundaryGenerator))
+                var lineBreaksChange = hasLineFeedBreaks == _isCrLf;
+                using (var writer = new ImfWriter(output, _options, hasLineFeedBreaks, lineBreaksChange, _boundaryGenerator, ImfConformanceProfile.Message))
                 {
                     writer.WriteMessage(message);
                     diagnostics.AddRange(writer.Diagnostics);
@@ -543,7 +553,7 @@ namespace DataStandardizer.File.InternetMessage
                 }
 
                 var bytes = new ReadOnlySpan<byte>(output.ToArray());
-                if (hasLineFeedBreaks == _isCrLf) bytes = ImfLineBreaks.Convert(message, bytes, _isCrLf);
+                if (lineBreaksChange) bytes = ImfLineBreaks.Convert(message, bytes, _isCrLf);
 
                 var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf, out var fieldChange);
                 fieldCount += fieldChange;
@@ -578,7 +588,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so a quote counts.  Most messages have no long line in the file, so they don't need to
-        // be read to find what holds it.  A reader of what was written treats each line as this does, and refuses what the message can't be read with, such as a long line of a header.
+        // be read to find what holds it.  A reader of what was written treats each line as this does, and refuses what the message can't be read with, such as a long line of a header.  What it
+        // refuses is passed on as the reader describes it, with its own kind, position and entity path, so that only a long line is reported as one.
         private void CheckLineLengths(ReadOnlySpan<byte> formatted, ReadOnlySpan<byte> message, List<ImfDiagnostic> diagnostics)
         {
             if (!HasLongLine(formatted)) return;
@@ -586,16 +597,8 @@ namespace DataStandardizer.File.InternetMessage
             var lines = FindLongQuotedLines(message);
             using (var reader = new ImfEntityReader(new MemoryStream(message.ToArray()), _options, QuotedLineScanBufferSize, !_isCrLf) { LongLinesOutsideTheData = () => lines })
             {
-                try
+                while (!(reader.ReadEvent() is null))
                 {
-                    while (!(reader.ReadEvent() is null))
-                    {
-                    }
-                }
-                catch (ImfFileException exception)
-                {
-                    Report(ImfDiagnosticKind.LongBodyLine, exception.Message, diagnostics);
-                    return;
                 }
 
                 foreach (var diagnostic in reader.Diagnostics)

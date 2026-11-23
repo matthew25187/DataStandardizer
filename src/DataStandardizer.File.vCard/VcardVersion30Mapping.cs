@@ -111,6 +111,41 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the sort key that a writer of vCard 3.0 writes as the first <c>SORT-STRING</c> of the card, from the line a reader of vCard 3.0 gives it back to (see
+        /// <see cref="Downgrade.AddSortStrings"/>): the first <c>N</c> it writes, or on a card with no such <c>N</c> the first <c>ORG</c>.  Gives <c>null</c> if that line has no
+        /// sort key, or if a <c>SORT-STRING</c> of the card's own that the reader would give to the line comes before it, since the writer then leaves the line's sort key out.
+        /// </summary>
+        internal static string GetWrittenSortKey(VcardCard card)
+        {
+            var targetIndex = -1;
+            var ownSortStringIndex = int.MaxValue;
+            for (var index = 0; index < card.Properties.Count; index++)
+            {
+                var line = card.Properties[index];
+                string text;
+                if (ownSortStringIndex == int.MaxValue && IsName(line, VcardPropertyNames.SortString) && IsAttachableSortString(line, out text))
+                {
+                    ownSortStringIndex = index;
+                }
+
+                // ref. RFC 9554 §4.6: a writer of vCard 3.0 leaves out an N with PHONETIC, which is the pronunciation of another.
+                if (IsName(line, VcardPropertyNames.Name) && line.GetParameter(VcardParameterNames.Phonetic) is null && (targetIndex < 0 || !IsName(card.Properties[targetIndex], VcardPropertyNames.Name)))
+                {
+                    targetIndex = index;
+                }
+                else if (IsName(line, VcardPropertyNames.Organization) && targetIndex < 0)
+                {
+                    targetIndex = index;
+                }
+            }
+
+            if (targetIndex < 0 || targetIndex > ownSortStringIndex) return null;
+
+            var sortAs = VcardPropertyParameterReader.GetListValues(card.Properties[targetIndex], VcardParameterNames.SortAs);
+            return sortAs.Count == 0 ? null : sortAs[0];
+        }
+
+        /// <summary>
         /// Gets the lowest <c>PREF</c> among the instances of a property.
         /// </summary>
         internal static int GetLowestPreference(IEnumerable<VcardContentLine> lines, string name)
@@ -259,6 +294,24 @@ namespace DataStandardizer.File.vCard
             }
         }
 
+        /// <summary>
+        /// Splits each value of a <c>TYPE</c> parameter that holds a comma into the values it lists, keeping the parameters where they are.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6350 §5.6 allows a quoted list, such as <c>TYPE="voice,home"</c>, but in RFC 2426 §4 the types are separated by unquoted commas,
+        /// so the quoted value would be read as one type.
+        /// </remarks>
+        internal static void SplitQuotedTypes(List<VcardContentLineParameter> parameters)
+        {
+            for (var index = 0; index < parameters.Count; index++)
+            {
+                var parameter = parameters[index];
+                if (!IsParameterName(parameter, VcardParameterNames.Type) || !parameter.ValueArray.Any(value => value.IndexOf(',') >= 0)) continue;
+
+                parameters[index] = new VcardContentLineParameter(parameter.Name, parameter.ValueArray.SelectMany(value => value.Split(',')).ToList());
+            }
+        }
+
         private static bool ContainsIgnoringCase(IEnumerable<string> values, string value)
         {
             return values.Any(candidate => string.Equals(candidate, value, StringComparison.OrdinalIgnoreCase));
@@ -293,11 +346,12 @@ namespace DataStandardizer.File.vCard
                 ConvertPreferredType(parameters);
             }
 
+            // A value that vCard 4.0 has no form for, such as a date-time with a time-secfrac (RFC 2425 §5.8.4), stays as it is, like one that isn't valid.
             switch (line.Name.ToUpperInvariant())
             {
                 case VcardPropertyNames.Name:
                     VcardName name;
-                    if (VcardName.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out name))
+                    if (VcardName.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out name) && name.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = name.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                     }
@@ -305,7 +359,7 @@ namespace DataStandardizer.File.vCard
                     break;
                 case VcardPropertyNames.Address:
                     VcardAddress address;
-                    if (VcardAddress.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out address))
+                    if (VcardAddress.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out address) && address.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = address.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                     }
@@ -313,7 +367,7 @@ namespace DataStandardizer.File.vCard
                     break;
                 case VcardPropertyNames.Birthday:
                     VcardDateAndOrTime date;
-                    if (VcardDateAndOrTime.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date))
+                    if (VcardDateAndOrTime.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date) && date.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = date.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                         Remove(parameters, VcardParameterNames.Value);
@@ -328,7 +382,7 @@ namespace DataStandardizer.File.vCard
                     break;
                 case VcardPropertyNames.Geo:
                     VcardGeo geo;
-                    if (VcardGeo.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out geo))
+                    if (VcardGeo.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out geo) && geo.IsDefinedIn(VcardVersion.V4_0))
                     {
                         value = geo.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
                     }
@@ -384,13 +438,15 @@ namespace DataStandardizer.File.vCard
             VcardTimestamp timestamp;
             if (VcardTimestamp.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out timestamp))
             {
+                if (!timestamp.IsDefinedIn(VcardVersion.V4_0)) return value;
+
                 Remove(parameters, VcardParameterNames.Value);
                 return timestamp.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
             }
 
             // ref. RFC 6350 §6.7.4: REV is a timestamp, which has a time, so a date becomes its first moment in UTC.
             VcardDate date;
-            if (!VcardDate.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date)) return value;
+            if (!VcardDate.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out date) || !date.IsDefinedIn(VcardVersion.V4_0)) return value;
 
             Remove(parameters, VcardParameterNames.Value);
             return date.ToString(VcardValueFormat.Text, VcardVersion.V4_0) + "T000000Z";
@@ -408,8 +464,9 @@ namespace DataStandardizer.File.vCard
             VcardUtcOffset offset;
             if (!VcardUtcOffset.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out offset)) return value;
 
+            // An offset that vCard 4.0 has no form for stays as it was read, and still says it is an offset rather than text.
             parameters.Add(new VcardContentLineParameter(VcardParameterNames.Value, VcardValueTypeRegistry.GetValueTypeName(VcardValueType.UtcOffset)));
-            return offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
+            return offset.IsDefinedIn(VcardVersion.V4_0) ? offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : value;
         }
 
         private static string UidToCanonical(string value, List<VcardContentLineParameter> parameters)
@@ -598,17 +655,24 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Puts a <c>SORT-STRING</c> line on the <c>N</c>, or if there is none the <c>ORG</c>, as a <c>SORT-AS</c>.  One with parameters, or a comma that a <c>SORT-AS</c> would take for
-        /// a separator (RFC 6350 §5.9), stays a property of its own.
+        /// Puts a <c>SORT-STRING</c> line on the first <c>N</c>, or on a card with no <c>N</c> the first <c>ORG</c> that has none yet, as a <c>SORT-AS</c>.  One with parameters, or a
+        /// comma that a <c>SORT-AS</c> would take for a separator (RFC 6350 §5.9), stays a property of its own.  So does one on a card whose first <c>N</c> already has a sort string,
+        /// since a <c>SORT-STRING</c> sorts the name (RFC 2426 §3.6.5).
         /// </summary>
         private static bool TryAttachSortString(VcardCard card, int index)
         {
             var line = card.Properties[index];
             string text;
-            if (line.ParameterArray.Length != 0 || !TryUnescape(line.Value, out text) || text.IndexOf(',') >= 0) return false;
+            if (!IsAttachableSortString(line, out text)) return false;
 
-            var targetIndex = FindSortTarget(card, VcardPropertyNames.Name);
-            if (targetIndex < 0)
+            // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types; "A single text value."
+            int targetIndex;
+            var nameIndex = FindFirst(card, VcardPropertyNames.Name);
+            if (nameIndex >= 0)
+            {
+                targetIndex = card.Properties[nameIndex].GetParameter(VcardParameterNames.SortAs) is null ? nameIndex : -1;
+            }
+            else
             {
                 targetIndex = FindSortTarget(card, VcardPropertyNames.Organization);
             }
@@ -620,6 +684,25 @@ namespace DataStandardizer.File.vCard
             card.Properties[targetIndex] = target.With(target.Name, parameters.ToArray(), target.Value);
             card.Properties.RemoveAt(index);
             return true;
+        }
+
+        /// <summary>
+        /// Gets whether a reader of vCard 3.0 puts a <c>SORT-STRING</c> line on what it sorts.
+        /// </summary>
+        private static bool IsAttachableSortString(VcardContentLine line, out string text)
+        {
+            text = null;
+            return line.ParameterArray.Length == 0 && TryUnescape(line.Value, out text) && text.IndexOf(',') < 0;
+        }
+
+        private static int FindFirst(VcardCard card, string name)
+        {
+            for (var index = 0; index < card.Properties.Count; index++)
+            {
+                if (IsName(card.Properties[index], name)) return index;
+            }
+
+            return -1;
         }
 
         private static int FindSortTarget(VcardCard card, string name)
@@ -642,7 +725,7 @@ namespace DataStandardizer.File.vCard
             private readonly List<VcardDiagnostic> _found;
             private readonly List<VcardContentLine> _lines;
             private readonly VcardOptions _options;
-            private bool _hasSortString;
+            private readonly List<SortKey> _sortKeys = new List<SortKey>();
 
             internal Downgrade(VcardCard card, VcardOptions options, List<VcardDiagnostic> found)
             {
@@ -659,12 +742,18 @@ namespace DataStandardizer.File.vCard
                     Convert(line);
                 }
 
+                AddSortStrings();
                 return _lines;
             }
 
             private void ReportLoss(VcardContentLine line, string what)
             {
-                _found.Add(new VcardDiagnostic(VcardDiagnosticKind.Lossy, string.Format(CultureInfo.InvariantCulture, "vCard 3.0 can't hold {0} of {1}.", what, line.Name), line.Name, line.Group, line.LineNumber, _card.CardIndex));
+                _found.Add(Loss(line, what));
+            }
+
+            private VcardDiagnostic Loss(VcardContentLine line, string what)
+            {
+                return new VcardDiagnostic(VcardDiagnosticKind.Lossy, string.Format(CultureInfo.InvariantCulture, "vCard 3.0 can't hold {0} of {1}.", what, line.Name), line.Name, line.Group, line.LineNumber, _card.CardIndex);
             }
 
             private void ReportLostProperty(VcardContentLine line, string reason)
@@ -713,6 +802,7 @@ namespace DataStandardizer.File.vCard
                 }
 
                 RemoveVersion40Parameters(line, parameters);
+                SplitQuotedTypes(parameters);
                 if (!TryConvertValue(line, parameters, mediaType, ref value)) return;
 
                 ConvertPreference(line, parameters);
@@ -720,8 +810,12 @@ namespace DataStandardizer.File.vCard
                 CheckParameterCharacters(line, parameters);
                 var converted = line.With(line.Name, parameters.ToArray(), value);
                 _lines.Add(converted);
+                if (sortAs.Count != 0)
+                {
+                    _sortKeys.Add(new SortKey(line, _lines.Count - 1, _found.Count, sortAs));
+                }
+
                 AddLabel(converted, parameters, label);
-                AddSortString(line, sortAs);
             }
 
             private static bool IsStructural(VcardContentLine line)
@@ -931,8 +1025,7 @@ namespace DataStandardizer.File.vCard
                     return true;
                 }
 
-                Uri uri;
-                if (!VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri)) return true;
+                if (!VcardValue.IsValidUriValue(value.AsSpan())) return true;
 
                 ReportLostProperty(line, "only a latitude and a longitude can be written");
                 return false;
@@ -947,10 +1040,9 @@ namespace DataStandardizer.File.vCard
                 }
 
                 // ref. RFC 2426 §3.3.1: "A single phone-number value", which RFC 3966 §3 writes after its scheme.
-                Uri uri;
-                if (!VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri)) return true;
+                string text;
+                if (!VcardValue.TryGetUriText(value, out text)) return true;
 
-                var text = uri.OriginalString;
                 if (!text.StartsWith(TelPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     ReportLostProperty(line, "its value is a URI other than a telephone number");
@@ -1061,10 +1153,10 @@ namespace DataStandardizer.File.vCard
                 }
                 else
                 {
-                    Uri uri;
-                    if (VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri))
+                    string text;
+                    if (VcardValue.TryGetUriText(value, out text))
                     {
-                        value = uri.OriginalString;
+                        value = text;
                     }
 
                     parameters.Insert(0, new VcardContentLineParameter(VcardParameterNames.Value, Vcard30Conformance.UriValueName));
@@ -1085,7 +1177,8 @@ namespace DataStandardizer.File.vCard
                     var nestedLines = VcardVersionMapping.Version30.FromCanonical(nested, _options, nestedFound);
                     var nestedChecks = new List<VcardDiagnostic>();
                     Vcard30Conformance.Validate(nestedLines, nested, VcardNestedCards.HeldCardOptions, 0, nestedChecks);
-                    nestedFound.AddRange(nestedChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty));
+                    // A line kept in the form of vCard 2.1 is written as it is, so it is reported here, as it is at the top of a card.
+                    nestedFound.AddRange(nestedChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty || diagnostic.Kind == VcardDiagnosticKind.LegacySyntax));
                     foreach (var diagnostic in nestedFound)
                     {
                         _found.Add(new VcardDiagnostic(diagnostic.Kind, "In the card of an AGENT: " + diagnostic.Message, diagnostic.PropertyName, diagnostic.Group, line.LineNumber, _card.CardIndex));
@@ -1161,7 +1254,8 @@ namespace DataStandardizer.File.vCard
             {
                 if (label is null) return;
 
-                // ref. RFC 6350 §6.3.1: its example writes a line break in a LABEL as "\n", where RFC 6868 would write it "^n".
+                // ref. RFC 6350 §5.1 and RFC 6868 §3: a param-value has no backslash escapes, so a backslash followed by "n" in a LABEL is
+                // those two characters, whatever the example in RFC 6350 §6.3.1 suggests.  Only "^n" stands for a line break.
                 var labelParameters = new List<VcardContentLineParameter>();
                 foreach (var parameter in parameters)
                 {
@@ -1171,32 +1265,123 @@ namespace DataStandardizer.File.vCard
                     }
                 }
 
-                var labelText = label.Replace("\\n", "\n");
-                if (!VcardText.IsValidUnescapedText(labelText.AsSpan()))
+                if (!VcardText.IsValidUnescapedText(label.AsSpan()))
                 {
                     // ref. RFC 2426 §3.2.1: a LABEL is a text value, which can't hold a control character, as a parameter value of vCard 4.0 can.
                     ReportLoss(address, "a label that holds a control character");
                     return;
                 }
 
-                var text = VcardValue.FormatText(labelText, VcardValueFormat.Text, VcardVersion.V3_0);
+                var text = VcardValue.FormatText(label, VcardValueFormat.Text, VcardVersion.V3_0);
                 _lines.Add(address.With(VcardPropertyNames.PostalLabel, labelParameters.ToArray(), text));
             }
 
-            private void AddSortString(VcardContentLine line, List<string> sortAs)
+            /// <summary>
+            /// Writes a <c>SORT-STRING</c> for each sort key that a reader of vCard 3.0 gives back to the same line (see <see cref="TryAttachSortString"/>).  The reader gives the first
+            /// <c>SORT-STRING</c> to the first <c>N</c>, so on a card with an <c>N</c> only the sort key of that <c>N</c> is written.  On a card with no <c>N</c>, it gives each one in
+            /// turn to the next <c>ORG</c>, so the sort key of each <c>ORG</c> is written after it, up to the first <c>ORG</c> that has none.  A sort key of any other line would move to
+            /// a line it doesn't belong to, so it is reported as lost, among the diagnostics of its own line.  So is the sort key of a line after a <c>SORT-STRING</c> that the card
+            /// holds as a property of its own, which the reader would give to that line instead.
+            /// </summary>
+            private void AddSortStrings()
             {
-                if (sortAs.Count == 0) return;
+                if (_sortKeys.Count == 0) return;
 
-                // ref. RFC 2426 §3.6.5: "A single text value."
-                if (sortAs.Count > 1 || _hasSortString)
+                var kept = new HashSet<int>();
+                var firstSortStringIndex = FindWrittenAttachableSortString();
+                foreach (var targetIndex in FindWrittenSortTargets())
                 {
-                    ReportLoss(line, "more than one sort string");
+                    if (targetIndex >= firstSortStringIndex || !HasSortKey(targetIndex)) break;
+
+                    kept.Add(targetIndex);
                 }
 
-                if (_hasSortString) return;
+                // Backwards, so that putting a line or a diagnostic in its place doesn't move the places of those before it.
+                for (var index = _sortKeys.Count - 1; index >= 0; index--)
+                {
+                    var sortKey = _sortKeys[index];
+                    if (!kept.Contains(sortKey.Index))
+                    {
+                        // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types, so a reader takes it for the sort string of the name, or with no N, of the first ORG that
+                        // has none yet.
+                        _found.Insert(sortKey.DiagnosticIndex, Loss(sortKey.Line, "the parameter SORT-AS"));
+                        continue;
+                    }
 
-                _hasSortString = true;
-                _lines.Add(line.With(VcardPropertyNames.SortString, new VcardContentLineParameter[0], VcardValue.FormatText(sortAs[0], VcardValueFormat.Text, VcardVersion.V3_0)));
+                    // ref. RFC 2426 §3.6.5: "A single text value."
+                    if (sortKey.SortAs.Count > 1)
+                    {
+                        _found.Insert(sortKey.DiagnosticIndex, Loss(sortKey.Line, "more than one sort string"));
+                    }
+
+                    _lines.Insert(sortKey.Index + 1, sortKey.Line.With(VcardPropertyNames.SortString, new VcardContentLineParameter[0], VcardValue.FormatText(sortKey.SortAs[0], VcardValueFormat.Text, VcardVersion.V3_0)));
+                }
+            }
+
+            /// <summary>
+            /// Gets the written lines that a reader of vCard 3.0 gives the <c>SORT-STRING</c> lines to, in the order it gives them: the first <c>N</c>, or if there is none each
+            /// <c>ORG</c>.
+            /// </summary>
+            private List<int> FindWrittenSortTargets()
+            {
+                var targets = new List<int>();
+                for (var index = 0; index < _lines.Count; index++)
+                {
+                    if (IsName(_lines[index], VcardPropertyNames.Name)) return new List<int> { index };
+
+                    if (IsName(_lines[index], VcardPropertyNames.Organization))
+                    {
+                        targets.Add(index);
+                    }
+                }
+
+                return targets;
+            }
+
+            /// <summary>
+            /// Gets where the first <c>SORT-STRING</c> of the card's own was written that a reader of vCard 3.0 would put on what it sorts, or <see cref="int.MaxValue"/> if none was.
+            /// </summary>
+            private int FindWrittenAttachableSortString()
+            {
+                for (var index = 0; index < _lines.Count; index++)
+                {
+                    string text;
+                    if (IsName(_lines[index], VcardPropertyNames.SortString) && IsAttachableSortString(_lines[index], out text)) return index;
+                }
+
+                return int.MaxValue;
+            }
+
+            private bool HasSortKey(int lineIndex)
+            {
+                foreach (var sortKey in _sortKeys)
+                {
+                    if (sortKey.Index == lineIndex) return true;
+                }
+
+                return false;
+            }
+
+            /// <summary>
+            /// The <c>SORT-AS</c> of a line, where the line was written, and where a diagnostic of its sort key goes among those of the card's lines.
+            /// </summary>
+            private sealed class SortKey
+            {
+                internal SortKey(VcardContentLine line, int index, int diagnosticIndex, List<string> sortAs)
+                {
+                    Line = line;
+                    Index = index;
+                    DiagnosticIndex = diagnosticIndex;
+                    SortAs = sortAs;
+                }
+
+                internal VcardContentLine Line { get; }
+
+                internal int Index { get; }
+
+                internal int DiagnosticIndex { get; }
+
+                internal List<string> SortAs { get; }
             }
         }
     }

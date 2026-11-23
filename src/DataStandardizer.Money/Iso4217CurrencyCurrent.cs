@@ -12,7 +12,7 @@ namespace DataStandardizer.Money
     
     
     /// <summary>
-    /// ISO 4217, "Codes for the representation of currencies and funds" Table A.1 – Current currency & funds code list
+    /// ISO 4217, "Codes for the representation of currencies and funds" Table A.1 – Current currency &amp; funds code list
     /// </summary>
     /// <remarks>
     /// Based on official ISO 4217 currency codes as at 2026-01-01.

@@ -34,6 +34,8 @@ This page says how each version maps to the model, and what each can't hold. To 
 
 **Dates in `REV`.** A `REV` of vCard 4.0 has a time, so RFC 2426's `REV:1997-11-15` becomes the first moment of that day in UTC, and is written back as `1997-11-15T00:00:00Z`.
 
+**Values vCard 4.0 has no form for.** A fraction of a second, as in `REV:1995-10-31T22:27:10,5Z` (RFC 2425 §5.8.4), has no form in vCard 4.0, and neither has an hour of 24 in a vCard 2.1 `REV` or `TZ`. Such a value stays in the card as it was read, and is written back the same way. `AsVersion30()` or `AsVersion21()` shows it, if that version can hold it, but `Revision`, `Birthday` and `TimeZones` of the card itself don't, because it isn't a valid vCard 4.0 value. Writing the card as vCard 4.0 reports it as `InvalidValue`.
+
 **Media types.** A `TYPE` becomes a media type through [VcardLegacyMediaTypes](../reference/VcardLegacyMediaTypes.md). RFC 2426 says the value is an image or audio format that IANA registers, or a non-standard one, so any other token is taken as a subtype: `TYPE=HEIC` on a `PHOTO` is `image/heic`, and is written back as `HEIC`. A binary value with no `TYPE` is `application/octet-stream`.
 
 **Agents.** An `AGENT` holds a card as escaped text. `Agents` gives what each agent holds, with `Card` read from that text, so changing it doesn't change the property. `AddAgent` and `RemoveAgents` change them.
@@ -66,6 +68,7 @@ Writing a card as vCard 3.0 throws `VcardFileException`, and writes nothing of t
 | The added components of `N` and `ADR`, once they are in the older components, a whole line with `PHONETIC`, and `TYPE=billing` and `TYPE=delivery` | RFC 9554 |
 | A parameter that the type doesn't allow in RFC 2426 §4, such as `TYPE` on a `NOTE` | RFC 2426 |
 | A language tag that isn't one of RFC 1766, and a double quote or a line break in a parameter | RFC 2426 |
+| A `SORT-AS` on any line but the first `N`, or, on a card with no `N`, on an `ORG` after the first `ORG` that has none; a `SORT-AS` on a line after a `SORT-STRING` the card holds as a property of its own; and every `SORT-AS` value after the first. A `SORT-STRING` sorts the name (§3.6.5), so a reader gives the first one to the `N`, or with no `N` each one in turn to the next `ORG`, and a sort key on any other line would move. | RFC 2426 |
 
 `AllowInvalidValues` keeps a parameter that the type doesn't allow, rather than leaving it out.
 

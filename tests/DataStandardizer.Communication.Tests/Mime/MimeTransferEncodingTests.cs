@@ -15,9 +15,15 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string QuotedPrintable = "quoted-printable";
         private const string Base64 = "base64";
 
-        // ref. RFC 2045 §6.1: x-token, an extension mechanism; and uuencode, an unregistered ietf-token (RFC 4289 §3).
+        // ref. RFC 2045 §6.1: x-token, an extension mechanism (RFC 2045 §5.1).
         private const string XUuencode = "x-uuencode";
         private const string XUuencodeInMixedCase = "X-UUEncode";
+        private const string XGzip64 = "x-gzip64";
+
+        // An x-token that names a known mechanism after its "x-", so it is a different, extension mechanism.
+        private const string XBase64 = "x-base64";
+
+        // ref. RFC 4289 §3: a token that isn't registered with IANA, so it isn't an ietf-token; nor is it an x-token.
         private const string Uuencode = "uuencode";
 
         // ref. RFC 2045 §6.1: mechanism names are not case-sensitive.
@@ -100,18 +106,14 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        // ref. RFC 2045 §6.1: x-token; RFC 4289 §3: a registered mechanism is an ietf-token
+        // ref. RFC 2045 §5.1, §6.1: x-token := "X-" or "x-" followed by a token
         [InlineData(XUuencode)]
         [InlineData("X-UUENCODE")]
-        [InlineData("x-gzip64")]
-        [InlineData("X-")]
-        [InlineData(Uuencode)]
-        [InlineData("b")]
-        [InlineData("7bit-ish")]
-        [InlineData("base-64")]
-        [InlineData("base64x")]
-        [InlineData("quoted-printable!")]
-        public void Parse_ExtensionToken_IsKeptAsWrittenAndUnknown(string value)
+        [InlineData(XGzip64)]
+        [InlineData("x-b")]
+        [InlineData("x--")]
+        [InlineData(XBase64)]
+        public void Parse_XToken_IsKeptAsWrittenAndUnknown(string value)
         {
             // act
             var testResult = MimeTransferEncoding.Parse(value);
@@ -148,6 +150,56 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testResult.Name.Should().Be(XFoo);
+        }
+
+        // ref. RFC 2045 §6.1, RFC 4289 §3: tokens that are neither one of the five mechanisms, a registered ietf-token nor an x-token.
+        public static TheoryData<string> UnregisteredTokens => new TheoryData<string>
+        {
+            "X-",
+            "x-",
+            "x",
+            "-x",
+            "xx-a",
+            Uuencode,
+            "b",
+            "7bit-ish",
+            "base-64",
+            "base64x",
+            "quoted-printable!",
+        };
+
+        [Theory]
+        [MemberData(nameof(UnregisteredTokens))]
+        public void TryParse_UnregisteredToken_ReturnsFalse(string value)
+        {
+            // act
+            var testResult = MimeTransferEncoding.TryParse(value, out var result);
+
+            // assert
+            testResult.Should().BeFalse();
+            result.Should().Be(default(MimeTransferEncoding));
+        }
+
+        [Theory]
+        [MemberData(nameof(UnregisteredTokens))]
+        public void TryParse_UnregisteredTokenAsSpan_ReturnsFalse(string value)
+        {
+            // act
+            var testResult = MimeTransferEncoding.TryParse(value.AsSpan(), out var result);
+
+            // assert
+            testResult.Should().BeFalse();
+            result.Should().Be(default(MimeTransferEncoding));
+        }
+
+        [Fact]
+        public void Parse_UnregisteredToken_ThrowsFormatException()
+        {
+            // act
+            Action testAction = () => MimeTransferEncoding.Parse(Uuencode);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
         }
 
         public static TheoryData<string> InvalidMechanisms => new TheoryData<string>
@@ -234,15 +286,15 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             { Base64, Base64InUpperCase },
             { XUuencode, XUuencodeInMixedCase },
-            { Uuencode, "UUENCODE" },
+            { XGzip64, "X-GZIP64" },
         };
 
         public static TheoryData<string, string> DifferentMechanisms => new TheoryData<string, string>
         {
             { Base64, QuotedPrintable },
             { SevenBit, EightBit },
-            { XUuencode, Uuencode },
-            { Base64, "x-base64" },
+            { XUuencode, XGzip64 },
+            { Base64, XBase64 },
         };
 
         [Theory]

@@ -12,9 +12,11 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A parsed word is written back as it was written. A word that is created is written in UTF-8. Two words are equal when their
-    /// character sets, languages, encodings and texts are equal, even when they are written differently, such as <c>=41</c> and <c>A</c> in
-    /// "Q"-encoded text. Character sets and languages are compared case-insensitively.
+    /// A parsed word is written back as it was written, unless it is longer than <see cref="MaxLength"/> characters, as
+    /// <see cref="MimeEncodedWordParseOptions.AllowLongWords"/> accepts: RFC 2047 §2 doesn't allow such a word, so its text is written as
+    /// encoded words in UTF-8 that are each within the limit, separated by spaces. A word that is created is written in UTF-8. Two words are
+    /// equal when their character sets, languages, encodings and texts are equal, even when they are written differently, such as
+    /// <c>=41</c> and <c>A</c> in "Q"-encoded text. Character sets and languages are compared case-insensitively.
     /// </para>
     /// <para>
     /// Use <see cref="EncodeText(string, MimeEncodedWordContext)"/> to write text of any length as encoded words, and
@@ -48,15 +50,27 @@ namespace DataStandardizer.Communication.Mime
         // at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3), UTF-16, UTF-32 and GB18030.
         private const int MaxCarriedOctets = 3;
 
+        // ref. ANSI X3.4 (US-ASCII): 0x41 is 'A'. EndsInAsciiMode reads it after a word's octets.
+        private const byte ProbeOctet = 0x41;
+        private const string ProbeCharacter = "A";
+
+        // ref. ECMA-35 (ISO/IEC 2022): the ESC, SO and SI control characters.
+        private const byte Escape = 0x1B;
+        private const byte ShiftOut = 0x0E;
+        private const byte ShiftIn = 0x0F;
+
         private const string InvalidFormatMessage = "The value is not a valid encoded word.";
         private const string UninitializedMessage = nameof(MimeEncodedWord) + " is uninitialized.";
 
+        // AllowLowercaseHexDigits is obsolete and has no effect, but a caller that still gives it isn't refused.
+#pragma warning disable CS0618
         private const MimeEncodedWordParseOptions AllOptions = MimeEncodedWordParseOptions.AllowLongWords
             | MimeEncodedWordParseOptions.AllowEmbeddedWords
             | MimeEncodedWordParseOptions.AllowUnknownCharsets
             | MimeEncodedWordParseOptions.AllowLowercaseHexDigits
             | MimeEncodedWordParseOptions.AllowInvalidOctets
             | MimeEncodedWordParseOptions.AllowSplitCharacters;
+#pragma warning restore CS0618
 
         private static readonly Encoding Utf8 = new UTF8Encoding(false);
 
@@ -519,7 +533,8 @@ namespace DataStandardizer.Communication.Mime
 #endif
 
         /// <summary>
-        /// Formats the encoded word into a span: as it was written, if it was parsed.
+        /// Formats the encoded word into a span: as it was written, if it was parsed and is at most <see cref="MaxLength"/> characters
+        /// long.
         /// </summary>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
@@ -541,7 +556,7 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// Formats the encoded word: as it was written, if it was parsed.
+        /// Formats the encoded word: as it was written, if it was parsed and is at most <see cref="MaxLength"/> characters long.
         /// </summary>
         /// <returns>The word; an empty string if the <see cref="MimeEncodedWord"/> is not initialised.</returns>
         public override string ToString()
@@ -650,23 +665,52 @@ namespace DataStandardizer.Communication.Mime
 
             if (text.Length == 0) return new ReadOnlyCollection<MimeEncodedWord>(new List<MimeEncodedWord>());
 
-            var qWords = TryEncodeWords(text, MimeEncodedWordEncoding.Q, context, language);
-            var bWords = TryEncodeWords(text, MimeEncodedWordEncoding.B, context, language);
-            List<MimeEncodedWord> words;
-            if (qWords != null && (bWords is null || GetLength(qWords) <= GetLength(bWords)))
-            {
-                words = qWords;
-            }
-            else if (bWords != null)
-            {
-                words = bWords;
-            }
-            else
+            var words = TryEncodeShortestWords(text, context, language);
+            if (words is null)
             {
                 throw new ArgumentException("The language is too long for an encoded word of 75 characters to hold all of a character.", nameof(language));
             }
 
             return new ReadOnlyCollection<MimeEncodedWord>(words);
+        }
+
+        // Splits non-empty text into words in whichever of the "B" and "Q" encodings is shorter, "Q" when they are the same length, or
+        // returns null if one character doesn't fit in a word in either encoding.
+#if NETCOREAPP3_0_OR_GREATER
+        private static List<MimeEncodedWord>? TryEncodeShortestWords(string text, MimeEncodedWordContext context, string? language)
+#else
+        private static List<MimeEncodedWord> TryEncodeShortestWords(string text, MimeEncodedWordContext context, string language)
+#endif
+        {
+            var qWords = TryEncodeWords(text, MimeEncodedWordEncoding.Q, context, language);
+            var bWords = TryEncodeWords(text, MimeEncodedWordEncoding.B, context, language);
+            return qWords != null && (bWords is null || GetLength(qWords) <= GetLength(bWords)) ? qWords : bWords;
+        }
+
+        // Writes the text of a word longer than MaxLength, accepted with MimeEncodedWordParseOptions.AllowLongWords, as UTF-8 words that
+        // are each within MaxLength, separated by spaces, or returns null if the text is empty or its language leaves no room for a
+        // character. The "Q" mode of a phrase allows the fewest characters, so the words are valid wherever the word was. An unpaired
+        // surrogate, which a character set such as UTF-7 can decode to, is written as U+FFFD, as UTF-8 can't hold it.
+#if NETCOREAPP3_0_OR_GREATER
+        private static string? TryRewriteLongWord(string text, string? language)
+#else
+        private static string TryRewriteLongWord(string text, string language)
+#endif
+        {
+            if (text.Length == 0) return null;
+
+            var words = TryEncodeShortestWords(ReplaceUnpairedSurrogates(text), MimeEncodedWordContext.Phrase, language);
+            if (words is null) return null;
+
+            // ref. RFC 2047 §6.2: whitespace between adjacent encoded words is dropped when they are read, so the text is read back whole.
+            var builder = new StringBuilder(GetLength(words) + words.Count - 1);
+            for (var index = 0; index < words.Count; index++)
+            {
+                if (index > 0) builder.Append(' ');
+                builder.Append(words[index]._word);
+            }
+
+            return builder.ToString();
         }
 
         // Splits text into words of whole characters that each fit in MaxLength, with the shortest total length, or returns null if one
@@ -755,6 +799,31 @@ namespace DataStandardizer.Communication.Mime
             return new MimeEncodedWord(builder.ToString(), MimeCharset.Utf8, language, encoding, value);
         }
 
+        private static string ReplaceUnpairedSurrogates(string text)
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            StringBuilder? builder = null;
+#else
+            StringBuilder builder = null;
+#endif
+            for (var index = 0; index < text.Length; index++)
+            {
+                var c = text[index];
+                if (char.IsHighSurrogate(c) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (!char.IsSurrogate(c)) continue;
+
+                if (builder is null) builder = new StringBuilder(text);
+                builder[index] = MimeDecoderFallbacks.ReplacementString[0];
+            }
+
+            return builder is null ? text : builder.ToString();
+        }
+
         private static int GetLength(List<MimeEncodedWord> words)
         {
             var length = 0;
@@ -782,7 +851,7 @@ namespace DataStandardizer.Communication.Mime
             for (var index = 0; index < count; index++)
             {
                 var octet = octets[index];
-                length += octet == 0x20 || MimeQuotedPrintable.IsWrittenAsLiteral(octet, mode) ? 1 : 3;
+                length += octet == 0x20 || MimeQuotedPrintable.IsLiteral(octet, mode) ? 1 : 3;
             }
 
             return length;
@@ -839,7 +908,30 @@ namespace DataStandardizer.Communication.Mime
                 return false;
             }
 
-            result = new MimeEncodedWord(value.ToString(), word.Charset, word.Language, word.Encoding, text);
+            // ref. RFC 2047 §2: "An 'encoded-word' may not be more than 75 characters long". A word that is longer is written back as
+            // words that aren't. The text of a word whose character set isn't resolved holds its octets, not its characters, so it can't be
+            // written in another character set.
+#if NETCOREAPP3_0_OR_GREATER
+            string? written;
+#else
+            string written;
+#endif
+            if (value.Length <= MaxLength)
+            {
+                written = value.ToString();
+            }
+            else
+            {
+                written = charsetResolver.TryGetEncoding(word.Charset, out _) ? TryRewriteLongWord(text, word.Language) : null;
+            }
+
+            if (written is null)
+            {
+                result = default(MimeEncodedWord);
+                return false;
+            }
+
+            result = new MimeEncodedWord(written, word.Charset, word.Language, word.Encoding, text);
             return true;
         }
 
@@ -906,10 +998,12 @@ namespace DataStandardizer.Communication.Mime
                 case 'q':
                     // ref. RFC 2047 §4.2, §5: each "=" is followed by two hexadecimal digits in the same word.
                     word.Encoding = MimeEncodedWordEncoding.Q;
-                    var qOptions = (options & MimeEncodedWordParseOptions.AllowLowercaseHexDigits) != 0
-                        ? MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits
-                        : MimeQuotedPrintableDecoderOptions.None;
-                    if (!MimeQuotedPrintable.TryDecode(encodedText, GetMode(context), qOptions, out octets)) return false;
+                    // The "Q" modes accept lower-case hexadecimal digits, which RFC 2047 §4.2 (1) allows.
+                    if (!MimeQuotedPrintable.TryDecode(encodedText, GetMode(context), MimeQuotedPrintableDecoderOptions.None, out octets))
+                    {
+                        return false;
+                    }
+
                     break;
                 default:
                     return false;
@@ -922,6 +1016,14 @@ namespace DataStandardizer.Communication.Mime
         private static bool TryDecodeOctets(MimeCharset charset, byte[] octets, MimeEncodedWordParseOptions options,
             IMimeCharsetResolver charsetResolver, out string text)
         {
+            return TryDecodeOctets(charset, octets, options, charsetResolver, true, out text);
+        }
+
+        // Decodes octets in a character set. Unless requireAsciiMode is false, which only the first part of a character split between words
+        // asks for, the octets must also leave the character set in ASCII mode.
+        private static bool TryDecodeOctets(MimeCharset charset, byte[] octets, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver, bool requireAsciiMode, out string text)
+        {
 #if NETCOREAPP3_0_OR_GREATER
             Encoding? encoding;
 #else
@@ -930,8 +1032,11 @@ namespace DataStandardizer.Communication.Mime
             if (charsetResolver.TryGetEncoding(charset, out encoding))
             {
                 // ref. RFC 2047 §6.3 (2): a word whose octets are not whole characters in its character set is incorrectly formed.
-                return MimeExtendedParameter.TryGetString(encoding, octets, octets.Length,
-                    (options & MimeEncodedWordParseOptions.AllowInvalidOctets) != 0, out text);
+                var allowInvalidOctets = (options & MimeEncodedWordParseOptions.AllowInvalidOctets) != 0;
+                if (!MimeExtendedParameter.TryGetString(encoding, octets, octets.Length, allowInvalidOctets, out text)) return false;
+
+                // ref. RFC 2047 §3: a word that switches out of ASCII mode must switch back to it by its end, whatever its octets.
+                return !requireAsciiMode || EndsInAsciiMode(charset, encoding, octets, allowInvalidOctets ? null : text);
             }
 
             if ((options & MimeEncodedWordParseOptions.AllowUnknownCharsets) == 0)
@@ -942,6 +1047,52 @@ namespace DataStandardizer.Communication.Mime
 
             text = MimeExtendedParameter.DecodeLatin1(octets, octets.Length);
             return true;
+        }
+
+        // Indicates whether a word's octets leave its character set in ASCII mode (ref. RFC 2047 §3).
+        //
+        // A character set of the ISO/IEC 2022 family, such as ISO-2022-JP (RFC 1468), is in ASCII mode when ASCII is designated to G0 and
+        // G0 is shifted in, which its octets show whether or not they are valid. Any other character set that switches modes, such as
+        // HZ-GB-2312, is in the mode it starts in if an ASCII octet after the word's octets is read as the ASCII character, as it is at the
+        // start; this can only be asked of octets that are valid. A character set that doesn't read the octet alone as that character, such
+        // as UTF-16, has no ASCII mode, and the Unicode encoding forms have no modes at all.
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool EndsInAsciiMode(MimeCharset charset, Encoding encoding, byte[] octets, string? validText)
+#else
+        private static bool EndsInAsciiMode(MimeCharset charset, Encoding encoding, byte[] octets, string validText)
+#endif
+        {
+            if (IsIso2022(charset)) return EndsWithIso2022Ascii(octets);
+            if (encoding is UTF8Encoding || encoding is UnicodeEncoding || encoding is MimeUnicodeSchemeEncoding) return true;
+            if (validText is null && !MimeExtendedParameter.TryGetString(encoding, octets, octets.Length, false, out validText)) return true;
+
+            string probeText;
+            if (!MimeExtendedParameter.TryGetString(encoding, new[] { ProbeOctet }, 1, false, out probeText) ||
+                probeText != ProbeCharacter)
+            {
+                return true;
+            }
+
+            var probed = new byte[octets.Length + 1];
+            Array.Copy(octets, probed, octets.Length);
+            probed[octets.Length] = ProbeOctet;
+            return MimeExtendedParameter.TryGetString(encoding, probed, probed.Length, false, out probeText) &&
+                string.Equals(probeText, validText + ProbeCharacter, StringComparison.Ordinal);
+        }
+
+        // ref. IANA Character Sets registry: the ISO-2022-* names, such as ISO-2022-JP and ISO-2022-KR, and their csISO2022* aliases.
+        // The encoding's WebName isn't asked, as the base class throws for an encoding with no code page, as a caller's may be.
+        private static bool IsIso2022(MimeCharset charset)
+        {
+            return charset.Name.StartsWith("ISO-2022-", StringComparison.OrdinalIgnoreCase) ||
+                charset.Name.StartsWith("csISO2022", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Indicates whether ISO/IEC 2022 octets end with ASCII designated to G0 and G0 shifted in, as they start.
+        private static bool EndsWithIso2022Ascii(byte[] octets)
+        {
+            var mode = Iso2022Mode.Initial;
+            return mode.TryRead(octets, 0, octets.Length) && mode.IsAscii;
         }
 
         private static string DecodeTextCore(ReadOnlySpan<char> text, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,
@@ -1094,13 +1245,15 @@ namespace DataStandardizer.Communication.Mime
 
         // Decodes the text of each encoded word. A word that ends partway through a character starts a chain of words, separated only by
         // whitespace and with the same character set and language, each of which carries the octets of the unfinished character into the
-        // next. Once a word finishes the last character, the octets of the whole chain are decoded together, so that the state of the
-        // decoder, such as the byte order given by a byte order mark, carries across the words.
+        // next. Each word is read in the state that the words before it in the chain leave the decoder in, such as the byte order given by a
+        // byte order mark or the mode of ISO-2022-JP, so that its octets are split into characters the same way as when the chain is read
+        // whole. Once a word finishes the last character, the octets of the whole chain are decoded together.
         private static void DecodeSplitCharacters(List<Segment> segments, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver)
         {
             var strictOptions = options & ~MimeEncodedWordParseOptions.AllowInvalidOctets;
             var chainOctets = new List<byte>();
             var carried = new List<byte>(MaxCarriedOctets);
+            var state = new SplitCharacterState();
 
             // The first word of the chain, or -1 if there is none, and the last word in it.
             var chainStart = -1;
@@ -1124,7 +1277,8 @@ namespace DataStandardizer.Communication.Mime
                 {
                     if (segment != null && segment.Kind == SegmentKind.Word)
                     {
-                        if (!TryCarry(segment, carried, strictOptions, charsetResolver, out text))
+                        state.Reset();
+                        if (!TryCarry(segment, carried, state, strictOptions, charsetResolver, out text))
                         {
                             DecodeWord(segment, options, charsetResolver);
                         }
@@ -1144,7 +1298,7 @@ namespace DataStandardizer.Communication.Mime
                 }
 
                 if (segment != null && segment.Kind == SegmentKind.Word && segment.Word.HasSameCharsetAndLanguage(segments[previous].Word) &&
-                    TryCarry(segment, carried, strictOptions, charsetResolver, out text))
+                    TryCarry(segment, carried, state, strictOptions, charsetResolver, out text))
                 {
                     chainOctets.AddRange(segment.Word.Octets);
                     previous = index;
@@ -1179,19 +1333,44 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
-        // Decodes the carried octets and those of a word, but for up to MaxCarriedOctets at the end, which become the carried octets.
-        private static bool TryCarry(Segment segment, List<byte> carried, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver,
-            out string text)
+        // Decodes the carried octets and those of a word, but for up to MaxCarriedOctets at the end, which become the carried octets. They
+        // are decoded after the octets of the state that the chain so far leaves the decoder in, which read as no text, and the state is
+        // moved on past the octets that are decoded.
+        private static bool TryCarry(Segment segment, List<byte> carried, SplitCharacterState state, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver, out string text)
         {
-            var octets = new byte[carried.Count + segment.Word.Octets.Length];
-            carried.CopyTo(octets);
-            Array.Copy(segment.Word.Octets, 0, octets, carried.Count, segment.Word.Octets.Length);
+            var charset = segment.Word.Charset;
+            var stateOctets = state.Octets;
+            var wordOctets = segment.Word.Octets;
+            var octets = new byte[stateOctets.Length + carried.Count + wordOctets.Length];
+            Array.Copy(stateOctets, octets, stateOctets.Length);
+            carried.CopyTo(octets, stateOctets.Length);
+            Array.Copy(wordOctets, 0, octets, stateOctets.Length + carried.Count, wordOctets.Length);
 
-            for (var carryLength = 0; carryLength <= MaxCarriedOctets && carryLength <= octets.Length; carryLength++)
+            // ref. RFC 2047 §3: octets that end partway through a character or an escape sequence can't have switched back to ASCII mode. In
+            // ISO/IEC 2022, the mode they leave carries into the next word with the rest of the character; the chain must still end in
+            // ASCII mode. A word of whole characters must end in ASCII mode, as it must without AllowSplitCharacters.
+            var allowOtherMode = false;
+            for (var carryLength = 0; carryLength <= MaxCarriedOctets && carryLength <= carried.Count + wordOctets.Length; carryLength++)
             {
                 var decoded = new byte[octets.Length - carryLength];
                 Array.Copy(octets, decoded, decoded.Length);
-                if (!TryDecodeOctets(segment.Word.Charset, decoded, options, charsetResolver, out text)) continue;
+                if (!TryDecodeOctets(charset, decoded, options, charsetResolver, carryLength == 0 || !allowOtherMode, out text))
+                {
+                    if (carryLength == 0)
+                    {
+                        allowOtherMode = IsIso2022(charset) && EndsPartwayThrough(charset, octets, stateOctets.Length, options, charsetResolver);
+                    }
+
+                    continue;
+                }
+
+                // A chain that goes on needs the state its octets leave the decoder in, which octets that end partway through an escape
+                // sequence leave unknown.
+                if (carryLength > 0 && !state.TryRead(charset, decoded, stateOctets.Length, decoded.Length - stateOctets.Length, charsetResolver))
+                {
+                    continue;
+                }
 
                 carried.Clear();
                 for (var position = decoded.Length; position < octets.Length; position++)
@@ -1204,6 +1383,18 @@ namespace DataStandardizer.Communication.Mime
 
             text = string.Empty;
             return false;
+        }
+
+        // Indicates whether ISO/IEC 2022 octets, after the octets of the state they are read in, end partway through a character, so that
+        // they aren't valid even outside ASCII mode, or partway through an escape sequence.
+        private static bool EndsPartwayThrough(MimeCharset charset, byte[] octets, int stateLength, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver)
+        {
+            string text;
+            if (!TryDecodeOctets(charset, octets, options, charsetResolver, false, out text)) return true;
+
+            var mode = Iso2022Mode.Initial;
+            return !mode.TryRead(octets, stateLength, octets.Length - stateLength);
         }
 
         private static void DecodeWord(Segment segment, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver)
@@ -1298,6 +1489,168 @@ namespace DataStandardizer.Communication.Mime
             internal bool HasSameCharsetAndLanguage(RawWord other)
             {
                 return Charset.Equals(other.Charset) && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        /// <summary>
+        /// The state that the octets read so far of a chain of words that a character is split between leave a decoder in, as octets that
+        /// put a decoder in the same state from the start and read as no text.
+        /// </summary>
+        /// <remarks>
+        /// UTF-16 and UTF-32 read with a byte order mark keep the byte order the chain starts with (RFC 2781 §3.2: a byte order mark is
+        /// only read at the start of the text), so their state is the mark of that byte order. A character set of the ISO/IEC 2022 family,
+        /// such as ISO-2022-JP (RFC 1468), keeps the character sets designated and invoked, so its state is the escape sequences and the
+        /// shift that set them. Any other character set reads a character the same way wherever it starts, so it needs no octets.
+        /// </remarks>
+        private sealed class SplitCharacterState
+        {
+            private static readonly byte[] NoOctets = new byte[0];
+
+            private bool _hasOctets;
+            private Iso2022Mode _mode = Iso2022Mode.Initial;
+
+            /// <summary>Gets the octets that put a decoder in the state.</summary>
+            internal byte[] Octets { get; private set; } = NoOctets;
+
+            /// <summary>Returns to the state at the start of a chain.</summary>
+            internal void Reset()
+            {
+                _hasOctets = false;
+                _mode = Iso2022Mode.Initial;
+                Octets = NoOctets;
+            }
+
+            /// <summary>
+            /// Moves the state on past octets of the chain that are valid in the state, or leaves it as it is if they leave it unknown.
+            /// </summary>
+            /// <param name="charset">The character set of the chain.</param>
+            /// <param name="octets">The octets.</param>
+            /// <param name="start">The position of the first octet to read.</param>
+            /// <param name="count">The number of octets to read.</param>
+            /// <param name="charsetResolver">Finds the encoding of the character set.</param>
+            /// <returns><c>true</c> if the state is known after the octets; otherwise, <c>false</c>.</returns>
+            internal bool TryRead(MimeCharset charset, byte[] octets, int start, int count, IMimeCharsetResolver charsetResolver)
+            {
+                if (IsIso2022(charset))
+                {
+                    var mode = _mode;
+                    if (!mode.TryRead(octets, start, count)) return false;
+
+                    _mode = mode;
+                    Octets = mode.GetOctets();
+                    return true;
+                }
+
+                if (_hasOctets || count == 0) return true;
+
+                // ref. RFC 2781 §4.3: the first octets of the chain give the byte order, by their byte order mark or by having none.
+                _hasOctets = true;
+#if NETCOREAPP3_0_OR_GREATER
+                Encoding? encoding;
+#else
+                Encoding encoding;
+#endif
+                var scheme = charsetResolver.TryGetEncoding(charset, out encoding) ? encoding as MimeUnicodeSchemeEncoding : null;
+                if (scheme != null) Octets = scheme.GetByteOrderMark(octets, start, count);
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// The mode of ISO/IEC 2022 octets: the character sets designated to G0 and G1, and which of them is invoked.
+        /// </summary>
+        /// <remarks>
+        /// ref. ECMA-35, which is ISO/IEC 2022: an escape sequence is ESC, any intermediate bytes 0x20 to 0x2F, and a final byte 0x30 to
+        /// 0x7E. ESC ( F designates a 94-character set to G0, and ESC $ F and ESC $ ( F a multiple-byte one; ESC ) F and ESC $ ) F designate
+        /// them to G1. SO invokes G1 and SI invokes G0. RFC 1468: in ISO-2022-JP, ESC ( B designates ASCII, and ESC ( J, ESC $ @ and ESC $ B
+        /// the other sets. The octets start with ASCII designated to G0, nothing designated to G1, and G0 invoked. The G2 and G3 designations
+        /// and single shifts of ISO-2022-JP-2 (RFC 1554) and ISO-2022-CN (RFC 1922) aren't kept, so a character split between words after
+        /// one of them isn't joined; the words are then decoded by themselves.
+        /// </remarks>
+        private struct Iso2022Mode
+        {
+            private static readonly byte[] NoOctets = new byte[0];
+
+            // The escape sequences that designate G0, or none for ASCII, and G1, or none.
+            private byte[] _g0Designation;
+            private byte[] _g1Designation;
+            private bool _isShiftedOut;
+
+            internal static Iso2022Mode Initial => new Iso2022Mode { _g0Designation = NoOctets, _g1Designation = NoOctets };
+
+            /// <summary>Gets a value indicating whether ASCII is designated to G0 and G0 is invoked.</summary>
+            internal bool IsAscii => _g0Designation.Length == 0 && !_isShiftedOut;
+
+            /// <summary>
+            /// Moves the mode on past octets, or leaves it as it is if they end partway through an escape sequence, which leaves the mode
+            /// unknown.
+            /// </summary>
+            internal bool TryRead(byte[] octets, int start, int count)
+            {
+                var g0Designation = _g0Designation;
+                var g1Designation = _g1Designation;
+                var isShiftedOut = _isShiftedOut;
+                var end = start + count;
+                for (var index = start; index < end; index++)
+                {
+                    switch (octets[index])
+                    {
+                        case ShiftOut:
+                            isShiftedOut = true;
+                            break;
+                        case ShiftIn:
+                            isShiftedOut = false;
+                            break;
+                        case Escape:
+                            var final = index + 1;
+                            while (final < end && octets[final] >= 0x20 && octets[final] <= 0x2F) final++;
+
+                            if (final >= end) return false;
+
+                            var intermediateCount = final - index - 1;
+                            var first = intermediateCount > 0 ? octets[index + 1] : (byte)0;
+                            var second = intermediateCount > 1 ? octets[index + 2] : (byte)0;
+                            if (intermediateCount == 1 && first == (byte)'(')
+                            {
+                                g0Designation = octets[final] == (byte)'B' ? NoOctets : Copy(octets, index, final + 1 - index);
+                            }
+                            else if ((intermediateCount == 1 && first == (byte)'$') || (intermediateCount == 2 && first == (byte)'$' && second == (byte)'('))
+                            {
+                                g0Designation = Copy(octets, index, final + 1 - index);
+                            }
+                            else if ((intermediateCount == 1 && first == (byte)')') || (intermediateCount == 2 && first == (byte)'$' && second == (byte)')'))
+                            {
+                                g1Designation = Copy(octets, index, final + 1 - index);
+                            }
+
+                            index = final;
+                            break;
+                    }
+                }
+
+                _g0Designation = g0Designation;
+                _g1Designation = g1Designation;
+                _isShiftedOut = isShiftedOut;
+                return true;
+            }
+
+            /// <summary>Gets octets that put ISO/IEC 2022 octets in this mode from the start, and read as no text.</summary>
+            internal byte[] GetOctets()
+            {
+                var octets = new byte[_g0Designation.Length + _g1Designation.Length + (_isShiftedOut ? 1 : 0)];
+                Array.Copy(_g0Designation, octets, _g0Designation.Length);
+                Array.Copy(_g1Designation, 0, octets, _g0Designation.Length, _g1Designation.Length);
+                if (_isShiftedOut) octets[octets.Length - 1] = ShiftOut;
+
+                return octets;
+            }
+
+            private static byte[] Copy(byte[] octets, int start, int count)
+            {
+                var copy = new byte[count];
+                Array.Copy(octets, start, copy, 0, count);
+                return copy;
             }
         }
 

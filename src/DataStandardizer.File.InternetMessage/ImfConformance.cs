@@ -14,6 +14,7 @@ namespace DataStandardizer.File.InternetMessage
         private const string EntityPath = "";
 
         private const string InvalidValueMessage = "The body of the {0} field does not follow its grammar (RFC 5322 §3.6, RFC 6854 §2.1).";
+        private const string MissingCloseDelimiterMessage = "A multipart entity that hasn't changed has no close delimiter (RFC 2046 §5.1.1).  ImfOptions.AllowMissingBoundaryTerminator accepts it.";
         private const string MissingMimeVersionMessage = "The header has a MIME field and no MIME-Version field, which RFC 2045 §4 requires.  ImfOptions.AllowMissingMimeVersion accepts it.";
         private const string MissingEmbeddedFieldMessage = "An embedded message has none of From, Subject or Date, one of which RFC 2046 §5.2.1 requires.  ImfOptions.AllowMissingRequiredFields accepts it.";
         private const string MissingFieldMessage = "The header has no {0} field, which RFC 5322 §3.6 requires.";
@@ -86,6 +87,21 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Determines if the options of a writer accept a problem that <see cref="Check"/> or <see cref="CheckContent"/> found.
+        /// </summary>
+        /// <remarks>
+        /// Of the problems of the kind <see cref="ImfDiagnosticKind.InvalidBodyStructure"/>, only an unchanged multipart entity with no close delimiter is accepted, and only by
+        /// <see cref="ImfOptions.AllowMissingBoundaryTerminator"/>.
+        /// </remarks>
+        internal static bool IsAllowedWhenWriting(ImfDiagnostic diagnostic, ImfOptions options)
+        {
+            if (diagnostic.Kind == ImfDiagnosticKind.InvalidBodyStructure)
+                return options.AllowMissingBoundaryTerminator && string.Equals(diagnostic.Message, MissingCloseDelimiterMessage, StringComparison.Ordinal);
+
+            return IsAllowed(diagnostic.Kind, options);
+        }
+
+        /// <summary>
         /// Determines if some options accept a kind of problem.
         /// </summary>
         internal static bool IsAllowed(ImfDiagnosticKind kind, ImfOptions options)
@@ -152,8 +168,7 @@ namespace DataStandardizer.File.InternetMessage
 
             CheckEmbedded(message, diagnostics);
 
-            var check = new ImfBodyCheck(options, message.LineFeedIsLineBreak);
-            CheckBodies(message, check, diagnostics);
+            CheckBodies(message, options, diagnostics);
         }
 
         /// <summary>
@@ -199,11 +214,11 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
-        private static void CheckBodies(ImfMessage message, ImfBodyCheck check, List<ImfDiagnostic> diagnostics)
+        private static void CheckBodies(ImfMessage message, ImfOptions options, List<ImfDiagnostic> diagnostics)
         {
             var isTopMime = HasMimeField(message) || message.Fields.Contains(ImfFieldNames.MimeVersion);
             var pending = new Stack<PendingBody>();
-            pending.Push(new PendingBody(message.Body, isTopMime, MimeDataDomain.Binary, EntityPath, true, true));
+            pending.Push(new PendingBody(message.Body, isTopMime, MimeDataDomain.Binary, EntityPath, true, true, new ImfBodyCheck(options, message.LineFeedIsLineBreak)));
             while (pending.Count > 0)
             {
                 var item = pending.Pop();
@@ -218,22 +233,32 @@ namespace DataStandardizer.File.InternetMessage
                 {
                     // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
                     var path = !item.IsMessageBody ? item.Path : item.Path.Length == 0 ? "1" : item.Path + ".1";
-                    pending.Push(new PendingBody(part.Message.Body, item.IsMime || part.Message.Fields.Contains(ImfFieldNames.MimeVersion), domain, path, true, isKept));
+
+                    // A message with other line breaks than the one that holds it, such as one from an mbox file, is written with those of the writer, so it is checked with its own.
+                    var held = part.Message;
+                    var check = held.LineFeedIsLineBreak == item.Check.LineFeedIsLineBreak ? item.Check : new ImfBodyCheck(options, held.LineFeedIsLineBreak);
+                    pending.Push(new PendingBody(held.Body, item.IsMime || held.Fields.Contains(ImfFieldNames.MimeVersion), domain, path, true, isKept, check));
                 }
                 else if (item.Entity is ImfMultipart multipart)
                 {
-                    CheckBytes(multipart.Preamble ?? default(ReadOnlyMemory<byte>), check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
-                    CheckBytes(multipart.Epilogue ?? default(ReadOnlyMemory<byte>), check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
+                    // ref. RFC 2046 §5.1.1.  One that has changed is written again, with a close delimiter, but one that hasn't is written as it was read.
+                    if (multipart.WasReadWithNoCloseDelimiter && multipart.IsRead && !multipart.HasChangedBody)
+                    {
+                        diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyStructure, MissingCloseDelimiterMessage, -1, item.Path));
+                    }
+
+                    CheckBytes(multipart.Preamble ?? default(ReadOnlyMemory<byte>), item.Check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
+                    CheckBytes(multipart.Epilogue ?? default(ReadOnlyMemory<byte>), item.Check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
                     for (var index = multipart.Parts.Count - 1; index >= 0; index--)
                     {
                         var number = (index + 1).ToString(CultureInfo.InvariantCulture);
-                        pending.Push(new PendingBody(multipart.Parts[index], item.IsMime, domain, item.Path.Length == 0 ? number : item.Path + "." + number, false, isKept));
+                        pending.Push(new PendingBody(multipart.Parts[index], item.IsMime, domain, item.Path.Length == 0 ? number : item.Path + "." + number, false, isKept, item.Check));
                     }
                 }
                 else if (item.Entity.IsRead && !item.Entity.HasChangedBody)
                 {
                     // What a writer encodes itself is checked as it is encoded.
-                    CheckBytes(item.Entity.RawBody, check, domain, item.IsMime, ImfBodyCheck.GetMaxLineLength(encoding), item.Path, diagnostics);
+                    CheckBytes(item.Entity.RawBody, item.Check, domain, item.IsMime, ImfBodyCheck.GetMaxLineLength(encoding), item.Path, diagnostics);
                 }
             }
         }
@@ -246,9 +271,11 @@ namespace DataStandardizer.File.InternetMessage
             internal readonly string Path;
             internal readonly bool IsMessageBody;
             internal readonly bool IsHolderKept;
+            internal readonly ImfBodyCheck Check;
 
-            internal PendingBody(ImfEntity entity, bool isMime, MimeDataDomain enclosing, string path, bool isMessageBody, bool isHolderKept)
+            internal PendingBody(ImfEntity entity, bool isMime, MimeDataDomain enclosing, string path, bool isMessageBody, bool isHolderKept, ImfBodyCheck check)
             {
+                Check = check;
                 IsMessageBody = isMessageBody;
                 IsHolderKept = isHolderKept;
                 Entity = entity;

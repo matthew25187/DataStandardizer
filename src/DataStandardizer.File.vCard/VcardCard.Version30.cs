@@ -358,6 +358,13 @@ namespace DataStandardizer.File.vCard
             }
         }
 
+        private static bool GetRevisionValue(VcardProperty<VcardTimestamp> property, out VcardTimestamp value)
+        {
+            // A card read from vCard 2.1 can keep a timestamp with an hour of 24, which RFC 2425 §5.8.4 doesn't have.
+            value = property.Value;
+            return value.IsDefinedIn(VcardVersion.V3_0);
+        }
+
         private static bool GetBirthdayValue(VcardProperty<VcardTypedValue> property, out VcardDateAndOrTime value)
         {
             value = default(VcardDateAndOrTime);
@@ -446,7 +453,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard30Property<VcardName> IVcard30Card.Name => Vcard30Views.Create<VcardName, VcardName>(this, Name, GetNameValue);
 
-        IVcard30Property<VcardDateAndOrTime> IVcard30Card.Birthday => Vcard30Views.Create<VcardTypedValue, VcardDateAndOrTime>(this, Birthday, GetBirthdayValue);
+        IVcard30Property<VcardDateAndOrTime> IVcard30Card.Birthday => Vcard30Views.Create<VcardTypedValue, VcardDateAndOrTime>(this, GetSingle(BirthdayCodec, SourceVersion), GetBirthdayValue);
 
         IVcard30Property<string> IVcard30Card.Mailer => Vcard30Views.Create<string, string>(this, Mailer, GetSame);
 
@@ -478,20 +485,16 @@ namespace DataStandardizer.File.vCard
 
         IVcard30Property<string> IVcard30Card.ProductId => Vcard30Views.Create<string, string>(this, ProductId, GetSame);
 
-        IVcard30Property<VcardTimestamp> IVcard30Card.Revision => Vcard30Views.Create<VcardTimestamp, VcardTimestamp>(this, Revision, GetSame);
+        IVcard30Property<VcardTimestamp> IVcard30Card.Revision => Vcard30Views.Create<VcardTimestamp, VcardTimestamp>(this, GetSingle(RevisionCodec, SourceVersion), GetRevisionValue);
 
         string IVcard30Card.SortString
         {
             get
             {
-                foreach (var name in new[] { VcardPropertyNames.Name, VcardPropertyNames.Organization })
-                {
-                    foreach (var line in GetProperties(name))
-                    {
-                        var sortAs = VcardPropertyParameterReader.GetListValues(line, VcardParameterNames.SortAs);
-                        if (sortAs.Count != 0) return sortAs[0];
-                    }
-                }
+                // ref. RFC 2426 §3.6.5: SORT-STRING sorts the FN and N types.  A writer of vCard 3.0 writes the sort key of the first N, or on a card with no N of the first ORG,
+                // and leaves out the sort key of any other line.
+                var sortKey = VcardVersion30Mapping.GetWrittenSortKey(this);
+                if (sortKey != null) return sortKey;
 
                 foreach (var line in GetProperties(VcardPropertyNames.SortString))
                 {
@@ -579,7 +582,19 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentNullException(nameof(value));
 
             Uri uri;
-            SetUid(VcardValue.TryParseUriText(value.AsSpan(), out uri) ? new VcardTypedValue(uri) : new VcardTypedValue(value));
+            if (VcardValue.TryParseUriText(value.AsSpan(), out uri))
+            {
+                SetUid(new VcardTypedValue(uri));
+            }
+            else if (VcardValue.IsValidUriText(value.AsSpan()))
+            {
+                // A URI that no Uri is made from on any runtime, such as one whose scheme is one letter, is a URI as the reader takes it (VcardVersion30Mapping.UidToCanonical).
+                SetSingleLine(VcardPropertyNames.Uid, new VcardContentLine(VcardPropertyNames.Uid, VcardValue.EscapeUri(value)));
+            }
+            else
+            {
+                SetUid(new VcardTypedValue(value));
+            }
         }
 
         void IVcard30Card.SetClassification(string value)

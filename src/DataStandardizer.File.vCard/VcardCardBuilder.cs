@@ -18,9 +18,6 @@ namespace DataStandardizer.File.vCard
         // ref. vCard 2.1 §2.9: "AGENT" [params] ":" vcard CRLF, where vcard starts with "BEGIN" ":" "VCARD".
         private const string InlineCardValue = "BEGIN:VCARD";
 
-        // Nothing sets a limit.  It matches that of a card held as text.
-        private const int MaxDepth = 8;
-
         private readonly VcardOptions _options;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -148,7 +145,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="beginLine">The <c>BEGIN:VCARD</c> line of the card.</param>
         private void StartHeldCard(VcardContentLine beginLine)
         {
-            if (_depth + 1 >= MaxDepth)
+            if (_depth + 1 >= VcardNestedCards.MaxDepth)
                 throw BuildStructureException("The card of an AGENT is nested too deeply.", beginLine);
 
             var card = _card;
@@ -323,6 +320,10 @@ namespace DataStandardizer.File.vCard
             {
                 // A vCard 4.0 card is checked in canonical form, as it is.  Any other is checked in its own form before it stops being in that form.
                 mapping.Validate(card.Properties, card, _options, _depth, _structureDiagnostics);
+                if (mapping.Version == VcardVersion.V2_1)
+                {
+                    Vcard21Conformance.ValidateQuotedPrintableLines(card.Properties, card, _structureDiagnostics);
+                }
             }
 
             mapping.ToCanonical(card, _options, _depth);

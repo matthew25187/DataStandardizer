@@ -30,6 +30,24 @@ namespace DataStandardizer.Communication.Mime
         /// Accept an encoded word longer than 75 characters, which RFC 2047 §2 doesn't allow, and which RFC 2047 §6.1 says to read as
         /// ordinary text.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A word that is accepted this way is written back as encoded words in UTF-8 that are each at most
+        /// <see cref="MimeEncodedWord.MaxLength"/> characters long, separated by spaces, as
+        /// <see cref="MimeEncodedWord.EncodeText(string, MimeEncodedWordContext)"/> writes text in a phrase, with the word's language. An
+        /// unpaired surrogate in its text is written as U+FFFD. A reader drops the spaces between the words (RFC 2047 §6.2), so
+        /// <see cref="MimeEncodedWord.DecodeText(string, MimeEncodedWordContext, MimeEncodedWordParseOptions, IMimeCharsetResolver)"/> reads
+        /// them back as the text, but <see cref="MimeEncodedWord.Parse(string)"/>, which reads one word, doesn't. The properties of the word
+        /// still describe it as it was written.
+        /// </para>
+        /// <para>
+        /// <see cref="MimeEncodedWord.TryParse(ReadOnlySpan{char}, MimeEncodedWordContext, MimeEncodedWordParseOptions, IMimeCharsetResolver, out MimeEncodedWord)"/>
+        /// rejects a long word that can't be written this way: one whose text is empty, whose language leaves no room in a word of
+        /// <see cref="MimeEncodedWord.MaxLength"/> characters for a character of its text, or whose character set the
+        /// <see cref="IMimeCharsetResolver"/> doesn't resolve, even with <see cref="AllowUnknownCharsets"/>. <c>DecodeText</c> still decodes
+        /// such a word, as it doesn't write it.
+        /// </para>
+        /// </remarks>
         AllowLongWords = 1 << 0,
 
         /// <summary>
@@ -55,9 +73,15 @@ namespace DataStandardizer.Communication.Mime
         AllowUnknownCharsets = 1 << 2,
 
         /// <summary>
-        /// Accept lower-case hexadecimal digits after <c>=</c> in "Q"-encoded text, as in <c>=c3=a9</c>, which RFC 2047 §4.2 (1) and
-        /// RFC 2045 §6.7 rule 1 say are written in upper case.
+        /// This option has no effect. Lower-case hexadecimal digits after <c>=</c> in "Q"-encoded text, as in <c>=c3=a9</c>, are always
+        /// accepted.
         /// </summary>
+        /// <remarks>
+        /// RFC 2047 §4.2 (1) only says that upper case should be used for the digits. The requirement of RFC 2045 §6.7 rule 1 is for
+        /// quoted-printable bodies, where <see cref="MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits"/> accepts lower-case
+        /// digits.
+        /// </remarks>
+        [Obsolete("MimeEncodedWordParseOptions.AllowLowercaseHexDigits has no effect: lower-case hexadecimal digits in \"Q\"-encoded text are always accepted (RFC 2047 §4.2 (1)).  It will be removed in a future major version.")]
         AllowLowercaseHexDigits = 1 << 3,
 
         /// <summary>
@@ -66,10 +90,17 @@ namespace DataStandardizer.Communication.Mime
         /// U+FFFD.
         /// </summary>
         /// <remarks>
-        /// The netstandard1.1 build can't change how an encoding treats invalid octets. So there, without this option, the text that the
-        /// encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it with the encoding gives the same octets
-        /// back, and the encoding doesn't throw <see cref="DecoderFallbackException"/> or <see cref="EncoderFallbackException"/>. A valid
-        /// word in a character set that can write a character in more than one way needs this option on that build.
+        /// <para>
+        /// A word in a character set that switches modes, such as ISO-2022-JP (RFC 1468), must still switch back to ASCII mode by its end
+        /// (RFC 2047 §3), so <c>=?ISO-2022-JP?B?GyRCMGw=?=</c> is not accepted.
+        /// </para>
+        /// <para>
+        /// The netstandard1.1 build finds <c>Encoding.Clone</c> and <c>Encoding.DecoderFallback</c> at run time. On a runtime whose
+        /// reflection metadata leaves them out, such as .NET Native, it can't change how an encoding treats invalid octets. So there,
+        /// without this option, the text that the encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it
+        /// with the encoding gives the same octets back, and with this option, the invalid octets are read as the encoding's own fallback
+        /// reads them.
+        /// </para>
         /// </remarks>
         AllowInvalidOctets = 1 << 4,
 
@@ -82,10 +113,13 @@ namespace DataStandardizer.Communication.Mime
         /// <remarks>
         /// <para>
         /// A word that holds whole characters is decoded by itself. The unfinished part of a character is at most 3 octets, as a character
-        /// is at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3). The octets of the words that a
-        /// character is split between are decoded together, so the byte order given by a byte order mark carries into the next word. If a
-        /// run of such words doesn't finish its last character, or its octets aren't valid together, its first word is decoded by itself,
-        /// as it is without this option, and the words after it are read again.
+        /// is at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3). Each word in a run of such words is
+        /// read in the state that the words before it leave: the byte order of UTF-16 or UTF-32 given by a byte order mark at the start of
+        /// the run (RFC 2781 §3.2), or the mode of a character set of the ISO/IEC 2022 family, such as ISO-2022-JP (RFC 1468): the sets
+        /// designated to G0 and G1, and which of them is shifted in. A word that ends partway through a character or an escape sequence in
+        /// such a character set may end outside ASCII mode, but a word of whole characters, and the run, must end in it (RFC 2047 §3).
+        /// The octets of the run are then decoded together. If a run doesn't finish its last character, or its octets aren't valid
+        /// together, its first word is decoded by itself, as it is without this option, and the words after it are read again.
         /// </para>
         /// <para>
         /// This option has no effect on <see cref="MimeEncodedWord.TryParse(ReadOnlySpan{char}, out MimeEncodedWord)"/>, which reads one

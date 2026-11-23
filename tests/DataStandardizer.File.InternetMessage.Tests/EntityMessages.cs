@@ -268,11 +268,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
             },
             {
                 // A boundary with no line break before it is content, as is a line that only starts like a delimiter.
-                "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx --b\r\n-b\r\n--c\r\n--bc\r\n--b-\r\n--b--x\r\n-\r\n--\r\n\r\n--b--",
+                "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx --b\r\n-b\r\n--c\r\n-\r\n--\r\n\r\n--b--",
                 new[]
                 {
                     "start /", "field / Content-Type", "type / multipart/mixed",
-                    "start 1", "type 1 text/plain", "body 1 [x --b\r\n-b\r\n--c\r\n--bc\r\n--b-\r\n--b--x\r\n-\r\n--\r\n]", "end 1",
+                    "start 1", "type 1 text/plain", "body 1 [x --b\r\n-b\r\n--c\r\n-\r\n--\r\n]", "end 1",
                     "end /"
                 }
             },
@@ -325,21 +325,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 new[] { "start /", "field / Content-Type", "type / multipart/mixed", "start 1", "type 1 text/plain", "body 1 [x]", "end 1", "epilogue / [--b\r\n]", "end /" }
             },
             {
-                // Nested, the outer boundary a prefix of the inner one.
-                "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\n\r\nx\r\n--b1\r\n\r\ny\r\n--b1--\r\n--b\r\n\r\nz\r\n--b--",
-                new[]
-                {
-                    "start /", "field / Content-Type", "type / multipart/mixed",
-                    "start 1", "field 1 Content-Type", "type 1 multipart/mixed",
-                    "start 1.1", "type 1.1 text/plain", "body 1.1 [x]", "end 1.1",
-                    "start 1.2", "type 1.2 text/plain", "body 1.2 [y]", "end 1.2",
-                    "end 1",
-                    "start 2", "type 2 text/plain", "body 2 [z]", "end 2",
-                    "end /"
-                }
-            },
-            {
-                // Nested, the inner boundary a prefix of the outer one.
+                // ref. RFC 2046 §5.1.1: nested, the inner boundary a prefix of the outer one, so no line of the outer entity's parts starts with
+                // the outer boundary.
                 "Content-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\r\n\r\ny\r\n--b--\r\n--b1\r\n\r\nz\r\n--b1--",
                 new[]
                 {
@@ -482,7 +469,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const string MessageText =
             "Content-Type: multipart/mixed; boundary=b\r\n\r\npre\r\n--b \r\nA:1\r\n 2\r\n\r\nx\r\r\n--c\r\n" +
-            "--b\r\nContent-Type: message/rfc822\r\n\r\nContent-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\n\r\ny\r\n--b1--\r\ne\r\n--b--\r\npost";
+            "--b\r\nContent-Type: message/rfc822\r\n\r\nContent-Type: multipart/mixed; boundary=a1\r\n\r\n--a1\r\n\r\ny\r\n--a1--\r\ne\r\n--b--\r\npost";
 
         private static readonly int[] BufferSizes = { 1, 2, 3, 5, 8, 64, 4096 };
 

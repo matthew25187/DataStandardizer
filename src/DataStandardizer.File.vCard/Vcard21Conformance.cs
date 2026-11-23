@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.vCard
 {
@@ -20,6 +21,10 @@ namespace DataStandardizer.File.vCard
         internal const string UrlValue = "URL";
         internal const string ContentIdValue = "CONTENT-ID";
         internal const string ShortContentIdValue = "CID";
+
+        // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters.  The 76 characters does not include the CRLF (RFC 822)
+        // line break sequence."
+        private const int MaxQuotedPrintableLineLength = 75;
 
         private static readonly string[] SingleParameters =
         {
@@ -56,6 +61,21 @@ namespace DataStandardizer.File.vCard
             if (!hasName)
             {
                 found.Add(new VcardDiagnostic(VcardDiagnosticKind.MissingRequiredProperty, "vCard 2.1 §2.2.2 requires an N property.", VcardPropertyNames.Name, null, card.LineNumber, card.CardIndex));
+            }
+        }
+
+        /// <summary>
+        /// Checks the physical lines on which the <c>QUOTED-PRINTABLE</c> values of a card were read.  Only a reader checks this, since a writer breaks every
+        /// quoted-printable value into lines short enough, whatever lines it was read from.
+        /// </summary>
+        internal static void ValidateQuotedPrintableLines(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found)
+        {
+            foreach (var line in lines)
+            {
+                if (line.LongestQuotedPrintableLine <= MaxQuotedPrintableLineLength) continue;
+
+                Add(found, VcardDiagnosticKind.InvalidValue, Format("The QUOTED-PRINTABLE value of {0} is on a line of {1} characters, and vCard 2.1 §2.1.3 limits a quoted-printable line " +
+                    "to less than 76.", line.Name, line.LongestQuotedPrintableLine), line, card);
             }
         }
 
@@ -235,10 +255,34 @@ namespace DataStandardizer.File.vCard
 
         private static void CheckValue(VcardContentLine line, bool isDefined, VcardCard card, List<VcardDiagnostic> found)
         {
+            if (EndsWithUndecodableSoftLineBreak(line))
+            {
+                // ref. vCard 2.1 §2.1.3 and RFC 2045 §6.7 rule 5: a reader joins the next line to a value that ends with "=", so the value, which can't be broken with
+                // soft line breaks of its own, can't be written as it is either.
+                Add(found, VcardDiagnosticKind.InvalidStructure, Format("The QUOTED-PRINTABLE value of {0} can't be decoded and ends with an = that a reader would take for a soft line break, " +
+                    "so it can't be written.", line.Name), line, card);
+                return;
+            }
+
             if (!IsValidValue(line, isDefined))
             {
                 Add(found, VcardDiagnosticKind.InvalidValue, Format("The value of {0} is not valid in vCard 2.1.", line.Name), line, card);
             }
+        }
+
+        /// <summary>
+        /// Gets whether a line's value says it is <c>QUOTED-PRINTABLE</c>, can't be decoded, and ends with what a reader takes for a soft line break.
+        /// </summary>
+        private static bool EndsWithUndecodableSoftLineBreak(VcardContentLine line)
+        {
+            var encoding = VcardPropertyParameterReader.GetValue(line, VcardLegacyTokens.EncodingName);
+            if (!string.Equals(encoding, VcardLegacyTokens.QuotedPrintable, StringComparison.OrdinalIgnoreCase)) return false;
+
+            var value = line.Value.AsSpan();
+            int dataLength;
+            byte[] octets;
+            return MimeQuotedPrintable.EndsWithSoftLineBreak(value, out dataLength) &&
+                   !MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.AllowLongLines, out octets);
         }
 
         private static bool IsValidValue(VcardContentLine line, bool isDefined)

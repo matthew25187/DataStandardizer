@@ -16,23 +16,36 @@ namespace DataStandardizer.Communication.Mime
         private readonly bool _allowLowercase;
         private readonly bool _allowBareLineFeeds;
         private readonly bool _allowLiteralEquals;
+        private readonly bool _allowLongLines;
 
-        // A run of spaces and tabs in a body, which is removed if a line break follows it (RFC 2045 §6.7 rule 3).
-        private readonly byte[] _whitespace;
+        // A run of spaces and tabs in a body, which is removed if a line break follows it (RFC 2045 §6.7 rule 3). The buffer holds as
+        // much of the run as could still be part of the line; a longer run is only counted, as it can only be transport padding. When
+        // long lines are allowed, the buffer grows to hold the whole run.
+        private byte[] _whitespace;
         private int _whitespaceStart;
         private int _whitespaceCount;
+
+        // The number of characters of the current line of a body read so far, not counting a run of whitespace that may turn out to be
+        // transport padding.
+        private int _lineLength;
+
         private Pending _pending;
         private int _highDigit;
 
         internal MimeQuotedPrintableDecoderState(MimeQuotedPrintableMode mode, MimeQuotedPrintableDecoderOptions options)
         {
             _mode = mode;
-            _allowLowercase = (options & MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits) != 0;
+            // ref. RFC 2047 §4.2 (1) only says that upper case "should" be used in the "Q" modes; the MUST of RFC 2045 §6.7 rule 1 is
+            // for bodies.
+            _allowLowercase = mode != MimeQuotedPrintableMode.Body
+                || (options & MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits) != 0;
             _allowBareLineFeeds = (options & MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds) != 0;
             _allowLiteralEquals = (options & MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns) != 0;
+            _allowLongLines = (options & MimeQuotedPrintableDecoderOptions.AllowLongLines) != 0;
             _whitespace = mode == MimeQuotedPrintableMode.Body ? new byte[MimeQuotedPrintable.MaxLineLength] : NoWhitespace;
             _whitespaceStart = 0;
             _whitespaceCount = 0;
+            _lineLength = 0;
             _pending = Pending.None;
             _highDigit = 0;
         }
@@ -64,6 +77,7 @@ namespace DataStandardizer.Communication.Mime
         {
             _whitespaceStart = 0;
             _whitespaceCount = 0;
+            _lineLength = 0;
             _pending = Pending.None;
             _highDigit = 0;
         }
@@ -169,6 +183,8 @@ namespace DataStandardizer.Communication.Mime
                 case Pending.EqualsSign:
                     if (GetDigitValue(unit) >= 0)
                     {
+                        if (!TryAddToLine()) return OperationStatus.InvalidData;
+
                         _highDigit = unit;
                         _pending = Pending.EqualsSignAndDigit;
                         return OperationStatus.Done;
@@ -186,12 +202,14 @@ namespace DataStandardizer.Communication.Mime
 
                         if (unit == '\r')
                         {
+                            _lineLength = 0;
                             _pending = Pending.SoftCarriageReturn;
                             return OperationStatus.Done;
                         }
 
                         if (unit == '\n' && _allowBareLineFeeds)
                         {
+                            _lineLength = 0;
                             _pending = Pending.None;
                             return OperationStatus.Done;
                         }
@@ -209,6 +227,7 @@ namespace DataStandardizer.Communication.Mime
                     if (low >= 0)
                     {
                         if (destination.Length - written < 1) return OperationStatus.DestinationTooSmall;
+                        if (!TryAddToLine()) return OperationStatus.InvalidData;
 
                         destination[written++] = (byte)((GetDigitValue(_highDigit) << 4) | low);
                         _pending = Pending.None;
@@ -229,6 +248,7 @@ namespace DataStandardizer.Communication.Mime
                     if (unit == '\r')
                     {
                         ClearWhitespace();
+                        _lineLength = 0;
                         _pending = Pending.SoftCarriageReturn;
                         return OperationStatus.Done;
                     }
@@ -236,6 +256,7 @@ namespace DataStandardizer.Communication.Mime
                     if (unit == '\n' && _allowBareLineFeeds)
                     {
                         ClearWhitespace();
+                        _lineLength = 0;
                         _pending = Pending.None;
                         return OperationStatus.Done;
                     }
@@ -263,6 +284,7 @@ namespace DataStandardizer.Communication.Mime
                 if (unit == '\r')
                 {
                     ClearWhitespace();
+                    _lineLength = 0;
                     _pending = Pending.CarriageReturn;
                     return OperationStatus.Done;
                 }
@@ -272,17 +294,28 @@ namespace DataStandardizer.Communication.Mime
                     if (destination.Length - written < 1) return OperationStatus.DestinationTooSmall;
 
                     ClearWhitespace();
+                    _lineLength = 0;
                     destination[written++] = (byte)'\n';
                     return OperationStatus.Done;
                 }
 
-                // The whitespace is followed by something other than a line break, so it is part of the data.
+                // The whitespace is followed by something other than a line break, so it is part of the data and of the line. ref.
+                // RFC 2045 §6.7 rule 5: the line, with this unit, is at most 76 characters.
+                // With long lines allowed, a run longer than the decoder holds is not valid either.
+                if (_allowLongLines
+                    ? _whitespaceCount > MimeQuotedPrintable.MaxHeldWhitespace
+                    : _lineLength + _whitespaceCount >= MimeQuotedPrintable.MaxLineLength)
+                {
+                    return OperationStatus.InvalidData;
+                }
+
                 while (_whitespaceCount > 0)
                 {
                     if (destination.Length - written < 1) return OperationStatus.DestinationTooSmall;
 
                     destination[written++] = _whitespace[_whitespaceStart++];
                     _whitespaceCount--;
+                    _lineLength++;
                 }
 
                 _whitespaceStart = 0;
@@ -290,6 +323,8 @@ namespace DataStandardizer.Communication.Mime
 
             if (unit == '=')
             {
+                if (!TryAddToLine()) return OperationStatus.InvalidData;
+
                 _pending = Pending.EqualsSign;
                 return OperationStatus.Done;
             }
@@ -310,24 +345,59 @@ namespace DataStandardizer.Communication.Mime
             }
 
             if (destination.Length - written < 1) return OperationStatus.DestinationTooSmall;
+            if (!TryAddToLine()) return OperationStatus.InvalidData;
 
             destination[written++] = (byte)value;
             return OperationStatus.Done;
         }
 
+        // Counts a unit as part of the current line of a body, or returns false if the line is already 76 characters long (RFC 2045 §6.7
+        // rule 5). Call it only once nothing else can stop the unit being consumed.
+        private bool TryAddToLine()
+        {
+            if (!IsBody || _allowLongLines) return true;
+            if (_lineLength >= MimeQuotedPrintable.MaxLineLength) return false;
+
+            _lineLength++;
+            return true;
+        }
+
         private OperationStatus AddWhitespace(int unit)
         {
-            // ref. RFC 2045 §6.7 rule 5: a line is at most 76 characters, so a longer run of whitespace is not valid.
+            // ref. RFC 2045 §6.7 rule 3: transport padding may be of any length. A run that no longer fits on the line can only be
+            // padding, so the rest of it is counted but not kept, and it is not valid if anything but a line break follows it. With long
+            // lines allowed, the run is kept up to MaxHeldWhitespace, so the decoder's memory stays bounded.
+            if (IsWhitespaceRunFull())
+            {
+                if (_whitespaceCount <= MimeQuotedPrintable.MaxHeldWhitespace) _whitespaceCount++;
+
+                return OperationStatus.Done;
+            }
+
             if (_whitespaceStart + _whitespaceCount == _whitespace.Length)
             {
-                if (_whitespaceStart == 0) return OperationStatus.InvalidData;
-
-                Array.Copy(_whitespace, _whitespaceStart, _whitespace, 0, _whitespaceCount);
-                _whitespaceStart = 0;
+                if (_whitespaceStart == 0)
+                {
+                    Array.Resize(ref _whitespace, Math.Min(_whitespace.Length * 2, MimeQuotedPrintable.MaxHeldWhitespace));
+                }
+                else
+                {
+                    Array.Copy(_whitespace, _whitespaceStart, _whitespace, 0, _whitespaceCount);
+                    _whitespaceStart = 0;
+                }
             }
 
             _whitespace[_whitespaceStart + _whitespaceCount++] = (byte)unit;
             return OperationStatus.Done;
+        }
+
+        // Whether the run of whitespace can't be part of the data: with a unit after it, the line would be longer than 76 characters, or
+        // with long lines allowed, the run is longer than the decoder holds.
+        private bool IsWhitespaceRunFull()
+        {
+            return _allowLongLines
+                ? _whitespaceCount >= MimeQuotedPrintable.MaxHeldWhitespace
+                : _lineLength + _whitespaceCount >= MimeQuotedPrintable.MaxLineLength;
         }
 
         private void ClearWhitespace()
@@ -336,7 +406,7 @@ namespace DataStandardizer.Communication.Mime
             _whitespaceCount = 0;
         }
 
-        // Gets the value of a hexadecimal digit, or -1. ref. RFC 2045 §6.7 rule 1: the digits are upper case.
+        // Gets the value of a hexadecimal digit, or -1. ref. RFC 2045 §6.7 rule 1: the digits of a body are upper case.
         private int GetDigitValue(int unit)
         {
             if (unit >= '0' && unit <= '9') return unit - '0';

@@ -20,13 +20,16 @@ codes as static members and compare them with `==` — but it wraps a `string`.
 
 ```csharp
 public readonly struct Iso639Part2BLanguage : DataStandardizer.Core.IStringEnum, IEquatable<Iso639Part2BLanguage>
+#if NETSTANDARD1_3_OR_GREATER || NET
+    , IConvertible
+#endif
 ```
 
 ## Remarks
 
-`IStringEnum` derives from `IComparable` on all targets and additionally from
-`IConvertible` on the `netstandard2.0` and `net10.0` targets, but not on
-`netstandard1.0`. The constructor is private; obtain a value from a static code
+`IStringEnum` derives from `IComparable` on all targets. The struct also
+implements `IConvertible` itself on the `netstandard2.0` and `net10.0` targets,
+but not on `netstandard1.0`. The constructor is private; obtain a value from a static code
 member or the explicit `string` conversion. Per-member metadata is read through the
 [Iso639Extensions](Iso639Extensions.md) accessors. See
 [Understanding the ISO 639 parts](../concepts/iso639-parts.md).
@@ -564,7 +567,7 @@ underlying `string` and is callable only through an `IConvertible` reference.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Iso639Part2BLanguage(string)` | Wraps a code string. Throws `ArgumentNullException` for `null`. |
+| Explicit | `explicit operator Iso639Part2BLanguage(string)` | Gives the member with that code, such as `Iso639Part2BLanguage.eng` for `"eng"`. Codes are case-sensitive. Throws `InvalidCastException` for `null` or a string that isn't an ISO 639-2/B code. Codes reserved for local use, `qaa` to `qtz`, aren't members and are rejected. |
 | Implicit | `implicit operator string(Iso639Part2BLanguage)` | Unwraps to the underlying code string. |
 | Equality | `operator ==`, `!=` `(Iso639Part2BLanguage, Iso639Part2BLanguage)` | |
 

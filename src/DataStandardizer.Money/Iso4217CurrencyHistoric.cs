@@ -12,7 +12,7 @@ namespace DataStandardizer.Money
     
     
     /// <summary>
-    /// ISO 4217, "Codes for the representation of currencies and funds" Table A.3 – List of codes for historic denominations of currencies & funds
+    /// ISO 4217, "Codes for the representation of currencies and funds" Table A.3 – List of codes for historic denominations of currencies &amp; funds
     /// </summary>
     /// <remarks>
     /// 	<para>

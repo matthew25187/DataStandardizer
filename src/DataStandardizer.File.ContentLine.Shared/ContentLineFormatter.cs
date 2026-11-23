@@ -591,6 +591,7 @@ namespace DataStandardizer.File.ContentLine
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="caretMode">What to do with the characters that only caret encoding can represent.</param>
+        /// <param name="isAlwaysQuoted"><c>true</c> if the parameter's values are quoted whatever they hold.</param>
         /// <param name="invalidCharacter">The first character that cannot be written, if any.</param>
         /// <returns>The length; or -1 if the value holds a control character other than a tab or line break, or a lone surrogate, or, under
         /// <see cref="ContentLineCaretMode.Reject"/>, a double quote or a line break.</returns>

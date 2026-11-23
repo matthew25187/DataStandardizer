@@ -7,6 +7,10 @@ using System.Reflection;
 
 namespace DataStandardizer.File.CSV
 {
+    /// <summary>
+    /// Extension methods that create a mapper from a record line's declarative configuration, and convert between CSV lines and custom model
+    /// objects.
+    /// </summary>
     public static class CsvExtensions
     {
         private static class DataItemName

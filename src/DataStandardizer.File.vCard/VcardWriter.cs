@@ -43,6 +43,7 @@ namespace DataStandardizer.File.vCard
         private readonly VcardVersionMapping _mapping;
         private readonly VcardOptions _options;
         private readonly VcardContentLineWriter _writer;
+        private readonly bool _writesHeldCard;
 
         // These are changed with Interlocked, so that an operation started on another thread while one is in progress is refused.
         private int _isDisposed;
@@ -141,6 +142,22 @@ namespace DataStandardizer.File.vCard
 #else
             return options;
 #endif
+        }
+
+        /// <summary>
+        /// Creates a writer of the text of a card that an <c>AGENT</c> holds, which writes each of its lines as the model holds it, the forms of vCard 2.1 included, since the card was
+        /// judged as it was read or added.
+        /// </summary>
+        /// <param name="writer">The writer.</param>
+        /// <param name="options">The options.</param>
+        internal static VcardWriter ForHeldCard(TextWriter writer, VcardOptions options)
+        {
+            return new VcardWriter(writer, options, true);
+        }
+
+        private VcardWriter(TextWriter writer, VcardOptions options, bool writesHeldCard) : this(writer, options)
+        {
+            _writesHeldCard = writesHeldCard;
         }
 
         private VcardWriter(VcardContentLineWriter writer, VcardOptions options)
@@ -589,19 +606,21 @@ namespace DataStandardizer.File.vCard
         private List<VcardContentLine> PrepareCard(VcardCard card)
         {
             // Gather the lines first, so that a card changed by another thread cannot fail part way through for that reason.
+            // Before the checks, so that the content line writer and the checks agree, even on a target where the options can be changed.
+            _writer.WritesUndecodableQuotedPrintableAsIs = _options.AllowInvalidValues;
             var diagnostics = new List<VcardDiagnostic>();
             var properties = _mapping.FromCanonical(card, _options, diagnostics);
             _mapping.Validate(properties, card, _options, 0, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
-                if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, true))
+                if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, true) && !(_writesHeldCard && diagnostic.Kind == VcardDiagnosticKind.LegacySyntax))
                     throw VcardConformance.BuildException(diagnostic);
             }
 
             var lines = new List<VcardContentLine>(properties.Count + 3);
             lines.Add(new VcardContentLine(VcardPropertyNames.Begin, VcardCardBuilder.CardValue));
             lines.Add(new VcardContentLine(VcardPropertyNames.Version, _mapping.VersionText));
-            lines.AddRange(_mapping.Version == VcardVersion.V2_1 ? VcardVersion21Mapping.ExpandHeldCards(properties, _options) : properties);
+            lines.AddRange(_mapping.Version == VcardVersion.V2_1 ? VcardVersion21Mapping.ExpandHeldCards(properties, _options, 0) : properties);
             lines.Add(new VcardContentLine(VcardPropertyNames.End, VcardCardBuilder.CardValue));
             return lines;
         }

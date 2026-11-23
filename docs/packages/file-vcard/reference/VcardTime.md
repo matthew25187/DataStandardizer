@@ -29,7 +29,7 @@ public readonly struct VcardTime : IEquatable<VcardTime>, ISpanFormattable
 
 A second of 60 is accepted at any time of day, since the value doesn't say whether a leap second falls there. An hour of 24 is rejected: RFC 6350 §4.3.2 says midnight is always 00, and RFC 2425 §5.8.4 gives hours up to 23. vCard 2.1 follows ISO 8601, so `24:00:00`, the end of a day, is valid there alone. An offset's hour of 24 belongs to the TZ property of vCard 2.1 (§2.4.5), so a time rejects it.
 
-Two times are equal if they say the same thing the same way, not if they are the same instant: `10Z` and `10+00` differ. A fraction of more than 18 digits keeps its first 18.
+Two times are equal if they say the same thing the same way, not if they are the same instant: `10Z` and `10+00` differ. A fraction keeps every digit it is written with, so `10:22:00,5` and `10:22:00,50` differ.
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
@@ -56,7 +56,7 @@ On the `net10.0` build the type implements `ISpanFormattable`. An empty format s
 | Property | Notes |
 | --- | --- |
 | `int? Hour`, `int? Minute`, `int? Second` | A part, or `null` if the time leaves it out. |
-| `decimal? SecondFraction` | The fraction of a second that only vCard 3.0 has, or `null`. |
+| `decimal? SecondFraction` | The fraction of a second that only vCard 3.0 has, or `null`. A fraction of more than 28 digits gives its first 28 here; the time still keeps and writes every digit. |
 | `bool IsUtc` | Whether the zone is written `Z`. |
 | `VcardUtcOffset? UtcOffset` | The zone if it is an offset, otherwise `null`. |
 

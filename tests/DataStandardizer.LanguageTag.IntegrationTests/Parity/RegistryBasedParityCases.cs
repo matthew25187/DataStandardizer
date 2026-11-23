@@ -21,22 +21,16 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         private static readonly string[] TrimmedRegistryKeptSubtags = { "en", "zh", "de", "sl", "sr", "yue", "cmn", "Latn", "Hant", "Cyrl", "US", "CH", "DE", "419" };
 
         /// <summary>
-        /// Records of every type with a subtag or tag from <see cref="ParityCorpus"/> that isn't in the shape RFC 5646 §2.1 gives that type.
+        /// Records with a subtag or tag from <see cref="ParityCorpus"/> that the ABNF of RFC 5646 §2.1 doesn't allow where the corpus has it: a five- to
+        /// eight-letter language before an extended language, and a grandfathered tag that §2.1 doesn't list. Each subtag has the shape of its type,
+        /// as every subtag of a registry that loads does (RFC 5646 §3.1.4).
         /// </summary>
         private const string RecordsOutsideTheAbnf =
             "File-Date: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: en\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: abcde\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: abcdefgh\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: a\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: 12345\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
-            "%%\r\nType: extlang\r\nSubtag: 123\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
-            "%%\r\nType: script\r\nSubtag: a1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: region\r\nSubtag: 1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: ab1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPreferred-Value: yue\r\nPrefix: zh\r\n" +
             "%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2026-11-02\r\n";
 
         private static readonly string[] SubtagGroupNames =
@@ -126,7 +120,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         }
 
         /// <summary>
-        /// A registry with records that aren't in the shape of their type, which a registry from elsewhere than IANA could have (#527).
+        /// A registry with records that a tag can hold only where the ABNF doesn't allow them (#527).
         /// </summary>
         internal static SubtagRegistry CreateSubtagRegistryWithRecordsOutsideTheAbnf()
         {

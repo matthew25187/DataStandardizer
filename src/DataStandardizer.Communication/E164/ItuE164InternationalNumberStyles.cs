@@ -5,27 +5,25 @@ namespace DataStandardizer.Communication.E164
     /// <summary>
     /// Specifies the styles that can be used when parsing ITU E.164 international numbers.
     /// </summary>
-    /// <summary>
-    /// No styles are allowed. Parsing will be strict.
-    /// </summary>
-    /// <summary>
-    /// Allows the presence of an international prefix symbol in the number.
-    /// </summary>
-    /// <summary>
-    /// Allows leading whitespace characters in the number.
-    /// </summary>
-    /// <summary>
-    /// Allows trailing whitespace characters in the number.
-    /// </summary>
-    /// <summary>
-    /// Specifies that the number is in an international format, allowing an international prefix symbol.
-    /// </summary>
-    /// <summary>
-    /// Allows any combination of international prefix symbols, leading whitespace, and trailing whitespace.
-    /// </summary>
+    /// <remarks>
+    /// ITU-T E.164 defines an international number as a string of decimal digits. With every style, the digits of the
+    /// number are consecutive: no white space, punctuation or other character may separate them. Of the standard
+    /// formats of <see cref="ItuE164InternationalNumber"/>, only the general format with no separators, <c>g</c>,
+    /// parses again, with <see cref="InternationalNumber"/>; formats that group the digits, such as the default
+    /// <c>G</c>, don't.
+    /// <para>
+    /// <see cref="ItuE164InternationalNumber.Parse(string, ItuE164InternationalNumberStyles)"/> and
+    /// <see cref="ItuE164InternationalNumber.TryParse(string, ItuE164InternationalNumberStyles, out ItuE164InternationalNumber)"/>
+    /// throw <see cref="ArgumentOutOfRangeException"/> for a value with a bit that no member of this enumeration defines.
+    /// </para>
+    /// </remarks>
     [Flags]
     public enum ItuE164InternationalNumberStyles : uint
     {
+        /// <summary>
+        /// No styles are allowed: the number is parsed strictly, as digits only, with no international prefix symbol
+        /// and no leading or trailing white space.
+        /// </summary>
         None,
 
         /// <summary>

@@ -21,5 +21,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)IContentLineData.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IContentLineErrorFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utf8FoldRealigningStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)XmlOutputCancellation.cs" />
   </ItemGroup>
 </Project>

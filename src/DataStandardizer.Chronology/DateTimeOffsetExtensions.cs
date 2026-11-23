@@ -2,6 +2,9 @@ using System;
 
 namespace DataStandardizer.Chronology
 {
+    /// <summary>
+    /// Provides extension methods that convert a <see cref="DateTimeOffset"/> to the local time of a TZ Database timezone.
+    /// </summary>
     public static class DateTimeOffsetExtensions
     {
         /// <summary>

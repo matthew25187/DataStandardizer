@@ -45,9 +45,6 @@ namespace DataStandardizer.File.vCard
         // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters", which a longer line is broken into instead of folded.
         private const int MaxPlainLineLength = 75;
 
-        // Nothing sets a limit.  It matches that of a nested card read from text.
-        private const int MaxNestingDepth = 8;
-
         private const string HexDigits = "0123456789ABCDEF";
 
         private static readonly MimeMediaType OctetStream = new MimeMediaType("application", "octet-stream");
@@ -82,7 +79,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="lines">The lines.</param>
         /// <param name="options">The options.</param>
-        internal static List<VcardContentLine> ExpandHeldCards(List<VcardContentLine> lines, VcardOptions options)
+        /// <param name="depth">How many cards the card of the lines is nested in.</param>
+        internal static List<VcardContentLine> ExpandHeldCards(List<VcardContentLine> lines, VcardOptions options, int depth)
         {
             if (!lines.Exists(line => line.HeldCard != null)) return lines;
 
@@ -93,9 +91,10 @@ namespace DataStandardizer.File.vCard
                 if (line.HeldCard is null) continue;
 
                 // What it can't hold has been reported on the AGENT, so it isn't reported again.
-                var held = new Downgrade(line.HeldCard, options, new List<VcardDiagnostic>(), 1).Run();
+                // It is downgraded at its own depth, as it was to report what it can't hold, so an AGENT that is nested too deeply is left out here too.
+                var held = new Downgrade(line.HeldCard, options, new List<VcardDiagnostic>(), depth + 1).Run();
                 result.Add(new VcardContentLine(VcardPropertyNames.Version, VcardVersionMapping.Version21.VersionText));
-                result.AddRange(ExpandHeldCards(held, options));
+                result.AddRange(ExpandHeldCards(held, options, depth + 1));
                 result.Add(new VcardContentLine(VcardPropertyNames.End, VcardCardBuilder.CardValue));
             }
 
@@ -188,7 +187,9 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the canonical value of a property that isn't a picture, a sound, a key or an agent.
         /// </summary>
-        /// <returns>The value; or <c>null</c> if it isn't valid, so the line stays as it is.</returns>
+        /// <returns>
+        /// The value; or <c>null</c> if it isn't valid, or vCard 4.0 has no form for it, such as an hour of 24 (ISO 8601, which vCard 2.1 §2.4.5 and §2.6.2 cite), so the line stays as it is.
+        /// </returns>
         private static string ValueToCanonical(VcardContentLine line, List<VcardContentLineParameter> parameters, string text, string location)
         {
             var value = text.AsSpan();
@@ -196,31 +197,42 @@ namespace DataStandardizer.File.vCard
             {
                 case VcardPropertyNames.Name:
                     VcardName name;
-                    return VcardName.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out name) ? name.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardName.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out name) && name.IsDefinedIn(VcardVersion.V4_0)
+                        ? name.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Address:
                     VcardAddress address;
-                    return VcardAddress.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out address) ? address.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardAddress.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out address) && address.IsDefinedIn(VcardVersion.V4_0)
+                        ? address.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Organization:
                     VcardOrganization organization;
-                    return VcardOrganization.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out organization)
+                    return VcardOrganization.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out organization) && organization.IsDefinedIn(VcardVersion.V4_0)
                         ? organization.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
                         : null;
                 case VcardPropertyNames.Birthday:
                     VcardDate date;
-                    return VcardDate.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out date) ? date.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardDate.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out date) && date.IsDefinedIn(VcardVersion.V4_0)
+                        ? date.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Revision:
                     VcardTimestamp timestamp;
-                    return VcardTimestamp.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out timestamp) ? timestamp.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardTimestamp.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out timestamp) && timestamp.IsDefinedIn(VcardVersion.V4_0)
+                        ? timestamp.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.TimeZone:
                     // ref. vCard 2.1 §2.4.5: an offset from UTC; RFC 6350 §6.5.1: 'The default is a single text value', so an offset says what it is.
                     VcardUtcOffset offset;
                     if (!VcardUtcOffset.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out offset)) return null;
 
+                    // An offset that vCard 4.0 has no form for, such as +24:00, stays as it was read, and still says it is an offset rather than text.
                     parameters.Insert(0, new VcardContentLineParameter(VcardParameterNames.Value, VcardValueTypeRegistry.GetValueTypeName(VcardValueType.UtcOffset)));
-                    return offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0);
+                    return offset.IsDefinedIn(VcardVersion.V4_0) ? offset.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : text;
                 case VcardPropertyNames.Geo:
                     VcardGeo geo;
-                    return VcardGeo.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out geo) ? geo.ToString(VcardValueFormat.Text, VcardVersion.V4_0) : null;
+                    return VcardGeo.TryParse(value, VcardValueFormat.Text, VcardVersion.V2_1, out geo) && geo.IsDefinedIn(VcardVersion.V4_0)
+                        ? geo.ToString(VcardValueFormat.Text, VcardVersion.V4_0)
+                        : null;
                 case VcardPropertyNames.Url:
                     // ref. RFC 6350 §3.4 and its errata 3845 and 3846: a comma in a URI value is escaped in vCard 4.0.
                     return VcardValue.IsValidUriText(value) ? VcardValue.EscapeUri(text) : null;
@@ -704,6 +716,8 @@ namespace DataStandardizer.File.vCard
                     return false;
                 }
 
+                // ref. vCard 2.1 §2.1.8: VALUE says where a value is, not its type, so it goes even from an offset that stays as it is, such as one read from vCard 2.1 that vCard 4.0 has no form for.
+                VcardVersion30Mapping.Remove(parameters, VcardParameterNames.Value);
                 if (!VcardUtcOffset.TryParse(value.AsSpan(), VcardValueFormat.Text, out offset)) return true;
 
                 if (!offset.IsDefinedIn(VcardVersion.V2_1))
@@ -713,7 +727,6 @@ namespace DataStandardizer.File.vCard
                 }
 
                 value = offset.ToString(VcardValueFormat.Text, VcardVersion.V2_1);
-                VcardVersion30Mapping.Remove(parameters, VcardParameterNames.Value);
                 return true;
             }
 
@@ -726,8 +739,7 @@ namespace DataStandardizer.File.vCard
                     return true;
                 }
 
-                Uri uri;
-                if (!VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out uri)) return true;
+                if (!VcardValue.IsValidUriValue(value.AsSpan())) return true;
 
                 ReportLostProperty(line, "only a latitude and a longitude can be written");
                 return false;
@@ -862,7 +874,7 @@ namespace DataStandardizer.File.vCard
                         return;
                     }
 
-                    if (_depth + 1 >= MaxNestingDepth)
+                    if (_depth + 1 >= VcardNestedCards.MaxDepth)
                     {
                         ReportLostProperty(agent, "its card is nested too deeply");
                         return;
@@ -889,7 +901,7 @@ namespace DataStandardizer.File.vCard
             }
 
             /// <summary>
-            /// Reports what a card held by an <c>AGENT</c> can't hold, and what it lacks.
+            /// Reports what a card held by an <c>AGENT</c> can't hold, what it lacks, the values and parameters in it that aren't valid, and the values it can't write.
             /// </summary>
             private void ReportHeldCard(VcardContentLine agent, VcardCard held)
             {
@@ -897,7 +909,11 @@ namespace DataStandardizer.File.vCard
                 var heldLines = new Downgrade(held, _options, heldFound, _depth + 1).Run();
                 var heldChecks = new List<VcardDiagnostic>();
                 Vcard21Conformance.Validate(heldLines, held, VcardNestedCards.HeldCardOptions, _depth + 1, heldChecks);
-                heldFound.AddRange(heldChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty));
+                // The checks of the card around it apply, so its values and parameters are reported as its own are, and the options of the writer decide.
+                heldFound.AddRange(heldChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty ||
+                                                                     diagnostic.Kind == VcardDiagnosticKind.InvalidValue ||
+                                                                     diagnostic.Kind == VcardDiagnosticKind.InvalidParameter ||
+                                                                     diagnostic.Kind == VcardDiagnosticKind.InvalidStructure));
                 foreach (var diagnostic in heldFound)
                 {
                     _found.Add(new VcardDiagnostic(diagnostic.Kind, "In the card of an AGENT: " + diagnostic.Message, diagnostic.PropertyName, diagnostic.Group, agent.LineNumber, _card.CardIndex));
@@ -1077,7 +1093,8 @@ namespace DataStandardizer.File.vCard
 
             private void AddLabel(VcardContentLine address, string label)
             {
-                // ref. RFC 6350 §6.3.1: its example writes a line break in a LABEL as "\n", where RFC 6868 would write it "^n".
+                // ref. RFC 6350 §5.1 and RFC 6868 §3: a param-value has no backslash escapes, so a backslash followed by "n" in a LABEL is
+                // those two characters, whatever the example in RFC 6350 §6.3.1 suggests.  Only "^n" stands for a line break.
                 var parameters = new List<VcardContentLineParameter>();
                 foreach (var parameter in address.ParameterArray)
                 {
@@ -1088,7 +1105,7 @@ namespace DataStandardizer.File.vCard
                 }
 
                 var labelLine = address.With(VcardPropertyNames.PostalLabel, parameters.ToArray(), string.Empty);
-                _lines.Add(Encode(labelLine, parameters, label.Replace("\\n", "\n"), false));
+                _lines.Add(Encode(labelLine, parameters, label, false));
             }
         }
     }

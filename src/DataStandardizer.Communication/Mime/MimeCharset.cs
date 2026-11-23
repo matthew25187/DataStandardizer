@@ -99,8 +99,13 @@ namespace DataStandardizer.Communication.Mime
         /// </para>
         /// <list type="bullet">
         /// <item><c>text/calendar</c> and <c>text/vcard</c> default to <c>UTF-8</c> (RFC 5545 §8.1, RFC 6350 §10.1).</item>
-        /// <item><c>text/html</c> and <c>text/xml</c> have no default, as the character set is given within the text (HTML Living Standard
-        /// §16.1.2, RFC 7303 §3.2).</item>
+        /// <item><c>text/csv</c> defaults to <c>UTF-8</c> (RFC 7111 §5.1).</item>
+        /// <item><c>text/turtle</c> and <c>text/vtt</c> are always <c>UTF-8</c> (RDF 1.1 Turtle Appendix B, WebVTT §10.1).</item>
+        /// <item><c>text/javascript</c> and <c>text/ecmascript</c> default to <c>UTF-8</c> (RFC 9239 §4.2). A byte order mark at the start
+        /// of the text gives the character set instead, as it does when there is a <c>charset</c> parameter.</item>
+        /// <item><c>text/html</c>, <c>text/xml</c>, <c>text/xml-external-parsed-entity</c> and any <c>text</c> subtype with the <c>+xml</c>
+        /// suffix, such as <c>text/foo+xml</c>, have no default, as the character set is given within the text (HTML Living Standard §16.1.2,
+        /// RFC 7303 §3.2, §4.2 and §9.4).</item>
         /// <item><c>text/markdown</c> has no default, as its <c>charset</c> parameter is required (RFC 7763 §2).</item>
         /// </list>
         /// <para>
@@ -116,20 +121,32 @@ namespace DataStandardizer.Communication.Mime
             if (!MimeGrammar.EqualsIgnoreCase(mediaType.Type.AsSpan(), MimeTopLevelTypes.Text)) return false;
 
             var subtype = mediaType.Subtype.AsSpan();
-            if (MimeGrammar.EqualsIgnoreCase(subtype, "calendar") || MimeGrammar.EqualsIgnoreCase(subtype, "vcard"))
+            if (MimeGrammar.EqualsIgnoreCase(subtype, "calendar") || MimeGrammar.EqualsIgnoreCase(subtype, "vcard") ||
+                MimeGrammar.EqualsIgnoreCase(subtype, "csv") || MimeGrammar.EqualsIgnoreCase(subtype, "turtle") ||
+                MimeGrammar.EqualsIgnoreCase(subtype, "vtt") || MimeGrammar.EqualsIgnoreCase(subtype, "javascript") ||
+                MimeGrammar.EqualsIgnoreCase(subtype, "ecmascript"))
             {
                 charset = Utf8;
                 return true;
             }
 
             if (MimeGrammar.EqualsIgnoreCase(subtype, "html") || MimeGrammar.EqualsIgnoreCase(subtype, "xml") ||
-                MimeGrammar.EqualsIgnoreCase(subtype, "markdown"))
+                MimeGrammar.EqualsIgnoreCase(subtype, "xml-external-parsed-entity") || MimeGrammar.EqualsIgnoreCase(subtype, "markdown") ||
+                HasXmlSuffix(subtype))
             {
                 return false;
             }
 
             charset = UsAscii;
             return true;
+        }
+
+        // ref. RFC 7303 §4.2, RFC 6839 §4.1: the charset parameter of a +xml type means what it does for application/xml (§3.2), so with no parameter the text gives the
+        // character set.  The suffix is what follows the last '+', which can't be the first character of the subtype (as MimeMediaType.Suffix has it).
+        private static bool HasXmlSuffix(ReadOnlySpan<char> subtype)
+        {
+            const string xmlSuffix = "+xml";
+            return subtype.Length > xmlSuffix.Length && MimeGrammar.EqualsIgnoreCase(subtype.Slice(subtype.Length - xmlSuffix.Length), xmlSuffix);
         }
 
         /// <summary>

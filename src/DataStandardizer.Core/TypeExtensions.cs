@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace DataStandardizer.Core
 {
+    /// <summary>
+    /// Provides reflection helper extension methods.
+    /// </summary>
     public static class TypeExtensions
     {
         /// <summary>

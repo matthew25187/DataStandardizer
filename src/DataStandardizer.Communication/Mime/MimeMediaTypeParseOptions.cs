@@ -75,20 +75,27 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// Each octet of the value is read as the character with the same number, as ISO-8859-1 does, so that the caller can recover the
-        /// octets and decode them. <see cref="MimeParameter.Charset"/> holds the character set name as written.
+        /// octets and decode them. <see cref="MimeParameter.Charset"/> holds the character set name as written. The parameter is written
+        /// back as the same octets in that character set, not in UTF-8, as <see cref="MimeParameter.Charset"/> describes.
         /// </remarks>
         AllowUnknownCharsets = 1 << 5,
 
         /// <summary>
         /// Accept an extended parameter value written as a quoted-string, such as <c>title*="utf-8''a%20b"</c>, which RFC 2231 §7 doesn't
-        /// allow. The value may then also hold spaces and the other characters that a quoted-string can.
+        /// allow. The value may then also hold spaces, tabs and the other printable US-ASCII characters that a quoted-string can, but not
+        /// control characters.
         /// </summary>
         AllowQuotedExtendedValues = 1 << 6,
 
         /// <summary>
-        /// Accept lower-case hexadecimal digits in the <c>%</c> escapes of an extended parameter value, such as <c>%c3%a9</c>, which
-        /// RFC 2231 §7 doesn't allow.
+        /// This option has no effect. Lower-case hexadecimal digits in the <c>%</c> escapes of an extended parameter value, such as
+        /// <c>%c3%a9</c>, are always accepted.
         /// </summary>
+        /// <remarks>
+        /// The RFC 2231 §7 grammar is in the augmented BNF of RFC 822 (RFC 2045 §1), whose quoted literals may be upper or lower case
+        /// (RFC 822 §2.1), so <c>ext-octet</c> allows lower-case digits. A value is still written with upper-case digits.
+        /// </remarks>
+        [Obsolete("MimeMediaTypeParseOptions.AllowLowercaseHexDigits has no effect: lower-case hexadecimal digits in an extended parameter value are always accepted (RFC 2231 §7, RFC 822 §2.1).  It will be removed in a future major version.")]
         AllowLowercaseHexDigits = 1 << 7,
 
         /// <summary>
@@ -101,10 +108,11 @@ namespace DataStandardizer.Communication.Mime
         /// The octets of a value with no character set must still be US-ASCII, unless <see cref="AllowUnknownCharsets"/> is also given.
         /// </para>
         /// <para>
-        /// The netstandard1.1 build can't change how an encoding treats invalid octets. So there, without this option, the value that the
-        /// encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it with the encoding gives the same octets
-        /// back, and the encoding doesn't throw <see cref="DecoderFallbackException"/> or <see cref="EncoderFallbackException"/>. A valid
-        /// value in a character set that can write a character in more than one way needs this option on that build.
+        /// The netstandard1.1 build finds <c>Encoding.Clone</c> and <c>Encoding.DecoderFallback</c> at run time. On a runtime whose
+        /// reflection metadata leaves them out, such as .NET Native, it can't change how an encoding treats invalid octets. So there,
+        /// without this option, the value that the encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing
+        /// it with the encoding gives the same octets back, and with this option, the invalid octets are read as the encoding's own fallback
+        /// reads them.
         /// </para>
         /// </remarks>
         AllowInvalidOctets = 1 << 8,
@@ -131,13 +139,15 @@ namespace DataStandardizer.Communication.Mime
         AllowNonstandardSections = AllowMissingSections | AllowDuplicateSections | AllowLeadingZeroSectionNumbers,
 
         /// <summary>
-        /// Accept an extended parameter value that breaks the RFC 2231 §7 grammar in either of the ways that mail clients commonly do:
-        /// <see cref="AllowQuotedExtendedValues"/> and <see cref="AllowLowercaseHexDigits"/>.
+        /// Accept an extended parameter value that breaks the RFC 2231 §7 grammar in the way that mail clients commonly do:
+        /// <see cref="AllowQuotedExtendedValues"/>. It also includes <see cref="AllowLowercaseHexDigits"/>, which has no effect.
         /// </summary>
         /// <remarks>
         /// <see cref="AllowUnknownCharsets"/> is not included, as it changes how a value is decoded rather than which values are accepted.
         /// Give it as well to accept character sets that the <see cref="IMimeCharsetResolver"/> doesn't resolve.
         /// </remarks>
+#pragma warning disable CS0618 // AllowLowercaseHexDigits is obsolete, and kept here so the value of this member doesn't change.
         AllowNonstandardExtendedValues = AllowQuotedExtendedValues | AllowLowercaseHexDigits,
+#pragma warning restore CS0618
     }
 }

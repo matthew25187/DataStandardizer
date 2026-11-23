@@ -254,17 +254,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         /// <summary>
-        /// Gets a message with a chain of multipart entities, whose innermost part is at the given depth.  Each boundary has the one before as a
-        /// prefix.
+        /// Gets a message with a chain of multipart entities, whose innermost part is at the given depth.  Each boundary has the one inside it as a
+        /// prefix, which RFC 2046 §5.1.1 allows.
         /// </summary>
         public static string NestedMultiparts(int depth)
         {
             var opening = new System.Text.StringBuilder();
             var closing = new System.Text.StringBuilder();
-            var boundary = string.Empty;
             for (var level = 0; level < depth; level++)
             {
-                boundary += "b";
+                // ref. RFC 2046 §5.1.1: no line inside a multipart entity starts with its boundary, so each boundary is longer than those inside it.
+                var boundary = new string('b', depth - level);
                 opening.Append("Content-Type: multipart/mixed; boundary=" + boundary + "\r\n\r\n--" + boundary + "\r\n");
                 closing.Insert(0, "\r\n--" + boundary + "--");
             }

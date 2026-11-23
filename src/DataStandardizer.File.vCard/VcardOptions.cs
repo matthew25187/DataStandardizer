@@ -255,7 +255,11 @@ namespace DataStandardizer.File.vCard
         /// <para>
         /// When <c>false</c> (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for such a card.  With <c>true</c> the line is
         /// kept and written as it is, and the typed members of <see cref="VcardCard"/> leave out a property whose value isn't valid, though it stays in
-        /// <see cref="VcardCard.Properties"/>.  A value with a character that can't be written at all still can't be.  The content line reader and writer ignore this.
+        /// <see cref="VcardCard.Properties"/>.  A value with a character that can't be written at all still can't be.  In vCard 2.1, a <c>QUOTED-PRINTABLE</c> value that can't be
+        /// decoded is written as it is, without the soft line breaks of vCard 2.1 §2.1.3, but one that ends with an <c>=</c> that a reader would take for a soft line break is still
+        /// refused with <see cref="VcardFileException"/>, as <see cref="VcardDiagnosticKind.InvalidStructure"/>.  It also covers a vCard 2.1 <c>QUOTED-PRINTABLE</c> value read from a line of
+        /// 76 characters or more, which vCard 2.1 §2.1.3 doesn't allow ("Quoted-Printable lines of text must also be limited to less than 76 characters"); the line is counted whole,
+        /// with its property name and parameters, and without its line break.  The content line reader and writer ignore this.
         /// </para>
         /// </remarks>
         public bool AllowInvalidValues

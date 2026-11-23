@@ -6,6 +6,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Core
 {
+    /// <summary>
+    /// Base class of the attributes that describe a member of a standards code enumeration, giving the code's English and French names.
+    /// </summary>
+    /// <remarks>
+    /// A code may have more than one name in a language. <see cref="EnglishName"/> and <see cref="FrenchName"/> give the first of each.
+    /// </remarks>
     public abstract class CodeAttributeBase : Attribute
     {
         #region Declarations
@@ -17,6 +23,9 @@ namespace DataStandardizer.Core
 
         #region Constructors
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="CodeAttributeBase"/> class with no English or French names.
+        /// </summary>
         protected CodeAttributeBase()
         {
 #if NETSTANDARD1_3_OR_GREATER||NET
@@ -28,11 +37,20 @@ namespace DataStandardizer.Core
 #endif
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="CodeAttributeBase"/> class with English names and no French names.
+        /// </summary>
+        /// <param name="englishNames">The English names of the code, the first of which is <see cref="EnglishName"/>.</param>
         protected CodeAttributeBase(string[] englishNames) : this()
         {
             _englishNames = englishNames;
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="CodeAttributeBase"/> class with English and French names.
+        /// </summary>
+        /// <param name="englishNames">The English names of the code, the first of which is <see cref="EnglishName"/>.</param>
+        /// <param name="frenchNames">The French names of the code, the first of which is <see cref="FrenchName"/>.</param>
         protected CodeAttributeBase(string[] englishNames, string[] frenchNames) : this(englishNames)
         {
             _frenchNames = frenchNames;
@@ -54,7 +72,10 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Gets a collection of all English names.
         /// </summary>
-        public string[] EnglishNames => _englishNames;
+        /// <value>
+        /// A copy of the attribute's names. Changing it doesn't change the attribute.
+        /// </value>
+        public string[] EnglishNames => CopyNames(_englishNames);
 
         /// <summary>
         /// Gets the first French name.
@@ -68,7 +89,31 @@ namespace DataStandardizer.Core
         /// <summary>
         /// Gets a collection of all French names.
         /// </summary>
-        public string[] FrenchNames => _frenchNames;
+        /// <value>
+        /// A copy of the attribute's names. Changing it doesn't change the attribute.
+        /// </value>
+        public string[] FrenchNames => CopyNames(_frenchNames);
+
+        #endregion
+
+        #region Private Methods
+
+        private static string[] CopyNames(string[] names)
+        {
+            // A derived attribute outside this library may pass null to a protected constructor; return it as before.
+            if (names == null || names.Length == 0)
+            {
+#if NETCOREAPP3_0_OR_GREATER
+                return names!;
+#else
+                return names;
+#endif
+            }
+
+            var copy = new string[names.Length];
+            Array.Copy(names, copy, names.Length);
+            return copy;
+        }
 
         #endregion
     }

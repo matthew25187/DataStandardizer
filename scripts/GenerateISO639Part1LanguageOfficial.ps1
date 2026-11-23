@@ -45,7 +45,7 @@ function Out-SourceCode {
     )
     
     begin {
-        $activity = "Generating $GenerateTypeName code DOM"
+        $activity = "Generating $TypeName code DOM"
         Write-Progress -Activity $activity -PercentComplete -1
 
         $codesProcessed = 0
@@ -111,19 +111,42 @@ function Out-SourceCode {
 
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
 
-        $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+        $stringToStructConversionOperatorSnippet = "        /// <summary>
+        /// Converts an ISO 639-1 code to the <see cref=`"$TypeName`"/> member with that code.
+        /// </summary>
+        /// <param name=`"value`">The code, such as <c>en</c>. Codes are case-sensitive.</param>
+        /// <returns>The predefined member with the code.</returns>
+        /// <exception cref=`"System.InvalidCastException`">
+        /// <paramref name=`"value`"/> is <see langword=`"null`"/>, or is not an ISO 639-1 code.
+        /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
         public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName(string value)
 #else
         public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
         {
-            return new $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName(value);
+            if (value is null)
+            {
+                throw new System.InvalidCastException(`"A null string cannot be converted to $TypeName.`");
+            }
+
+            if (!MembersByCode.Value.TryGetValue(value, out var member))
+            {
+                throw new System.InvalidCastException(`"'`" + value + `"' is not an ISO 639-1 code.`");
+            }
+
+            return member;
         }"
         $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)
         [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
         [void]$structType.Members.Add($stringToStructConversionOperatorSnippetMember)
 
-        $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+        $structToStringConversionOperatorSnippet = "        /// <summary>
+        /// Converts a <see cref=`"$TypeName`"/> to its code.
+        /// </summary>
+        /// <param name=`"value`">The value to convert.</param>
+        /// <returns>The code, or <see langword=`"null`"/> for the default value.</returns>
+#if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName value)
 #else
         [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
@@ -134,13 +157,25 @@ function Out-SourceCode {
         }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
 
-        $equalityOperatorSnippet = "        public static bool operator ==($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
+        $equalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$TypeName`"/> values have the same code.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator ==($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
         {
             return left.Equals(right);
         }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
 
-        $inequalityOperatorSnippet = "        public static bool operator !=($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
+        $inequalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$TypeName`"/> values have different codes.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes differ; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator !=($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$TypeName right)
         {
             return !left.Equals(right);
         }"
@@ -277,8 +312,11 @@ function Out-SourceCode {
 
         $memberFieldPredicateMethod = Get-MemberFieldPredicateMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName -GenerateLanguage $GenerateLanguage
         [void]$memberFieldPredicateMethod.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Private Methods'))
-        [void]$memberFieldPredicateMethod.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
         [void]$structType.Members.Add($memberFieldPredicateMethod)
+
+        $membersByCodeMember = Get-MembersByCodeDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName
+        [void]$membersByCodeMember.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
+        [void]$structType.Members.Add($membersByCodeMember)
 
         Write-Progress -Completed
 
@@ -295,7 +333,10 @@ function Out-SourceCode {
             $writer = [System.IO.StringWriter]::new($sourceCodeCuBuilder)
             try {
                 $provider.GenerateCodeFromCompileUnit($cu, $writer, $options)
-                Write-Output $sourceCodeCuBuilder.ToString()
+
+                # IStringEnum doesn't extend IConvertible, so the struct declares it on the targets that have it.
+                $structDeclarationPattern = [regex]::new("(?m)^(\s*public (?:partial )?struct $([regex]::Escape($TypeName)) : [^\r\n]*)(\r?\n)")
+                Write-Output $structDeclarationPattern.Replace($sourceCodeCuBuilder.ToString(), '$1$2#if NETSTANDARD1_3_OR_GREATER||NET$2, System.IConvertible$2#endif$2', 1)
             }
             finally {
                 $writer.Close()

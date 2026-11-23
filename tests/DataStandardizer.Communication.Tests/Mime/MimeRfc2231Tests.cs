@@ -93,6 +93,19 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string Emoji = "\xD83D\xDE00";
         private const string CafeWithSpecials = "caf\xE9 *'%";
 
+        // Octets in character sets that the default resolver doesn't know, which AllowUnknownCharsets keeps as they are, and those
+        // parameters as they are written back.
+        private const string UnknownCharsetOctetsMediaType = "text/plain;a*=x-no-such-charset'fr'%D0%D2%C9%D7%C5%D4";
+        private const string UnknownCharsetOctetsParameter = "a*=x-no-such-charset'fr'%D0%D2%C9%D7%C5%D4";
+        private const string UpperCaseUnknownCharsetOctetsMediaType = "text/plain;a*=X-NO-SUCH-CHARSET'fr'%D0%D2%C9%D7%C5%D4";
+        private const string OtherUnknownCharsetOctetsMediaType = "text/plain;a*=x-other-charset'fr'%D0%D2%C9%D7%C5%D4";
+        private const string UnknownCharsetOctets = "\xD0\xD2\xC9\xD7\xC5\xD4";
+        private const string NoCharsetOctetsMediaType = "text/plain;a*=''%E9";
+
+        // ref. RFC 1428 §3: the registered character set for octets in a character set that is not known.
+        private const string Unknown8BitOctetsMediaType = "text/plain;a*=UNKNOWN-8BIT''%E9";
+        private const string Unknown8BitOctetsParameter = "a*=UNKNOWN-8BIT''%E9";
+
         public delegate bool TryParseCall(out MimeMediaType result);
 
         public static TheoryData<string> DeviationValues => CreateDeviationValues();
@@ -280,30 +293,31 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Parameters[0].Value.Should().Be("ab");
         }
 
-        [Theory]
-        [InlineData("text/plain;name=fallback;name*=UTF-8''real")]
-        [InlineData("text/plain;name*=UTF-8''real;name=fallback")]
-        [InlineData("text/plain;NAME=fallback;name*0=re;name*1=al")]
-        public void Parse_PlainAndRfc2231Forms_UsesRfc2231Form(string value)
-        {
-            // act
-            var result = MimeMediaType.Parse(value);
-
-            // assert
-            result.Parameters.Should().ContainSingle();
-            result.Parameters[0].Value.Should().Be("real");
-        }
-
         [Fact]
-        public void Parse_PlainAndRfc2231Forms_KeepsPositionOfFirstForm()
+        public void Parse_SectionsSplitByAnotherParameter_KeepsPositionOfFirstSection()
         {
             // act
-            var result = MimeMediaType.Parse("text/plain;name=fallback;x=1;name*=UTF-8''real");
+            var result = MimeMediaType.Parse("text/plain;name*0=a;x=1;name*1=b");
 
             // assert
             result.Parameters.Should().HaveCount(2);
             result.Parameters[0].Name.Should().Be(ParameterName);
+            result.Parameters[0].Value.Should().Be("ab");
             result.Parameters[1].Name.Should().Be("x");
+        }
+
+        [Theory]
+        // ref. RFC 6838 §4.3: name* and the sections of name are forms of the parameter name, so each of these gives it twice.
+        [InlineData("text/plain;name=fallback;name*=UTF-8''real")]
+        [InlineData("text/plain;name*=UTF-8''real;name=fallback")]
+        [InlineData("text/plain;NAME=fallback;name*0=re;name*1=al")]
+        public void TryParse_PlainAndRfc2231Forms_ReturnsFalse(string value)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, out _);
+
+            // assert
+            parsed.Should().BeFalse();
         }
 
         [Theory]
@@ -340,7 +354,6 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("text/plain;a*0=x;a*0=y", MimeMediaTypeParseOptions.AllowNonstandardSections)]
         [InlineData("text/plain;a*00=x;a*01=y", MimeMediaTypeParseOptions.AllowNonstandardSections)]
         [InlineData("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowNonstandardExtendedValues)]
-        [InlineData("text/plain;a*=UTF-8''%C3%a9", MimeMediaTypeParseOptions.AllowNonstandardExtendedValues)]
         public void TryParse_DeviationWithItsGroupOption_ReturnsTrue(string value, MimeMediaTypeParseOptions options)
         {
             // act
@@ -369,6 +382,51 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             parsed.Should().BeFalse();
+        }
+
+        // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F"), in the augmented BNF of RFC 822 (RFC 2045 §1),
+        // whose quoted literals may be upper or lower case (RFC 822 §2.1).
+        public static TheoryData<string, string> LowercaseHexDigitValues => new TheoryData<string, string>
+        {
+            { "text/plain;a*=utf-8''na%c3%afve.txt", NaiveFileName },
+            { "text/plain;a*=UTF-8''%C3%a9", EAcute },
+            { "text/plain;a*0*=UTF-8''x;a*1*=%c3%A9", "x\xE9" },
+        };
+
+        [Theory]
+        [MemberData(nameof(LowercaseHexDigitValues))]
+        public void Parse_LowercaseHexDigitsByDefault_DecodesValue(string value, string expected)
+        {
+            // act
+            var result = MimeMediaType.Parse(value);
+
+            // assert
+            result.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryParse_LowercaseHexDigitsWithTheOptionThatHasNoEffect_ReturnsTrue()
+        {
+            // act
+#pragma warning disable CS0618 // The option is obsolete, and has no effect, which is what this shows.
+            var parsed = MimeMediaType.TryParse("text/plain;a*=UTF-8''%c3%a9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, out _);
+#pragma warning restore CS0618
+
+            // assert
+            parsed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void ToString_ParsedLowercaseHexDigits_WritesUpperCase()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse("text/plain;name*=UTF-8''%c3%a9").Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be("name*=UTF-8''%C3%A9");
         }
 
         [Theory]
@@ -883,6 +941,197 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Fact]
+        public void ToString_OctetsInUnknownCharset_WritesOctetsInThatCharset()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be(UnknownCharsetOctetsParameter);
+        }
+
+        [Fact]
+        public void ToString_UsAsciiOctetsInUnknownCharset_WritesExtendedValueInThatCharset()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse("text/plain;a*=x-no-such-charset''abc", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be("a*=x-no-such-charset''abc");
+        }
+
+        [Fact]
+        public void ToString_OctetsThatAreNotUsAsciiWithNoCharset_WritesOctetsInUnknown8Bit()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(NoCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().Be(Unknown8BitOctetsParameter);
+        }
+
+        [Fact]
+        public void ToString_MediaTypeWithOctetsInUnknownCharset_WritesOctetsInThatCharset()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets);
+
+            // act
+            var result = mediaType.ToString();
+
+            // assert
+            result.Should().Be(UnknownCharsetOctetsMediaType);
+        }
+
+        [Fact]
+        public void TryFormat_OctetsInUnknownCharset_WritesOctetsInThatCharset()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var destination = new char[UnknownCharsetOctetsParameter.Length];
+
+            // act
+            var result = parameter.TryFormat(destination, out var charsWritten);
+
+            // assert
+            result.Should().BeTrue();
+            new string(destination, 0, charsWritten).Should().Be(UnknownCharsetOctetsParameter);
+        }
+
+        [Fact]
+        public void FormatSections_OctetsInUnknownCharset_SplitsAtOctetsInThatCharset()
+        {
+            // arrange
+            const int maxSectionLength = 30;
+            var parameter = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = parameter.FormatSections(maxSectionLength);
+
+            // assert
+            result.Should().Equal("a*0*=x-no-such-charset'fr'%D0", "a*1*=%D2%C9%D7%C5%D4");
+        }
+
+        [Fact]
+        public void Parse_SectionsOfOctetsInUnknownCharset_JoinsOctets()
+        {
+            // act
+            var result = MimeMediaType.Parse("text/plain;a*0*=x-no-such-charset'fr'%D0;a*1*=%D2%C9%D7%C5%D4",
+                MimeMediaTypeParseOptions.AllowUnknownCharsets);
+
+            // assert
+            result.Parameters.Should().ContainSingle();
+            result.Parameters[0].Value.Should().Be(UnknownCharsetOctets);
+        }
+
+        [Fact]
+        public void Equals_SameOctetsInUnknownCharsetInAnyCase_ReturnsTrue()
+        {
+            // arrange
+            var lower = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var upper = MimeMediaType.Parse(UpperCaseUnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = lower.Equals(upper);
+
+            // assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_SameOctetsInUnknownCharsetInAnyCase_ReturnsSameHashCode()
+        {
+            // arrange
+            var lower = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var upper = MimeMediaType.Parse(UpperCaseUnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = (Lower: lower.GetHashCode(), Upper: upper.GetHashCode());
+
+            // assert
+            result.Lower.Should().Be(result.Upper);
+        }
+
+        [Fact]
+        public void Equals_SameOctetsInDifferentUnknownCharsets_ReturnsFalse()
+        {
+            // arrange
+            var left = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var right = MimeMediaType.Parse(OtherUnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = left.Equals(right);
+
+            // assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_OctetsInUnknownCharsetAndDecodedValueOfSameCharacters_ReturnsFalse()
+        {
+            // arrange
+            var octets = MimeMediaType.Parse(UnknownCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var decoded = new MimeParameter("a", UnknownCharsetOctets, "fr");
+
+            // act
+            var result = octets.Equals(decoded);
+
+            // assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_OctetsWithNoCharsetAndSameOctetsInUnknown8Bit_ReturnsTrue()
+        {
+            // arrange
+            var noCharset = MimeMediaType.Parse(NoCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var unknown8Bit = MimeMediaType.Parse(Unknown8BitOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = noCharset.Equals(unknown8Bit);
+
+            // assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_OctetsWithNoCharsetAndSameOctetsInUnknown8Bit_ReturnsSameHashCode()
+        {
+            // arrange
+            var noCharset = MimeMediaType.Parse(NoCharsetOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var unknown8Bit = MimeMediaType.Parse(Unknown8BitOctetsMediaType, MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = (NoCharset: noCharset.GetHashCode(), Unknown8Bit: unknown8Bit.GetHashCode());
+
+            // assert
+            result.NoCharset.Should().Be(result.Unknown8Bit);
+        }
+
+        [Fact]
+        public void Equals_CharsetParameterOctetsInUnknownCharsetThatDifferAsLatin1Case_ReturnsFalse()
+        {
+            // arrange
+            var left = MimeMediaType.Parse("text/plain;charset*=x-no-such-charset''%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+            var right = MimeMediaType.Parse("text/plain;charset*=x-no-such-charset''%C9", MimeMediaTypeParseOptions.AllowUnknownCharsets).Parameters[0];
+
+            // act
+            var result = left.Equals(right);
+
+            // assert
+            result.Should().BeFalse();
+        }
+
+        [Fact]
         public void FormatSections_ParameterFits_ReturnsParameter()
         {
             // arrange
@@ -1103,10 +1352,9 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
                 ("text/plain;a*=\"UTF-8'en'a b;c\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b;c"),
                 ("text/plain;a*0*=\"UTF-8''a%20\";a*1*=b", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
-                // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
-                ("text/plain;a*=utf-8''na%c3%afve.txt", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, NaiveFileName),
-                ("text/plain;a*=UTF-8''%C3%a9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, EAcute),
-                ("text/plain;a*0*=UTF-8''x;a*1*=%c3%A9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, "x\xE9"),
+                // ref. RFC 2231 §7: an apostrophe is not an attribute-char, but a quoted-string may hold one.
+                ("text/plain;a*=\"UTF-8''it's\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "it's"),
+                ("text/plain;a*0*=\"UTF-8''a\";a*1*=\"'b\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a'b"),
             };
         }
 

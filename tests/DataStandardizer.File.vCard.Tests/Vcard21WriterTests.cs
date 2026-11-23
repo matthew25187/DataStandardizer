@@ -139,6 +139,19 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nADR;HOME:;;1 Main St;Town;;;\r\nLABEL;HOME;ENCODING=QUOTED-PRINTABLE:1 Main St=0D=0ATown\r\nEND:VCARD\r\n");
         }
 
+        [Fact]
+        public void WriteCard_AddressWithABackslashAndNInItsLabel_WritesThemUnchanged()
+        {
+            // arrange: ref. RFC 6350 §5.1 and RFC 6868 §3.  A param-value has no backslash escapes, so "\n" in a LABEL is two characters.
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:Doe;Jane;;;", "ADR;TYPE=home;LABEL=\"C:\\new\":;;1 Main St;Town;;;"));
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nADR;HOME:;;1 Main St;Town;;;\r\nLABEL;HOME:C:\\new\r\nEND:VCARD\r\n");
+        }
+
         public static TheoryData<string> LossyLineData()
         {
             return new TheoryData<string>
@@ -162,6 +175,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "BDAY:--0415",
                 "BDAY;VALUE=text:circa 1800",
                 "TZ:America/New_York",
+                "GEO:c:/dir/file",
                 "ADR:;;a,b;;;;",
                 "N:a\\\\;Jane;;;"
             };
@@ -289,6 +303,91 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.Lossy, VcardDiagnosticKind.MissingRequiredProperty);
+        }
+
+        // ref. vCard 2.1 §2.1.4: "=ZZ" isn't a quoted-printable octet, so only AllowInvalidValues keeps the line, as it is.
+        private const string UndecodableLine = "NOTE;ENCODING=QUOTED-PRINTABLE:=ZZ";
+
+        private static readonly VcardOptions AllowInvalidValues = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+
+        [Fact]
+        public void WriteCard_UndecodableQuotedPrintable_ThrowsInvalidValue()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(UndecodableLine), AllowInvalidValues);
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_UndecodableQuotedPrintableWithAllowInvalidValues_WritesTheValueAsItIs()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(UndecodableLine), AllowInvalidValues);
+
+            // act
+            var testResult = Vcard21TestData.Write(card, allowInvalidValues: true);
+
+            // assert
+            testResult.Should().Be(VcardTestData.Crlf("BEGIN:VCARD", "VERSION:2.1", "N:Doe;Jane;;;", UndecodableLine, "END:VCARD"));
+        }
+
+        [Fact]
+        public void WriteCard_UndecodableQuotedPrintableEndingWithSoftLineBreakWithAllowInvalidValues_ThrowsInvalidStructure()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.1.3: an "=" at the end of the line is a soft line break, so a reader would join the next line to the value.
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("N", "Doe;Jane;;;"));
+            card.Properties.Add(new VcardContentLine("NOTE", new[] { new VcardContentLineParameter("ENCODING", "QUOTED-PRINTABLE") }, "=ZZ="));
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card, allowInvalidValues: true);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
+        }
+
+        // ref. vCard 2.1 §2.1.3: a line of more than 75 characters, which a property kept as it was read, such as a URL, keeps until it is written.
+        private const string LongQuotedPrintableUrlLine = "X-FOO;VALUE=URL;ENCODING=QUOTED-PRINTABLE:http://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        [Fact]
+        public void WriteCard_QuotedPrintableReadFromLongLineWithAllowInvalidValues_BreaksItWithSoftLineBreaks()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(LongQuotedPrintableUrlLine), AllowInvalidValues);
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be(VcardTestData.Crlf(
+                "BEGIN:VCARD",
+                "VERSION:2.1",
+                "N:Doe;Jane;;;",
+                "X-FOO;VALUE=URL;ENCODING=QUOTED-PRINTABLE:http://example.com/aaaaaaaaaaaaa=",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "END:VCARD"));
+        }
+
+        [Fact]
+        public void Validate_UndecodableQuotedPrintableEndingWithSoftLineBreakAsVersion21_ReportsInvalidStructure()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.1.3: an "=" at the end of the line is a soft line break, so the check before writing refuses the card.
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("N", "Doe;Jane;;;"));
+            card.Properties.Add(new VcardContentLine("NOTE", new[] { new VcardContentLineParameter("ENCODING", "QUOTED-PRINTABLE") }, "=ZZ="));
+
+            // act
+            var testResult = card.Validate(VcardVersion.V2_1);
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.InvalidStructure);
         }
     }
 }

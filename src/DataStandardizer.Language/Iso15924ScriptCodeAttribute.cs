@@ -33,17 +33,10 @@ namespace DataStandardizer.Language
 #endif
             : this(englishName, frenchName)
         {
-#if NET6_0_OR_GREATER
-            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
-                throw new ArgumentException($"'{date}' is not a valid date.", nameof(date));
-
-            Date = dateValue;
-#else
             if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
                 throw new ArgumentException($"'{date}' is not a valid date.", nameof(date));
 
             Date = dateValue;
-#endif
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -61,12 +54,14 @@ namespace DataStandardizer.Language
         #region Public Properties
 
         /// <summary>
-        /// Gets the age of the script code.
+        /// Gets the age of the script code: the Unicode version in which the script was added (the
+        /// "Unicode Version" column of the ISO 15924 code table), or <c>null</c> if the script isn't in Unicode.
         /// </summary>
         public double? Age { get; }
 
         /// <summary>
-        /// Gets the alias for the script code.
+        /// Gets or sets the alias for the script code: the Unicode Property Value Alias of the script, or
+        /// <c>null</c> if it has none.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Alias { get; set; }
@@ -75,13 +70,10 @@ namespace DataStandardizer.Language
         public string Alias { get; set; }
 #endif
         /// <summary>
-        /// Gets the date of the script code.
+        /// Gets the date of the script code at midnight, with a <see cref="DateTime.Kind"/> of
+        /// <see cref="DateTimeKind.Unspecified"/>, or <c>null</c> if it has none.
         /// </summary>
-#if NET6_0_OR_GREATER
-        public DateOnly? Date { get; }
-#else
         public DateTime? Date { get; }
-#endif
 
         #endregion
     }

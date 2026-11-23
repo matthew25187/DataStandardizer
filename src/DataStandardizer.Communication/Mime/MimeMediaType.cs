@@ -11,7 +11,9 @@ namespace DataStandardizer.Communication.Mime
     /// <remarks>
     /// <para>
     /// The type, subtype and parameter names are compared case-insensitively. Parameter values are compared case-sensitively, except for the
-    /// value of <c>charset</c>, and the order of the parameters doesn't matter.
+    /// value of <c>charset</c> (RFC 2046 §4.1.2), and in <c>message/external-body</c> the values of <c>access-type</c> and <c>permission</c>
+    /// (RFC 2046 §5.2.3.1), and of <c>mode</c> when the access-type is <c>ftp</c>, <c>anon-ftp</c> or <c>tftp</c> (RFC 2046 §5.2.3.2 and
+    /// §5.2.3.3). The order of the parameters doesn't matter.
     /// </para>
     /// <para>
     /// A media type is written with no whitespace, and with each parameter value as a token if it is one, or otherwise as a quoted-string.
@@ -19,8 +21,8 @@ namespace DataStandardizer.Communication.Mime
     /// </para>
     /// <para>
     /// When parsed, a parameter value split into RFC 2231 sections is joined, and an RFC 2231 extended value is decoded, so that each
-    /// parameter appears once with its whole value. When a parameter is given both as <c>name</c> and in an RFC 2231 form, such as
-    /// <c>name*</c>, the RFC 2231 form is used.
+    /// parameter appears once with its whole value. A parameter given both as <c>name</c> and in an RFC 2231 form, such as <c>name*</c>,
+    /// is given more than once, so the media type is not valid (RFC 6838 §4.3).
     /// </para>
     /// </remarks>
     public readonly struct MimeMediaType : IEquatable<MimeMediaType>
@@ -32,6 +34,17 @@ namespace DataStandardizer.Communication.Mime
     {
         private const string InvalidFormatMessage = "The media type is not in a valid format.";
         private const string UninitializedMessage = nameof(MimeMediaType) + " is uninitialized.";
+
+        // ref. RFC 2046 §5.2.3: the external-body subtype of message. §5.2.3.1: its parameters whose values are case-insensitive with any
+        // access-type. §5.2.3.2 and §5.2.3.3: the access-types whose mode parameter is case-insensitive.
+        private const string MessageType = "message";
+        private const string ExternalBodySubtype = "external-body";
+        private const string AccessTypeParameterName = "access-type";
+        private const string PermissionParameterName = "permission";
+        private const string ModeParameterName = "mode";
+        private const string FtpAccessType = "ftp";
+        private const string AnonFtpAccessType = "anon-ftp";
+        private const string TftpAccessType = "tftp";
         private const MimeMediaTypeParseOptions AllParseOptions =
             MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens |
             MimeMediaTypeParseOptions.AllowNonstandardSections | MimeMediaTypeParseOptions.AllowUnknownCharsets |
@@ -163,7 +176,7 @@ namespace DataStandardizer.Communication.Mime
                 var subtype = Subtype;
                 if (MimeGrammar.StartsWithIgnoreCase(subtype, "vnd.")) return MimeRegistrationTree.Vendor;
                 if (MimeGrammar.StartsWithIgnoreCase(subtype, "prs.")) return MimeRegistrationTree.Personal;
-                if (MimeGrammar.StartsWithIgnoreCase(subtype, "x.") || MimeGrammar.StartsWithIgnoreCase(subtype, "x-")) return MimeRegistrationTree.Unregistered;
+                if (MimeGrammar.StartsWithIgnoreCase(subtype, "x.")) return MimeRegistrationTree.Unregistered;
 
                 return MimeRegistrationTree.Standards;
             }
@@ -550,7 +563,8 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// The type, subtype and parameter names are compared case-insensitively. Parameter values are compared case-sensitively, except for
-        /// the value of <c>charset</c>, and the order of the parameters doesn't matter.
+        /// the value of <c>charset</c>, and in <c>message/external-body</c> the values of <c>access-type</c> and <c>permission</c>, and of
+        /// <c>mode</c> when the access-type is <c>ftp</c>, <c>anon-ftp</c> or <c>tftp</c>. The order of the parameters doesn't matter.
         /// </remarks>
         public bool Equals(MimeMediaType other)
         {
@@ -563,13 +577,17 @@ namespace DataStandardizer.Communication.Mime
             if (_parameters is null || other._parameters is null) return _parameters is null && other._parameters is null;
             if (_parameters.Count != other._parameters.Count) return false;
 
+            // The rules come from this media type alone. They agree with the other's whenever the two are equal, as the types, subtypes and
+            // access-types then match.
+            var valueCaseRules = GetValueCaseRules();
+
             // Names are unique, so each parameter has at most one counterpart.
             if (_parameters.Count <= MaxParametersToSearch)
             {
                 foreach (var parameter in _parameters)
                 {
                     var index = IndexOfParameter(other._parameters, parameter.Name);
-                    if (index < 0 || !parameter.Equals(other._parameters[index])) return false;
+                    if (index < 0 || !parameter.Equals(other._parameters[index], IgnoresValueCase(parameter, valueCaseRules))) return false;
                 }
 
                 return true;
@@ -584,7 +602,11 @@ namespace DataStandardizer.Communication.Mime
             foreach (var parameter in _parameters)
             {
                 int otherIndex;
-                if (!otherIndexes.TryGetValue(parameter.Name, out otherIndex) || !parameter.Equals(other._parameters[otherIndex])) return false;
+                if (!otherIndexes.TryGetValue(parameter.Name, out otherIndex) ||
+                    !parameter.Equals(other._parameters[otherIndex], IgnoresValueCase(parameter, valueCaseRules)))
+                {
+                    return false;
+                }
             }
 
             return true;
@@ -603,16 +625,17 @@ namespace DataStandardizer.Communication.Mime
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            // Must agree with Equals, which compares names case-insensitively and ignores the order of the parameters.
+            // Must agree with Equals, which compares names and some values case-insensitively and ignores the order of the parameters.
             if (_type is null) return 0;
 
+            var valueCaseRules = GetValueCaseRules();
             unchecked
             {
                 var hash = StringComparer.OrdinalIgnoreCase.GetHashCode(_type) * 31 + StringComparer.OrdinalIgnoreCase.GetHashCode(_subtype);
                 var parametersHash = 0;
                 foreach (var parameter in _parameters)
                 {
-                    parametersHash += parameter.GetHashCode();
+                    parametersHash += parameter.GetHashCode(IgnoresValueCase(parameter, valueCaseRules));
                 }
 
                 return hash * 31 + parametersHash;
@@ -633,6 +656,38 @@ namespace DataStandardizer.Communication.Mime
         public static bool operator !=(MimeMediaType left, MimeMediaType right)
         {
             return !left.Equals(right);
+        }
+
+        private ValueCaseRules GetValueCaseRules()
+        {
+            if (!string.Equals(_type, MessageType, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(_subtype, ExternalBodySubtype, StringComparison.OrdinalIgnoreCase))
+            {
+                return ValueCaseRules.None;
+            }
+
+            var index = IndexOfParameter(_parameters, AccessTypeParameterName);
+            if (index < 0) return ValueCaseRules.ExternalBody;
+
+            var accessType = _parameters[index];
+            return accessType.HasValueIgnoringCase(FtpAccessType) || accessType.HasValueIgnoringCase(AnonFtpAccessType) ||
+                   accessType.HasValueIgnoringCase(TftpAccessType)
+                ? ValueCaseRules.ExternalBodyWithMode
+                : ValueCaseRules.ExternalBody;
+        }
+
+        private static bool IgnoresValueCase(MimeParameter parameter, ValueCaseRules valueCaseRules)
+        {
+            switch (valueCaseRules)
+            {
+                case ValueCaseRules.ExternalBodyWithMode:
+                    return parameter.HasName(AccessTypeParameterName) || parameter.HasName(PermissionParameterName) ||
+                           parameter.HasName(ModeParameterName);
+                case ValueCaseRules.ExternalBody:
+                    return parameter.HasName(AccessTypeParameterName) || parameter.HasName(PermissionParameterName);
+                default:
+                    return false;
+            }
         }
 
         private int GetFormattedLength()
@@ -785,12 +840,14 @@ namespace DataStandardizer.Communication.Mime
             {
                 if (group.HasDuplicatePlain) return false;
 
-                // ref. RFC 2231 §4: the RFC 2231 form is used in preference to a plain one, which is there for readers that don't know it.
+                // ref. RFC 2231 §3-§4: name* and the sections of name are encodings of the parameter name, not other parameters, so name with
+                // any of them gives the parameter more than once (RFC 6838 §4.3).  RFC 2231 prefers neither form.
+                if (group.PlainValue != null && group.Forms != null) return false;
 
                 MimeParameter parameter;
                 if (group.Forms is null)
                 {
-                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue ?? string.Empty, null, null);
+                    parameter = MimeParameter.CreateUnchecked(group.Name, group.PlainValue ?? string.Empty, null, null, false);
                 }
                 else if (!MimeExtendedParameter.TryJoin(group.Forms, options, charsetResolver, out parameter))
                 {
@@ -804,8 +861,22 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
+        // Which parameter values Equals and GetHashCode compare case-insensitively, besides charset.
+        private enum ValueCaseRules
+        {
+            // None besides charset.
+            None,
+
+            // ref. RFC 2046 §5.2.3.1: access-type and permission.
+            ExternalBody,
+
+            // ref. RFC 2046 §5.2.3.2 and §5.2.3.3: access-type, permission, and mode for the ftp, anon-ftp and tftp access-types.
+            ExternalBodyWithMode,
+        }
+
         /// <summary>
-        /// The forms of one parameter, which can be given in a plain form and in the sections of an RFC 2231 form.
+        /// The forms given for one parameter: its plain form, and the sections of its RFC 2231 form.  They are collected together so that a
+        /// parameter given in more than one of them can be rejected.
         /// </summary>
         private sealed class ParameterForms
         {

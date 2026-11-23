@@ -63,7 +63,8 @@ Inherited from `CodeAttributeBase`: `EnglishName`, `EnglishNames`, `FrenchName`,
 Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. On the
 `netstandard1.0` and `netstandard2.0` targets the reference-type properties are
 annotated with `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]`
-rather than C# nullable reference types. A project gets null warnings from them only on C# 8 or later with nullable enabled.
+rather than C# nullable reference types, and the constructors' name parameters
+with `[DisallowNull]`. A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## See also
 

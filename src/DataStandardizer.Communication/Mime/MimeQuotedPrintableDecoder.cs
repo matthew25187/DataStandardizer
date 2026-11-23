@@ -16,15 +16,17 @@ namespace DataStandardizer.Communication.Mime
     /// <para>
     /// In <see cref="MimeQuotedPrintableMode.Body"/> mode, the decoder removes soft line breaks, including whitespace a transport added
     /// after the <c>=</c>, and removes spaces and tabs at the end of a line or of the data (RFC 2045 §6.7 rule 3). A CRLF line break is
-    /// decoded as CRLF. As a line is at most 76 characters, a run of more than 76 spaces and tabs is not valid. The decoder doesn't
-    /// otherwise check the line length.
+    /// decoded as CRLF. Trailing spaces and tabs are transport padding, which can be of any length. Without them, and without the CRLF,
+    /// a line must be at most 76 characters long, counting the <c>=</c> of a soft line break (RFC 2045 §6.7 rule 5), so a longer line
+    /// is not valid unless <see cref="MimeQuotedPrintableDecoderOptions.AllowLongLines"/> is set.
     /// </para>
     /// <para>
     /// In the "Q" modes, <c>_</c> is decoded as a space, and only the characters that the mode's context allows can appear as
     /// themselves. Spaces, tabs and line breaks are not valid.
     /// </para>
     /// <para>
-    /// In every mode, an <c>=</c> must be followed by two upper-case hexadecimal digits (or in a body by a line break), and control
+    /// In every mode, an <c>=</c> must be followed by two hexadecimal digits (or in a body by a line break), which in a body must be
+    /// upper case (RFC 2045 §6.7 rule 1) and in the "Q" modes may be upper or lower case (RFC 2047 §4.2 (1)). Control
     /// characters and characters outside ASCII are not valid. <see cref="MimeQuotedPrintableDecoderOptions"/> names the forms that
     /// can be accepted as well.
     /// </para>

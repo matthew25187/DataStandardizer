@@ -83,6 +83,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Setting this replaces <see cref="Body"/>, which is read again from these bytes when it is next asked for.  A change made through <see cref="Body"/> doesn't change these
         /// bytes: a writer writes the change, and this still gives what was read or set.
         /// </para>
+        /// <para>
+        /// A writer checks these bytes as <see cref="ImfWriter"/> describes before it writes them.  So bytes that hold a multipart entity with no close delimiter, which
+        /// <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> lets them be read with, are refused unless the options of the writer set it too (RFC 2046 §5.1.1).
+        /// </para>
         /// </remarks>
         public ReadOnlyMemory<byte> RawBody
         {
@@ -113,7 +117,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfEntity.ContentType"/>.
         /// </para>
         /// </remarks>
-        /// <exception cref="ImfFileException">On get: <see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
+        /// <exception cref="ImfFileException">On get: <see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept; or the body hasn't been read,
+        /// and a field in <see cref="Fields"/> can't be written with any <see cref="ImfOptions.HeaderEncoding"/>, such as one whose body holds a control character.</exception>
         /// <exception cref="ArgumentNullException">On set: the value is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">On set: the entity holds this message.</exception>
         /// <exception cref="InvalidOperationException">On set: the entity is already the body of a message or a part of a multipart entity.</exception>
@@ -510,7 +515,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Checks the message, without throwing: the required fields, the fields that may appear only once, and the grammar of the body of each field that RFC 5322 §3.6 defines; the
         /// MIME-Version field (RFC 2045 §4); embedded messages (RFC 2046 §5.2.1); the bytes of each body that hasn't changed (RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7, §2.8, §6.4, §6.7 and
-        /// §6.8); and the octets of the header of each nested entity that was read and hasn't changed, under an entity that was read (RFC 2045 §2.7 and §6.4).  A body whose structure can't be read is reported as a problem, and what it holds isn't checked.  The options don't change what is reported, except in how a field body is read.
+        /// §6.8); the octets of the header of each nested entity that was read and hasn't changed, under an entity that was read (RFC 2045 §2.7 and §6.4); and the close delimiter of each multipart
+        /// entity that was read and hasn't changed (RFC 2046 §5.1.1).  A body whose structure can't be read is reported as a problem, and what it holds isn't checked.  The options don't change what is reported, except in how a field body is read.
         /// </summary>
         /// <returns>Every problem found, in a read-only list.</returns>
         public IReadOnlyList<ImfDiagnostic> Validate()

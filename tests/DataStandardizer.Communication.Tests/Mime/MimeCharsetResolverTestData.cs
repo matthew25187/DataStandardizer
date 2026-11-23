@@ -27,6 +27,27 @@ namespace DataStandardizer.Communication.Tests.Mime
         private static readonly byte[] Utf32BigEndianBytes = { 0x00, 0x00, 0x00, 0xE9, 0x00, 0x01, 0xF6, 0x00 };
         private static readonly byte[] Utf32LittleEndianBytes = { 0xE9, 0x00, 0x00, 0x00, 0x00, 0xF6, 0x01, 0x00 };
 
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2 is the Basic Multilingual Plane in network byte order, so it is big-endian.
+        public const string Ucs2Name = "ISO-10646-UCS-2";
+        private const string BasicMultilingualPlaneText = "\x00E9\x4E2D";
+        private static readonly byte[] Ucs2Bytes = { 0x00, 0xE9, 0x4E, 0x2D };
+
+        // ref. IANA Character Sets registry.
+        public const string UsAsciiName = "US-ASCII";
+        public const string Iso88591Name = "ISO-8859-1";
+        public const string Utf32BigEndianName = "UTF-32BE";
+
+        // The most bytes US-ASCII and ISO-8859-1 can write for three characters: one more, for a high surrogate that an encoder holds back,
+        // as the runtime's ASCIIEncoding and Latin1Encoding allow.
+        public const int ThreeCharacters = 3;
+        public const int MaxBytesForThreeCharacters = 4;
+
+        // The first three bytes of U+1F600 in UTF-32BE, which a decoder holds back, then a block of ten more bytes that finishes it, holds
+        // two more, and leaves one byte, which a flush reads as U+FFFD (The Unicode Standard §3.9, D76).
+        public static readonly byte[] Utf32BigEndianHeldBytes = { 0x00, 0x01, 0xF6 };
+        public static readonly byte[] Utf32BigEndianBlockAfterHeldBytes = { 0x00, 0x00, 0x01, 0xF6, 0x00, 0x00, 0x01, 0xF6, 0x00, 0x00 };
+        public const string Utf32BigEndianHeldAndBlockText = "\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xFFFD";
+
         // UnicodeText after a byte order mark, U+FEFF, in each byte order.
         private static readonly byte[] Utf16BigEndianMarkedBytes = { 0xFE, 0xFF, 0x00, 0xE9, 0xD8, 0x3D, 0xDE, 0x00 };
         private static readonly byte[] Utf16LittleEndianMarkedBytes = { 0xFF, 0xFE, 0xE9, 0x00, 0x3D, 0xD8, 0x00, 0xDE };
@@ -75,6 +96,11 @@ namespace DataStandardizer.Communication.Tests.Mime
             foreach (var name in new[] { "UTF-32LE", "csUTF32LE" })
             {
                 yield return new object[] { name, UnicodeText, Utf32LittleEndianBytes };
+            }
+
+            foreach (var name in new[] { Ucs2Name, "csUnicode" })
+            {
+                yield return new object[] { name, BasicMultilingualPlaneText, Ucs2Bytes };
             }
         }
 

@@ -12,11 +12,6 @@ namespace DataStandardizer.Communication.Mime
         // ref. RFC 2231 §3: the sections are numbered from 0.
         private const string FirstSection = "0";
 
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
-        // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER, for a value that can't be represented.
-        private const string ReplacementString = "\uFFFD";
-#endif
-
         /// <summary>
         /// A <c>name=value</c> pair as written, before RFC 2231 sections are joined.
         /// </summary>
@@ -143,7 +138,6 @@ namespace DataStandardizer.Communication.Mime
             var name = sections[0].Name;
             var anyExtended = false;
             var allowQuoted = (options & MimeMediaTypeParseOptions.AllowQuotedExtendedValues) != 0;
-            var allowLowercase = (options & MimeMediaTypeParseOptions.AllowLowercaseHexDigits) != 0;
             foreach (var section in sections)
             {
                 if (!section.IsExtended) continue;
@@ -161,7 +155,7 @@ namespace DataStandardizer.Communication.Mime
                     builder.Append(section.Value);
                 }
 
-                parameter = MimeParameter.CreateUnchecked(name, builder.ToString(), null, null);
+                parameter = MimeParameter.CreateUnchecked(name, builder.ToString(), null, null, false);
                 return true;
             }
 
@@ -183,7 +177,8 @@ namespace DataStandardizer.Communication.Mime
                 var text = section.Value;
                 if (!section.IsExtended)
                 {
-                    // A value that is not extended is printable US-ASCII, or else its characters have no octets to join with those of the extended sections.
+                    // A value that is not extended is US-ASCII, controls included (ref. RFC 822 §3.3), or else its characters have no octets to join
+                    // with those of the extended sections.
                     foreach (var c in text)
                     {
                         if (c > '\x7F') return false;
@@ -196,30 +191,15 @@ namespace DataStandardizer.Communication.Mime
 
                 var start = 0;
                 if (index == 0 && (section.Section is null || section.Section == FirstSection) && !TryReadCharsetAndLanguage(text, ref start, out charsetName, out language)) return false;
-                if (!TryDecodeOctets(text, start, section.IsQuoted, allowLowercase, bytes, ref byteCount)) return false;
+                if (!TryDecodeOctets(text, start, section.IsQuoted, bytes, ref byteCount)) return false;
             }
 
             string value;
-            if (!TryDecodeText(bytes, byteCount, charsetName, options, charsetResolver, out value)) return false;
+            bool isOctets;
+            if (!TryDecodeText(bytes, byteCount, charsetName, options, charsetResolver, out value, out isOctets)) return false;
 
-            parameter = MimeParameter.CreateUnchecked(name, value, charsetName.Length == 0 ? null : charsetName, language.Length == 0 ? null : language);
+            parameter = MimeParameter.CreateUnchecked(name, value, charsetName.Length == 0 ? null : charsetName, language.Length == 0 ? null : language, isOctets);
             return true;
-        }
-
-        /// <summary>
-        /// Get the number of characters a value takes when written as an RFC 2231 extended value, without its character set and language.
-        /// </summary>
-        internal static int GetEncodedLength(string value)
-        {
-            var length = 0;
-            for (var index = 0; index < value.Length;)
-            {
-                int charCount;
-                length += GetEncodedUnitLength(value, index, out charCount);
-                index += charCount;
-            }
-
-            return length;
         }
 
         /// <summary>
@@ -257,7 +237,9 @@ namespace DataStandardizer.Communication.Mime
         /// </remarks>
         internal static int WriteEncodedUnit(string value, int index, Span<char> destination, ref int position)
         {
-            // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char); ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
+            // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char); ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F"). The grammar is in the
+            // augmented BNF of RFC 822 (RFC 2045 §1), whose quoted literals are case-insensitive (RFC 822 §2.1), so lower-case digits are
+            // allowed too.
             int codePoint = value[index];
             if (codePoint < 0x80)
             {
@@ -297,6 +279,34 @@ namespace DataStandardizer.Communication.Mime
             WriteOctet((byte)(0x80 | ((codePoint >> 6) & 0x3F)), destination, ref position);
             WriteOctet((byte)(0x80 | (codePoint & 0x3F)), destination, ref position);
             return 2;
+        }
+
+        /// <summary>
+        /// Get the number of characters that one octet of a value takes when written in an RFC 2231 extended value.
+        /// </summary>
+        /// <param name="octet">The octet, held as the character with the same number.</param>
+        internal static int GetOctetUnitLength(char octet)
+        {
+            return octet < '\x80' && IsAttributeChar(octet) ? 1 : 3;
+        }
+
+        /// <summary>
+        /// Write one octet of a value as it is, if it is an attribute-char, and otherwise percent-encoded.
+        /// </summary>
+        /// <param name="octet">The octet, held as the character with the same number.</param>
+        /// <param name="destination">The span to write to, which must have room for the unit.</param>
+        /// <param name="position">The position to write at; moved past what was written.</param>
+        internal static void WriteOctetUnit(char octet, Span<char> destination, ref int position)
+        {
+            // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char)
+            if (octet < '\x80' && IsAttributeChar(octet))
+            {
+                destination[position++] = octet;
+            }
+            else
+            {
+                WriteOctet((byte)octet, destination, ref position);
+            }
         }
 
         /// <summary>
@@ -452,7 +462,7 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        private static bool TryDecodeOctets(string text, int start, bool isQuoted, bool allowLowercase, byte[] bytes, ref int byteCount)
+        private static bool TryDecodeOctets(string text, int start, bool isQuoted, byte[] bytes, ref int byteCount)
         {
             for (var index = start; index < text.Length; index++)
             {
@@ -460,8 +470,8 @@ namespace DataStandardizer.Communication.Mime
                 if (c == '%')
                 {
                     int high, low;
-                    if (index + 2 >= text.Length || (high = HexValue(text[index + 1], allowLowercase)) < 0 ||
-                        (low = HexValue(text[index + 2], allowLowercase)) < 0)
+                    if (index + 2 >= text.Length || (high = HexValue(text[index + 1])) < 0 ||
+                        (low = HexValue(text[index + 2])) < 0)
                     {
                         return false;
                     }
@@ -471,8 +481,9 @@ namespace DataStandardizer.Communication.Mime
                     continue;
                 }
 
-                // A quoted value, which is accepted only as an opt-in, may also hold the characters that a token can't.
-                if (!(isQuoted ? MimeGrammar.IsValueChar(c) && c != '\'' : IsAttributeChar(c))) return false;
+                // A quoted value, which is accepted only as an opt-in, may also hold the characters that a token can't, including an
+                // apostrophe anywhere in the octets of any section.
+                if (!(isQuoted ? MimeGrammar.IsValueChar(c) : IsAttributeChar(c))) return false;
 
                 bytes[byteCount++] = (byte)c;
             }
@@ -481,9 +492,10 @@ namespace DataStandardizer.Communication.Mime
         }
 
         private static bool TryDecodeText(byte[] bytes, int byteCount, string charsetName, MimeMediaTypeParseOptions options,
-            IMimeCharsetResolver charsetResolver, out string value)
+            IMimeCharsetResolver charsetResolver, out string value, out bool isOctets)
         {
             value = string.Empty;
+            isOctets = false;
 
 #if NETCOREAPP3_0_OR_GREATER
             Encoding? encoding;
@@ -514,6 +526,7 @@ namespace DataStandardizer.Communication.Mime
             if ((options & MimeMediaTypeParseOptions.AllowUnknownCharsets) == 0) return false;
 
             value = DecodeLatin1(bytes, byteCount);
+            isOctets = true;
             return true;
         }
 
@@ -521,21 +534,33 @@ namespace DataStandardizer.Communication.Mime
         {
             value = string.Empty;
 
+            // ref. RFC 2781 §4.3: a byte order mark gives the byte order of UTF-16 and UTF-32, and isn't part of the text.
+            var start = 0;
+            var scheme = encoding as MimeUnicodeSchemeEncoding;
+            if (scheme != null) encoding = scheme.SelectEncoding(bytes, 0, byteCount, out start);
+
             // ref. RFC 2231 §4: the octets are text in the character set, so octets that are not valid in it are not a valid value.
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
-            var decoding = (Encoding)encoding.Clone();
-            decoding.DecoderFallback = allowInvalidOctets ? new DecoderReplacementFallback(ReplacementString) : DecoderFallback.ExceptionFallback;
+#if NETCOREAPP3_0_OR_GREATER
+            Encoding? copy;
 #else
-            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and then
-            // checked with IsDecodedExactly. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
-            var decoding = encoding;
+            Encoding copy;
 #endif
+            var decoding = encoding;
+            var hasFallback = false;
+            if (!IsHandCoded(encoding) && MimeDecoderFallbacks.TryCopy(encoding, allowInvalidOctets, out copy))
+            {
+                decoding = copy;
+                hasFallback = true;
+            }
+
             try
             {
-                var text = decoding.GetString(bytes, 0, byteCount);
-#if !(NETSTANDARD2_0_OR_GREATER || NETCOREAPP)
-                if (!allowInvalidOctets && !IsDecodedExactly(encoding, bytes, byteCount, text)) return false;
-#endif
+                var text = decoding.GetString(bytes, start, byteCount - start);
+
+                // An encoding that can't be given a fallback reads invalid octets as its own fallback does, so the text is checked instead.
+                // The hand-coded encodings write each character in only one way, so for them the check finds exactly the invalid octets.
+                if (!hasFallback && !allowInvalidOctets && !IsDecodedExactly(encoding, bytes, start, byteCount - start, text)) return false;
+
                 value = text;
                 return true;
             }
@@ -545,15 +570,22 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
+        // Indicates whether an encoding is one of the package's hand-coded ones, which read invalid octets as U+FFFD whatever fallback they
+        // are given.
+        private static bool IsHandCoded(Encoding encoding)
+        {
+#if NETSTANDARD1_3_OR_GREATER || NETCOREAPP
+            return false;
+#else
+            return encoding is MimeSingleByteEncoding || encoding is MimeUtf32Encoding;
+#endif
+        }
+
         // Indicates whether text read with an encoding that may replace invalid octets, with U+FFFD, '?' or anything else, came from valid
         // octets: whether writing the text with the encoding gives the same octets back. An encoding that can't write the text didn't read
-        // it from valid octets. The byte order mark that MimeUnicodeSchemeEncoding reads and doesn't write is left out of the comparison.
-        internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int byteCount, string text)
+        // it from valid octets.
+        internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int index, int count, string text)
         {
-            var start = 0;
-            var scheme = encoding as MimeUnicodeSchemeEncoding;
-            if (scheme != null) encoding = scheme.SelectEncoding(bytes, 0, byteCount, out start);
-
             byte[] written;
             try
             {
@@ -564,11 +596,11 @@ namespace DataStandardizer.Communication.Mime
                 return false;
             }
 
-            if (written.Length != byteCount - start) return false;
+            if (written.Length != count) return false;
 
-            for (var index = 0; index < written.Length; index++)
+            for (var position = 0; position < written.Length; position++)
             {
-                if (written[index] != bytes[start + index]) return false;
+                if (written[position] != bytes[index + position]) return false;
             }
 
             return true;
@@ -593,12 +625,13 @@ namespace DataStandardizer.Communication.Mime
             destination[position++] = MimeQuotedPrintable.HexDigits[value & 0xF];
         }
 
-        private static int HexValue(char c, bool allowLowercase)
+        private static int HexValue(char c)
         {
-            // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
+            // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F"). The grammar is in the augmented BNF of
+            // RFC 822 (RFC 2045 §1), whose quoted literals may be upper or lower case (RFC 822 §2.1), so lower-case digits are allowed too.
             if (c >= '0' && c <= '9') return c - '0';
             if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-            if (allowLowercase && c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
 
             return -1;
         }

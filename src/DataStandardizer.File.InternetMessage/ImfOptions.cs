@@ -78,7 +78,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// RFC 2045 §2.9 and §6.2 define the encoding, but a transport can carry it only if it supports RFC 3030 BINARYMIME, so when <c>false</c> (the default)
-        /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.
+        /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.  A line break in a <c>binary</c> body is data,
+        /// so a writer that changes the line breaks of a message, such as an <see cref="EmlxWriter"/>, doesn't use the encoding there.
         /// </remarks>
         public bool AllowBinaryTransferEncoding
         {
@@ -319,8 +320,7 @@ namespace DataStandardizer.File.InternetMessage
         /// each of the accommodations of <see cref="MimeEncodedWordParseOptions"/> applies: a word longer than the 75 characters of §2
         /// (<see cref="MimeEncodedWordParseOptions.AllowLongWords"/>), a word not separated from the text next to it, which §5 requires
         /// (<see cref="MimeEncodedWordParseOptions.AllowEmbeddedWords"/>), a character set that <see cref="CharsetResolver"/> can't resolve, which §6.2 lets a reader
-        /// show as it can (<see cref="MimeEncodedWordParseOptions.AllowUnknownCharsets"/>), lower-case hexadecimal digits, which §4.2 doesn't allow
-        /// (<see cref="MimeEncodedWordParseOptions.AllowLowercaseHexDigits"/>), octets that aren't valid in the character set, which §6.3 calls incorrectly formed
+        /// show as it can (<see cref="MimeEncodedWordParseOptions.AllowUnknownCharsets"/>), octets that aren't valid in the character set, which §6.3 calls incorrectly formed
         /// (<see cref="MimeEncodedWordParseOptions.AllowInvalidOctets"/>), and a character split between words, which §5 doesn't allow
         /// (<see cref="MimeEncodedWordParseOptions.AllowSplitCharacters"/>).
         /// </remarks>
@@ -374,6 +374,10 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfEntityReader"/> throws an <see cref="ImfFileException"/> if the data ends, or a delimiter of an enclosing multipart
         /// entity is found, first.  When <c>true</c>, the multipart entity ends there.  One with no delimiter at all then has no parts, and its
         /// whole body is its preamble.
+        /// <para>
+        /// A writer gives a multipart entity that was read with no close delimiter one when the entity has changed.  One that hasn't changed is written as it was read, so a writer
+        /// throws an <see cref="ImfFileException"/> for it when <c>false</c>, and records an <see cref="ImfDiagnosticKind.InvalidBodyStructure"/> problem in its diagnostics and writes it when <c>true</c>.
+        /// </para>
         /// </remarks>
         public bool AllowMissingBoundaryTerminator
         {

@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace DataStandardizer.Geography
 {
+    /// <summary>
+    /// Provides methods that list the ISO 3166-2 subdivisions of a country.
+    /// </summary>
     public static class Iso3166Part2Enum
     {
         private static readonly ILookup<Type, FieldInfo> SubdivisionCodeLookup;
@@ -13,6 +16,10 @@ namespace DataStandardizer.Geography
             SubdivisionCodeLookup = typeof(Iso3166Part2Subdivision).GetTypeInfo().DeclaredNestedTypes
                 .SelectMany(typeInfo => typeInfo.DeclaredFields, (typeInfo, fieldInfo) => new { CountryType = typeInfo.AsType(), Field = fieldInfo })
                 .Where(kvp => kvp.Field.FieldType == typeof(Iso3166Part2Subdivision))
+                // Each field's name is its code with the country prefix ("AU-") replaced by "_", so within a country
+                // ordering the names ordinally puts the subdivisions in ordinal code order, whatever order DeclaredFields
+                // returns them in, without reading the field values.
+                .OrderBy(kvp => kvp.Field.Name, StringComparer.Ordinal)
                 .ToLookup(kvp => kvp.CountryType, kvp => kvp.Field);
         }
 
@@ -21,7 +28,8 @@ namespace DataStandardizer.Geography
         /// </summary>
         /// <param name="country">The ISO 3166-1 alpha-2 country code for which to retrieve subdivision names.</param>
         /// <returns>
-        /// An array of strings representing the names of the subdivisions for the specified country.
+        /// An array of strings representing the names of the subdivisions for the specified country,
+        /// sorted by subdivision code using ordinal comparison, in the same order as <see cref="GetValues(Iso3166Part1Alpha2Country)"/>.
         /// If the country code is invalid or not found, an empty array is returned.
         /// </returns>
         public static string[] GetNames(Iso3166Part1Alpha2Country country)
@@ -57,7 +65,8 @@ namespace DataStandardizer.Geography
         /// The ISO 3166-1 alpha-3 country code for which to retrieve subdivision names.
         /// </param>
         /// <returns>
-        /// An array of subdivision names corresponding to the specified country. 
+        /// An array of subdivision names corresponding to the specified country, sorted by subdivision code
+        /// using ordinal comparison, in the same order as <see cref="GetValues(Iso3166Part1Alpha3Country)"/>.
         /// If the country code is invalid or not found, an empty array is returned.
         /// </returns>
         public static string[] GetNames(Iso3166Part1Alpha3Country country)
@@ -94,7 +103,8 @@ namespace DataStandardizer.Geography
         /// </param>
         /// <returns>
         /// An array of <see cref="Iso3166Part2Subdivision"/> instances representing the subdivisions
-        /// of the specified country. Returns an empty array if the country code is invalid or has no subdivisions.
+        /// of the specified country, sorted by subdivision code using ordinal comparison, in the same order as
+        /// <see cref="GetNames(Iso3166Part1Alpha2Country)"/>. Returns an empty array if the country code is invalid or has no subdivisions.
         /// </returns>
         public static Iso3166Part2Subdivision[] GetValues(Iso3166Part1Alpha2Country country)
         {
@@ -129,7 +139,8 @@ namespace DataStandardizer.Geography
         /// The ISO 3166-1 alpha-3 country for which to retrieve the subdivisions.
         /// </param>
         /// <returns>
-        /// An array of <see cref="Iso3166Part2Subdivision"/> representing the subdivisions of the specified country.
+        /// An array of <see cref="Iso3166Part2Subdivision"/> representing the subdivisions of the specified country,
+        /// sorted by subdivision code using ordinal comparison, in the same order as <see cref="GetNames(Iso3166Part1Alpha3Country)"/>.
         /// If the country code is invalid or no subdivisions are available, an empty array is returned.
         /// </returns>
         public static Iso3166Part2Subdivision[] GetValues(Iso3166Part1Alpha3Country country)

@@ -34,6 +34,8 @@ function Get-EqualsMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([bool])
@@ -62,6 +64,8 @@ function Get-GetHashCodeMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([int])
@@ -128,8 +132,44 @@ function Get-MemberFieldPredicateMethodDefinition {
                         [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
                         [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'))))))
     [void]$method.Statements.Add($linqQueryPredicateReturnStatement)
-    
+
     return $method
+}
+
+# Emits a lazily built table from each member's code to the member, for an explicit conversion from string to look codes up in.
+# It reads only the public static fields declared on the struct itself, not those of nested classes, so it suits only a string
+# enumeration whose members are all declared on the struct, such as the ISO 639 types.
+function Get-MembersByCodeDefinition {
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
+    param (
+        [Parameter()]
+        [string]    $TypeNamespace,
+
+        [Parameter(Mandatory)]
+        [string]    $TypeName
+    )
+
+    $typeReference = Get-TypeFullName $TypeNamespace $TypeName
+    $dictionaryType = "System.Collections.Generic.Dictionary<string, $typeReference>"
+
+    $snippet = "        // Built on first use rather than in a static field initializer, which could run before the member fields it reads are assigned.
+        // PublicationOnly doesn't cache an exception thrown while building it, so a later cast tries again.
+        private static readonly System.Lazy<$dictionaryType> MembersByCode = new System.Lazy<$dictionaryType>(CreateMembersByCode, System.Threading.LazyThreadSafetyMode.PublicationOnly);
+
+        private static $dictionaryType CreateMembersByCode()
+        {
+            var membersByCode = new $dictionaryType(System.StringComparer.Ordinal);
+            foreach (var field in typeof($typeReference).GetTypeInfo().DeclaredFields)
+            {
+                if (field.IsPublic && field.IsStatic && field.GetValue(null) is $typeReference member && member._value is string code)
+                {
+                    membersByCode[code] = member;
+                }
+            }
+            return membersByCode;
+        }"
+
+    return [System.CodeDom.CodeSnippetTypeMember]::new($snippet)
 }
 
 function Get-InheritedToStringMethodDefinition {
@@ -146,6 +186,13 @@ function Get-InheritedToStringMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<summary>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('Returns the name of the predefined member that holds this value.', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('</summary>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<returns>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('The name of the public static field that holds this value; the code, if no field holds it; or the full name of the type, for the', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('default value.', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('</returns>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([string])
@@ -212,6 +259,8 @@ function Get-CompareToMethodDefinition {
     $typeReference = Get-TypeFullName $TypeNamespace $TypeName
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     [void]$method.ImplementationTypes.Add([System.CodeDom.CodeTypeReference]::new([System.IComparable]))
@@ -282,6 +331,8 @@ function Get-InheritedEqualsMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([bool])
@@ -308,6 +359,8 @@ function Get-GetTypeCodeMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    # Each of these members implements an interface member or overrides an object member, so it takes that member's docs.
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<inheritdoc/>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([System.TypeCode])
@@ -700,6 +753,12 @@ function Get-ToStringMethodDefinition {
     # Declare method.
     $method = [System.CodeDom.CodeMemberMethod]::new()
     $method.Name = $methodName
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<summary>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('Returns the code.  The format provider is not used.', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('</summary>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<param name="provider">Not used.</param>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<returns>The code.</returns>', $true))
+    [void]$method.Comments.Add([System.CodeDom.CodeCommentStatement]::new('<exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>', $true))
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
     $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Final
     $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([string])
@@ -886,6 +945,7 @@ Export-ModuleMember -Function Get-ValueFieldDeclaration
 Export-ModuleMember -Function Get-EqualsMethodDefinition
 Export-ModuleMember -Function Get-GetHashCodeMethodDefinition
 Export-ModuleMember -Function Get-MemberFieldPredicateMethodDefinition
+Export-ModuleMember -Function Get-MembersByCodeDefinition
 Export-ModuleMember -Function Get-InheritedToStringMethodDefinition
 Export-ModuleMember -Function Get-CompareToMethodDefinition
 Export-ModuleMember -Function Get-InheritedEqualsMethodDefinition

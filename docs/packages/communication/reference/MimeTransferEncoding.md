@@ -24,9 +24,12 @@ public readonly struct MimeTransferEncoding : IEquatable<MimeTransferEncoding>, 
 
 ## Remarks
 
-The known mechanisms are written in lower case. Any other token is an extension
-mechanism: an `x-` token, or one registered with IANA (RFC 4289 §3). An extension
-mechanism is kept as written. Mechanisms are compared case-insensitively.
+The known mechanisms are written in lower case. The only other mechanisms are
+extension mechanisms: an x-token, which is `x-` or `X-` followed by a token
+(RFC 2045 §5.1), or a token registered with IANA (RFC 4289 §3). The IANA Transfer
+Encodings registry lists no mechanism beyond the five RFC 2045 defines, so any other
+token, such as `uuencode` or `x-` alone, isn't valid. An extension mechanism is kept
+as written. Mechanisms are compared case-insensitively.
 
 See [Encode and decode with base64 and quoted-printable](../how-to/encode-and-decode-bodies.md).
 
@@ -56,7 +59,7 @@ The properties throw `InvalidOperationException` on a value that isn't initialis
 | Method | Notes |
 | --- | --- |
 | `static bool TryParse(value, out MimeTransferEncoding result)` | `value` is a `string` or `ReadOnlySpan<char>`. |
-| `static MimeTransferEncoding Parse(value)` | Throws `FormatException` if the value isn't a token. |
+| `static MimeTransferEncoding Parse(value)` | Throws `FormatException` if the value isn't a known mechanism or an x-token. |
 | `bool TryFormat(Span<char> destination, out int charsWritten)` | Writes nothing if the value isn't initialised. |
 | `string ToString()` | An empty string if the value isn't initialised. |
 

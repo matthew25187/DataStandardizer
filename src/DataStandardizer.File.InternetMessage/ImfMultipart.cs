@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.InternetMessage
@@ -113,6 +114,12 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
+        /// <summary>
+        /// Gets a flag indicating if this entity was read with no close delimiter, which <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> allows.  One read with no delimiter
+        /// at all has no parts, so it has no close delimiter either, as one can only follow a part.
+        /// </summary>
+        internal bool WasReadWithNoCloseDelimiter => _rawFraming.Length == 1 || (_rawFraming.Length > 1 && _rawFraming[_rawFraming.Length - 1].IsEmpty);
+
         private bool IsFramingKept
         {
             get
@@ -159,18 +166,24 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <inheritdoc />
-        internal override ImfEntitySource ToChangedSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
+            var encoding = options.HeaderEncoding;
             var contentType = ContentType;
             if (!string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase))
                 throw new ImfFileException("The Content-Type field of a multipart entity must be of the top-level type multipart.");
             if (Parts.Count == 0)
-                throw new ImfFileException("A multipart entity must have at least one part (RFC 2046 §5.1.1).");
+            {
+                var exception = new ImfFileException("A multipart entity must have at least one part (RFC 2046 §5.1.1).");
+                exception.Data[ImfFileException.DataItemName.EntityPath] = path;
+                throw exception;
+            }
 
             var parts = new List<ImfEntitySource>(Parts.Count);
-            foreach (var part in Parts)
+            for (var index = 0; index < Parts.Count; index++)
             {
-                parts.Add(part.ToSource(encoding, lineBreak));
+                var number = (index + 1).ToString(CultureInfo.InvariantCulture);
+                parts.Add(Parts[index].ToSource(options, lineBreak, boundaryGenerator, path.Length == 0 ? number : path + "." + number, false));
             }
 
             var source = ImfEntitySource.FromParts(contentType, parts);

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -238,7 +239,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the suggested file name of the entity: the <c>filename</c> parameter of the Content-Disposition field, in the form of RFC 2231 if it has one (<c>filename*</c>), or the
+        /// Gets the suggested file name of the entity: the <c>filename</c> parameter of the Content-Disposition field, decoded if it is in the form of RFC 2231 (<c>filename*</c>), or the
         /// <c>name</c> parameter of the Content-Type field, which RFC 2046 §4.5.1 leaves in use for this; or <c>null</c> if it has none.
         /// </summary>
         /// <remarks>
@@ -328,16 +329,23 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the content as text, in the character set of the <c>charset</c> parameter of the Content-Type field.  With no such parameter, it is the default for the type, or
-        /// otherwise US-ASCII (RFC 2046 §4.1.2, RFC 6657 §3).
+        /// Gets the content as text, in the character set of the <c>charset</c> parameter of the Content-Type field.  With no such parameter, it is the default for the type, which
+        /// is US-ASCII unless the type's registration says otherwise (RFC 2046 §4.1.2, RFC 6657 §3), as <see cref="MimeCharset.TryGetDefault"/> describes.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// <c>text/html</c>, <c>text/xml</c>, <c>text/xml-external-parsed-entity</c>, <c>text</c> subtypes with the <c>+xml</c> suffix and <c>text/markdown</c> have no default.  HTML
+        /// and XML give the character set within the text (HTML Living Standard §16.1.2, RFC 7303 §3.2, §4.2), and <c>text/markdown</c> requires the parameter (RFC 7763 §2).  When such an entity has no <c>charset</c> parameter, read
+        /// <see cref="GetContent"/> and find the character set as the format says, such as with an HTML or XML parser.
+        /// </para>
+        /// <para>
         /// The character set is resolved by <see cref="ImfOptions.CharsetResolver"/>.  The line breaks are those of the content, which are CRLF in a <c>text</c> entity that follows
         /// RFC 2046 §4.1.1.
+        /// </para>
         /// </remarks>
         /// <returns>The text.</returns>
-        /// <exception cref="ImfFileException">The body is not valid in its transfer encoding, the character set can't be resolved, or the content is not valid in it and
-        /// <see cref="ImfOptions.AllowInvalidTextOctets"/> is not set.</exception>
+        /// <exception cref="ImfFileException">The body is not valid in its transfer encoding, there is no <c>charset</c> parameter and the type has no default, the character set
+        /// can't be resolved, or the content is not valid in it and <see cref="ImfOptions.AllowInvalidTextOctets"/> is not set.</exception>
         /// <exception cref="InvalidOperationException">The entity is not of the top-level type <c>text</c>.</exception>
         public string GetText()
         {
@@ -345,7 +353,8 @@ namespace DataStandardizer.File.InternetMessage
             if (!string.Equals(contentType.Type, MimeTopLevelTypes.Text, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only an entity of the top-level type text has text.");
 
-            return DecodeText(GetContent(), GetCharset(contentType));
+            var charset = GetCharset(contentType);
+            return DecodeText(GetContent(), charset);
         }
 
         /// <summary>
@@ -547,12 +556,22 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Describes the entity for an <see cref="ImfEntityWriter"/>: what has not changed as the bytes that were read, and the rest as what it now holds.
         /// </summary>
-        /// <param name="encoding">How the writer writes header text that is not US-ASCII.</param>
+        /// <param name="options">The options of the writer.</param>
         /// <param name="lineBreak">The line break of the writer.</param>
+        /// <param name="boundaryGenerator">The source of boundaries of the writer.</param>
+        /// <param name="path">The path of the entity in the message being written, as <see cref="ImfEntityEvent.EntityPath"/> describes.</param>
+        /// <param name="isMessageBody">Whether the entity is the body of a message.</param>
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
-        internal ImfEntitySource ToSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal ImfEntitySource ToSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
-            if (HasChangedBody) return ToChangedSource(encoding, lineBreak);
+            if (HasChangedBody)
+            {
+                var changed = ToChangedSource(options, lineBreak, boundaryGenerator, path, isMessageBody);
+                changed.IsReadElsewhere |= _isMoved;
+                return changed;
+            }
+
+            var encoding = options.HeaderEncoding;
 
             ImfEntitySource source;
             if (_hasRawEntity && !HasChangedFields)
@@ -574,18 +593,19 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             source.IsPreserved = !_isMoved;
+            source.IsReadElsewhere = _isMoved;
             source.HasChangedHeader = HasChangedFields;
             return source;
         }
 
         /// <summary>
-        /// Describes an entity whose body has changed.
+        /// Describes an entity whose body has changed.  <paramref name="path"/> and <paramref name="isMessageBody"/> are as <see cref="ToSource"/> describes.
         /// </summary>
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
-        internal virtual ImfEntitySource ToChangedSource(ImfHeaderEncoding encoding, byte[] lineBreak)
+        internal virtual ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
             var source = ImfEntitySource.FromContent(ContentType, GetContent());
-            AddFields(source, encoding, lineBreak, null);
+            AddFields(source, options.HeaderEncoding, lineBreak, null);
             KeepHeaderEnd(source);
             return source;
         }
@@ -636,10 +656,17 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal void AddFields(ImfEntitySource source, ImfHeaderEncoding encoding, byte[] lineBreak, [AllowNull] string omittedName)
         {
-            var buffer = new byte[1024];
-            foreach (var field in Fields)
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
+            try
             {
-                if (omittedName is null || !field.HasName(omittedName)) source.AddOutputField(field.GetOutput(encoding, lineBreak, ref buffer));
+                foreach (var field in Fields)
+                {
+                    if (omittedName is null || !field.HasName(omittedName)) source.AddOutputField(field.GetOutput(encoding, lineBreak, ref buffer));
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
@@ -684,10 +711,17 @@ namespace DataStandardizer.File.InternetMessage
         private List<byte[]> GetFieldOutput(ImfHeaderEncoding encoding, byte[] lineBreak)
         {
             var output = new List<byte[]>(Fields.Count);
-            var buffer = new byte[1024];
-            foreach (var field in Fields)
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
+            try
             {
-                output.Add(field.GetOutput(encoding, lineBreak, ref buffer).ToArray());
+                foreach (var field in Fields)
+                {
+                    output.Add(field.GetOutput(encoding, lineBreak, ref buffer).ToArray());
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return output;
@@ -709,7 +743,7 @@ namespace DataStandardizer.File.InternetMessage
             else if (transferEncoding == MimeTransferEncoding.QuotedPrintable)
             {
                 decoded = new byte[MimeQuotedPrintable.GetMaxDecodedLength(raw.Length)];
-                var options = Options.AcceptBareLineFeed || _lineFeedIsLineBreak ? MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds : MimeQuotedPrintableDecoderOptions.None;
+                var options = ImfEntityScanner.GetQuotedPrintableOptions(Options, _lineFeedIsLineBreak);
                 status = new MimeQuotedPrintableDecoder(MimeQuotedPrintableMode.Body, options).Decode(raw.Span, decoded, out bytesConsumed, out bytesWritten, true);
             }
             else
@@ -733,8 +767,12 @@ namespace DataStandardizer.File.InternetMessage
                 return charset;
             }
 
-            // ref. RFC 2046 §4.1.2: US-ASCII is what text with no charset parameter is taken to be, where its type has no default of its own (RFC 6657 §3).
-            return MimeCharset.TryGetDefault(contentType, out var defaultCharset) ? defaultCharset : MimeCharset.UsAscii;
+            // ref. RFC 6657 §3: the type's registration says what text with no charset parameter is in.  TryGetDefault gives US-ASCII (RFC 2046 §4.1.2) for a type that says
+            // nothing, and false for one whose text gives its own character set (HTML Living Standard §16.1.2, RFC 7303 §3.2, §4.2) or that requires the parameter (RFC 7763 §2).
+            if (!MimeCharset.TryGetDefault(contentType, out var defaultCharset))
+                throw new ImfFileException($"The media type '{contentType.Type}/{contentType.Subtype}' has no charset parameter and no default character set, so the character set of the text isn't known (RFC 6657 §3).");
+
+            return defaultCharset;
         }
 
         private string DecodeText(ReadOnlyMemory<byte> content, MimeCharset charset)

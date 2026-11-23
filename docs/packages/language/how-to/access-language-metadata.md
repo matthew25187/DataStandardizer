@@ -64,8 +64,10 @@ type from a language code:
 var languageType = Iso639Part3Language.slk.GetLanguageType();
 ```
 
-Language types indicate whether the language is living, ancient, historical,
-extinct, constructed or special.
+Language types indicate whether the language is living, historical, extinct,
+constructed or special. ISO 639:2023 merged the ancient language type into
+historical, so no code has the obsolete `Iso639LanguageType.Ancient`: Latin
+(`lat`), for example, is `Historical`.
 
 ## Macrolanguage
 
@@ -90,8 +92,8 @@ Part 1 codes are associated, where available, with language codes from the
 
 The Part 1 code of an `Iso639Part3Language` comes from the ISO 639-3 code table,
 which can give a code that ISO 639-1 has withdrawn. Such a code isn't a defined
-`Iso639Part1Language` member: `StringEnum.IsDefined` returns `false` for it and
-`StringEnum.Parse` throws. For example, `Iso639Part3Language.hbs`
+`Iso639Part1Language` member: `StringEnum.IsDefined` returns `false` for it, and
+`StringEnum.Parse` and a cast to `Iso639Part1Language` throw. For example, `Iso639Part3Language.hbs`
 (Serbo-Croatian) returns `sh`, which ISO 639-1 withdrew in 2000.
 
 ## Part 2 code

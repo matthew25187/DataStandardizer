@@ -9,8 +9,15 @@ public class SystemTimeExtensionsTests
     private const long OneSecondBeforeEpoch = -1L;
     private const long UnixTime20231114T221320Z = 1700000000L;
 
-    // About 3.2 million years from the epoch, too far for the day number arithmetic.
-    private const long FarFromEpoch = 100000000000000L;
+    // The first and last seconds that DateTime and DateOnly can hold, 0001-01-01T00:00:00Z and 9999-12-31T23:59:59Z, and the
+    // seconds just outside them.
+    private const long FirstSecondOfYear1 = -62135596800L;
+    private const long LastSecondBeforeYear1 = -62135596801L;
+    private const long LastSecondOfYear9999 = 253402300799L;
+    private const long FirstSecondOfYear10000 = 253402300800L;
+
+    // Less than half a nanosecond before the midnight that starts 1970-01-02 (JDN 2440588.5), within the rounding tolerance.
+    private const decimal JustBeforeMidnight19700102 = 2440588.4999999999999999m;
 
     // DOS date 0x0021 is 1980-01-01; DOS time 0x0001 is two seconds past midnight, as a DOS time counts seconds in units of two.
     private const uint DosDateTime19800101T000002 = 0x00210001U;
@@ -71,7 +78,31 @@ public class SystemTimeExtensionsTests
         { 2451545.0000115740740509259259m, new DateTime(2000, 1, 1, 12, 0, 0) },
         // 0.4 nanoseconds before 12:00:01, within the tolerance of half a nanosecond.
         { 2451545.0000115740740694444444m, new DateTime(2000, 1, 1, 12, 0, 1) },
+        // Within the tolerance of the next midnight, so on the next day.
+        { JustBeforeMidnight19700102, new DateTime(1970, 1, 2, 0, 0, 0) },
     };
+
+    // Julian Day Numbers and the time of day each gives. A whole number is noon.
+    public static TheoryData<decimal, TimeOnly> TimeOfDayCases => new()
+    {
+        { JustBeforeMidnight19700102, new TimeOnly(0, 0, 0) },
+        { decimal.MaxValue, new TimeOnly(12, 0, 0) },
+        { decimal.MinValue, new TimeOnly(12, 0, 0) },
+    };
+
+    [Theory]
+    [MemberData(nameof(TimeOfDayCases))]
+    public void ToTimeOnly_OnSystemTimeValueAnywhere_ReturnsTimeOfDay(decimal testJdn, TimeOnly expectedResult)
+    {
+        // arrange
+        var testValue = new TestSystemTime(testJdn);
+
+        // act
+        var testResult = testValue.ToTimeOnly();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
 
     [Theory]
     [MemberData(nameof(FractionOfSecondCases))]
@@ -97,7 +128,9 @@ public class SystemTimeExtensionsTests
      InlineData(123456789L, 1973, 11, 29, 21, 33, 9),
      InlineData(946684802L, 2000, 1, 1, 0, 0, 2),
      InlineData(UnixTime20231114T221320Z, 2023, 11, 14, 22, 13, 20),
-     InlineData(4102444799L, 2099, 12, 31, 23, 59, 59)]
+     InlineData(4102444799L, 2099, 12, 31, 23, 59, 59),
+     InlineData(FirstSecondOfYear1, 1, 1, 1, 0, 0, 0),
+     InlineData(LastSecondOfYear9999, 9999, 12, 31, 23, 59, 59)]
     public void ToDateTime_OnUnixTimeValue_ReturnsDateTimeEquivalent(long testUnixTime, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
         // arrange
@@ -191,19 +224,50 @@ public class SystemTimeExtensionsTests
         testResult.Kind.Should().Be(DateTimeKind.Unspecified);
     }
 
+    // Each date conversion of a system time outside the range of DateTime and DateOnly, 0001-01-01 to 9999-12-31.
+    public static TheoryData<string, Func<object>> BeyondDateRangeConversionCases => new()
+    {
+        { "ToDateTime long.MaxValue", () => new UnixTime(long.MaxValue).ToDateTime() },
+        { "ToDateTime long.MinValue", () => new UnixTime(long.MinValue).ToDateTime() },
+        { "ToDateTime year 10000", () => new UnixTime(FirstSecondOfYear10000).ToDateTime() },
+        { "ToDateTime year 0", () => new UnixTime(LastSecondBeforeYear1).ToDateTime() },
+        { "ToDateTime decimal.MaxValue", () => new TestSystemTime(decimal.MaxValue).ToDateTime() },
+        { "ToDateTime decimal.MinValue", () => new TestSystemTime(decimal.MinValue).ToDateTime() },
+        { "ToDateOnly long.MaxValue", () => new UnixTime(long.MaxValue).ToDateOnly() },
+        { "ToDateOnly long.MinValue", () => new UnixTime(long.MinValue).ToDateOnly() },
+        { "ToDateOnly year 10000", () => new UnixTime(FirstSecondOfYear10000).ToDateOnly() },
+        { "ToDateOnly year 0", () => new UnixTime(LastSecondBeforeYear1).ToDateOnly() },
+        { "ToDateOnly decimal.MaxValue", () => new TestSystemTime(decimal.MaxValue).ToDateOnly() },
+        { "ToDateOnly decimal.MinValue", () => new TestSystemTime(decimal.MinValue).ToDateOnly() },
+    };
+
     [Theory]
-    [InlineData(FarFromEpoch),
-     InlineData(-FarFromEpoch)]
-    public void ToDateTime_OnUnixTimeFarFromEpoch_ThrowsOverflowException(long testUnixTime)
+    [MemberData(nameof(BeyondDateRangeConversionCases))]
+    public void DateConversion_SystemTimeBeyondDateRange_ThrowsArgumentOutOfRangeException(string testCaseName, Func<object> testConversion)
     {
         // arrange
+
+        // act
+        Action testAction = () => testConversion();
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>(testCaseName).WithParameterName("systemTime");
+    }
+
+    [Theory]
+    [InlineData(FirstSecondOfYear1, 1, 1, 1),
+     InlineData(LastSecondOfYear9999, 9999, 12, 31)]
+    public void ToDateOnly_OnUnixTimeValue_ReturnsDateEquivalent(long testUnixTime, ushort expectedYear, ushort expectedMonth, ushort expectedDay)
+    {
+        // arrange
+        var expectedResult = new DateOnly(expectedYear, expectedMonth, expectedDay);
         var testValue = new UnixTime(testUnixTime);
 
         // act
-        Action testAction = () => testValue.ToDateTime();
+        var testResult = testValue.ToDateOnly();
 
         // assert
-        testAction.Should().Throw<OverflowException>();
+        testResult.Should().Be(expectedResult);
     }
 
     [Theory]
@@ -224,7 +288,10 @@ public class SystemTimeExtensionsTests
     [Theory]
     [InlineData(-199998L, 16, 26, 42),
      InlineData(2L, 0, 0, 2),
-     InlineData(UnixTime20231114T221320Z, 22, 13, 20)]
+     InlineData(UnixTime20231114T221320Z, 22, 13, 20),
+     // long.MaxValue is 55807 seconds past a midnight, and long.MinValue 30592 seconds past one.
+     InlineData(long.MaxValue, 15, 30, 7),
+     InlineData(long.MinValue, 8, 29, 52)]
     public void ToTimeOnly_OnUnixTimeValue_ReturnsTimeEquivalent(long testUnixTime, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
         // arrange

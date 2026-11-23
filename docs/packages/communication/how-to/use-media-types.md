@@ -82,8 +82,10 @@ was written in.
 ## Compare media types
 
 The type, subtype and parameter names are compared case-insensitively. Parameter
-values are compared case-sensitively, except for the value of `charset`. The order
-of the parameters doesn't matter.
+values are compared case-sensitively, except for the value of `charset`. In
+`message/external-body`, the values of `access-type` and `permission` are compared
+case-insensitively too, and so is `mode` when the access-type is `ftp`, `anon-ftp`
+or `tftp` (RFC 2046 §5.2.3). The order of the parameters doesn't matter.
 
 ```csharp
 var left = MimeMediaType.Parse("TEXT/Plain;CHARSET=utf-8");
@@ -109,7 +111,8 @@ Console.WriteLine(MimeMediaType.Parse("application/ld+json").Suffix);    // json
 Console.WriteLine(MimeMediaType.Parse("application/ld+json").Tree);      // Standards
 Console.WriteLine(MimeMediaType.Parse("application/vnd.ms-excel").Tree); // Vendor
 Console.WriteLine(MimeMediaType.Parse("image/prs.btif").Tree);           // Personal
-Console.WriteLine(MimeMediaType.Parse("application/x-tar").Tree);        // Unregistered
+Console.WriteLine(MimeMediaType.Parse("application/x.example").Tree);    // Unregistered
+Console.WriteLine(MimeMediaType.Parse("application/x-tar").Tree);        // Standards (no facet prefix)
 ```
 
 ## See also

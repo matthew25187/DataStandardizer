@@ -14,11 +14,6 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string DefaultPrimaryLanguageSubtag = "en";
 
         /// <summary>
-        /// A value that is not a member of any of the code lists.
-        /// </summary>
-        private const string UndefinedCode = "test";
-
-        /// <summary>
         /// A string that is not a subtag of any kind: it is longer than eight characters (RFC 5646 §2.1).
         /// </summary>
         private const string InvalidSubtag = "invalid";
@@ -110,27 +105,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part1
-
-        [Fact]
-        public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part1_ThrowsArgumentException()
-        {
-            // arrange
-            var testValue = (Iso639Part1Language)UndefinedCode;
-            var builder = new Bcp47LanguageTagBuilder();
-
-            // act
-            Action testAction = () => builder.UsingPrimaryLanguageSubtag(testValue);
-
-            // assert
-            testAction.Should()
-                .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part1Language))
-                .WithMessage("The ISO 639-1 code 'test' is undefined.*")
-                .WithParameterName(PrimaryLanguageSubtagParameterName);
-        }
-
-        #endregion
-
         #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotInitialisedInstanceOfIso639Part2T
 
         [Fact]
@@ -147,27 +121,6 @@ namespace DataStandardizer.LanguageTag.Tests
             testAction.Should()
                 .Throw<ArgumentException>("the code must be initialised")
                 .WithMessage(Iso639Part2TCodeUndefinedMessage)
-                .WithParameterName(PrimaryLanguageSubtagParameterName);
-        }
-
-        #endregion
-
-        #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part2T
-
-        [Fact]
-        public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part2T_ThrowsArgumentException()
-        {
-            // arrange
-            var testValue = (Iso639Part2TLanguage)UndefinedCode;
-            var builder = new Bcp47LanguageTagBuilder();
-
-            // act
-            Action testAction = () => builder.UsingPrimaryLanguageSubtag(testValue);
-
-            // assert
-            testAction.Should()
-                .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part2TLanguage))
-                .WithMessage("The ISO 639-2T code 'test' is undefined.*")
                 .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
@@ -194,27 +147,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part3
-
-        [Fact]
-        public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part3_ThrowsArgumentException()
-        {
-            // arrange
-            var testValue = (Iso639Part3Language)UndefinedCode;
-            var builder = new Bcp47LanguageTagBuilder();
-
-            // act
-            Action testAction = () => builder.UsingPrimaryLanguageSubtag(testValue);
-
-            // assert
-            testAction.Should()
-                .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part3Language))
-                .WithMessage("The ISO 639-3 code 'test' is undefined.*")
-                .WithParameterName(PrimaryLanguageSubtagParameterName);
-        }
-
-        #endregion
-
         #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotInitialisedInstanceOfIso639Part5
 
         [Fact]
@@ -231,27 +163,6 @@ namespace DataStandardizer.LanguageTag.Tests
             testAction.Should()
                 .Throw<ArgumentException>("the code must be initialised")
                 .WithMessage(Iso639Part5CodeUndefinedMessage)
-                .WithParameterName(PrimaryLanguageSubtagParameterName);
-        }
-
-        #endregion
-
-        #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part5
-
-        [Fact]
-        public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part5_ThrowsArgumentException()
-        {
-            // arrange
-            var testValue = (Iso639Part5LanguageFamily)UndefinedCode;
-            var builder = new Bcp47LanguageTagBuilder();
-
-            // act
-            Action testAction = () => builder.UsingPrimaryLanguageSubtag(testValue);
-
-            // assert
-            testAction.Should()
-                .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part5LanguageFamily))
-                .WithMessage("The ISO 639-5 code 'test' is undefined.*")
                 .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 

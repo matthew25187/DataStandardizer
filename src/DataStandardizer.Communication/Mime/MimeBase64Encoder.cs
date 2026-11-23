@@ -15,7 +15,12 @@ namespace DataStandardizer.Communication.Mime
     /// </para>
     /// <para>
     /// In <see cref="MimeBase64Mode.Mime"/> mode, the encoder breaks lines after 76 characters with CRLF. It writes no line break at the
-    /// end of the data.
+    /// end of the data. When a line is full and the destination has room for the line break but not for the 4 characters after it, the
+    /// encoder writes the line break on its own and returns <see cref="OperationStatus.DestinationTooSmall"/>.
+    /// </para>
+    /// <para>
+    /// Each quantum of 4 characters is written whole, so a call makes progress whenever the destination has room for at least 4 bytes or
+    /// characters.
     /// </para>
     /// <para>
     /// After a call with <c>isFinalBlock</c> set to <c>true</c> returns <see cref="OperationStatus.Done"/>, the encoder is ready to
@@ -54,8 +59,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="bytesWritten">The number of bytes written.</param>
         /// <param name="isFinalBlock"><c>true</c> if <paramref name="source"/> ends the data; <c>false</c> if more data may follow.</param>
         /// <returns><see cref="OperationStatus.Done"/> if all of <paramref name="source"/> was consumed;
-        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> is full, in which case call again with the
-        /// rest of <paramref name="source"/>.</returns>
+        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> has no room for the next quantum, in which case
+        /// call again with the rest of <paramref name="source"/>.</returns>
         public OperationStatus Encode(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesConsumed, out int bytesWritten, bool isFinalBlock)
         {
             return _state.Encode(source, destination, out bytesConsumed, out bytesWritten, isFinalBlock);
@@ -71,8 +76,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="charsWritten">The number of characters written.</param>
         /// <param name="isFinalBlock"><c>true</c> if <paramref name="source"/> ends the data; <c>false</c> if more data may follow.</param>
         /// <returns><see cref="OperationStatus.Done"/> if all of <paramref name="source"/> was consumed;
-        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> is full, in which case call again with the
-        /// rest of <paramref name="source"/>.</returns>
+        /// <see cref="OperationStatus.DestinationTooSmall"/> if <paramref name="destination"/> has no room for the next quantum, in which case
+        /// call again with the rest of <paramref name="source"/>.</returns>
         public OperationStatus Encode(ReadOnlySpan<byte> source, Span<char> destination, out int bytesConsumed, out int charsWritten, bool isFinalBlock)
         {
             return _state.Encode(source, destination, out bytesConsumed, out charsWritten, isFinalBlock);

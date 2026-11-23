@@ -66,77 +66,91 @@ namespace DataStandardizer.File.iCal.Tests
             FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
         };
 
-        // The way a text writer under XcalWriter's XML writer can report a failure of a write that the XML writer passes on, on every target
-        // framework.  On .NET Framework, an XML writer whose text writer fails a write without waiting completes as though the write succeeded.
-        private static readonly FailureTiming[] YieldingFailureTimings = { FailureTiming.AfterYielding };
-
         // Each asynchronous operation of each writer, over a target that fails with the given exception at the given time.  Each operation
         // reaches the target: IcalWriter writes each line through, XcalWriter's calendar is longer than its XML writer's buffer, and JcalWriter
-        // writes a calendar only once it follows another, so a first calendar is written before the operation.  Each has the ways its target
-        // can report a failure.
-        private static readonly (string Name, FailureTiming[] Timings, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Create)[] TargetOperations =
+        // writes a calendar only once it follows another, so a first calendar is written before the operation.  Each has every
+        // way its target can report a failure.
+        private static readonly (string Name, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Create)[] TargetOperations =
         {
-            ("IcalWriter.WriteCalendarAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("IcalWriter.WriteCalendarAsync", (createException, timing, onFailure) =>
             {
                 var writer = new IcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarAsync(CreateCalendar(), token).AsTask();
             }),
-            ("IcalWriter.WriteCalendarsAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("IcalWriter.WriteCalendarsAsync", (createException, timing, onFailure) =>
             {
                 var writer = new IcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarsAsync(new[] { CreateCalendar() }, cancellationToken: token);
             }),
-            ("IcalWriter.WriteCalendarsAsync from an asynchronous sequence", FailureTimings, (createException, timing, onFailure) =>
+            ("IcalWriter.WriteCalendarsAsync from an asynchronous sequence", (createException, timing, onFailure) =>
             {
                 var writer = new IcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateCalendar() }), cancellationToken: token);
             }),
-            ("IcalWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("IcalWriter.FlushAsync", (createException, timing, onFailure) =>
             {
                 var writer = new IcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.FlushAsync(token);
             }),
-            ("JcalWriter.WriteCalendarAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("JcalWriter.WriteCalendarAsync", (createException, timing, onFailure) =>
             {
                 var writer = new JcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 writer.WriteCalendar(CreateCalendar());
                 return token => writer.WriteCalendarAsync(CreateCalendar(), token).AsTask();
             }),
-            ("JcalWriter.WriteCalendarsAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("JcalWriter.WriteCalendarsAsync", (createException, timing, onFailure) =>
             {
                 var writer = new JcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 writer.WriteCalendar(CreateCalendar());
                 return token => writer.WriteCalendarsAsync(new[] { CreateCalendar() }, cancellationToken: token);
             }),
-            ("JcalWriter.WriteCalendarsAsync from an asynchronous sequence", FailureTimings, (createException, timing, onFailure) =>
+            ("JcalWriter.WriteCalendarsAsync from an asynchronous sequence", (createException, timing, onFailure) =>
             {
                 var writer = new JcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 writer.WriteCalendar(CreateCalendar());
                 return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateCalendar() }), cancellationToken: token);
             }),
-            ("JcalWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("JcalWriter.FlushAsync", (createException, timing, onFailure) =>
             {
                 var writer = new JcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
                 return token => writer.FlushAsync(token);
             }),
-            ("XcalWriter.WriteCalendarAsync", YieldingFailureTimings, (createException, timing, onFailure) =>
+            ("XcalWriter.WriteCalendarAsync", (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarAsync(CreateLongCalendar(), token).AsTask();
             }),
-            ("XcalWriter.WriteCalendarsAsync", YieldingFailureTimings, (createException, timing, onFailure) =>
+            ("XcalWriter.WriteCalendarsAsync", (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.WriteCalendarsAsync(new[] { CreateLongCalendar() }, cancellationToken: token);
             }),
-            // The sequence doesn't yield, so that the writer reaches its target before the operation returns, as the target needs for its failure to
-            // be held back until then.
-            ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence", YieldingFailureTimings, (createException, timing, onFailure) =>
+            ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence", (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
-                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Completed(new[] { CreateLongCalendar() }), cancellationToken: token);
+                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCalendar() }), cancellationToken: token);
             }),
-            ("XcalWriter.FlushAsync", FailureTimings, (createException, timing, onFailure) =>
+            ("XcalWriter.WriteCalendarAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCalendarAsync(CreateLongCalendar(), token).AsTask();
+            }),
+            ("XcalWriter.WriteCalendarsAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCalendarsAsync(new[] { CreateLongCalendar() }, cancellationToken: token);
+            }),
+            ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateLongCalendar() }), cancellationToken: token);
+            }),
+            ("XcalWriter.FlushAsync to a stream", (createException, timing, onFailure) =>
+            {
+                var writer = new XcalWriter(new FailingStream(createException, timing) { OnFailure = onFailure });
+                return token => writer.FlushAsync(token);
+            }),
+            ("XcalWriter.FlushAsync", (createException, timing, onFailure) =>
             {
                 var writer = new XcalWriter(new FailingTextWriter(createException, timing) { OnFailure = onFailure });
                 return token => writer.FlushAsync(token);
@@ -144,8 +158,9 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
 
-        // The operation, with the failures of the target that yield held back until the operation has returned its task, so that the writer is
-        // always given a task that has not completed.  Whether a yielding task has completed by then depends on the thread pool.
+        // The operation, with what yields, the failures of the target and the steps of a sequence, held back until the operation has returned its
+        // task, so that the writer is always given a task that has not completed, including after a sequence has resumed it.  Whether a yielding
+        // task has completed by then depends on the thread pool.
         private static Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Deferring(
             Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create)
         {
@@ -167,9 +182,9 @@ namespace DataStandardizer.File.iCal.Tests
                 ("another, canceled token", () => new OperationCanceledException(new CancellationToken(true))),
             };
             var data = new TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming, Func<Exception>, Type>();
-            foreach (var (name, timings, create) in TargetOperations)
+            foreach (var (name, create) in TargetOperations)
             {
-                foreach (var timing in timings)
+                foreach (var timing in FailureTimings)
                 {
                     foreach (var (exceptionName, createException) in exceptions)
                     {
@@ -186,9 +201,9 @@ namespace DataStandardizer.File.iCal.Tests
         public static TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming> TargetFailures()
         {
             var data = new TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming>();
-            foreach (var (name, timings, create) in TargetOperations)
+            foreach (var (name, create) in TargetOperations)
             {
-                foreach (var timing in timings)
+                foreach (var timing in FailureTimings)
                 {
                     data.Add(name + ", " + timing, Deferring(create), timing);
                 }

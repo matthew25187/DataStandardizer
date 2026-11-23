@@ -44,6 +44,29 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string MaxLengthText = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string LongText = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+        // ref. RFC 2047 §2: LongWord written back as a word of 75 characters and one of the rest, separated by a space.
+        private const string LongWordWritten = "=?UTF-8?Q?aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?= =?UTF-8?Q?a?=";
+
+        // A word of 77 characters with a language, whose "(" is written as itself in text but as "=28" in a phrase (RFC 2047 §5 (3)), so
+        // it is written back as "Q" words in the mode of a phrase, each of at most 75 characters.
+        private const string LongWordWithLanguage = "=?UTF-8*en?Q?(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?=";
+        private const string LongWordWithLanguageWritten = "=?UTF-8*en?Q?=28aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?= =?UTF-8*en?Q?aaaa?=";
+
+        // A word of 76 characters whose language leaves no room in a word of 75 characters for its one character.
+        private const string LongWordWithTooLongLanguage = "=?UTF-8*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh?Q?a?=";
+
+        // ref. RFC 2781 §4.3: a word of 76 characters whose octets are only a UTF-16 byte order mark, so its text is empty. Its language
+        // leaves room for a character.
+        private const string LongWordWithEmptyText = "=?UTF-16*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-ab?Q?=FE=FF?=";
+
+        // A word of 76 characters in a character set that no resolver knows.
+        private const string LongUnknownCharsetWord = "=?x-unknown?Q?aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?=";
+
+        // A word of 76 characters whose octets, read by RawUtf16CharsetResolver, are the unpaired surrogate U+D800, and LongWordWithUnpairedSurrogate
+        // written back: U+FFFD as UTF-8 (EF BF BD) in "B", the only encoding with room for it beside the language.
+        private const string LongWordWithUnpairedSurrogate = "=?x-raw*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abc?Q?=D8=00?=";
+        private const string LongWordWithUnpairedSurrogateWritten = "=?UTF-8*abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abc?B?77+9?=";
+
         // Text that is 70 characters of encoded text in "Q", so it is split into a word of 75 characters and one of the rest.
         private const string SeventyLetters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string SevenLettersWord = "=?UTF-8?Q?aaaaaaa?=";
@@ -116,6 +139,21 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string LittleEndianLetterSplitAfterMark = "=?UTF-16?Q?=FF=FEa?= =?UTF-16?Q?=00?=";
         private const string LetterA = "a";
 
+        // ref. RFC 2781 §4.3: a little-endian byte order mark (FF FE) and a sharp s (DF 00) split between the words. Read by itself in
+        // the big-endian byte order, DF 00 would be U+DF00, a lone surrogate.
+        private const string LittleEndianSharpSSplitAfterMark = "=?UTF-16?Q?=FF=FE=DF?= =?UTF-16?Q?=00?=";
+
+        // ref. RFC 2781 §4.3 and The Unicode Standard §3.9, D76: the same in UTF-32, a little-endian byte order mark (FF FE 00 00) and a
+        // sharp s (DF 00 00 00). Read by itself in the big-endian byte order, DF 00 00 00 would be 0xDF000000, which isn't a scalar value.
+        private const string LittleEndianUtf32SharpSSplitAfterMark = "=?UTF-32?Q?=FF=FE=00=00=DF?= =?UTF-32?Q?=00=00=00?=";
+        private const string SharpS = "\x00DF";
+
+        // ref. RFC 2781 §4.3: UTF-16 with no byte order mark is big-endian, so "a" (00 61), U+FFFE (FF FE) split between the words, and
+        // U+00D8 (00 D8). The second word starts with FF FE, which isn't a byte order mark there: read by itself, it would be one, and D8
+        // 00 would be U+D800, a lone surrogate.
+        private const string BigEndianNoncharacterSplitBeforeMarkOctets = "=?UTF-16?Q?=00a=FF?= =?UTF-16?Q?=FE=00=D8?=";
+        private const string LetterANoncharacterOSlash = "a\xFFFE\x00D8";
+
         // ref. RFC 3629 §3: U+1F600 is F0 9F 98 80 in UTF-8, so each of these words holds a quarter of it.
         private const string SplitEmoji = "=?UTF-8?Q?=F0?= =?UTF-8?Q?=9F?= =?UTF-8?Q?=98?= =?UTF-8?Q?=80?=";
 
@@ -131,7 +169,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string UnknownCharset = "x-unknown";
         private const string CafeInLatin1 = "caf\x00E9";
 
-        // ref. RFC 2047 §4.2 (1): hexadecimal digits are written in upper case.
+        // ref. RFC 2047 §4.2 (1): upper case "should" be used for hexadecimal digits, so lower case is allowed.
         private const string LowercaseHexWord = "=?ISO-8859-1?Q?caf=e9?=";
 
         // ref. RFC 3629 §3: 0xFF never appears in UTF-8.
@@ -144,9 +182,17 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string FullStopBWord = "=?UTF-8?B?YS5i?=";
         private const string FullStopText = "a.b";
 
-        // ref. RFC 2047 §5 (2): a comment's "Q" text may hold "\", although a writer encodes it.
+        // ref. RFC 2047 §5 (2), as corrected by erratum 504: a comment's "Q" text may not hold "\", which RFC 822 §3.3 ctext excludes, but
+        // may hold a double quote.
         private const string Backslash = "a\\b";
         private const string BackslashWord = "=?UTF-8?Q?a\\b?=";
+        private const string DoubleQuote = "a\"b";
+        private const string DoubleQuoteWord = "=?UTF-8?Q?a\"b?=";
+
+        // Not a specification example: the "Andr=E9" word of RFC 2047 §8 with a double-quoted nickname added, to show that erratum 504
+        // lets a comment's "Q" text hold a double quote.
+        private const string AndreNicknameComment = "=?ISO-8859-1?Q?Andr=E9_\"Dede\"?=";
+        private const string AndreNickname = "Andr\x00E9 \"Dede\"";
 
         // ref. RFC 822 §3.3: linear-white-space = 1*([CRLF] LWSP-char), so a bare LF, or a CRLF with no SPACE or HTAB after it, is not
         // whitespace, and the words around it are one run of text.
@@ -234,7 +280,6 @@ namespace DataStandardizer.Communication.Tests.Mime
             {
                 { LongWord, MimeEncodedWordParseOptions.AllowLongWords, LongText },
                 { UnknownCharsetWord, MimeEncodedWordParseOptions.AllowUnknownCharsets, CafeInLatin1 },
-                { LowercaseHexWord, MimeEncodedWordParseOptions.AllowLowercaseHexDigits, CafeInLatin1 },
                 { InvalidOctetWord, MimeEncodedWordParseOptions.AllowInvalidOctets, ReplacementCharacter },
             };
 
@@ -242,7 +287,6 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             LongWord,
             UnknownCharsetWord,
-            LowercaseHexWord,
             InvalidOctetWord,
         };
 
@@ -256,7 +300,6 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { "=?UTF-8?Q?a?=x =?UTF-8?Q?b?=", MimeEncodedWordParseOptions.AllowEmbeddedWords, "ax b" },
                 { "a=?UTF-8?Q?b?b=?UTF-8?Q?c?=", MimeEncodedWordParseOptions.AllowEmbeddedWords, "a=?UTF-8?Q?b?bc" },
                 { UnknownThenKnownWords, MimeEncodedWordParseOptions.AllowUnknownCharsets, AB },
-                { LowercaseHexWord, MimeEncodedWordParseOptions.AllowLowercaseHexDigits, CafeInLatin1 },
                 { InvalidOctetWord, MimeEncodedWordParseOptions.AllowInvalidOctets, ReplacementCharacter },
                 { SplitEAcute, MimeEncodedWordParseOptions.AllowInvalidOctets, TwoReplacementCharacters },
                 { SplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcute },
@@ -271,6 +314,23 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { EAcuteThenUnfinishedEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcuteThenUnfinishedEAcute },
                 { LittleEndianLetterSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterA },
                 { Utf16WordsWithByteOrderMarks, MimeEncodedWordParseOptions.AllowSplitCharacters, AB },
+                { LittleEndianSharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
+                { LittleEndianUtf32SharpSSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, SharpS },
+                { BigEndianNoncharacterSplitBeforeMarkOctets, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterANoncharacterOSlash },
+            };
+
+        public static TheoryData<string, string> LongWordsWritten => new TheoryData<string, string>
+        {
+            { LongWord, LongWordWritten },
+            { LongWordWithLanguage, LongWordWithLanguageWritten },
+        };
+
+        public static TheoryData<string, MimeEncodedWordParseOptions> LongWordsNotWritable =>
+            new TheoryData<string, MimeEncodedWordParseOptions>
+            {
+                { LongWordWithTooLongLanguage, MimeEncodedWordParseOptions.AllowLongWords },
+                { LongWordWithEmptyText, MimeEncodedWordParseOptions.AllowLongWords },
+                { LongUnknownCharsetWord, MimeEncodedWordParseOptions.AllowLongWords | MimeEncodedWordParseOptions.AllowUnknownCharsets },
             };
 
         public static TheoryData<string> DecodeDeviationValues => new TheoryData<string>
@@ -278,9 +338,11 @@ namespace DataStandardizer.Communication.Tests.Mime
             LongWord,
             EmbeddedWord,
             AdjacentWords,
-            LowercaseHexWord,
             InvalidOctetWord,
             SplitEAcute,
+            LittleEndianSharpSSplitAfterMark,
+            LittleEndianUtf32SharpSSplitAfterMark,
+            BigEndianNoncharacterSplitBeforeMarkOctets,
         };
 
         public static TheoryData<string, string> TextContextValues => new TheoryData<string, string>
@@ -397,9 +459,10 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, "=?UTF-8?Q?a(b.c?=" },
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, "=?UTF-8?Q?a=28b.c?=" },
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Phrase, "=?UTF-8?Q?a=28b=2Ec?=" },
-                // ref. RFC 5322 §3.2.2: "\" starts a quoted-pair in a comment, so it is encoded there.
+                // ref. RFC 2047 §5 (2), as corrected by erratum 504: "\" is encoded in a comment, and a double quote isn't.
                 { Backslash, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, BackslashWord },
                 { Backslash, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, "=?UTF-8?Q?a=5Cb?=" },
+                { DoubleQuote, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, DoubleQuoteWord },
                 { MaxLengthText, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, MaxLengthWord },
                 { Emoji, MimeEncodedWordEncoding.B, MimeEncodedWordContext.Phrase, EmojiWord },
             };
@@ -581,14 +644,40 @@ namespace DataStandardizer.Communication.Tests.Mime
             success.Should().Be(expected);
         }
 
-        [Fact]
-        public void Parse_QWordWithBackslashInComment_DecodesText()
+        [Theory]
+        [InlineData(MimeEncodedWordContext.Text, true)]
+        [InlineData(MimeEncodedWordContext.Comment, false)]
+        [InlineData(MimeEncodedWordContext.Phrase, false)]
+        public void TryParse_QWordWithBackslash_AcceptedOnlyInText(MimeEncodedWordContext context, bool expected)
         {
             // act
-            var result = MimeEncodedWord.Parse(BackslashWord, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+            var success = MimeEncodedWord.TryParse(BackslashWord, context, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default, out _);
 
             // assert
-            result.Text.Should().Be(Backslash);
+            success.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Parse_QWordWithDoubleQuoteInComment_DecodesText()
+        {
+            // act
+            var result = MimeEncodedWord.Parse(DoubleQuoteWord, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+
+            // assert
+            result.Text.Should().Be(DoubleQuote);
+        }
+
+        [Fact]
+        public void DecodeText_CommentWithDoubleQuotes_DisplaysText()
+        {
+            // arrange
+            var resolver = new Latin1CharsetResolver();
+
+            // act
+            var result = MimeEncodedWord.DecodeText(AndreNicknameComment, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, resolver);
+
+            // assert
+            result.Should().Be(AndreNickname);
         }
 
         [Fact]
@@ -612,6 +701,71 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Should().Be("=?iso-8859-1?q?Andr=E9?=");
+        }
+
+        [Theory]
+        [MemberData(nameof(LongWordsWritten))]
+        public void ToString_LongWordWithOption_WritesWordsWithinMaxLength(string value, string expected)
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(value, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords, MimeCharsetResolver.Default);
+
+            // act
+            var result = word.ToString();
+
+            // assert
+            result.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryFormat_LongWordWithOption_WritesWordsWithinMaxLength()
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(LongWord, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords, MimeCharsetResolver.Default);
+            var destination = new char[LongWordWritten.Length];
+
+            // act
+            var success = word.TryFormat(destination, out var charsWritten);
+
+            // assert
+            success.Should().BeTrue();
+            charsWritten.Should().Be(LongWordWritten.Length);
+            new string(destination).Should().Be(LongWordWritten);
+        }
+
+        [Theory]
+        [MemberData(nameof(LongWordsNotWritable))]
+        public void TryParse_LongWordThatCantBeWrittenWithinMaxLength_ReturnsFalse(string value, MimeEncodedWordParseOptions options)
+        {
+            // act
+            var success = MimeEncodedWord.TryParse(value, MimeEncodedWordContext.Text, options, MimeCharsetResolver.Default, out _);
+
+            // assert
+            success.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ToString_LongWordWithUnpairedSurrogate_WritesReplacementCharacter()
+        {
+            // arrange
+            var word = MimeEncodedWord.Parse(LongWordWithUnpairedSurrogate, MimeEncodedWordContext.Text, MimeEncodedWordParseOptions.AllowLongWords,
+                new RawUtf16CharsetResolver());
+
+            // act
+            var result = word.ToString();
+
+            // assert
+            result.Should().Be(LongWordWithUnpairedSurrogateWritten);
+        }
+
+        [Fact]
+        public void DecodeText_LongWordWritten_ReadsText()
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(LongWordWritten);
+
+            // assert
+            result.Should().Be(LongText);
         }
 
         [Fact]
@@ -906,6 +1060,34 @@ namespace DataStandardizer.Communication.Tests.Mime
             result[0].ToString().Should().Be("=?UTF-8?Q?Smith=2C_J=C3=B6rgensen?=");
         }
 
+        [Theory]
+        // ref. IANA Character Sets registry: ISO-10646-UCS-2, alias csUnicode, is in network byte order, so 00 41 00 42 is "AB".
+        [InlineData("=?ISO-10646-UCS-2?B?AEEAQg==?=")]
+        [InlineData("=?csUnicode?B?AEEAQg==?=")]
+        public void DecodeText_Ucs2Word_ReadsBigEndian(string value)
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            result.Should().Be("AB");
+        }
+
+        [Fact]
+        public void DecodeText_Ucs2WordWithSurrogatePair_KeepsWord()
+        {
+            // arrange
+            // ref. IANA Character Sets registry; The Unicode Standard §3.8, D71: D8 3D DE 00 is U+1F600 in UTF-16BE, but ISO-10646-UCS-2
+            // holds only the Basic Multilingual Plane, so its code units are invalid and the word isn't decoded (RFC 2047 §6.2).
+            const string value = "=?ISO-10646-UCS-2?B?2D3eAA==?=";
+
+            // act
+            var result = MimeEncodedWord.DecodeText(value);
+
+            // assert
+            result.Should().Be(value);
+        }
+
         [Fact]
         public void DecodeText_EncodedWords_DecodesTextOfEachWord()
         {
@@ -998,6 +1180,37 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Should().Be(expected);
         }
 
+        // ref. RFC 2047 §4.2 (1): upper case "should" be used for the hexadecimal digits, so lower case is allowed. The option that used to
+        // accept them has no effect.
+        [Theory]
+        [InlineData(MimeEncodedWordParseOptions.None)]
+#pragma warning disable CS0618 // The option is obsolete, and has no effect, which is what this shows.
+        [InlineData(MimeEncodedWordParseOptions.AllowLowercaseHexDigits)]
+#pragma warning restore CS0618
+        public void TryParse_LowercaseHexDigits_DecodesText(MimeEncodedWordParseOptions options)
+        {
+            // act
+            var success = MimeEncodedWord.TryParse(LowercaseHexWord, MimeEncodedWordContext.Text, options, MimeCharsetResolver.Default,
+                out var result);
+
+            // assert
+            success.Should().BeTrue();
+            result.Text.Should().Be(CafeInLatin1);
+        }
+
+        [Theory]
+        [InlineData(MimeEncodedWordContext.Text)]
+        [InlineData(MimeEncodedWordContext.Comment)]
+        [InlineData(MimeEncodedWordContext.Phrase)]
+        public void DecodeText_LowercaseHexDigitsByDefault_DecodesText(MimeEncodedWordContext context)
+        {
+            // act
+            var result = MimeEncodedWord.DecodeText(LowercaseHexWord, context, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+
+            // assert
+            result.Should().Be(CafeInLatin1);
+        }
+
         // Resolves every character set as ISO-8859-1, so that the octets of a word are the same on every target.
         private sealed class Latin1CharsetResolver : IMimeCharsetResolver
         {
@@ -1005,6 +1218,53 @@ namespace DataStandardizer.Communication.Tests.Mime
             {
                 return MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Iso88591, out encoding);
             }
+        }
+
+        // Resolves every character set as RawUtf16Encoding, which reads octets as UTF-16 code units even when they are unpaired surrogates.
+        private sealed class RawUtf16CharsetResolver : IMimeCharsetResolver
+        {
+            public bool TryGetEncoding(MimeCharset charset, out Encoding encoding)
+            {
+                encoding = new RawUtf16Encoding();
+                return true;
+            }
+        }
+
+        // Reads each pair of octets as one big-endian UTF-16 code unit, with no check that it is a whole character.
+        private sealed class RawUtf16Encoding : Encoding
+        {
+            private const int OctetsPerCodeUnit = 2;
+            private const int BitsPerOctet = 8;
+
+            public override int GetByteCount(char[] chars, int index, int count) => count * OctetsPerCodeUnit;
+
+            public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
+            {
+                for (var offset = 0; offset < charCount; offset++)
+                {
+                    bytes[byteIndex + offset * OctetsPerCodeUnit] = (byte)(chars[charIndex + offset] >> BitsPerOctet);
+                    bytes[byteIndex + offset * OctetsPerCodeUnit + 1] = (byte)chars[charIndex + offset];
+                }
+
+                return charCount * OctetsPerCodeUnit;
+            }
+
+            public override int GetCharCount(byte[] bytes, int index, int count) => count / OctetsPerCodeUnit;
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+            {
+                var charCount = byteCount / OctetsPerCodeUnit;
+                for (var offset = 0; offset < charCount; offset++)
+                {
+                    chars[charIndex + offset] = (char)(bytes[byteIndex + offset * OctetsPerCodeUnit] << BitsPerOctet | bytes[byteIndex + offset * OctetsPerCodeUnit + 1]);
+                }
+
+                return charCount;
+            }
+
+            public override int GetMaxByteCount(int charCount) => charCount * OctetsPerCodeUnit;
+
+            public override int GetMaxCharCount(int byteCount) => byteCount / OctetsPerCodeUnit;
         }
     }
 }

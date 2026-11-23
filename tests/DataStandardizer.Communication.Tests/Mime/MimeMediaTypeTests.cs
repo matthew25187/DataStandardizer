@@ -34,11 +34,46 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 6839 §3.1: the structured syntax suffix of JSON.
         private const string Json = "json";
 
+        // ref. RFC 2046 §5.2.3.1: access-type and permission are case-insensitive in every message/external-body. §5.2.3.2: mode is
+        // case-insensitive for the ftp and tftp access-types, and §5.2.3.3: for anon-ftp, which is identical to ftp.
+        private const string ExternalBodyTftpOctet = "message/external-body;access-type=tftp;mode=octet";
+        private const string ExternalBodyTftpOctetUpperCase = "message/external-body;access-type=TFTP;mode=OCTET";
+        private const string ExternalBodyFtpImage = "message/external-body;access-type=ftp;mode=image";
+        private const string ExternalBodyFtpImageUpperCase = "message/external-body;access-type=FTP;mode=IMAGE";
+        private const string ExternalBodyAnonFtpImage = "message/external-body;access-type=anon-ftp;mode=image";
+        private const string ExternalBodyAnonFtpImageUpperCase = "message/external-body;access-type=ANON-FTP;mode=IMAGE";
+        private const string ExternalBodyLocalFileRead = "message/external-body;access-type=local-file;permission=read";
+        private const string ExternalBodyLocalFileReadUpperCase = "message/external-body;access-type=LOCAL-FILE;permission=READ";
+
+        // ref. RFC 2046 §5.2.3.1: access-type is mandatory, so with none, mode belongs to no access-type and is compared case-sensitively.
+        private const string ExternalBodyNoAccessTypeOctet = "message/external-body;mode=octet";
+        private const string ExternalBodyNoAccessTypeOctetUpperCase = "message/external-body;mode=OCTET";
+
+        // ref. RFC 2046 §5.2.3.4: local-file has no mode parameter, so a mode there is an unknown parameter, compared case-sensitively.
+        private const string ExternalBodyLocalFileOctet = "message/external-body;access-type=local-file;mode=octet";
+        private const string ExternalBodyLocalFileOctetUpperCase = "message/external-body;access-type=local-file;mode=OCTET";
+
+        // ref. RFC 2046 §5.2.3.2: the name parameter of the ftp access-type, a file name, which is case-sensitive.
+        private const string ExternalBodyFtpName = "message/external-body;access-type=ftp;name=File";
+        private const string ExternalBodyFtpNameLowerCase = "message/external-body;access-type=ftp;name=file";
+
+        // The external-body parameters outside message/external-body, where they are unknown parameters, compared case-sensitively.
+        private const string TextPlainAccessTypeUrl = "text/plain;access-type=url";
+        private const string TextPlainAccessTypeUrlUpperCase = "text/plain;access-type=URL";
+        private const string ApplicationOctetStreamPermissionRead = "application/octet-stream;permission=read";
+        private const string ApplicationOctetStreamPermissionReadUpperCase = "application/octet-stream;permission=READ";
+
         // A parameter name, and media types with quoted parameter values that decode to "a "quoted" \ name", "ab" and an empty value.
         private const string Name = "name";
         private const string QuotedPairsValue = "text/plain;name=\"a \\\"quoted\\\" \\\\ name\"";
         private const string QuotedLettersValue = "text/plain;name=\"\\a\\b\"";
         private const string EmptyQuotedValue = "text/plain;name=\"\"";
+
+        // ref. RFC 822 §3.3: quoted-strings that hold the control characters U+0001 and DEL as qtext.
+        private const string QuotedStartOfHeadingValue = "a/b;c=\"\x0001\"";
+        private const string QuotedDeleteValue = "a/b;c=\"\x007F\"";
+        private const string StartOfHeading = "\x0001";
+        private const string Delete = "\x007F";
 
         // Media types with short parameters, and a parameter value that isn't a token.
         private const string A = "a";
@@ -137,6 +172,10 @@ namespace DataStandardizer.Communication.Tests.Mime
             { TextPlainUsAscii, TextPlainQuotedUsAscii },
             { TextPlainA1B2, "text/plain;b=2;a=1" },
             { "text/plain;a=1;B=2;c=3", "text/plain;c=3;A=1;b=2" },
+            { ExternalBodyTftpOctet, ExternalBodyTftpOctetUpperCase },
+            { ExternalBodyFtpImage, ExternalBodyFtpImageUpperCase },
+            { ExternalBodyAnonFtpImage, ExternalBodyAnonFtpImageUpperCase },
+            { ExternalBodyLocalFileRead, ExternalBodyLocalFileReadUpperCase },
         };
 
         public static TheoryData<string, string> DifferentMediaTypes => new TheoryData<string, string>
@@ -148,6 +187,11 @@ namespace DataStandardizer.Communication.Tests.Mime
             { TextPlainA1, "text/plain;b=1" },
             { TextPlainA1B2, "text/plain;a=1;c=2" },
             { "multipart/mixed;boundary=AbC", "multipart/mixed;boundary=abc" },
+            { ExternalBodyLocalFileOctet, ExternalBodyLocalFileOctetUpperCase },
+            { ExternalBodyNoAccessTypeOctet, ExternalBodyNoAccessTypeOctetUpperCase },
+            { ExternalBodyFtpName, ExternalBodyFtpNameLowerCase },
+            { TextPlainAccessTypeUrl, TextPlainAccessTypeUrlUpperCase },
+            { ApplicationOctetStreamPermissionRead, ApplicationOctetStreamPermissionReadUpperCase },
         };
 
         public static TheoryData<string> CanonicalMediaTypes => new TheoryData<string>
@@ -347,15 +391,81 @@ namespace DataStandardizer.Communication.Tests.Mime
         };
 
         // ref. RFC 2045 §5.1: a token is US-ASCII.  RFC 2231 §7: an extended value holds only US-ASCII, and §4.1: a raw character has no octets to join with extended sections.
-        // ref. RFC 5322 §3.2.4: qtext doesn't hold controls, which RFC 6532 §3.2 leaves as they are.
         public static TheoryData<string> Utf8OutsideQuotedStrings => new TheoryData<string>
         {
             "a/b;c=\x00E9",
             "a/b;\x00E9=d",
             "a/b;c*=\"UTF-8''\x00E9\"",
             "a/b;c*0*=UTF-8''d;c*1=\"\x00E9\"",
-            "a/b;c=\"\x007F\"",
         };
+
+        // ref. RFC 822 §3.3, which RFC 2045 §5.1 takes its quoted-string from: qtext is any CHAR except <">, "\" and CR, a quoted-pair
+        // is "\" followed by any CHAR, and CHAR is any US-ASCII character, control characters included.
+        public static TheoryData<string, string> ControlsInQuotedStrings => new TheoryData<string, string>
+        {
+            { "a/b;c=\"\x0000\"", "\x0000" },
+            { QuotedStartOfHeadingValue, StartOfHeading },
+            { "a/b;c=\"\n\"", "\n" },
+            { QuotedDeleteValue, Delete },
+            { "a/b;c=\"\\\x0000\"", "\x0000" },
+            { "a/b;c=\"\\\r\"", "\r" },
+            { "a/b;c=\"\\\x007F\"", Delete },
+        };
+
+        // Not enumerated at discovery, as control characters in a test's name would make its TRX results file unreadable.
+        [Theory]
+        [MemberData(nameof(ControlsInQuotedStrings), DisableDiscoveryEnumeration = true)]
+        public void Parse_ControlInQuotedString_ReturnsItInTheValue(string value, string expected)
+        {
+            // act
+            var testResult = MimeMediaType.Parse(value);
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Parse_ControlInQuotedStringWithUtf8Option_ReturnsItInTheValue()
+        {
+            // act
+            var testResult = MimeMediaType.Parse(QuotedDeleteValue, MimeMediaTypeParseOptions.AllowUtf8QuotedStrings);
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be(Delete);
+        }
+
+        [Fact]
+        public void TryParse_ControlInQuotedExtendedValueWithOption_ReturnsFalse()
+        {
+            // act
+            var testResult = MimeMediaType.TryParse("a/b;c*=\"UTF-8''\x0001\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryParse_CarriageReturnAsQtext_ReturnsFalse()
+        {
+            // act
+            var testResult = MimeMediaType.TryParse("a/b;c=\"\r\"", out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ToString_ValueReadWithAControl_WritesTheExtendedForm()
+        {
+            // arrange
+            var subject = MimeMediaType.Parse(QuotedStartOfHeadingValue);
+
+            // act
+            var testResult = subject.ToString();
+
+            // assert
+            testResult.Should().Be("a/b;c*=UTF-8''%01");
+        }
 
         // ref. RFC 3629 §3: no UTF-8 sequence stands for a surrogate.  These are delegates because a test runner replaces an unpaired surrogate in a string theory argument
         // when it serializes it, so the code would never see one.
@@ -570,8 +680,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("application/VND.ms-excel", MimeRegistrationTree.Vendor)]
         [InlineData("application/prs.example", MimeRegistrationTree.Personal)]
         [InlineData("application/x.example", MimeRegistrationTree.Unregistered)]
-        [InlineData("application/x-www-form-urlencoded", MimeRegistrationTree.Unregistered)]
-        [InlineData("application/X-tar", MimeRegistrationTree.Unregistered)]
+        [InlineData("application/X.example", MimeRegistrationTree.Unregistered)]
+        [InlineData("application/x-www-form-urlencoded", MimeRegistrationTree.Standards)]
+        [InlineData("application/X-tar", MimeRegistrationTree.Standards)]
         [InlineData("application/vnd", MimeRegistrationTree.Standards)]
         [InlineData("application/xml", MimeRegistrationTree.Standards)]
         public void Tree_Subtype_ReturnsTreeOfSubtypePrefix(string value, MimeRegistrationTree tree)
@@ -1259,6 +1370,21 @@ namespace DataStandardizer.Communication.Tests.Mime
         // More parameters than are searched for in a list, so that they are looked up in a set.
         private const int ParameterCountOfALargeSet = 20;
 
+        // The prefix of the names of the parameters in a large set, and the value each one has.
+        private const string LargeSetNamePrefix = "p";
+        private const string LargeSetValue = "v";
+
+        // ref. RFC 2046 §5.2.3: the external-body subtype of message, its access-type and mode parameters, and values of them.
+        private const string Message = "message";
+        private const string ExternalBody = "external-body";
+        private const string AccessType = "access-type";
+        private const string Mode = "mode";
+        private const string Tftp = "tftp";
+        private const string TftpUpperCase = "TFTP";
+        private const string LocalFile = "local-file";
+        private const string Octet = "octet";
+        private const string OctetUpperCase = "OCTET";
+
         // Pairs of media types with a large set of parameters, and whether they are equal.
         public static TheoryData<MimeMediaType, MimeMediaType, bool> LargeParameterSets()
         {
@@ -1267,21 +1393,56 @@ namespace DataStandardizer.Communication.Tests.Mime
             var differentValue = new List<MimeParameter>();
             for (var index = 0; index < ParameterCountOfALargeSet; index++)
             {
-                forward.Add(new MimeParameter("p" + index, "v"));
-                reverse.Insert(0, new MimeParameter("P" + index, "v"));
-                differentValue.Add(new MimeParameter("p" + index, index == 0 ? "w" : "v"));
+                forward.Add(new MimeParameter(LargeSetNamePrefix + index, LargeSetValue));
+                reverse.Insert(0, new MimeParameter(LargeSetNamePrefix.ToUpperInvariant() + index, LargeSetValue));
+                differentValue.Add(new MimeParameter(LargeSetNamePrefix + index, index == 0 ? "w" : LargeSetValue));
             }
 
             return new TheoryData<MimeMediaType, MimeMediaType, bool>
             {
                 { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, reverse), true },
-                { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, differentValue), false }
+                { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, differentValue), false },
+            };
+        }
+
+        // Pairs of message/external-body media types with a large set of parameters, whose mode values differ only in case, and whether
+        // they are equal: mode is case-insensitive for tftp, and an unknown parameter for local-file.
+        public static TheoryData<MimeMediaType, MimeMediaType, bool> LargeExternalBodyParameterSets()
+        {
+            var tftpOctet = new List<MimeParameter> { new MimeParameter(AccessType, Tftp), new MimeParameter(Mode, Octet) };
+            var tftpOctetUpperCase = new List<MimeParameter> { new MimeParameter(AccessType, TftpUpperCase), new MimeParameter(Mode, OctetUpperCase) };
+            var localFileOctet = new List<MimeParameter> { new MimeParameter(AccessType, LocalFile), new MimeParameter(Mode, Octet) };
+            var localFileOctetUpperCase = new List<MimeParameter> { new MimeParameter(AccessType, LocalFile), new MimeParameter(Mode, OctetUpperCase) };
+            for (var index = tftpOctet.Count; index < ParameterCountOfALargeSet; index++)
+            {
+                var filler = new MimeParameter(LargeSetNamePrefix + index, LargeSetValue);
+                tftpOctet.Add(filler);
+                tftpOctetUpperCase.Add(filler);
+                localFileOctet.Add(filler);
+                localFileOctetUpperCase.Add(filler);
+            }
+
+            return new TheoryData<MimeMediaType, MimeMediaType, bool>
+            {
+                { new MimeMediaType(Message, ExternalBody, tftpOctet), new MimeMediaType(Message, ExternalBody, tftpOctetUpperCase), true },
+                { new MimeMediaType(Message, ExternalBody, localFileOctet), new MimeMediaType(Message, ExternalBody, localFileOctetUpperCase), false },
             };
         }
 
         [Theory]
         [MemberData(nameof(LargeParameterSets))]
         public void Equals_LargeParameterSets_ComparesByNameWithoutRegardToOrder(MimeMediaType left, MimeMediaType right, bool expected)
+        {
+            // act
+            var testResult = left.Equals(right);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(LargeExternalBodyParameterSets))]
+        public void Equals_LargeExternalBodyParameterSets_ComparesModeByAccessType(MimeMediaType left, MimeMediaType right, bool expected)
         {
             // act
             var testResult = left.Equals(right);

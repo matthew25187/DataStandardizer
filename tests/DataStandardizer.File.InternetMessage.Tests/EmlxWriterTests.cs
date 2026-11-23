@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
 
@@ -77,6 +78,39 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string RepeatedSubjectFile = "57\n" + Message + EmlxFiles.PlistStart + "<dict>\n\t<key>subject</key>\n\t<string>one</string>\n\t<key>flags</key>\n\t<integer>1</integer>\n\t<key>subject</key>\n\t<string>two</string>\n</dict>\n" + EmlxFiles.PlistEnd;
         private const string BinaryEml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\nx\r\n";
         private const string ChangedSubject = "Hi";
+        private const string AttachmentFileName = "a.png";
+        private const string AttachmentMediaType = "image/png";
+        private const int AttachmentPartIndex = 1;
+
+        // The attachment of a message built with no text part, which is the first part.
+        private const int OnlyAttachmentPartIndex = 0;
+
+        // ref. RFC 3501 §6.4.5: the first part of a multipart message body is part 1.
+        private const string FirstPartPath = "1";
+        private const string BuiltDate = "Thu, 1 Jan 2026 00:00:00 +0000";
+        private const string BuiltFrom = "a@b.test";
+
+        // ref. PNG (ISO/IEC 15948) §5.2: the PNG signature, which holds CRLF, LF and control octets, followed by more of each, as content that is not text.
+        private static readonly byte[] AttachmentWithLineBreaks = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01, 0x0A, 0x0D, 0x0A, 0xFF };
+
+        private const string DataFileName = "a.bin";
+        private const string DataMediaType = "application/octet-stream";
+        private const string TextMediaType = "text/plain";
+
+        // Content of seven-bit octets whose CRLF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithCrLf = { 0x61, 0x0D, 0x0A, 0x62 };
+
+        // Content with an octet above 127 and a CRLF that is data, which 8bit would cover if the line breaks didn't change.
+        private static readonly byte[] EightBitDataWithCrLf = { 0x61, 0x0D, 0x0A, 0xE9 };
+
+        // ref. RFC 2045 §6.2: content with a CRLF that is data, each with an identity encoding other than binary that covers its octets, and so would let a change of line
+        // breaks alter it.  Binary has its own test.
+        public static TheoryData<byte[], MimeTransferEncoding> DataWithCrLfLabelledWithAnIdentityEncoding => new TheoryData<byte[], MimeTransferEncoding>
+        {
+            { SevenBitDataWithCrLf, MimeTransferEncoding.SevenBit },
+            { SevenBitDataWithCrLf, MimeTransferEncoding.EightBit },
+            { EightBitDataWithCrLf, MimeTransferEncoding.EightBit },
+        };
 
         // A property list of 22 octets.
         private const string ShortMetadataFile = "57\n" + Message + "<plist><dict/></plist>";
@@ -119,11 +153,126 @@ namespace DataStandardizer.File.InternetMessage.Tests
             EmlxFiles.NoEmptyLine,
         };
 
+        /// <summary>
+        /// The double nearest to <c>5.882948112288285E-204</c>.  .NET Framework reads that text as the double above it,
+        /// <c>5.8829481122882854E-204</c>.
+        /// </summary>
+        private const double SixteenDigitExponentDouble = 5.8829481122882847E-204;
+
+        /// <summary>
+        /// 2^53 + 2, the double above 2^53 + 1.
+        /// </summary>
+        private const double TwoToThe53PlusTwo = 9007199254740994d;
+
+        /// <summary>
+        /// 2^53 + 1, with a last digit beyond the 17 significant digits a double needs, which puts it just above halfway between 2^53 and
+        /// <see cref="TwoToThe53PlusTwo"/>.  .NET Framework ignores the last digit and reads 2^53.
+        /// </summary>
+        private const string JustAboveHalfwayText = "9007199254740993.0000000000000001";
+
+        // The bits of positive and negative zero (IEEE 754 binary64: negative zero has only the sign bit set).
+        private const long PositiveZeroBits = 0;
+        private const long NegativeZeroBits = long.MinValue;
+
+        /// <summary>
+        /// 2^64 + 2049, just above halfway between 2^64 and the double above it, 2^64 + 4096, and too large for a <see cref="long"/>.  .NET
+        /// Framework reads it as 2^64.
+        /// </summary>
+        private const string JustAboveHalfwayIntegerText = "18446744073709553665";
+
+        /// <summary>
+        /// The bits of 2^64 + 4096, the double above 2^64.
+        /// </summary>
+        private const long TwoToThe64PlusFourThousandNinetySixBits = 0x43F0000000000001;
+
+        /// <summary>
+        /// 2^65 + 4352, more than halfway between 2^65 and the double above it, 2^65 + 8192, in hexadecimal (#1104).
+        /// </summary>
+        private const string AboveHalfwayHexIntegerText = "0x" + AboveHalfwayHexDigits;
+
+        /// <summary>
+        /// The digits of <see cref="AboveHalfwayHexIntegerText"/>, without the <c>0x</c> prefix.
+        /// </summary>
+        private const string AboveHalfwayHexDigits = "20000000000001100";
+
+        /// <summary>
+        /// 2^65 + 4096, exactly halfway between 2^65 and 2^65 + 8192, in hexadecimal.  The tie goes to 2^65, whose significand is even.
+        /// </summary>
+        private const string HalfwayHexIntegerText = "0x20000000000001000";
+
+        /// <summary>
+        /// The bits of 2^65.
+        /// </summary>
+        private const long TwoToThe65Bits = 0x4400000000000000;
+
+        /// <summary>
+        /// The bits of 2^65 + 8192, the double above 2^65.
+        /// </summary>
+        private const long TwoToThe65PlusEightThousandOneHundredNinetyTwoBits = 0x4400000000000001;
+
+        /// <summary>
+        /// The significant hexadecimal digits of <see cref="double.MaxValue"/>, (2^53 - 1) * 2^971, before its 242 trailing zeros.
+        /// </summary>
+        private const string MaxDoubleHexDigits = "FFFFFFFFFFFFF8";
+
+        /// <summary>
+        /// The significant hexadecimal digits of halfway between <see cref="double.MaxValue"/> and 2^1024, before its 242 trailing zeros.  The
+        /// tie goes to 2^1024, past the range of a double.
+        /// </summary>
+        private const string HalfwayAboveMaxDoubleHexDigits = "FFFFFFFFFFFFFC";
+
+        /// <summary>
+        /// The number of zeros after the significant digits of <see cref="MaxDoubleHexDigits"/> and <see cref="HalfwayAboveMaxDoubleHexDigits"/>,
+        /// which brings each to 256 digits, the most that a double holds.
+        /// </summary>
+        private const int MaxDoubleHexTrailingZeros = 242;
+
+        /// <summary>
+        /// The bits of <see cref="double.MaxValue"/>.
+        /// </summary>
+        private const long MaxDoubleBits = 0x7FEFFFFFFFFFFFFF;
+
+        /// <summary>
+        /// More leading zeros than the 256 significant hexadecimal digits that a double holds.
+        /// </summary>
+        private const int ManyLeadingZeros = 300;
+
+        /// <summary>
+        /// The zeros after the 1 of 2^1024 = 16^256 in hexadecimal, one digit more than a double holds.
+        /// </summary>
+        private const int TwoToThe1024HexZeros = 256;
+
+        // The expected doubles are their bits, so that negative zero differs from positive zero, and so that xUnit on .NET Framework doesn't
+        // serialize a double in a theory row with that runtime's "R".
+        public static TheoryData<string, string, long> NearestRealCases => new TheoryData<string, string, long>
+        {
+            { "negative zero", "-0", NegativeZeroBits },
+            { "negative zero with a fraction and an exponent", "-0.0E0", NegativeZeroBits },
+            { "needs 16 digits", "901.7426589977661", BitConverter.DoubleToInt64Bits(SixteenDigitDouble) },
+            { "16 digits and an exponent", "5.882948112288285E-204", BitConverter.DoubleToInt64Bits(SixteenDigitExponentDouble) },
+            { "smallest normal, rounded up", "2.2250738585072012E-308", BitConverter.DoubleToInt64Bits(SmallestNormalDouble) },
+            { "just above halfway", JustAboveHalfwayText, BitConverter.DoubleToInt64Bits(TwoToThe53PlusTwo) },
+            { "just below half the smallest subnormal", "2.4703282292062327E-324", PositiveZeroBits },
+            { "decimal point with no digits after it", "+5.", BitConverter.DoubleToInt64Bits(5.0) },
+            { "decimal point with no digits before it", ".5", BitConverter.DoubleToInt64Bits(0.5) },
+        };
+
+        public static TheoryData<string, string, long> LargeIntegerCases => new TheoryData<string, string, long>
+        {
+            { "decimal, just above halfway", JustAboveHalfwayIntegerText, TwoToThe64PlusFourThousandNinetySixBits },
+            { "hexadecimal, above halfway", AboveHalfwayHexIntegerText, TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
+            { "hexadecimal, halfway, ties to even", HalfwayHexIntegerText, TwoToThe65Bits },
+            { "hexadecimal, leading zeros", "0x" + new string('0', ManyLeadingZeros) + AboveHalfwayHexDigits, TwoToThe65PlusEightThousandOneHundredNinetyTwoBits },
+            { "hexadecimal, largest double", "0x" + MaxDoubleHexDigits + new string('0', MaxDoubleHexTrailingZeros), MaxDoubleBits },
+        };
+
         public static TheoryData<EmlxPlistValueKind, string> NumbersPastTheRange => new TheoryData<EmlxPlistValueKind, string>
         {
             { EmlxPlistValueKind.Real, "1e999" },
             { EmlxPlistValueKind.Integer, new string('9', 400) },
             { EmlxPlistValueKind.Integer, "0x" + new string('F', 300) },
+            { EmlxPlistValueKind.Integer, "0x1" + new string('0', TwoToThe1024HexZeros) },
+            { EmlxPlistValueKind.Integer, "0x" + HalfwayAboveMaxDoubleHexDigits + new string('0', MaxDoubleHexTrailingZeros) },
         };
 
         public static TheoryData<string> LenientFiles => new TheoryData<string>
@@ -261,6 +410,132 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ImfFileException>();
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentWithBinaryAllowed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).SetText("hi").AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var file = EmlxFiles.Write(new EmlxEntry(builder.Build(), new EmlxMetadata()), options);
+            var body = (ImfMultipart)EmlxFiles.Read(file, options).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(AttachmentWithLineBreaks);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltPartLabelledBinary_Throws()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = MimeTransferEncoding.Binary;
+            var entry = new EmlxEntry(message, new EmlxMetadata());
+
+            // act
+            Action testAction = () => EmlxFiles.Write(entry, options);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentOfSevenBitOctetsWithCrLf_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file).Message.Body).Parts[OnlyAttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithCrLf);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentOfEightBitOctetsWithCrLfAndEightBitAllowed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowEightBitTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), EightBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry, options);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file, options).Message.Body).Parts[OnlyAttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(EightBitDataWithCrLf);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltAttachmentWithCrLf_EncodesItQuotedPrintable()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file).Message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.QuotedPrintable);
+        }
+
+        [Theory]
+        [MemberData(nameof(DataWithCrLfLabelledWithAnIdentityEncoding), DisableDiscoveryEnumeration = true)]
+        public void WriteEntry_BuiltAttachmentWithCrLfLabelledWithAnIdentityEncoding_Throws(byte[] content, MimeTransferEncoding encoding)
+        {
+            // arrange
+            var options = new ImfOptions { AllowEightBitTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), content);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = encoding;
+            var entry = new EmlxEntry(message, new EmlxMetadata());
+
+            // act
+            Action testAction = () => EmlxFiles.Write(entry, options);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+        }
+
+        [Fact]
+        public void WriteEntry_BuiltTextWithCrLf_LabelsItSevenBit()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(TextMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var entry = new EmlxEntry(builder.Build(), new EmlxMetadata());
+
+            // act
+            var file = EmlxFiles.Write(entry);
+            var testResult = ((ImfMultipart)EmlxFiles.Read(file).Message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.SevenBit);
         }
 
         [Fact]
@@ -844,6 +1119,38 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // assert
             testResult.Should().BeTrue();
             value.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(NearestRealCases))]
+        public void TryGetDouble_Real_GivesTheNearestDoubleOnEveryTarget(string scenario, string text, long expectedBits)
+        {
+            // arrange
+            _ = scenario;
+            var subject = EmlxPlistValue.CreateScalar(EmlxPlistValueKind.Real, text);
+
+            // act
+            var testResult = subject.TryGetDouble(out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            BitConverter.DoubleToInt64Bits(value).Should().Be(expectedBits);
+        }
+
+        [Theory]
+        [MemberData(nameof(LargeIntegerCases))]
+        public void TryGetDouble_IntegerTooLargeForInt64_GivesTheNearestDoubleOnEveryTarget(string scenario, string text, long expectedBits)
+        {
+            // arrange
+            _ = scenario;
+            var subject = EmlxPlistValue.CreateScalar(EmlxPlistValueKind.Integer, text);
+
+            // act
+            var testResult = subject.TryGetDouble(out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            BitConverter.DoubleToInt64Bits(value).Should().Be(expectedBits);
         }
 
         [Theory]

@@ -300,17 +300,32 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
-        public void SecondFraction_MoreDigitsThanKept_KeepsTheFirstEighteen()
+        public void ToString_FractionOfMoreThanEighteenDigits_WritesEveryDigit()
         {
             // arrange
-            const string value = "10:22:00,1234567890123456789";
-            const string expected = "10:22:00,123456789012345678";
+            // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which sets no limit on the digits.
+            const string value = "10:22:00,1234567890123456789999";
+            var time = VcardTime.Parse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
 
             // act
-            var testResult = VcardTime.Parse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+            var testResult = time.ToString(VcardValueFormat.Text, VcardVersion.V3_0);
 
             // assert
-            testResult.ToString().Should().Be(expected);
+            testResult.Should().Be(value);
+        }
+
+        [Fact]
+        public void SecondFraction_MoreDigitsThanADecimalHolds_GivesTheFirstTwentyEight()
+        {
+            // arrange
+            const decimal expected = 0.1234567890123456789012345678m;
+            var time = VcardTime.Parse("10:22:00,12345678901234567890123456789".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+
+            // act
+            var testResult = time.SecondFraction;
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -433,6 +448,20 @@ namespace DataStandardizer.File.vCard.Tests
 
             // act
             var testResult = utc == zeroOffset;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Equals_FractionsThatDifferAfterTheEighteenthDigit_IsFalse()
+        {
+            // arrange
+            var time = VcardTime.Parse("10:22:00,1234567890123456789".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+            var other = VcardTime.Parse("10:22:00,1234567890123456788".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+
+            // act
+            var testResult = time == other;
 
             // assert
             testResult.Should().BeFalse();

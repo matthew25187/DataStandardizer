@@ -46,9 +46,10 @@ code drops straight into anywhere a string is expected.
 
 The string-backed structs all implement `IStringEnum`, declared in
 **DataStandardizer.Core**. It is a marker-style interface: it adds no members of
-its own beyond requiring `IComparable` (and `IConvertible` on .NET Standard 1.3+
-and modern .NET), so an `IStringEnum` value can be compared and converted like
-any ordinary value. Its real job is to *identify* a type as a string enumeration
+its own beyond requiring `IComparable`, on every target, so an `IStringEnum`
+value can be compared like any ordinary value. The ISO 639 structs also
+implement `IConvertible` themselves on .NET Standard 1.3+ and modern .NET.
+The real job of `IStringEnum` is to *identify* a type as a string enumeration
 — `Core`'s helper code recognises a string enum precisely by whether it is a
 value type implementing this interface.
 

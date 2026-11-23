@@ -10,19 +10,27 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c> (RFC 2046 §4.1.2).
-    /// Languages are compared case-insensitively. The character set an extended value was written in is not compared, as it doesn't change
-    /// the value.
+    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c> (RFC 2046
+    /// §4.1.2). Languages are compared case-insensitively. The character set an extended value was written in is not compared, as it
+    /// doesn't change the value, except for a value read in a character set that couldn't be resolved, as <see cref="Charset"/> describes.
+    /// A parameter doesn't know the media type it belongs to, so the values that are case-insensitive only in some media types, such as
+    /// <c>access-type</c> in <c>message/external-body</c>, are compared case-sensitively here, and case-insensitively by
+    /// <see cref="MimeMediaType.Equals(MimeMediaType)"/>.
     /// </para>
     /// <para>
     /// A value of printable US-ASCII characters, spaces and horizontal tabs, with no language, is written as a token when it is one, and
     /// otherwise as a quoted-string. Any other value, or a value with a language, is written as an RFC 2231 extended value in UTF-8, such as
-    /// <c>title*=UTF-8'en'%C2%A3%20rates</c>. Use <see cref="FormatSections(int)"/> to split a long parameter into sections.
+    /// <c>title*=UTF-8'en'%C2%A3%20rates</c>. A value read in a character set that couldn't be resolved is always written back as an
+    /// extended value of its octets, in that character set, even when they are printable US-ASCII. Use <see cref="FormatSections(int)"/> to
+    /// split a long parameter into sections.
     /// </para>
     /// </remarks>
     public readonly struct MimeParameter : IEquatable<MimeParameter>
     {
         private const string CharsetParameterName = "charset";
+
+        // ref. RFC 1428 §3: the registered character set name for octets in a character set that is not known.
+        private const string UnknownCharsetName = "UNKNOWN-8BIT";
         private const string UninitializedMessage = nameof(MimeParameter) + " is uninitialized.";
 
         private readonly string _name;
@@ -34,6 +42,9 @@ namespace DataStandardizer.Communication.Mime
         private readonly string _charset;
         private readonly string _language;
 #endif
+
+        // The value holds the octets of a value in a character set that couldn't be resolved, one character for each octet.
+        private readonly bool _isOctets;
 
         /// <summary>
         /// Creates a parameter.
@@ -51,6 +62,7 @@ namespace DataStandardizer.Communication.Mime
             _value = value;
             _charset = null;
             _language = null;
+            _isOctets = false;
         }
 
         /// <summary>
@@ -77,19 +89,21 @@ namespace DataStandardizer.Communication.Mime
             _value = value;
             _charset = null;
             _language = language;
+            _isOctets = false;
         }
 
         // Used by the parser, which has already checked the name, value and language.
 #if NETCOREAPP3_0_OR_GREATER
-        private MimeParameter(string name, string value, string? charset, string? language, bool _)
+        private MimeParameter(string name, string value, string? charset, string? language, bool isOctets, bool _)
 #else
-        private MimeParameter(string name, string value, string charset, string language, bool _)
+        private MimeParameter(string name, string value, string charset, string language, bool isOctets, bool _)
 #endif
         {
             _name = name;
             _value = value;
             _charset = charset;
             _language = language;
+            _isOctets = isOctets;
         }
 
         /// <summary>
@@ -110,7 +124,17 @@ namespace DataStandardizer.Communication.Mime
         /// <returns>The character set name, as written; an empty string if the parameter was not parsed from an extended value, or the
         /// extended value gave no character set.</returns>
         /// <remarks>
-        /// The value is already decoded from the character set. A parameter is always written in UTF-8, whatever its character set was.
+        /// <para>
+        /// The value is already decoded from the character set, and is written in UTF-8, whatever its character set was.
+        /// </para>
+        /// <para>
+        /// A value read with <see cref="MimeMediaTypeParseOptions.AllowUnknownCharsets"/>, in a character set that the
+        /// <see cref="IMimeCharsetResolver"/> couldn't resolve, is not decoded: it holds the octets, one character for each. It is written back
+        /// as those octets, in this character set, so that it keeps its meaning. A value with no character set whose octets are not US-ASCII
+        /// is written in <c>UNKNOWN-8BIT</c>, the character set RFC 1428 §3 registers for octets in a character set that is not known, as
+        /// RFC 2231 §4 gives no character set for them. Two such values are equal only if their character sets are also equal, compared
+        /// case-insensitively, with no character set the same as <c>UNKNOWN-8BIT</c>.
+        /// </para>
         /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="MimeParameter"/> is not initialised.</exception>
         public string Charset => _name is null ? throw new InvalidOperationException(UninitializedMessage) : _charset ?? string.Empty;
@@ -130,12 +154,12 @@ namespace DataStandardizer.Communication.Mime
         internal bool IsInitialized => _name != null;
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal static MimeParameter CreateUnchecked(string name, string value, string? charset, string? language)
+        internal static MimeParameter CreateUnchecked(string name, string value, string? charset, string? language, bool isOctets)
 #else
-        internal static MimeParameter CreateUnchecked(string name, string value, string charset, string language)
+        internal static MimeParameter CreateUnchecked(string name, string value, string charset, string language, bool isOctets)
 #endif
         {
-            return new MimeParameter(name, value, charset, language, true);
+            return new MimeParameter(name, value, charset, language, isOctets, true);
         }
 
         /// <summary>
@@ -153,23 +177,41 @@ namespace DataStandardizer.Communication.Mime
         {
             if (!IsExtended) return _name.Length + 1 + MimeGrammar.GetFormattedValueLength(_value);
 
-            return _name.Length + 2 + GetCharsetAndLanguageLength() + MimeExtendedParameter.GetEncodedLength(_value);
+            var length = _name.Length + 2 + GetCharsetAndLanguageLength();
+            for (var index = 0; index < _value.Length;)
+            {
+                int charCount;
+                length += GetEncodedUnitLength(index, out charCount);
+                index += charCount;
+            }
+
+            return length;
         }
 
-        // ref. RFC 2231 §4: a value that is not US-ASCII, or that has a language, can only be written as an extended value.
-        private bool IsExtended => _language != null || !MimeGrammar.IsValue(_value);
+        // ref. RFC 2231 §4: a value that is not US-ASCII, or that has a language, can only be written as an extended value. Octets in a
+        // character set that couldn't be resolved are written in that character set, which only an extended value can name.
+        private bool IsExtended => _isOctets || _language != null || !MimeGrammar.IsValue(_value);
+
+        // The name of the character set an extended value is written in.
+        private string WrittenCharsetName => _isOctets ? GetOctetsCharsetName() : MimeCharset.Utf8.Name;
 
         /// <summary>
-        /// Formats the parameter into a span, as <c>name=value</c>, or as <c>name*=UTF-8'language'value</c> for an RFC 2231 extended
+        /// Formats the parameter into a span, as <c>name=value</c>, or as <c>name*=charset'language'value</c> for an RFC 2231 extended
         /// value.
         /// </summary>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
-        /// <returns><c>true</c> if the parameter was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="InvalidOperationException">The <see cref="MimeParameter"/> is not initialised.</exception>
+        /// <returns>
+        /// <c>true</c> if the parameter was written, or if the <see cref="MimeParameter"/> is not initialised, when nothing is written;
+        /// <c>false</c> if <paramref name="destination"/> is too short.
+        /// </returns>
         public bool TryFormat(Span<char> destination, out int charsWritten)
         {
-            if (_name is null) throw new InvalidOperationException(UninitializedMessage);
+            if (_name is null)
+            {
+                charsWritten = 0;
+                return true;
+            }
 
             var position = 0;
             if (!TryWrite(destination, ref position))
@@ -198,14 +240,14 @@ namespace DataStandardizer.Communication.Mime
             WriteCharsetAndLanguage(destination, ref position);
             for (var index = 0; index < _value.Length;)
             {
-                index += MimeExtendedParameter.WriteEncodedUnit(_value, index, destination, ref position);
+                index += WriteEncodedUnit(index, destination, ref position);
             }
 
             return true;
         }
 
         /// <summary>
-        /// Formats the parameter as <c>name=value</c>, or as <c>name*=UTF-8'language'value</c> for an RFC 2231 extended value.
+        /// Formats the parameter as <c>name=value</c>, or as <c>name*=charset'language'value</c> for an RFC 2231 extended value.
         /// </summary>
         /// <returns>The parameter; an empty string if the <see cref="MimeParameter"/> is not initialised.</returns>
         public override string ToString()
@@ -232,17 +274,20 @@ namespace DataStandardizer.Communication.Mime
         /// doesn't count the <c>;</c> or the whitespace before it.
         /// </para>
         /// <para>
-        /// A character, and the octets of its encoding, are never split between sections. A section is longer than
-        /// <paramref name="maxSectionLength"/> only when its name and a single character of the value don't fit in it. An empty value
-        /// that doesn't fit is written as one section, <c>name*0=""</c>.
+        /// A character, and the octets of its encoding, are never split between sections. The octets of a value in a character set that
+        /// couldn't be resolved (see <see cref="Charset"/>) may be, as RFC 2231 §4.1 joins the octets of the sections before they are
+        /// decoded. A section is longer than <paramref name="maxSectionLength"/> only when its name and a single character, or octet, of the
+        /// value don't fit in it. An empty value that doesn't fit is written as one section, <c>name*0=""</c>.
+        /// </para>
+        /// <para>
+        /// A <see cref="MimeParameter"/> that is not initialised has no sections.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSectionLength"/> is less than 1.</exception>
-        /// <exception cref="InvalidOperationException">The <see cref="MimeParameter"/> is not initialised.</exception>
         public IReadOnlyList<string> FormatSections(int maxSectionLength)
         {
-            if (_name is null) throw new InvalidOperationException(UninitializedMessage);
             if (maxSectionLength < 1) throw new ArgumentOutOfRangeException(nameof(maxSectionLength), maxSectionLength, "The length must be at least 1.");
+            if (_name is null) return new ReadOnlyCollection<string>(new List<string>());
 
             var sections = new List<string>();
             if (GetFormattedLength() <= maxSectionLength)
@@ -265,14 +310,24 @@ namespace DataStandardizer.Communication.Mime
         /// Indicates whether this parameter equals another.
         /// </summary>
         /// <remarks>
-        /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c>. Languages are
-        /// compared case-insensitively. The character set is not compared.
+        /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c>. Languages
+        /// are compared case-insensitively. The character set is not compared, except for a value that holds the octets of a character set
+        /// that couldn't be resolved, as <see cref="Charset"/> describes.
         /// </remarks>
         public bool Equals(MimeParameter other)
         {
+            return Equals(other, false);
+        }
+
+        // Compares the value case-insensitively when valueIgnoresCase is true, for a parameter whose value is case-insensitive in the media
+        // type it belongs to.
+        internal bool Equals(MimeParameter other, bool valueIgnoresCase)
+        {
             return string.Equals(_name, other._name, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(_value, other._value, GetValueComparison()) &&
-                   string.Equals(_language, other._language, StringComparison.OrdinalIgnoreCase);
+                   string.Equals(_value, other._value, GetValueComparison(valueIgnoresCase)) &&
+                   string.Equals(_language, other._language, StringComparison.OrdinalIgnoreCase) &&
+                   _isOctets == other._isOctets &&
+                   (!_isOctets || string.Equals(GetOctetsCharsetName(), other.GetOctetsCharsetName(), StringComparison.OrdinalIgnoreCase));
         }
 
         /// <inheritdoc />
@@ -288,14 +343,21 @@ namespace DataStandardizer.Communication.Mime
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            // Must agree with Equals, which compares names, languages and some values case-insensitively.
+            return GetHashCode(false);
+        }
+
+        // Must agree with Equals(MimeParameter, bool) given the same valueIgnoresCase.
+        internal int GetHashCode(bool valueIgnoresCase)
+        {
+            // Must agree with Equals, which compares names, languages, the character sets of octets and some values case-insensitively.
             if (_name is null) return 0;
 
-            var valueComparer = GetValueComparison() == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var valueComparer = GetValueComparison(valueIgnoresCase) == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             unchecked
             {
                 var hash = StringComparer.OrdinalIgnoreCase.GetHashCode(_name) * 31 + valueComparer.GetHashCode(_value);
-                return _language is null ? hash : hash * 31 + StringComparer.OrdinalIgnoreCase.GetHashCode(_language);
+                if (_language != null) hash = hash * 31 + StringComparer.OrdinalIgnoreCase.GetHashCode(_language);
+                return _isOctets ? hash * 31 + StringComparer.OrdinalIgnoreCase.GetHashCode(GetOctetsCharsetName()) : hash;
             }
         }
 
@@ -315,21 +377,54 @@ namespace DataStandardizer.Communication.Mime
             return !left.Equals(right);
         }
 
-        private StringComparison GetValueComparison()
+        // Indicates whether the value is the given one, compared case-insensitively. Octets in a character set that couldn't be resolved
+        // are not known to be letters, so they never match.
+        internal bool HasValueIgnoringCase(string value)
         {
-            // ref. RFC 2046 §4.1.2: the values of the charset parameter are not case sensitive.
-            return HasName(CharsetParameterName) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return !_isOctets && string.Equals(_value, value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private StringComparison GetValueComparison(bool valueIgnoresCase)
+        {
+            // ref. RFC 2046 §4.1.2: the values of the charset parameter are not case sensitive. Octets in a character set that couldn't be
+            // resolved are not known to be letters, so they are compared as they are.
+            return (valueIgnoresCase || HasName(CharsetParameterName)) && !_isOctets
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+        }
+
+        private string GetOctetsCharsetName()
+        {
+            // ref. RFC 2231 §4: octets that are not US-ASCII need a character set, and RFC 1428 §3 registers one for octets whose character set
+            // is not known.
+            return _charset is null || _charset.Length == 0 ? UnknownCharsetName : _charset;
+        }
+
+        private int GetEncodedUnitLength(int index, out int charCount)
+        {
+            if (!_isOctets) return MimeExtendedParameter.GetEncodedUnitLength(_value, index, out charCount);
+
+            charCount = 1;
+            return MimeExtendedParameter.GetOctetUnitLength(_value[index]);
+        }
+
+        private int WriteEncodedUnit(int index, Span<char> destination, ref int position)
+        {
+            if (!_isOctets) return MimeExtendedParameter.WriteEncodedUnit(_value, index, destination, ref position);
+
+            MimeExtendedParameter.WriteOctetUnit(_value[index], destination, ref position);
+            return 1;
         }
 
         private int GetCharsetAndLanguageLength()
         {
-            return MimeCharset.Utf8.Name.Length + 2 + (_language?.Length ?? 0);
+            return WrittenCharsetName.Length + 2 + (_language?.Length ?? 0);
         }
 
         private void WriteCharsetAndLanguage(Span<char> destination, ref int position)
         {
             // ref. RFC 2231 §4: charset'language'
-            MimeGrammar.TryWrite(MimeCharset.Utf8.Name, destination, ref position);
+            MimeGrammar.TryWrite(WrittenCharsetName, destination, ref position);
             MimeGrammar.TryWrite('\'', destination, ref position);
             if (_language != null) MimeGrammar.TryWrite(_language, destination, ref position);
             MimeGrammar.TryWrite('\'', destination, ref position);
@@ -352,10 +447,10 @@ namespace DataStandardizer.Communication.Mime
                 while (index < _value.Length)
                 {
                     int charCount;
-                    var unitLength = MimeExtendedParameter.GetEncodedUnitLength(_value, index, out charCount);
+                    var unitLength = GetEncodedUnitLength(index, out charCount);
                     if (!isFirstUnit && position + unitLength > maxSectionLength) break;
 
-                    index += MimeExtendedParameter.WriteEncodedUnit(_value, index, buffer, ref position);
+                    index += WriteEncodedUnit(index, buffer, ref position);
                     isFirstUnit = false;
                 }
 

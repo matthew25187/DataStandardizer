@@ -29,6 +29,14 @@ public class Iso3166ExtensionTests
     private const string Iso639Part2Turkish = "tur";
 
     // ISO 3166-1 country names.
+    private const string BelarusShortNameEnglish = "Belarus";
+    private const string BelarusFullNameEnglish = "the Republic of Belarus";
+    private const string BelarusShortNameFrench = "Bélarus (le)";
+    private const string BelarusFullNameFrench = "la République du Bélarus";
+    private const string MyanmarShortNameEnglish = "Myanmar";
+    private const string MyanmarFullNameEnglish = "the Republic of the Union of Myanmar";
+    private const string MyanmarShortNameFrench = "Myanmar (le)";
+    private const string MyanmarFullNameFrench = "la République de l'Union du Myanmar";
     private const string BoliviaShortNameEnglish = "Bolivia (Plurinational State of)";
     private const string BoliviaShortUpperNameEnglish = "BOLIVIA, PLURINATIONAL STATE OF";
     private const string BoliviaFullNameEnglish = "the Plurinational State of Bolivia";
@@ -87,6 +95,16 @@ public class Iso3166ExtensionTests
     private const string NorthernIrelandSubdivisionCode = "GB-NIR";
     private const string ScotlandSubdivisionCode = "GB-SCT";
     private const string WalesSubdivisionCode = "GB-WLS";
+    private const string NewSouthWalesSubdivisionCode = "AU-NSW";
+    private const string DevonSubdivisionCode = "GB-DEV";
+    private const string LibertadorGeneralBernardoOHigginsSubdivisionCode = "CL-LI";
+
+    // ISO 3166-2 data for AU-NSW: the "state" category, its names and the subdivision's English name.
+    private const ushort Iso3166Part2AustraliaStateCategoryId = 393;
+    private const string AustraliaStateCategoryNameEnglish = "state";
+    private const string AustraliaStateCategoryNamePluralEnglish = "states";
+    private const string NewSouthWalesNameEnglish = "New South Wales";
+
     #region Test: GetEnglishName_OnIso3166Part1Alpha2CountryCode
 
     [Theory]
@@ -142,6 +160,15 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part1Alpha2Country.BO, Iso639Part2French, Iso3166CountryName.Full, BoliviaFullNameFrench };
                 yield return new object?[] { Iso3166Part1Alpha2Country.BO, Iso639Part1Spanish, Iso3166CountryName.Full, null };
                 yield return new object?[] { Iso3166Part1Alpha2Country.BO, Iso639Part2Spanish, Iso3166CountryName.Full, null };
+                // A code that replaced another (BU, Burma; BY/BYS, the Byelorussian SSR) has only its own names.
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part1English, Iso3166CountryName.Short, MyanmarShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part1English, Iso3166CountryName.Full, MyanmarFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part2French, Iso3166CountryName.Short, MyanmarShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha2Country.MM, Iso639Part2French, Iso3166CountryName.Full, MyanmarFullNameFrench };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part1English, Iso3166CountryName.Short, BelarusShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part1English, Iso3166CountryName.Full, BelarusFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part2French, Iso3166CountryName.Short, BelarusShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha2Country.BY, Iso639Part2French, Iso3166CountryName.Full, BelarusFullNameFrench };
             }
         }
     }
@@ -230,6 +257,15 @@ public class Iso3166ExtensionTests
                 yield return new object[] { Iso3166Part1Alpha3Country.ITA, Iso639Part2French, Iso3166CountryName.Full, ItalyFullNameFrench };
                 yield return new object?[] { Iso3166Part1Alpha3Country.ITA, Iso639Part1Italian, Iso3166CountryName.Full, null };
                 yield return new object?[] { Iso3166Part1Alpha3Country.ITA, Iso639Part2Italian, Iso3166CountryName.Full, null };
+                // A code that replaced another (BUR, Burma; BYS, the Byelorussian SSR) has only its own names.
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part1English, Iso3166CountryName.Short, MyanmarShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part1English, Iso3166CountryName.Full, MyanmarFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part2French, Iso3166CountryName.Short, MyanmarShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha3Country.MMR, Iso639Part2French, Iso3166CountryName.Full, MyanmarFullNameFrench };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part1English, Iso3166CountryName.Short, BelarusShortNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part1English, Iso3166CountryName.Full, BelarusFullNameEnglish };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part2French, Iso3166CountryName.Short, BelarusShortNameFrench };
+                yield return new object[] { Iso3166Part1Alpha3Country.BLR, Iso639Part2French, Iso3166CountryName.Full, BelarusFullNameFrench };
             }
         }
     }
@@ -565,6 +601,36 @@ public class Iso3166ExtensionTests
 
     #endregion
 
+    #region Test: subdivision converted from a code
+
+    // Each subdivision lookup, given a subdivision made from a code, with the data ISO 3166-2 gives that subdivision.
+    public static TheoryData<string, Func<object?>, object> SubdivisionLookupsOnCode => new TheoryData<string, Func<object?>, object>
+    {
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryIdentifier), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCategoryIdentifier(), Iso3166Part2AustraliaStateCategoryId },
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryName), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCategoryName(Iso639Part1English), AustraliaStateCategoryNameEnglish },
+        { nameof(Iso3166Extensions.GetSubdivisionCategoryNamePlural), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCategoryNamePlural(Iso639Part1English), AustraliaStateCategoryNamePluralEnglish },
+        { nameof(Iso3166Extensions.GetSubdivisionCode), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionCode(), NewSouthWalesSubdivisionCode },
+        { nameof(Iso3166Extensions.GetSubdivisionParentCode), () => ((Iso3166Part2Subdivision)DevonSubdivisionCode).GetSubdivisionParentCode(), EnglandSubdivisionCode },
+        { nameof(Iso3166Extensions.GetSubdivisionNativeName), () => ((Iso3166Part2Subdivision)NewSouthWalesSubdivisionCode).GetSubdivisionNativeName(Iso639Part1English), NewSouthWalesNameEnglish },
+        { nameof(Iso3166Extensions.GetSubdivisionNativeNameLocalVariant), () => ((Iso3166Part2Subdivision)LibertadorGeneralBernardoOHigginsSubdivisionCode).GetSubdivisionNativeNameLocalVariant(Iso639Part1Spanish), LibertadorGeneralBernardoOHigginsLocalVariantSpanish },
+    };
+
+    [Theory]
+    [MemberData(nameof(SubdivisionLookupsOnCode))]
+    public void SubdivisionLookup_Code_ReturnsSubdivisionData(string name, Func<object?> lookup, object expectedResult)
+    {
+        // arrange
+        _ = name;
+
+        // act
+        var testResult = lookup();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    #endregion
+
     #region Test: language code in any case
 
     // The ISO 639-1 and ISO 639-2/T codes for Spanish in lower, upper and mixed case, which RFC 5646 §2.1.1 makes equivalent.
@@ -623,7 +689,12 @@ public class Iso3166ExtensionTests
     {
         { Iso639Part2BGerman, () => Iso3166Part1Alpha2Country.AT.GetNativeName(Iso639Part2BGerman, Iso3166CountryName.Short) },
         { Iso639TestCodes.SpanishCodeWithLongS, () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(Iso639TestCodes.SpanishCodeWithLongS) },
-        { "null", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null!) },
+        { "GetNativeName(Iso3166Part1Alpha2Country, null)", () => Iso3166Part1Alpha2Country.DE.GetNativeName(null, Iso3166CountryName.Short) },
+        { "GetNativeName(Iso3166Part1Alpha3Country, null)", () => Iso3166Part1Alpha3Country.DEU.GetNativeName(null, Iso3166CountryName.Short) },
+        { "GetSubdivisionCategoryName(null)", () => Iso3166Part2Subdivision.CY._02.GetSubdivisionCategoryName(null) },
+        { "GetSubdivisionCategoryNamePlural(null)", () => Iso3166Part2Subdivision.FR._NOR.GetSubdivisionCategoryNamePlural(null) },
+        { "GetSubdivisionNativeName(null)", () => Iso3166Part2Subdivision.CA._NT.GetSubdivisionNativeName(null) },
+        { "GetSubdivisionNativeNameLocalVariant(null)", () => Iso3166Part2Subdivision.CL._LI.GetSubdivisionNativeNameLocalVariant(null) },
     };
 
     [Theory]

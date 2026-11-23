@@ -27,11 +27,11 @@ when the scope is not recorded; an undefined value corresponds to `Unknown`.
 
 | Field | Value | Notes |
 | --- | --- | --- |
-| `Unknown` | 0 | |
+| `Unknown` | 0 | The scope isn't known. |
 | `Individual` | 1 | Individual language. |
 | `Collective` | 2 | Collections of languages connected, for example genetically or by region. |
 | `Macrolanguage` | 3 | Macrolanguages. |
-| `Special` | 4 | |
+| `Special` | 4 | Special codes, which don't identify a language (for example `und`, `mul` and `zxx`). |
 
 ## Applies to
 

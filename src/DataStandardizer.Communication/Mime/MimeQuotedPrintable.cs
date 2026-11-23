@@ -17,13 +17,18 @@ namespace DataStandardizer.Communication.Mime
         // ref. RFC 2045 §6.7 rule 5: the encoded lines must not be longer than 76 characters, not counting the CRLF.
         internal const int MaxLineLength = 76;
 
+        // The longest run of spaces and tabs that a decoder allowing long lines holds while it waits to see whether a line break follows.
+        // ref. RFC 5322 §2.1.1: a line of a message is at most 998 characters.
+        internal const int MaxHeldWhitespace = 998;
+
         internal const string HexDigits = "0123456789ABCDEF";
 
         private const string InvalidFormatMessage = "The value is not valid quoted-printable.";
 
         private const MimeQuotedPrintableDecoderOptions AllDecoderOptions = MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits
             | MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds
-            | MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns;
+            | MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns
+            | MimeQuotedPrintableDecoderOptions.AllowLongLines;
 
         /// <summary>
         /// Gets the largest number of characters that some data can encode to.
@@ -57,7 +62,8 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="length">The number of characters of encoded data.</param>
         /// <returns>The largest number of bytes the data can decode to, whatever its mode and options.</returns>
         /// <remarks>
-        /// A <see cref="MimeQuotedPrintableDecoder"/> that holds data from an earlier call can write up to 77 more bytes in one call.
+        /// A <see cref="MimeQuotedPrintableDecoder"/> that holds data from an earlier call can write up to 77 more bytes in one call, or up
+        /// to 1,000 more with <see cref="MimeQuotedPrintableDecoderOptions.AllowLongLines"/>.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="length"/> is negative.</exception>
         public static int GetMaxDecodedLength(int length)
@@ -251,16 +257,6 @@ namespace DataStandardizer.Communication.Mime
             return unit == ' ' || unit == '\t';
         }
 
-        // Whether an encoder writes an octet as itself, apart from whitespace in a body.
-        internal static bool IsWrittenAsLiteral(int unit, MimeQuotedPrintableMode mode)
-        {
-            // ref. RFC 5322 §3.2.2: ctext doesn't include "\", which starts a quoted-pair in a comment, and RFC 2047 §6.2: encoded words
-            // are decoded after the field is tokenized. A reader still accepts it, as RFC 2047 §5(2) doesn't forbid it.
-            if (mode == MimeQuotedPrintableMode.EncodedWordComment && unit == '\\') return false;
-
-            return IsLiteral(unit, mode);
-        }
-
         // Whether an octet can be written as itself, apart from whitespace in a body.
         internal static bool IsLiteral(int unit, MimeQuotedPrintableMode mode)
         {
@@ -273,8 +269,8 @@ namespace DataStandardizer.Communication.Mime
                     // ref. RFC 2047 §4.2 rule 3: printable ASCII other than "=", "?" and "_".
                     return unit >= 33 && unit <= 126 && unit != '=' && unit != '?' && unit != '_';
                 case MimeQuotedPrintableMode.EncodedWordComment:
-                    // ref. RFC 2047 §5(2): nor "(", ")" or the double quote.
-                    return unit >= 33 && unit <= 126 && unit != '=' && unit != '?' && unit != '_' && unit != '(' && unit != ')' && unit != '"';
+                    // ref. RFC 2047 §5(2), as corrected by erratum 504: nor "(", ")" or "\", the characters RFC 822 §3.3 ctext excludes.
+                    return unit >= 33 && unit <= 126 && unit != '=' && unit != '?' && unit != '_' && unit != '(' && unit != ')' && unit != '\\';
                 default:
                     // ref. RFC 2047 §5(3): letters, digits, "!", "*", "+", "-" and "/" ("=" and "_" have their "Q" meanings).
                     return (unit >= 'A' && unit <= 'Z') || (unit >= 'a' && unit <= 'z') || (unit >= '0' && unit <= '9')

@@ -21,7 +21,7 @@ public sealed class ImfHeaderFieldCollection : IReadOnlyList<ImfHeaderField>
 
 ## Remarks
 
-A writer writes the fields that were read, and have not been replaced or removed, byte for byte, so changing one field rewrites that field only.
+A writer writes the fields that were read, and have not been replaced or removed, byte for byte, so changing one field rewrites that field only. A field read with other line breaks than the message it is in, such as one from an mbox file added to a message read from an `.eml` file, is given the line breaks of the message.
 
 ## Constructors
 

@@ -1,6 +1,6 @@
 #########################################################################
 # Title: ISO 3166 Part 1 Alpha-2 Source Code Generator                  #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.       #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.  #
 #                                                                       #
 # Purpose: Generate source code for implementing the ISO 3166 standard. #
 # Source: Country Codes Collection, ISO.                                #
@@ -90,9 +90,22 @@ function Out-SourceCode {
         $enumField = [System.CodeDom.CodeMemberField]::new([ushort], $_.alpha_2_code)
         $enumField.InitExpression = [System.CodeDom.CodePrimitiveExpression]::new($_.numeric_code -as [ushort])
 
-        # Add code attribute.
+        # A code that replaced another keeps its numeric code (BU and MM are both 104), and Belarus kept the
+        # alpha-2 code BY of the Byelorussian SSR, so only all three codes together pick out the name rows of
+        # the officially assigned code.
+        $countryAlpha2Code = $_.alpha_2_code
+        $countryAlpha3Code = $_.alpha_3_code
+        $countryNumericCode = $_.numeric_code -as [ushort]
+        $countryNamesCurrentSet = $CountryNamesSet | Where-Object { $_.alpha_2_code -eq $countryAlpha2Code -and $_.alpha_3_code -eq $countryAlpha3Code -and ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
+
+        # Add code attribute. ISO 3166-1 gives each code an English and a French short name.
+        $frenchCountryNames = @($countryNamesCurrentSet | Where-Object -Property language -EQ 'fr')
+        if ($frenchCountryNames.Count -ne 1) {
+            throw "Expected one French name for country code $countryAlpha2Code, found $($frenchCountryNames.Count)."
+        }
         $codeAttributeArguments = @(
             [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($_.short_name_en)),
+            [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($frenchCountryNames[0].short_name)),
             [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($_.short_name_uppercase_en)))
         if (-not [string]::IsNullOrWhiteSpace($_.full_name_en)) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($_.full_name_en))
@@ -108,8 +121,6 @@ function Out-SourceCode {
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         # Add name attributes.
-        $countryNumericCode = $_.numeric_code -as [ushort]
-        $countryNamesCurrentSet = $CountryNamesSet | Where-Object { ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
         foreach ($countryName in $countryNamesCurrentSet) {
             $countryNameLanguage = (-not [string]::IsNullOrWhiteSpace($countryName.language))?$countryName.language:$null
             $nameAttributeArguments = @(
@@ -126,7 +137,7 @@ function Out-SourceCode {
         }
 
         # Add territory attributes.
-        $territoriesCurrentSet = $TerritoriesSet | Where-Object { ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
+        $territoriesCurrentSet = $TerritoriesSet | Where-Object { $_.alpha_2_code -eq $countryAlpha2Code -and $_.alpha_3_code -eq $countryAlpha3Code -and ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
         foreach ($territory in $territoriesCurrentSet) {
             $territoryNameLanguage = (-not [string]::IsNullOrWhiteSpace($territory.language))?$territory.language:$null
             $territoryAttributeArguments = @(
@@ -139,7 +150,7 @@ function Out-SourceCode {
         }
         
         # Add language attributes.
-        $languagesCurrentSet = $LanguagesSet | Where-Object { ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
+        $languagesCurrentSet = $LanguagesSet | Where-Object { $_.alpha_2_code -eq $countryAlpha2Code -and $_.alpha_3_code -eq $countryAlpha3Code -and ($_.numeric_code -as [ushort]) -eq $countryNumericCode }
         foreach ($language in $languagesCurrentSet) {
             $languageAlpha2Code = (-not [string]::IsNullOrWhiteSpace($language.language_alpha_2_code))?$language.language_alpha_2_code:$null
             $languageAttributeArguments = @(

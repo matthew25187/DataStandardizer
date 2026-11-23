@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -30,7 +29,7 @@ namespace DataStandardizer.Communication.E164
             // Compose expressions for parsing a number.
             // The Global Subscriber Number quantifier allows the 12 digits that follow the three-digit Country Code.
             return string.Concat(ComposePatternStart(4, numberStyles), "(?<", NumberPart.CountryCode, ">",
-                countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){0,", MaximumDigitCount - 4, "})",
+                countryCodePattern, ")(?<", NumberPart.SubscriberNumber, ">", PatternDigit, "{1,", MaximumDigitCount - 3, "})",
                 ComposePatternEnd(numberStyles));
         }
 #if NETCOREAPP3_0_OR_GREATER
@@ -47,7 +46,7 @@ namespace DataStandardizer.Communication.E164
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var globalSubscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
-                var concatenatedParts = Regex.Replace(countryCodePart + globalSubscriberNumberPart, @"\D", string.Empty);
+                var concatenatedParts = countryCodePart + globalSubscriberNumberPart;
                 var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForGlobalServices(number)
                 {

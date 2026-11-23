@@ -23,11 +23,14 @@ namespace DataStandardizer.File.InternetMessage
     /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
     /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity has only to have one of From, Subject or Date, as RFC 2046 §5.2.1 says.  A message with a MIME field and no MIME-Version field (RFC 2045 §4),
     /// and a body that hasn't changed and that breaks the rules of RFC 5322 §2.1.1 and §2.3 or of its transfer encoding, are refused the same way, unless
-    /// <see cref="ImfOptions.AllowMissingMimeVersion"/>, <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
+    /// <see cref="ImfOptions.AllowMissingMimeVersion"/>, <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.  So is a multipart entity that was
+    /// read with no close delimiter and hasn't changed (RFC 2046 §5.1.1), unless <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> is set, which writes it as it was read.
     /// </para>
     /// <para>
     /// <b>Unchanged fields.</b>  A field that was read is written byte for byte, whichever options it was read under, so that signatures over it stay valid.  That includes any
-    /// obsolete syntax it holds.  So does the line break of the empty line that ended the header, and its absence if the data ended first and there is still no body.
+    /// obsolete syntax it holds.  So does the line break of the empty line that ended the header, and its absence if the data ended first and there is still no body.  A field
+    /// read with other line breaks than the message it is in, such as one from an mbox file added to a message read from an <c>.eml</c> file, is given the line breaks of the
+    /// message, as RFC 5322 §2.1 requires.
     /// </para>
     /// <para>
     /// <b>Other fields.</b>  A field that was set is formatted in the modern form, as <see cref="ImfHeaderWriter"/> formats it, with CRLF line breaks, and with the
@@ -36,12 +39,18 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Body.</b>  A body that hasn't changed is written from <see cref="ImfMessage.RawBody"/>, as it is.  If anything in <see cref="ImfMessage.Body"/> has changed, only what has
     /// changed is written again, as <see cref="ImfEntityWriter"/> writes it.  So an entity whose content was set gets a transfer encoding of its own, and everything else, including
-    /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter gets one.
+    /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter and has changed gets one.
     /// </para>
     /// <para>
     /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
     /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), whose line breaks may not be line breaks, can't change like that, which causes an
-    /// <see cref="ImfFileException"/>.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
+    /// <see cref="ImfFileException"/>.  The writer never gives a body of such a message the <c>binary</c> transfer encoding itself, even when
+    /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set, so a body that would have had it is encoded instead.  Such a message is written in blocks, with the progress reported
+    /// after each, and its fields are counted once, at the end.
+    /// The writer also never gives the <c>7bit</c> or <c>8bit</c> transfer encoding to a body that holds a CR or LF and isn't of a <c>text</c>, <c>message</c> or <c>multipart</c> type, as a CR or
+    /// LF there is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1).  Such a body is encoded too, and one whose <see cref="ImfEntity.ContentTransferEncoding"/> asks for <c>7bit</c> or
+    /// <c>8bit</c> causes an <see cref="ImfFileException"/>.
+    /// A message that another message holds, in a <c>message/rfc822</c> or <c>message/global</c> entity such as one being forwarded, and that has other line breaks than the one that holds it, changes in the same way, under the same rules.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
@@ -60,13 +69,14 @@ namespace DataStandardizer.File.InternetMessage
 #endif
     {
         private const int BlockSize = 16 * 1024;
-        private const int InitialBufferSize = 1024;
+        private const string MessagePath = "";
 
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
         private static readonly byte[] Lf = { 0x0A };
 
         private readonly Func<string> _boundaryGenerator;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
+        private readonly bool _lineBreaksChange;
         private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _lineBreak;
         private readonly ImfOptions _options;
@@ -130,7 +140,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Creates a writer of messages to a file, for a format with its own conformance rules.
         /// </summary>
         internal ImfWriter(string messageFilePath, ImfOptions options, ImfConformanceProfile profile)
-            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, ImfEntityWriter.GenerateBoundary, profile)
+            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, false, ImfEntityWriter.GenerateBoundary, profile)
         {
         }
 #endif
@@ -140,25 +150,30 @@ namespace DataStandardizer.File.InternetMessage
         /// to choose the boundaries.
         /// </summary>
         internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
-            : this(messageStream, options, lineFeedIsLineBreak, boundaryGenerator, ImfConformanceProfile.Message)
+            : this(messageStream, options, lineFeedIsLineBreak, false, boundaryGenerator, ImfConformanceProfile.Message)
         {
         }
 
         /// <summary>
-        /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules.
+        /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules, or for the writer of a container format that changes
+        /// the line breaks of what it writes.  When <paramref name="lineBreaksChange"/> is <c>true</c>, so that the change doesn't alter any data, the writer labels no entity
+        /// <c>binary</c> (RFC 2045 §2.9), and refuses a message that has one.  Nor does it label <c>7bit</c> or <c>8bit</c> a body whose CR and LF octets are data, and it refuses
+        /// one that asks for that.
         /// </summary>
-        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
-            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, boundaryGenerator, profile)
+        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator, ImfConformanceProfile profile)
+            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, lineBreaksChange, boundaryGenerator, profile)
         {
         }
 
         // The options come first, so that bad options are found before a file is opened.
-        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
+        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator,
+            ImfConformanceProfile profile)
         {
             _options = options;
             _profile = profile;
             _boundaryGenerator = boundaryGenerator;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
+            _lineBreaksChange = lineBreaksChange;
             _output = new ImfOutput(stream, ownsStream, GetType().Name);
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
             _readOnlyDiagnostics = new ReadOnlyCollection<ImfDiagnostic>(_diagnostics);
@@ -322,7 +337,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
-                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
+                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _lineBreaksChange, _boundaryGenerator);
                     writer.WriteEntities(source, CreateProgress(progress));
                     CompleteChangedBody(writer, diagnostics, progress);
                     _output.ThrowIfDisposed();
@@ -477,7 +492,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
-                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
+                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _lineBreaksChange, _boundaryGenerator);
                     await writer.WriteEntitiesAsync(source, CreateProgress(progress), cancellationToken).ConfigureAwait(false);
                     CompleteChangedBody(writer, diagnostics, progress);
                     _output.ThrowIfDisposed();
@@ -555,7 +570,7 @@ namespace DataStandardizer.File.InternetMessage
         private byte[] PlanConverted(ImfMessage message, out List<ImfDiagnostic> diagnostics, out long fieldCount)
         {
             var output = new MemoryStream();
-            using (var writer = new ImfWriter(output, _options, true, _boundaryGenerator, _profile))
+            using (var writer = new ImfWriter(output, _options, true, true, _boundaryGenerator, _profile))
             {
                 writer.WriteMessage(message);
                 diagnostics = new List<ImfDiagnostic>(writer.Diagnostics);
@@ -585,7 +600,9 @@ namespace DataStandardizer.File.InternetMessage
         {
             diagnostics = CheckConformance(message);
             message.Body.CheckChangedDepth(_options.MaxNestingDepth);
-            return message.Body.ToSource(_options.HeaderEncoding, _lineBreak);
+            var source = message.Body.ToSource(_options, _lineBreak, _boundaryGenerator, MessagePath, true);
+            source.IsTopLevelMessage = true;
+            return source;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -621,7 +638,7 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var diagnostic in diagnostics)
             {
-                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
+                if (!ImfConformance.IsAllowedWhenWriting(diagnostic, _options))
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 
@@ -636,7 +653,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             var diagnostics = CheckConformance(message);
             var fields = new ReadOnlyMemory<byte>[message.Fields.Count];
-            var buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
             try
             {
                 for (var index = 0; index < fields.Length; index++)

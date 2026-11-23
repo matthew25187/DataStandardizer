@@ -930,12 +930,11 @@ namespace DataStandardizer.LanguageTag.Tests
         [Theory]
         [InlineData(MinimalRecordSubtag)]
         [InlineData("AA")]
-        public void TryGetSubtag_WhenTwoRecordsHaveSubtagsThatDifferOnlyInCase_ReturnsTheFirst(string subtag)
+        public void TryGetSubtag_WhenTwoRecordsHaveTheSameSubtag_ReturnsTheFirst(string subtag)
         {
             // arrange
             var registry = SubtagRegistry.CreateFromContent(
-                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: AA\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\n" +
-                "Type: language\r\nSubtag: aa\r\nDescription: Second\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Other\r\nAdded: 2005-10-16\r\n");
+                "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: ab\r\nDescription: Other\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: First\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Second\r\nAdded: 2005-10-16\r\n%%\r\nType: language\r\nSubtag: zz\r\nDescription: Other\r\nAdded: 2005-10-16\r\n");
 
             // act
             var testResult = registry.TryGetSubtag(SubtagRegistryRecordType.Language, subtag, out var record);
@@ -1123,6 +1122,45 @@ namespace DataStandardizer.LanguageTag.Tests
                 new KeyValuePair<string, string>("Future-Field", "three"));
         }
 
+        /// <summary>
+        /// A Description with a character outside US-ASCII, U+00FC, which a Description may hold (ref. RFC 5646 §3.1.5).
+        /// </summary>
+        private const string NonAsciiDescription = "Volap\x00FCk";
+
+        /// <summary>
+        /// A Comments value outside US-ASCII, U+00E9, which Comments may hold (ref. RFC 5646 §3.1.12).
+        /// </summary>
+        private const string NonAsciiComment = "\x00E9";
+
+        /// <summary>
+        /// A value outside US-ASCII, U+00F1, of a field that RFC 5646 doesn't define, which the rules ignore (ref. RFC 5646 §3.1.2).
+        /// </summary>
+        private const string NonAsciiUndefinedFieldValue = "\x00F1";
+
+        /// <summary>
+        /// A registry whose Description, Comments and undefined field hold characters outside US-ASCII.
+        /// </summary>
+        private const string NonAsciiFieldsRegistry = "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: vo\r\nDescription: " + NonAsciiDescription + "\r\nComments: " + NonAsciiComment + "\r\nFuture-Field: " + NonAsciiUndefinedFieldValue + "\r\nAdded: 2005-10-16\r\n";
+
+        [Theory]
+        [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
+        public async Task CreateFromContent_WhenDescriptionCommentsOrUndefinedFieldHoldsNonAsciiCharacter_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
+        {
+            // arrange
+            const string content = NonAsciiFieldsRegistry;
+
+            // act
+            var testResult = await load(content);
+
+            // assert
+            var record = testResult.Languages.Should().ContainSingle(
+                "{0} restricts only the fields that RFC 5646 defines, other than Description and Comments, to printable US-ASCII (ref. RFC 5646 §3.1.1, §3.1.2, §3.1.5, §3.1.12)",
+                loaderName).Subject;
+            record.Description.Should().Equal(NonAsciiDescription);
+            record.Comments.Should().Equal(NonAsciiComment);
+            record.Fields.Should().Contain(new KeyValuePair<string, string>("Future-Field", NonAsciiUndefinedFieldValue));
+        }
+
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
         public async Task CreateFromContent_WhenFieldSeparatorHasSpaces_ReadsField(string loaderName, Func<string, Task<SubtagRegistry>> load)
@@ -1247,6 +1285,133 @@ namespace DataStandardizer.LanguageTag.Tests
                 "The record at line 3 has a Subtag field, but its Type 'grandfathered' is one whose records have a Tag field (ref. RFC 5646 §3.1.2)."),
             ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nTag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\n",
                 "The record at line 3 has a Tag field, but its Type 'language' is one whose records have a Subtag field (ref. RFC 5646 §3.1.2)."),
+            // Prefix appears only in extlang and variant records (§3.1.2), with or without a value, and exactly once in an extlang record (§3.1.8)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nPrefix: en\r\n",
+                "The record at line 3 has a Prefix field, which only records of the Type 'extlang' or 'variant' may have, but its Type is 'region' (ref. RFC 5646 §3.1.2)."),
+            // a Prefix holds a language tag, so it has a value, whatever the Type of its record (§3.1.2, §3.1.8)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nPrefix:\r\n",
+                "The Prefix field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix:\r\n",
+                "The Prefix field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\n",
+                "The record at line 3 has 0 Prefix fields, but a record of the Type 'extlang' has exactly one (ref. RFC 5646 §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\nPrefix: aao\r\n",
+                "The record at line 3 has 2 Prefix fields, but a record of the Type 'extlang' has exactly one (ref. RFC 5646 §3.1.8)."),
+            // Suppress-Script, Macrolanguage and Scope appear only in language and extlang records (§3.1.2, §3.1.9, §3.1.10)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Latn\r\nDescription: Latin\r\nAdded: 2005-10-16\r\nSuppress-Script: Latn\r\n",
+                "The record at line 3 has a Suppress-Script field, which only records of the Type 'language' or 'extlang' may have, but its Type is 'script' (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Hans\r\nDescription: Han (Simplified variant)\r\nAdded: 2005-10-16\r\nMacrolanguage: zh\r\n",
+                "The record at line 3 has a Macrolanguage field, which only records of the Type 'language' or 'extlang' may have, but its Type is 'script' (ref. RFC 5646 §3.1.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nScope: special\r\n",
+                "The record at line 3 has a Scope field, which only records of the Type 'language' or 'extlang' may have, but its Type is 'variant' (ref. RFC 5646 §3.1.2)."),
+            // Scope permits "macrolanguage", "collection", "special" and "private-use" alone (§3.1.2)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope: individual\r\n",
+                "The record at line 3 has the Scope 'individual', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope: Special\r\n",
+                "The record at line 3 has the Scope 'Special', which is not one of the values 'macrolanguage', 'collection', 'special' and 'private-use' that RFC 5646 §3.1.2 permits."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nScope:\r\n",
+                "The Scope field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Prefix contains a valid language tag (§3.1.2, §3.1.8): well-formed, and repeating no variant subtag or extension singleton (§2.2.9)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: !!\r\n",
+                "The record at line 3 has the Prefix '!!', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar-\r\n",
+                "The record at line 3 has the Prefix 'ar-', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: biske\r\nDescription: The San Giorgio dialect of Resian\r\nAdded: 2007-07-05\r\nPrefix: sl-rozaj\r\nPrefix: sl-rozaj-rozaj\r\n",
+                "The record at line 3 has the Prefix 'sl-rozaj-rozaj', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: sl-a-bb-a-cc\r\n",
+                "The record at line 3 has the Prefix 'sl-a-bb-a-cc', which is not a well-formed language tag that repeats no variant subtag or extension singleton, as a valid language tag is (ref. RFC 5646 §2.2.9, §3.1.2, §3.1.8)."),
+            // a Suppress-Script contains a script subtag, four letters (§2.2.3, §3.1.2, §3.1.9)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script: 12\r\n",
+                "The record at line 3 has the Suppress-Script '12', which is not a script subtag of four letters (ref. RFC 5646 §2.2.3, §3.1.2, §3.1.9)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script: Latin\r\n",
+                "The record at line 3 has the Suppress-Script 'Latin', which is not a script subtag of four letters (ref. RFC 5646 §2.2.3, §3.1.2, §3.1.9)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script:\r\n",
+                "The Suppress-Script field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Macrolanguage contains a primary language subtag, two to eight letters (§2.2.1, §3.1.2, §3.1.10)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage: a\r\n",
+                "The record at line 3 has the Macrolanguage 'a', which is not a primary language subtag of two to eight letters (ref. RFC 5646 §2.2.1, §3.1.2, §3.1.10)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage: ar-DZ\r\n",
+                "The record at line 3 has the Macrolanguage 'ar-DZ', which is not a primary language subtag of two to eight letters (ref. RFC 5646 §2.2.1, §3.1.2, §3.1.10)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage:\r\n",
+                "The Macrolanguage field at line 7 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Preferred-Value takes the form §3.1.2 gives it for the record's Type: a primary language subtag for language, a subtag of the same
+            // type for script, region and variant, and an extended language range of RFC 4647 §2.2 for extlang, grandfathered and redundant
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: in\r\nDescription: Indonesian\r\nAdded: 2005-10-16\r\nDeprecated: 1989-01-01\r\nPreferred-Value: id-ID\r\n",
+                "The record at line 3 has the Preferred-Value 'id-ID', which is not a primary language subtag, as a record of the Type 'language' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Qaai\r\nDescription: Inherited\r\nAdded: 2005-10-16\r\nDeprecated: 2007-07-05\r\nPreferred-Value: Zin\r\n",
+                "The record at line 3 has the Preferred-Value 'Zin', which is not a script subtag, as a record of the Type 'script' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-05\r\nPreferred-Value: en-US\r\n",
+                "The record at line 3 has the Preferred-Value 'en-US', which is not a region subtag, as a record of the Type 'region' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-05\r\nPreferred-Value: M1\r\n",
+                "The record at line 3 has the Preferred-Value 'M1', which is not a region subtag, as a record of the Type 'region' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: heploc\r\nDescription: Hepburn romanization, Library of Congress method\r\nAdded: 2009-10-01\r\nDeprecated: 2010-02-07\r\nPreferred-Value: abcd\r\n",
+                "The record at line 3 has the Preferred-Value 'abcd', which is not a variant subtag, as a record of the Type 'variant' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            // an extlang record has a Preferred-Value, identical to its Subtag (§2.2.2)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\n",
+                "The record at line 3 has no Preferred-Value field, which a record of the Type 'extlang' has (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: ar-aao\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value 'ar-aao', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: AAO\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value 'AAO', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: *\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Preferred-Value '*', which is not identical to its Subtag 'aao', as in a record of the Type 'extlang' (ref. RFC 5646 §2.2.2)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: i-klingon\r\nDescription: Klingon\r\nAdded: 1999-05-26\r\nDeprecated: 2004-02-24\r\nPreferred-Value: tlh--x\r\n",
+                "The record at line 3 has the Preferred-Value 'tlh--x', which is not an extended language range of RFC 4647 §2.2, as a record of the Type 'grandfathered' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-cmn-Hans\r\nDescription: Mandarin Chinese (Simplified)\r\nAdded: 2005-07-15\r\nDeprecated: 2009-07-29\r\nPreferred-Value: cmn-Hansabcde\r\n",
+                "The record at line 3 has the Preferred-Value 'cmn-Hansabcde', which is not an extended language range of RFC 4647 §2.2, as a record of the Type 'redundant' has (ref. RFC 5646 §3.1.2, §3.1.7)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: in\r\nDescription: Indonesian\r\nAdded: 2005-10-16\r\nDeprecated: 1989-01-01\r\nPreferred-Value:\r\n",
+                "The Preferred-Value field at line 8 has no value (ref. RFC 5646 §3.1.2)."),
+            // a Subtag has the form of its Type (§2.2.1 to §2.2.5) and the case of §3.1.4: titlecase for a script, upper case for a region, and lower
+            // case for every other Type
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: en US!\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'en US!', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: EN\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'EN', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aaoo\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPrefix: ar\r\n",
+                "The record at line 3 has the Subtag 'aaoo', which is not a subtag of the Type 'extlang', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: latn\r\nDescription: Latin\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'latn', which is not a subtag of the Type 'script', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: 12\r\nDescription: Twelve\r\nAdded: 2025-01-01\r\n",
+                "The record at line 3 has the Subtag '12', which is not a subtag of the Type 'region', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: us\r\nDescription: United States\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'us', which is not a subtag of the Type 'region', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: abcd\r\nDescription: Four letters\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'abcd', which is not a subtag of the Type 'variant', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: Rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'Rozaj', which is not a subtag of the Type 'variant', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            // a range has the form and case of its Type at both ends, which have the same length, with the first not after the second (§3.1.1)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qaa..QTZ\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'qaa..QTZ', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qtz..qaa\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'qtz..qaa', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: qaa..qtzz\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'qaa..qtzz', which is not a subtag of the Type 'language', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: QM..\r\nDescription: Private use\r\nAdded: 2005-10-16\r\n",
+                "The record at line 3 has the Subtag 'QM..', which is not a subtag of the Type 'region', or a range of them, in the form of RFC 5646 §2.2 and the case of §3.1.4."),
+            // a Tag is formatted as §2.1.1 describes (§3.1.4)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: foo bar\r\nDescription: Foo\r\nAdded: 1999-05-25\r\n",
+                "The record at line 3 has the Tag 'foo bar', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-hans\r\nDescription: simplified Chinese\r\nAdded: 2005-04-11\r\n",
+                "The record at line 3 has the Tag 'zh-hans', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: en-gb-oed\r\nDescription: English, Oxford English Dictionary spelling\r\nAdded: 2003-07-09\r\n",
+                "The record at line 3 has the Tag 'en-gb-oed', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: I-ami\r\nDescription: Amis\r\nAdded: 1999-05-25\r\n",
+                "The record at line 3 has the Tag 'I-ami', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            // only a subtag of two or four letters has a capital, so one with a digit is lower case (§2.1.1)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: grandfathered\r\nTag: en-A1\r\nDescription: Digit\r\nAdded: 1999-05-25\r\n",
+                "The record at line 3 has the Tag 'en-A1', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: en--US\r\nDescription: Empty subtag\r\nAdded: 2005-04-11\r\n",
+                "The record at line 3 has the Tag 'en--US', which is not formatted as RFC 5646 §2.1.1 describes (ref. RFC 5646 §3.1.4)."),
+            // the fields that RFC 5646 defines, except Description and Comments, hold printable US-ASCII characters alone (§3.1.1)
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: \x00E9n\r\nDescription: English\r\nAdded: 2005-10-16\r\n",
+                "The Subtag field at line 4 holds the character U+00E9, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: r\x00E9gion\r\nSubtag: US\r\nDescription: United States\r\nAdded: 2005-10-16\r\n",
+                "The Type field at line 3 holds the character U+00E9, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
+            ("File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: sl\x00E9\r\n",
+                "The Prefix field at line 7 holds the character U+00E9, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
+            // DEL, U+007F, is one of CHARS but not a printable US-ASCII character
+            ("File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nPreferred-Value: a\x007F\r\n",
+                "The Preferred-Value field at line 7 holds the character U+007F, which is not one of the printable US-ASCII characters that the field is restricted to (ref. RFC 5646 §3.1.1)."),
         };
 
         /// <summary>
@@ -1277,6 +1442,36 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             (await testAction.Should().ThrowAsync<FormatException>("{0} reads only the format of RFC 5646 §3.1.1", loaderName))
                 .Which.Message.Should().Be(expectedMessage);
+        }
+
+        /// <summary>
+        /// Registries whose Prefix, Suppress-Script, Macrolanguage or Preferred-Value field has the form RFC 5646 §3.1.2 gives it, in a case other than
+        /// the registry's own or with a wildcard, which RFC 5646 permits: §3.1.4 sets the case of the Subtag and Tag fields alone, and the case of a
+        /// language tag is not significant (§2.1.1); an extended language range may hold "*" (RFC 4647 §2.2).
+        /// </summary>
+        public static TheoryData<string> WellFormedFieldRegistries => new TheoryData<string>
+        {
+            "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: biske\r\nDescription: The San Giorgio dialect of Resian\r\nAdded: 2007-07-05\r\nPrefix: SL-Rozaj\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: rozaj\r\nDescription: Resian\r\nAdded: 2005-10-16\r\nPrefix: i-klingon\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aa\r\nDescription: Afar\r\nAdded: 2005-10-16\r\nSuppress-Script: LATN\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: language\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nMacrolanguage: AR\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: BU\r\nDescription: Burma\r\nAdded: 2005-10-16\r\nDeprecated: 1989-12-05\r\nPreferred-Value: mm\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: region\r\nSubtag: 062\r\nDescription: South-Central Asia\r\nAdded: 2005-10-16\r\nDeprecated: 2010-08-16\r\nPreferred-Value: 034\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: variant\r\nSubtag: heploc\r\nDescription: Hepburn romanization, Library of Congress method\r\nAdded: 2009-10-01\r\nDeprecated: 2010-02-07\r\nPreferred-Value: ALALC97\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: script\r\nSubtag: Qaai\r\nDescription: Inherited\r\nAdded: 2005-10-16\r\nDeprecated: 2007-07-05\r\nPreferred-Value: zinh\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: redundant\r\nTag: zh-cmn-Hans\r\nDescription: Mandarin Chinese (Simplified)\r\nAdded: 2005-07-15\r\nDeprecated: 2009-07-29\r\nPreferred-Value: cmn-*-1994\r\n",
+            "File-Date: 2025-01-01\r\n%%\r\nType: extlang\r\nSubtag: aao\r\nDescription: Algerian Saharan Arabic\r\nAdded: 2009-07-29\r\nPreferred-Value: aao\r\nPrefix: AR\r\n",
+        };
+
+        [Theory]
+        [MemberData(nameof(WellFormedFieldRegistries))]
+        public void CreateFromContent_WhenFieldHasTheFormOfItsField_ReturnsRegistry(string content)
+        {
+            // act
+            var testResult = SubtagRegistry.CreateFromContent(content);
+
+            // assert
+            testResult.Count.Should().Be(MinimalRegistryRecordCount, "the record's fields have the forms RFC 5646 §3.1.2 gives them, in any case");
         }
 
         #endregion

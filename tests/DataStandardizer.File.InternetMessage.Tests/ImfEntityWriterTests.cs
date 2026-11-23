@@ -35,6 +35,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly MimeMediaType MessagePartial = MimeMediaType.Parse("message/partial;id=a;number=1");
         private static readonly MimeMediaType MessageGlobal = MimeMediaType.Parse("message/global");
 
+        // ref. RFC 6533 §6.3, §6.4 and §6.5
+        private static readonly MimeMediaType MessageGlobalHeaders = MimeMediaType.Parse("message/global-headers");
+        private static readonly MimeMediaType MessageGlobalDeliveryStatus = MimeMediaType.Parse("message/global-delivery-status");
+        private static readonly MimeMediaType MessageGlobalDispositionNotification = MimeMediaType.Parse("message/global-disposition-notification");
+
         private static readonly string LongestLine = new string('a', MaxLineLength);
         private static readonly string LineOverLongest = new string('a', MaxLineLength + 1);
         private static readonly byte[] AllByteValues = BuildAllByteValues();
@@ -123,6 +128,52 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { MimeMediaType.MessageRfc822, MimeTransferEncoding.Base64, Octets.Of("A: 1\r\n") },
             { MimeMediaType.MessageRfc822, MimeTransferEncoding.QuotedPrintable, Octets.Of("A: 1\r\n") },
             { MultipartWithGivenBoundary, MimeTransferEncoding.Base64, Octets.Of("--given--") },
+        };
+
+        // ref. RFC 6533 §6.3, §6.4 and §6.5: these may be quoted-printable or base64, so content outside 7bit is encoded under the default options.
+        public static TheoryData<MimeMediaType, string> Rfc6533ContentThatNeedsEncoding => new TheoryData<MimeMediaType, string>
+        {
+            { MessageGlobalHeaders, "MIME-Version: 1.0\r\nContent-Type: message/global-headers\r\nContent-Transfer-Encoding: base64\r\n\r\n//79" },
+            { MessageGlobalDeliveryStatus, "MIME-Version: 1.0\r\nContent-Type: message/global-delivery-status\r\nContent-Transfer-Encoding: base64\r\n\r\n//79" },
+            {
+                MessageGlobalDispositionNotification,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-disposition-notification\r\nContent-Transfer-Encoding: base64\r\n\r\n//79"
+            },
+        };
+
+        // ref. RFC 6533 §6.3, §6.4 and §6.5
+        public static TheoryData<MimeMediaType, MimeTransferEncoding, string> Rfc6533GivenEncodings => new TheoryData<MimeMediaType, MimeTransferEncoding, string>
+        {
+            {
+                MessageGlobalHeaders,
+                MimeTransferEncoding.QuotedPrintable,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-headers\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nA: =C3=A9=0D=0A"
+            },
+            {
+                MessageGlobalHeaders,
+                MimeTransferEncoding.Base64,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-headers\r\nContent-Transfer-Encoding: base64\r\n\r\nQTogw6kNCg=="
+            },
+            {
+                MessageGlobalDeliveryStatus,
+                MimeTransferEncoding.QuotedPrintable,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-delivery-status\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nA: =C3=A9=0D=0A"
+            },
+            {
+                MessageGlobalDeliveryStatus,
+                MimeTransferEncoding.Base64,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-delivery-status\r\nContent-Transfer-Encoding: base64\r\n\r\nQTogw6kNCg=="
+            },
+            {
+                MessageGlobalDispositionNotification,
+                MimeTransferEncoding.QuotedPrintable,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-disposition-notification\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nA: =C3=A9=0D=0A"
+            },
+            {
+                MessageGlobalDispositionNotification,
+                MimeTransferEncoding.Base64,
+                "MIME-Version: 1.0\r\nContent-Type: message/global-disposition-notification\r\nContent-Transfer-Encoding: base64\r\n\r\nQTogw6kNCg=="
+            },
         };
 
         public static TheoryData<string, string> RoundTrips => new TheoryData<string, string>
@@ -444,9 +495,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void WriteMessage_ForwardOnlyTextInQuotedPrintable_WritesBareLineFeedsAsLineBreaks()
+        public void WriteMessage_ForwardOnlyTextInQuotedPrintable_EncodesBareLineFeeds()
         {
             // arrange
+            // ref. RFC 2045 §6.7 rule 4: only a CRLF is a line break of text, so a bare LF is encoded, which keeps the content as it is.
             var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, new ForwardOnlyStream(Octets.Of("a\nb")));
             source.TransferEncoding = MimeTransferEncoding.QuotedPrintable;
 
@@ -454,7 +506,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source);
 
             // assert
-            testResult.Should().Be(Header + "Content-Transfer-Encoding: quoted-printable\r\n\r\na\r\nb");
+            testResult.Should().Be(Header + "Content-Transfer-Encoding: quoted-printable\r\n\r\na=0Ab");
         }
 
         [Fact]
@@ -848,6 +900,35 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: message/global\r\nContent-Transfer-Encoding: base64\r\n\r\n//79");
+        }
+
+        [Theory]
+        [MemberData(nameof(Rfc6533ContentThatNeedsEncoding))]
+        public void WriteMessage_Rfc6533ContentThatNeedsEncoding_EncodesIt(MimeMediaType contentType, string expected)
+        {
+            // arrange
+            var source = ImfEntitySource.FromContent(contentType, Octets.Of("\x00FF\x00FE\x00FD"));
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(Rfc6533GivenEncodings))]
+        public void WriteMessage_Rfc6533TypeWithAnEncodingGiven_UsesIt(MimeMediaType contentType, MimeTransferEncoding encoding, string expected)
+        {
+            // arrange
+            var source = ImfEntitySource.FromContent(contentType, Octets.Of("A: \x00C3\x00A9\r\n"));
+            source.TransferEncoding = encoding;
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Fact]

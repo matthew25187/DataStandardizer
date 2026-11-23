@@ -8,6 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.Language
 {
+    /// <summary>
+    /// Extension methods that read the metadata of ISO 639 language codes.
+    /// </summary>
     public static class Iso639Extensions
     {
         #region Public Methods
@@ -33,7 +36,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part1Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -66,7 +69,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language codes.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part2BLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -99,7 +102,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part2TLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -149,7 +152,7 @@ namespace DataStandardizer.Language
         /// Gets the English names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of English names, if found; otherwise an empty array.</returns>
         public static string[] GetEnglishNames(this Iso639Part5LanguageFamily languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -182,7 +185,7 @@ namespace DataStandardizer.Language
         /// Gets the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part1Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -215,7 +218,7 @@ namespace DataStandardizer.Language
         /// Gets the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part2BLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -248,7 +251,7 @@ namespace DataStandardizer.Language
         /// Gets the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part2TLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -281,7 +284,7 @@ namespace DataStandardizer.Language
         /// Get the French names for the language code.
         /// </summary>
         /// <param name="languageCode">Language code.</param>
-        /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Collection of French names, if found; otherwise an empty array.</returns>
         public static string[] GetFrenchNames(this Iso639Part5LanguageFamily languageCode)
         {
             var memberField = GetMemberField(languageCode);
@@ -371,7 +374,7 @@ namespace DataStandardizer.Language
         /// that <see cref="Iso639Part1Language"/> therefore doesn't define. For example, <see cref="Iso639Part3Language.hbs"/>
         /// (Serbo-Croatian) returns <c>sh</c>, which ISO 639-1 withdrew in 2000. It isn't a defined
         /// <see cref="Iso639Part1Language"/> member: <c>StringEnum.IsDefined</c> returns <c>false</c> for it, and
-        /// <c>StringEnum.Parse</c> throws.
+        /// <c>StringEnum.Parse</c> and an explicit cast to <see cref="Iso639Part1Language"/> throw.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetPart1Code(this Iso639Part3Language languageCode)

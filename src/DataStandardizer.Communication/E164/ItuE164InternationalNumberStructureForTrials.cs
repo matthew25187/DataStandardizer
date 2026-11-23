@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -40,16 +39,23 @@ namespace DataStandardizer.Communication.E164
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var trialIdentificationCodePart = parseMatch.Groups[NumberPart.IdentificationCode].Value;
                 var subscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
-                var concatenatedParts = Regex.Replace(countryCodePart + trialIdentificationCodePart + subscriberNumberPart, @"\D", string.Empty);
+                var concatenatedParts = countryCodePart + trialIdentificationCodePart + subscriberNumberPart;
                 var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
+                var numberParts = new Dictionary<string, string>
+                {
+                    { NumberPart.CountryCode, countryCodePart },
+                    { NumberPart.IdentificationCode, trialIdentificationCodePart }
+                };
+
+                // A trial number may have no Subscriber Number.
+                if (subscriberNumberPart.Length > 0)
+                {
+                    numberParts.Add(NumberPart.SubscriberNumber, subscriberNumberPart);
+                }
+
                 result = new ItuE164InternationalNumberStructureForTrials(number)
                 {
-                    _numberParts = new Dictionary<string, string>
-                    {
-                        { NumberPart.CountryCode, countryCodePart },
-                        { NumberPart.IdentificationCode, trialIdentificationCodePart },
-                        { NumberPart.SubscriberNumber, subscriberNumberPart }
-                    }
+                    _numberParts = numberParts
                 };
                 isParsed = true;
             }

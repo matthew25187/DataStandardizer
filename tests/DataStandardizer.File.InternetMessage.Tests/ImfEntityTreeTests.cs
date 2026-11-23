@@ -35,6 +35,64 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "new\r\n" +
             "--b--";
 
+        private const string KeptBoundaryAroundMessage =
+            Header +
+            "Content-Type: multipart/mixed; boundary=b\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "Content-Type: message/rfc822\r\n" +
+            "\r\n" +
+            Header +
+            "\r\n" +
+            "one\r\n" +
+            "--b--\r\n";
+
+        private const string KeptBoundaryAroundSeparatelyReadText =
+            Header +
+            "Content-Type: multipart/mixed; boundary=b\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "Content-Type: message/rfc822\r\n" +
+            "\r\n" +
+            Header +
+            "\r\n" +
+            "two\r\n" +
+            "--b--\r\n";
+
+        private const string SeparatelyReadHoldsDelimiter = Header + "\r\n--b\r\n";
+        private const string SeparatelyReadText = Header + "\r\ntwo";
+        private const string SeparatelyReadPreambleHoldsDelimiter = Header + "Content-Type: multipart/mixed; boundary=c\r\n\r\n--b\r\n--c\r\n\r\ntwo\r\n--c--\r\n";
+
+        private const string MovedPartHoldsDelimiter =
+            Header +
+            "Content-Type: multipart/mixed; boundary=a\r\n" +
+            "\r\n" +
+            "--a\r\n" +
+            "Content-Type: multipart/mixed; boundary=c\r\n" +
+            "\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "two\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "--c--\r\n" +
+            "--a--\r\n";
+
+        private const string KeptPreambleHoldsAnotherBoundary =
+            Header +
+            "Content-Type: multipart/mixed; boundary=b\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "Content-Type: multipart/mixed; boundary=c\r\n" +
+            "\r\n" +
+            "--z\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "two\r\n" +
+            "--c--\r\n" +
+            "--b--\r\n";
+
         private const string TwoParts =
             Header +
             "Content-Type: multipart/mixed; boundary=b\r\n" +
@@ -210,6 +268,27 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int DeeperThanTheStackCanFollow = 100000;
 
         private const string NewBody = "new";
+
+        // 300 words, about 600 bytes: the formatter allows a line break at each of the 299 spaces, which takes its estimate of the room the field needs past the 1024 bytes its
+        // callers start with, so it has to rent a larger buffer.
+        private const string LongFieldText =
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " +
+            "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a";
+
+        private const string NoteFieldName = "X-Note";
+        private const string NoteFieldBody = "changed";
+        private const string OtherBoundary = "z";
+        private const string Utf8FieldBody = "caf\x00E9";
+        private const string NewMessageRawBody = "body";
+        private const string Utf8FieldMessage = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nX-Note: caf\xC3\xA9\r\n\r\nbody";
 
         public static TheoryData<string, string[]> Trees => new TheoryData<string, string[]>
         {
@@ -992,11 +1071,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_RawBodySetAndBodyNeverAskedFor_WritesItAsItIs()
         {
             // arrange
-            var subject = EntityTrees.Read(TwoParts, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            // ref. RFC 2046 §5.1.1: the new body has no delimiters, so a writer too has to accept a multipart entity with no close delimiter.
+            var options = new ImfOptions { AllowMissingBoundaryTerminator = true };
+            var subject = EntityTrees.Read(TwoParts, options);
             subject.RawBody = EntityTrees.Bytes(NewBody);
 
             // act
-            var testResult = EntityTrees.Write(subject);
+            var testResult = EntityTrees.Write(subject, options);
 
             // assert
             testResult.Should().Be(TwoPartsHeaderWithNewRawBody);
@@ -1046,6 +1127,121 @@ namespace DataStandardizer.File.InternetMessage.Tests
             ((ImfMultipart)source.Body).Parts.RemoveAt(0);
             var subject = EntityTrees.Read(Nested, new ImfOptions { AllowMissingRequiredFields = true });
             ((ImfMultipart)EntityTrees.At(subject, "1")).Parts.Add(moved);
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_KeptBoundaryPutInsideAKeptBoundaryThatIsItsPrefix_Throws()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: each boundary was kept from its own read, and a delimiter of "b1" inside the entity of "b" starts with "--b")
+            const string Outer = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\n" + Header + "\r\none\r\n--b--\r\n";
+            const string Inner = Header + "Content-Type: multipart/mixed; boundary=b1\r\n\r\n--b1\r\n\r\ntwo\r\n--b1--\r\n";
+            var subject = EntityTrees.Read(Outer);
+            var inner = EntityTrees.Read(Inner);
+            ((ImfMultipart)inner.Body).Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "changed"));
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = inner;
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_SeparatelyReadMessageSetUnderAKeptBoundaryThatItHolds_Throws()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: the message was read on its own, so nothing found that it doesn't hold a delimiter of "b")
+            var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = EntityTrees.Read(SeparatelyReadHoldsDelimiter);
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_SeparatelyReadMessageSetUnderAKeptBoundary_WritesItAsItWasRead()
+        {
+            // arrange
+            var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = EntityTrees.Read(SeparatelyReadText);
+
+            // act
+            var testResult = EntityTrees.Write(subject);
+
+            // assert
+            testResult.Should().Be(KeptBoundaryAroundSeparatelyReadText);
+        }
+
+        [Fact]
+        public void WriteMessage_SeparatelyReadMessageWhosePreambleHoldsAKeptBoundary_Throws()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: the delimiters, preamble and epilogue of "c" are kept from a read that found nothing about "b")
+            var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
+            var inner = EntityTrees.Read(SeparatelyReadPreambleHoldsDelimiter);
+            ((ImfMultipart)inner.Body).Parts[0].Fields.Add(ImfHeaderField.FromText(NoteFieldName, NoteFieldBody));
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message = inner;
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_UnchangedPartOfAMovedMultipartHoldsAKeptBoundary_Throws()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: the second part of "c" was found not to hold a delimiter of "a", and that says nothing about "b")
+            var source = EntityTrees.Read(MovedPartHoldsDelimiter);
+            var moved = (ImfMultipart)EntityTrees.At(source, "1");
+            ((ImfMultipart)source.Body).Parts.RemoveAt(0);
+            moved.Parts[0].Fields.Add(ImfHeaderField.FromText(NoteFieldName, NoteFieldBody));
+            var subject = EntityTrees.Read(KeptBoundaryAroundMessage);
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message.Body = moved;
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_KeptPreambleHoldsTheNewBoundaryAroundIt_Throws()
+        {
+            // arrange (ref. RFC 2046 §5.1.1: the preamble of "c" is kept, and the boundary around it is now "z")
+            var subject = EntityTrees.Read(KeptPreambleHoldsAnotherBoundary);
+            ((ImfMultipart)EntityTrees.At(subject, "1")).Parts[0].Fields.Add(ImfHeaderField.FromText(NoteFieldName, NoteFieldBody));
+            subject.Body.ContentType = MimeMediaType.MultipartMixed.WithParameter("boundary", OtherBoundary);
             var output = new MemoryStream();
             using (var writer = new ImfWriter(output))
             {
@@ -1459,6 +1655,130 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be("Subject: New\r\n\r\nbody");
+        }
+
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void Body_NewUtf8FieldWithEitherHeaderEncoding_IsRead(ImfHeaderEncoding encoding)
+        {
+            // arrange (ref. RFC 6532 §3.2: a reader accepts a field body in UTF-8, and HeaderEncoding is for a writer)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = encoding });
+
+            // act
+            var testResult = EntityTrees.ContentOf(subject.Body);
+
+            // assert
+            testResult.Should().Be(NewMessageRawBody);
+        }
+
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void Validate_NewUtf8FieldWithEitherHeaderEncoding_ReportsNothing(ImfHeaderEncoding encoding)
+        {
+            // arrange (ref. RFC 6532 §3.2)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = encoding });
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void WriteMessage_NewUtf8FieldAndUtf8Writer_WritesItAsUtf8(ImfHeaderEncoding messageEncoding)
+        {
+            // arrange (ref. RFC 6532 §3.2)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = messageEncoding });
+
+            // act
+            var testResult = EntityTrees.Write(subject, new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 });
+
+            // assert
+            testResult.Should().Be(Utf8FieldMessage);
+        }
+
+        [Theory]
+        [InlineData(ImfHeaderEncoding.EncodedWords)]
+        [InlineData(ImfHeaderEncoding.Utf8)]
+        public void WriteMessage_NewUtf8FieldAndDefaultWriter_Throws(ImfHeaderEncoding messageEncoding)
+        {
+            // arrange (ref. RFC 5322 §2.2: a field body is US-ASCII)
+            var subject = NewMessageWithUtf8Field(new ImfOptions { HeaderEncoding = messageEncoding });
+
+            // act
+            Action testAction = () => EntityTrees.Write(subject, new ImfOptions());
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
+        }
+
+        [Fact]
+        public void Body_NewFieldThatGrowsTheFormatBuffer_IsRead()
+        {
+            // arrange
+            var subject = NewMessageWithField(new ImfOptions(), ImfHeaderField.FromText(NoteFieldName, LongFieldText));
+
+            // act
+            var testResult = EntityTrees.ContentOf(subject.Body);
+
+            // assert
+            testResult.Should().Be(NewMessageRawBody);
+        }
+
+        [Fact]
+        public void WriteMessage_LongFieldOfOnePartSet_ReadsBackTheField()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoParts);
+            EntityTrees.At(subject, "2").ContentDescription = LongFieldText;
+
+            // act
+            var testResult = EntityTrees.At(EntityTrees.Read(EntityTrees.Write(subject)), "2").ContentDescription;
+
+            // assert
+            testResult.Should().Be(LongFieldText);
+        }
+
+        [Fact]
+        public void WriteMessage_LongFieldOfPartWithNewContent_ReadsBackTheField()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoParts);
+            var part = EntityTrees.At(subject, "1");
+            part.SetContent(EntityTrees.Bytes(NewBody));
+            part.ContentDescription = LongFieldText;
+
+            // act
+            var testResult = EntityTrees.At(EntityTrees.Read(EntityTrees.Write(subject)), "1").ContentDescription;
+
+            // assert
+            testResult.Should().Be(LongFieldText);
+        }
+
+        /// <summary>
+        /// Builds a message that wasn't read, with a field body that isn't US-ASCII and a raw body whose entities haven't been read yet.
+        /// </summary>
+        private static ImfMessage NewMessageWithUtf8Field(ImfOptions options)
+        {
+            return NewMessageWithField(options, new ImfHeaderField(NoteFieldName, " " + Utf8FieldBody, ImfHeaderFieldKind.Unstructured));
+        }
+
+        /// <summary>
+        /// Builds a message that wasn't read, with a Date, a From and one more field, and a raw body whose entities haven't been read yet.
+        /// </summary>
+        private static ImfMessage NewMessageWithField(ImfOptions options, ImfHeaderField field)
+        {
+            var message = new ImfMessage(options);
+            message.Fields.Add(new ImfHeaderField("Date", " Fri, 21 Nov 1997 09:55:06 -0600", ImfHeaderFieldKind.Structured));
+            message.Fields.Add(new ImfHeaderField("From", " a@b.test", ImfHeaderFieldKind.Structured));
+            message.Fields.Add(field);
+            message.RawBody = EntityTrees.Bytes(NewMessageRawBody);
+            return message;
         }
 
         private sealed class SynchronousProgress : IProgress<ImfWriteProgress>

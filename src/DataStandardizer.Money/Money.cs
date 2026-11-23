@@ -4,6 +4,13 @@ using System.Globalization;
 
 namespace DataStandardizer.Money
 {
+    /// <summary>
+    /// Represents an amount of money, optionally in an ISO 4217 currency and with a rounding to apply to the amount.
+    /// </summary>
+    /// <remarks>
+    /// A value with no currency, such as <c>default(Money)</c> or one converted from a <see cref="decimal"/>, has the currency
+    /// <see cref="Iso4217CurrencyCurrent.XXX"/>. Comparisons and arithmetic between two values need them to have the same currency.
+    /// </remarks>
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable
 #if NETSTANDARD1_3_OR_GREATER||NET
@@ -158,6 +165,14 @@ namespace DataStandardizer.Money
             RoundingMethod = roundingMethod;
         }
 
+        /// <summary>
+        /// Converts a monetary value to its amount.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>
+        /// The amount of <paramref name="value"/>, rounded to <see cref="RoundingPrecision"/> decimal places with <see cref="RoundingMethod"/>,
+        /// or with <see cref="MidpointRounding.ToEven"/> when it has no rounding method. The amount is not rounded when the value has no rounding precision.
+        /// </returns>
         public static implicit operator decimal(Money value)
         {
             return value.RoundedAmount;
@@ -181,6 +196,11 @@ namespace DataStandardizer.Money
             }
         }
 
+        /// <summary>
+        /// Converts an amount to a monetary value with no currency.
+        /// </summary>
+        /// <param name="value">The amount of the monetary value.</param>
+        /// <returns>A monetary value whose amount is <paramref name="value"/>, with no currency or rounding, as <see cref="Create(decimal)"/> returns.</returns>
         public static implicit operator Money(decimal value)
         {
             return new Money(value);
@@ -204,7 +224,7 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt64(value)</c> binds to
-        /// <see cref="Convert.ToInt64(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// <see cref="Convert.ToInt64(decimal)"/> and converts the rounded amount, as do the <see cref="T:System.IConvertible"/>
         /// members, which <see cref="Convert.ToInt64(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(long)(decimal)value</c>.
@@ -240,7 +260,7 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt32(value)</c> binds to
-        /// <see cref="Convert.ToInt32(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// <see cref="Convert.ToInt32(decimal)"/> and converts the rounded amount, as do the <see cref="T:System.IConvertible"/>
         /// members, which <see cref="Convert.ToInt32(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(int)(decimal)value</c>.
@@ -276,7 +296,7 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt16(value)</c> binds to
-        /// <see cref="Convert.ToInt16(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// <see cref="Convert.ToInt16(decimal)"/> and converts the rounded amount, as do the <see cref="T:System.IConvertible"/>
         /// members, which <see cref="Convert.ToInt16(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(short)(decimal)value</c>.
@@ -311,7 +331,7 @@ namespace DataStandardizer.Money
         /// <para>
         /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
         /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToSByte(value)</c> binds to
-        /// <see cref="Convert.ToSByte(decimal)"/> and converts the rounded amount, as do the <see cref="IConvertible"/>
+        /// <see cref="Convert.ToSByte(decimal)"/> and converts the rounded amount, as do the <see cref="T:System.IConvertible"/>
         /// members, which <see cref="Convert.ToSByte(object)"/> calls. Both round
         /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
         /// convert through <see cref="decimal"/>, as in <c>(sbyte)(decimal)value</c>.

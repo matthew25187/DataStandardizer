@@ -343,6 +343,83 @@ namespace DataStandardizer.File.vCard.Tests
             testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
         }
 
+        // The names of a chain of cards, each held by an AGENT of the one before it, one past the limit of nesting: the card named "8" is nested in eight cards.
+        private static readonly string[] NamesOfCardsNestedPastTheLimit = { "N:1", "N:2", "N:3", "N:4", "N:5", "N:6", "N:7", "N:8" };
+
+        // What a writer of vCard 2.1 writes for the chain, under AllowLossyVersionConversion: the AGENT of the card named "7" is left out, since its card is nested too deeply.
+        private static readonly string WrittenCardsNestedToTheLimit = VcardTestData.Crlf(
+            "BEGIN:VCARD", "VERSION:2.1", "N:Doe;Jane;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:1;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:2;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:3;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:4;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:5;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:6;;;;",
+            "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:7;;;;",
+            "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD", "END:VCARD",
+            "END:VCARD");
+
+        // What the writer says of an AGENT whose card is nested too deeply.
+        private const string NestedTooDeeply = "its card is nested too deeply";
+
+        public static TheoryData<VcardCard> CardsNestedPastTheLimitData()
+        {
+            // AddAgent holds a copy of the card, so the chain is built from its innermost card out.
+            var held = VcardCardTestData.Read(Vcard21TestData.BareCard(NamesOfCardsNestedPastTheLimit[NamesOfCardsNestedPastTheLimit.Length - 1]));
+            for (var index = NamesOfCardsNestedPastTheLimit.Length - 2; index >= 0; index--)
+            {
+                var outer = VcardCardTestData.Read(Vcard21TestData.BareCard(NamesOfCardsNestedPastTheLimit[index]));
+                outer.AddAgent(held);
+                held = outer;
+            }
+
+            var card = VcardCardTestData.Read(Vcard21TestData.Card());
+            card.AddAgent(held);
+            return new TheoryData<VcardCard> { card };
+        }
+
+        [Theory]
+        [MemberData(nameof(CardsNestedPastTheLimitData))]
+        public void WriteCard_CardsNestedPastTheLimit_ThrowsLossy(VcardCard card)
+        {
+            // arrange
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            var thrown = testAction.Should().Throw<VcardFileException>().Which;
+            thrown.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.Lossy);
+            thrown.Message.Should().Contain(NestedTooDeeply);
+        }
+
+        [Theory]
+        [MemberData(nameof(CardsNestedPastTheLimitData))]
+        public void WriteCard_CardsNestedPastTheLimitUnderAllowLossyVersionConversion_WritesOnlyTheCardsWithinTheLimit(VcardCard card)
+        {
+            // arrange
+
+            // act
+            var testResult = Vcard21TestData.Write(card, allowLossy: true);
+
+            // assert
+            testResult.Should().Be(WrittenCardsNestedToTheLimit);
+        }
+
+        [Fact]
+        public void ReadCard_CardsNestedToTheLimit_ReadsTheInnermostCard()
+        {
+            // arrange
+
+            // act
+            var testResult = VcardCardTestData.Read(WrittenCardsNestedToTheLimit)
+                .Agents.Single().Card.Agents.Single().Card.Agents.Single().Card.Agents.Single().Card
+                .Agents.Single().Card.Agents.Single().Card.Agents.Single().Card.Name.Value.FamilyNames;
+
+            // assert
+            testResult.Should().Equal("7");
+        }
+
         [Fact]
         public void ReadCard_AgentWithNoCardAfterIt_ThrowsInvalidValue()
         {
@@ -354,6 +431,158 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        // ref. vCard 2.1 §2.1.8 and §2.5.1: a TEL at a URL, which RFC 6350 has no form for with a TYPE without a name, so a reader keeps the line as it is.
+        private const string KeptLegacyLine = "TEL;WORK;VALUE=URL:http://example.com/tel";
+
+        // The value of KeptLegacyLine.
+        private const string TelephoneUrl = "http://example.com/tel";
+
+        // ref. vCard 2.1 §2.1.4: "=ZZ" isn't a quoted-printable octet, so only AllowInvalidValues keeps the line, as it is.
+        private const string UndecodableLine = "NOTE;ENCODING=QUOTED-PRINTABLE:=ZZ";
+
+        private static readonly string AgentWithKeptLegacyLine = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", KeptLegacyLine, "END:VCARD");
+
+        private static readonly string AgentWithUndecodableLine = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", UndecodableLine, "END:VCARD");
+
+        // The cards in canonical form, with the line as it was read: a TYPE in vCard 4.0 is a parameter with a name (RFC 6350 §5.6), so the writer of the text names it.
+        private const string CanonicalAgentWithKeptLegacyLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nTEL;TYPE=WORK;VALUE=URL:http://example.com/tel\\nEND:VCARD\\n";
+        private const string CanonicalAgentWithUndecodableLine = "BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nNOTE;ENCODING=QUOTED-PRINTABLE:=ZZ\\nEND:VCARD\\n";
+
+        // What a writer of vCard 2.1 writes for the card with the kept line.
+        private static readonly string WrittenAgentWithKeptLegacyLine = VcardTestData.Crlf(
+            "BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Doe;Jane;;;",
+            "AGENT:BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Friday;Fred;;;",
+            KeptLegacyLine,
+            "END:VCARD",
+            "END:VCARD");
+
+        // What a writer of vCard 2.1 writes for the card with the undecodable line, under AllowInvalidValues.
+        private static readonly string WrittenAgentWithUndecodableLine = VcardTestData.Crlf(
+            "BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Doe;Jane;;;",
+            "AGENT:BEGIN:VCARD",
+            "VERSION:2.1",
+            "N:Friday;Fred;;;",
+            UndecodableLine,
+            "END:VCARD",
+            "END:VCARD");
+
+        private static readonly VcardOptions AllowInvalidValues = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+
+        public static TheoryData<string, VcardOptions, string> HeldLegacyLineData()
+        {
+            return new TheoryData<string, VcardOptions, string>
+            {
+                { AgentWithKeptLegacyLine, null, CanonicalAgentWithKeptLegacyLine },
+                { AgentWithUndecodableLine, AllowInvalidValues, CanonicalAgentWithUndecodableLine }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(HeldLegacyLineData))]
+        public void ReadCard_NestedCardWithALineKeptInItsForm_HoldsTheLineAsItIs(string text, VcardOptions options, string expectedValue)
+        {
+            // act
+            var testResult = VcardCardTestData.Read(text, options).GetProperties(VcardPropertyNames.Related).Single();
+
+            // assert
+            testResult.Value.Should().Be(expectedValue);
+            Vcard30TestData.ParametersOf(testResult).Should().Equal("VALUE=text", "TYPE=agent");
+        }
+
+        public static TheoryData<string, VcardOptions> HeldLegacyCardData()
+        {
+            return new TheoryData<string, VcardOptions>
+            {
+                { AgentWithKeptLegacyLine, null },
+                { AgentWithUndecodableLine, AllowInvalidValues }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(HeldLegacyCardData))]
+        public void ReadCards_NestedCardWithALineKeptInItsForm_ReadsTheCardAfterIt(string text, VcardOptions options)
+        {
+            // arrange
+            var stream = VcardCardTestData.Stream(text, Vcard21TestData.Card(KeptLegacyLine));
+
+            // act
+            var testResult = VcardCardTestData.ReadAll(stream, options);
+
+            // assert
+            testResult.Should().HaveCount(2);
+            testResult.Last().Properties.Last().Value.Should().Be(TelephoneUrl);
+        }
+
+        [Fact]
+        public void ReadCard_NestedCardWithAnUndecodableValueByDefault_ThrowsInvalidValue()
+        {
+            // act
+            Action testAction = () => VcardCardTestData.Read(AgentWithUndecodableLine);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithALineKeptInItsFormAsVersion21_WritesTheLineAsItIs()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(AgentWithKeptLegacyLine);
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be(WrittenAgentWithKeptLegacyLine);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnUndecodableValueAsVersion21_ThrowsInvalidValue()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(AgentWithUndecodableLine, AllowInvalidValues);
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnInvalidDateAsVersion21_ThrowsInvalidValue()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.2.4: a birthday is an ISO 8601 date, which "x" isn't.
+            var text = Vcard21TestData.Card("AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", "BDAY:x", "END:VCARD");
+            var card = VcardCardTestData.Read(text, AllowInvalidValues);
+
+            // act
+            Action testAction = () => Vcard21TestData.Write(card);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithAnUndecodableValueWithAllowInvalidValuesAsVersion21_WritesTheLineAsItIs()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(AgentWithUndecodableLine, AllowInvalidValues);
+
+            // act
+            var testResult = Vcard21TestData.Write(card, allowInvalidValues: true);
+
+            // assert
+            testResult.Should().Be(WrittenAgentWithUndecodableLine);
         }
     }
 }

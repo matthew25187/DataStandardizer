@@ -1,6 +1,6 @@
 ############################################################################################
 # Title: ISO 4217 Current Currency & Funds Source Code Generator                           #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.                          #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.                     #
 #                                                                                          #
 # Purpose: Generate source code for implementing the ISO 4217 standard.                    #
 # Source: Current Currency & Funds list (XML), SIX Group.                                  #
@@ -142,7 +142,7 @@ function Out-SourceCode {
 
         if (-not [string]::IsNullOrEmpty($TypeComment)) {
             $enumTypeOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($TypeComment, $true)
+            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($TypeComment -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
             $enumTypeCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
             $enumType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
         }
@@ -191,7 +191,7 @@ function Out-SourceCode {
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($_.CcyNm, $true)
+        $enumFieldSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($_.CcyNm -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $enumFieldCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
         $enumField.Comments.AddRange(@($enumFieldOpenSummaryComment, $enumFieldSummaryContentComment, $enumFieldCloseSummaryComment))
 
@@ -202,7 +202,7 @@ function Out-SourceCode {
             $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new('<list type="bullet">', $true)
             foreach ($currencyCountryName in $currencyCountryNames) {
                 $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t<item>", $true)
-                $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`t<description>$currencyCountryName</description>", $true)
+                $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t`t<description>$($currencyCountryName -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')</description>", $true)
                 $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new("`t</item>", $true)
             }
             $enumFieldRemarksComments += [System.CodeDom.CodeCommentStatement]::new('</list>', $true)

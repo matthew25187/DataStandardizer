@@ -16,8 +16,15 @@ namespace DataStandardizer.File.vCard
     /// </remarks>
     internal static class VcardNestedCards
     {
-        // Nothing sets a limit.  Each level doubles the backslashes of the one inside it, so a real card never gets near this.
-        private const int MaxDepth = 8;
+        /// <summary>
+        /// The limit on how deeply cards held by an <c>AGENT</c> are nested, whether a card is held as text or follows the line of a vCard 2.1 <c>AGENT</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nothing sets a limit.  Each level of a card held as text doubles the backslashes of the one inside it, so a real card never gets near this.  A card held as text is read while the
+        /// card around it is nested in fewer than this many cards, so it can be nested in this many.  A card that follows the line of a vCard 2.1 <c>AGENT</c> can be nested in one fewer,
+        /// and the reader of vCard 2.1, and the mapping that writes it, check it the same way.
+        /// </remarks>
+        internal const int MaxDepth = 8;
 
         private const int NoFolding = int.MaxValue / 2;
 
@@ -101,7 +108,8 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the text of a nested card, with no escaping as a value yet, which each line break becomes.
         /// </summary>
-        /// <param name="card">The card, which is written with whatever it holds, since what it can't hold is reported on the property it is in.</param>
+        /// <param name="card">The card, which is written with whatever it holds.  Writing a vCard 3.0 or 2.1 card reports what the held card can't hold on the <c>AGENT</c> it is in.  In
+        /// vCard 4.0 it is the value of a <c>RELATED</c> with <c>VALUE=text</c> (RFC 6350 §6.6.6), which isn't checked as a card.</param>
         /// <param name="version">The version to write.</param>
         internal static string Write(VcardCard card, VcardVersion version)
         {
@@ -118,7 +126,9 @@ namespace DataStandardizer.File.vCard
             };
 
             var output = new StringWriter();
-            using (var writer = new VcardWriter(output, options))
+            // A line of vCard 2.1 that a reader kept as it was, since vCard 4.0 or 3.0 has no form for it, is written as it is, as it is at the top of a card.  The text is read again with
+            // HeldCardOptions, which accept it.
+            using (var writer = VcardWriter.ForHeldCard(output, options))
             {
                 writer.WriteCard(card);
             }

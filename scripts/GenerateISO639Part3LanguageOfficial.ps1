@@ -169,19 +169,43 @@ function Out-SourceCode {
     
             Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
 
-            $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+            $stringToStructConversionOperatorSnippet = "            /// <summary>
+            /// Converts an ISO 639-3 code to the <see cref=`"$GenerateTypeName`"/> member with that code.
+            /// </summary>
+            /// <param name=`"value`">The code, such as <c>eng</c>. Codes are case-sensitive.</param>
+            /// <returns>The predefined member with the code.</returns>
+            /// <exception cref=`"System.InvalidCastException`">
+            /// <paramref name=`"value`"/> is <see langword=`"null`"/>, or is not an ISO 639-3 code.
+            /// </exception>
+            /// <remarks>Codes in the range reserved for local use, <c>qaa</c> to <c>qtz</c>, aren't members and are rejected.</remarks>
+#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName(string value)
 #else
             public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
             {
-                return new $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName(value);
+                if (value is null)
+                {
+                    throw new System.InvalidCastException(`"A null string cannot be converted to $GenerateTypeName.`");
+                }
+
+                if (!MembersByCode.Value.TryGetValue(value, out var member))
+                {
+                    throw new System.InvalidCastException(`"'`" + value + `"' is not an ISO 639-3 code.`");
+                }
+
+                return member;
             }"
             $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)
             [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
             [void]$structType.Members.Add($stringToStructConversionOperatorSnippetMember)
     
-            $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+            $structToStringConversionOperatorSnippet = "            /// <summary>
+            /// Converts a <see cref=`"$GenerateTypeName`"/> to its code.
+            /// </summary>
+            /// <param name=`"value`">The value to convert.</param>
+            /// <returns>The code, or <see langword=`"null`"/> for the default value.</returns>
+#if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName value)
 #else
             [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
@@ -192,13 +216,25 @@ function Out-SourceCode {
             }"
             [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
     
-            $equalityOperatorSnippet = "        public static bool operator ==($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName right)
+            $equalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$GenerateTypeName`"/> values have the same code.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator ==($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName right)
             {
                 return left.Equals(right);
             }"
             [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
     
-            $inequalityOperatorSnippet = "        public static bool operator !=($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName right)
+            $inequalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two <see cref=`"$GenerateTypeName`"/> values have different codes.
+        /// </summary>
+        /// <param name=`"left`">The first value.</param>
+        /// <param name=`"right`">The second value.</param>
+        /// <returns><see langword=`"true`"/> if the codes differ; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator !=($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName left, $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName right)
             {
                 return !left.Equals(right);
             }"
@@ -272,7 +308,8 @@ function Out-SourceCode {
         }
         [System.CodeDom.CodeFieldReferenceExpression]$languageCodeType = $null
         switch ($codeLanguageType) {
-            'A' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Ancient') }
+            # ISO 639:2023 merged the ancient language type into historical, and Iso639LanguageType.Ancient is obsolete.
+            'A' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Historical') }
             'C' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Constructed') }
             'E' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Extinct') }
             'H' { $languageCodeType = [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$(Get-Variable -Name SourceCodeNamespace -ValueOnly).Iso639LanguageType"), 'Historical') }
@@ -334,11 +371,11 @@ function Out-SourceCode {
                 (Get-EqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName -UseNullableReferenceTypes),
+                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName -UseNullableReferenceTypes),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName -UseNullableReferenceTypes),
                 (Get-InheritedToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $TypeName),
+                (Get-CompareToMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-InheritedEqualsMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName),
                 (Get-InheritedToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
@@ -394,8 +431,11 @@ function Out-SourceCode {
 
             $memberFieldPredicateMethod = Get-MemberFieldPredicateMethodDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName -GenerateLanguage $GenerateLanguage
             [void]$memberFieldPredicateMethod.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Private Methods'))
-            [void]$memberFieldPredicateMethod.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
             [void]$structType.Members.Add($memberFieldPredicateMethod)
+
+            $membersByCodeMember = Get-MembersByCodeDefinition -TypeNamespace (Get-Variable -Name SourceCodeNamespace -ValueOnly) -TypeName $GenerateTypeName
+            [void]$membersByCodeMember.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
+            [void]$structType.Members.Add($membersByCodeMember)
         }
 
         Write-Progress -Completed
@@ -413,7 +453,10 @@ function Out-SourceCode {
             $writer = [System.IO.StringWriter]::new($sourceCodeCuBuilder)
             try {
                 $provider.GenerateCodeFromCompileUnit($cu, $writer, $options)
-                Write-Output $sourceCodeCuBuilder.ToString()
+
+                # IStringEnum doesn't extend IConvertible, so the struct declares it on the targets that have it.
+                $structDeclarationPattern = [regex]::new("(?m)^(\s*public (?:partial )?struct $([regex]::Escape($GenerateTypeName)) : [^\r\n]*)(\r?\n)")
+                Write-Output $structDeclarationPattern.Replace($sourceCodeCuBuilder.ToString(), '$1$2#if NETSTANDARD1_3_OR_GREATER||NET$2, System.IConvertible$2#endif$2', 1)
             }
             finally {
                 $writer.Close()

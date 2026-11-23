@@ -368,14 +368,27 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 2046 §4.1.2
         [InlineData(TextPlain, UsAsciiName)]
         [InlineData("TEXT/PLAIN", UsAsciiName)]
-        [InlineData("text/csv", UsAsciiName)]
         [InlineData("text/enriched", UsAsciiName)]
+        // ref. RFC 2318: the text/css registration sets no default of its own.
+        [InlineData("text/css", UsAsciiName)]
         [InlineData("text/x-unknown", UsAsciiName)]
+        // ref. RFC 6838 §4.2.8: only the text after the last "+" is a suffix.
+        [InlineData("text/foo+xml+json", UsAsciiName)]
+        [InlineData("text/fooxml", UsAsciiName)]
         // ref. RFC 5545 §8.1; RFC 6350 §10.1
         [InlineData("text/calendar", Utf8Name)]
         [InlineData("Text/Calendar", Utf8Name)]
         [InlineData("text/vcard", Utf8Name)]
         [InlineData("text/VCARD", Utf8Name)]
+        // ref. RFC 7111 §5.1
+        [InlineData("text/csv", Utf8Name)]
+        [InlineData("TEXT/CSV", Utf8Name)]
+        // ref. RDF 1.1 Turtle Appendix B; WebVTT §10.1
+        [InlineData("text/turtle", Utf8Name)]
+        [InlineData("text/vtt", Utf8Name)]
+        // ref. RFC 9239 §4.2
+        [InlineData("text/javascript", Utf8Name)]
+        [InlineData("text/ecmascript", Utf8Name)]
         public void TryGetDefault_TextMediaType_ReturnsDefault(string mediaType, string expected)
         {
             // arrange
@@ -405,10 +418,15 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        // ref. HTML Living Standard §16.1.2; RFC 7303 §3.2; RFC 7763 §2
+        // ref. HTML Living Standard §16.1.2; RFC 7303 §3.2, §9.4; RFC 7763 §2
         [InlineData("text/html")]
         [InlineData("TEXT/HTML")]
         [InlineData("text/xml")]
+        [InlineData("text/xml-external-parsed-entity")]
+        // ref. RFC 7303 §4.2: a +xml type's charset parameter means what it does for application/xml (§3.2).
+        [InlineData("text/foo+xml")]
+        [InlineData("TEXT/FOO+XML")]
+        [InlineData("text/vnd.a+b+xml")]
         [InlineData("text/markdown")]
         [InlineData("application/json")]
         [InlineData("application/xml")]

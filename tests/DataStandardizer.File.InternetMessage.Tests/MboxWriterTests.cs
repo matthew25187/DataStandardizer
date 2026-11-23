@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
 
@@ -23,6 +24,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // A body with lines that each variant treats differently, of 43 octets as it stands, and 44 with the quote that mboxo adds to its first line.
         private const string QuotableBody = "From here\n>From there\n>>From far\n\nnot From\n";
 
+        // ref. PNG (ISO/IEC 15948) §5.2: the PNG signature, which holds CRLF, LF and control octets, followed by more of each, as content that is not text.
+        private static readonly byte[] AttachmentWithLineBreaks = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01, 0x0A, 0x0D, 0x0A, 0xFF };
+
         private const string BinaryEml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\nx\r\n";
 
         private const string CrLfSeparator = SeparatorLine + "\r\n";
@@ -30,6 +34,57 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string BinaryInLineFeedFile = Separator + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\nx\n\n";
         private const string EmlInCrLfFile = CrLfSeparator + Eml + "\r\n";
         private const string MessageInFile = Separator + Message + "\n";
+        private const string HeaderOnlyInFile = Separator + Header + "\n";
+        private const string BuiltTextPart = "hi";
+        private const string TextMediaType = "text/plain";
+        private const string SevenBitText = "x";
+        private const string EightBitText = "café";
+        private const string MaxPartCountMessagePattern = "*ImfOptions.MaxPartCount*";
+
+        // A folded field, with the line breaks of a mailbox and of a standalone message (RFC 5322 §2.1), and messages that each hold the one from the other.
+        private const string BuiltMessageWithAddedSubject = CrLfHeader + CrLfSubject + "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + BuiltTextPart;
+        private const string SourceWithAddedSubject = CrLfSubject + "MIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n" + SevenBitText;
+        private const string LineFeedSubject = "Subject: in\n ner\n";
+        private const string CrLfSubject = "Subject: in\r\n ner\r\n";
+        private const string SubjectInFile = Separator + LineFeedSubject + Header + "\none\n\n";
+        private const string SubjectEml = CrLfSubject + CrLfHeader + "\r\none\r\n";
+        private const string EmlWithAddedSubject = CrLfHeader + CrLfSubject + "\r\none\r\n";
+        private const string FileWithAddedSubject = Separator + Header + LineFeedSubject + "\none\n\n";
+        private const string NewMessageWithAddedSubject = CrLfHeader + CrLfSubject + "\r\n";
+        private const int FirstFieldIndex = 0;
+
+        // A message that forwards a two-part multipart: its text part, the part that holds the message, that message's multipart body, and the two parts of that body.
+        private const int ForwardingEntityCount = 5;
+        private const int OneFewerThanForwardingEntityCount = 4;
+        private const string MultipartInFile = Separator + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\n\n--b\n\nx\n--b--\n\n";
+        private const string AttachmentFileName = "a.png";
+        private const string AttachmentMediaType = "image/png";
+        private const int AttachmentPartIndex = 1;
+
+        // The attachment of a message built with no text part, which is the first part.
+        private const int OnlyAttachmentPartIndex = 0;
+        private const int OnlyReadPartIndex = 0;
+        private const string BuiltDate = "Thu, 1 Jan 2026 00:00:00 +0000";
+        private const string BuiltFrom = "a@b.test";
+
+        // ref. RFC 3501 §6.4.5: the parts of a multipart message body are numbered from 1.
+        private const string FirstPartPath = "1";
+        private const string SecondPartPath = "2";
+
+        // ref. RFC 3501 §6.4.5: the second part of a message held by the second part of a multipart message, and of one that is the body of a message.
+        private const string HeldSecondPartPath = "2.2";
+        private const string BodyMessageSecondPartPath = "1.2";
+        private const string HeldFirstPartPath = "2.1";
+        private const string BinaryMultipartInLineFeedFile = Separator + Header
+            + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b--\n\n";
+        private const string DataFileName = "a.bin";
+        private const string DataMediaType = "application/octet-stream";
+
+        // Content of seven-bit octets whose LF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it in a file of LF if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithLineFeed = { 0x61, 0x0A, 0x62 };
+
+        // Content of seven-bit octets whose CRLF is data, as it isn't text (RFC 2046 §4.1.1), so 7bit would cover it if the line breaks didn't change.
+        private static readonly byte[] SevenBitDataWithCrLf = { 0x61, 0x0D, 0x0A, 0x62 };
         private const string SecondMessageInFile = Separator + Header + "\ntwo\n\n";
         private const string TwoDistinctMessagesInFile = MessageInFile + SecondMessageInFile;
         private const string ExtensionEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: x-private\r\n\r\nx\r\n";
@@ -114,6 +169,33 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static readonly string LongLineThenLongestFromLineEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\n" + new string('y', LongLineLength) + "\r\n--b\r\n\r\n" + LongestFromLine + "\r\n--b--\r\n";
         private static readonly string LongHeaderLineEml = CrLfHeader + "X-Long: " + new string('y', LongLineLength) + "\r\n\r\none\r\n";
+
+        // A multipart body whose part holds a long line, or a line that a quote takes past the limit, with no close delimiter, which only AllowMissingBoundaryTerminator accepts (RFC 2046 §5.1.1),
+        // and a part with the line and the delimiter.
+        private const string MultipartEmlStart = CrLfHeader + "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\n";
+        private const string NoCloseDelimiterMessagePattern = "*no close delimiter*";
+        private static readonly string LongLineWithNoCloseDelimiterEml = MultipartEmlStart + new string('y', LongLineLength) + "\r\n";
+        private static readonly string LongestFromLineWithNoCloseDelimiterEml = MultipartEmlStart + LongestFromLine + "\r\n";
+        private static readonly string LongestFromLineInPartEml = MultipartEmlStart + LongestFromLine + "\r\n--b--\r\n";
+        private static readonly ImfOptions AllowNoCloseDelimiterAndLongLines = new ImfOptions { AllowMissingBoundaryTerminator = true, AllowLongLines = true };
+        private const string ShortLineWithNoCloseDelimiterEml = MultipartEmlStart + "short\r\n";
+        private const string TopLevelPath = "";
+
+        // The same multipart body with no close delimiter, whose part holds a long line, a line that a quote takes past the limit, or neither.
+        public static TheoryData<string> NoCloseDelimiterMessages => new TheoryData<string>
+        {
+            LongLineWithNoCloseDelimiterEml,
+            LongestFromLineWithNoCloseDelimiterEml,
+            ShortLineWithNoCloseDelimiterEml,
+        };
+
+        // The same messages, and what a writer that accepts both records for each: the delimiter for the multipart body, and a long line or a quoted line for its part.
+        public static TheoryData<string, ImfDiagnosticKind[], string[]> NoCloseDelimiterMessagesWithOption => new TheoryData<string, ImfDiagnosticKind[], string[]>
+        {
+            { LongLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure, ImfDiagnosticKind.LongBodyLine }, new[] { TopLevelPath, FirstPartPath } },
+            { LongestFromLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure, ImfDiagnosticKind.LongBodyLine }, new[] { TopLevelPath, FirstPartPath } },
+            { ShortLineWithNoCloseDelimiterEml, new[] { ImfDiagnosticKind.InvalidBodyStructure }, new[] { TopLevelPath } },
+        };
 
         public static TheoryData<MboxVariant> QuotingVariants => new TheoryData<MboxVariant> { MboxVariant.Mboxrd, MboxVariant.Mboxo, MboxVariant.Mboxcl };
 
@@ -211,6 +293,61 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 testAction.Should().Throw<ImfFileException>();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(NoCloseDelimiterMessages))]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiter_ThrowsForTheDelimiterWhateverItsLines(string eml)
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(eml, AllowNoCloseDelimiterAndLongLines);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, new ImfOptions { AllowLongLines = true }))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().WithMessage(NoCloseDelimiterMessagePattern).Which;
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+                exception.Data[ImfFileException.DataItemName.EntityPath].Should().Be(TopLevelPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(NoCloseDelimiterMessagesWithOption))]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_RecordsTheDelimiterWhateverItsLines(string eml, ImfDiagnosticKind[] expectedKinds, string[] expectedPaths)
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(eml, AllowNoCloseDelimiterAndLongLines);
+            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxrd, AllowNoCloseDelimiterAndLongLines))
+            {
+                // act
+                subject.WriteMessage(Envelope, message);
+
+                // assert
+                subject.MessagesWritten.Should().Be(1);
+                subject.Diagnostics.Select(diagnostic => diagnostic.Kind).Should().Equal(expectedKinds);
+                subject.Diagnostics.Select(diagnostic => diagnostic.EntityPath).Should().Equal(expectedPaths);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_QuoteTakesALineOfAPartPastTheLimit_ThrowsWithItsEntityPath()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(LongestFromLineInPartEml);
+            using (var subject = new MboxWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+                exception.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
             }
         }
 
@@ -530,8 +667,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var builder = new ImfMessageBuilder().SetText(BuiltText);
-            builder.Header.Date = ImfDateTime.Parse("Thu, 1 Jan 2026 00:00:00 +0000");
-            builder.Header.From = ImfAddressList.Parse("a@b.test");
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
             var written = Mailboxes.WriteOne(Envelope, builder.Build());
 
             // act
@@ -539,6 +676,657 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Message.Body.GetText().Should().Be(BuiltText);
+        }
+
+        [Fact]
+        public void WriteMessage_BuiltAttachmentWithBinaryAllowed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).SetText("hi").AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var written = Mailboxes.WriteOne(Envelope, builder.Build(), options: options);
+            var body = (ImfMultipart)Mailboxes.ReadFirst(written, options: options).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(AttachmentWithLineBreaks);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithABinaryPartAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var message = Mailboxes.ReadFirst(MultipartInFile, options: options).Message;
+            var part = new ImfEntity(options) { ContentType = MimeMediaType.Parse(AttachmentMediaType) };
+            part.SetContent(AttachmentWithLineBreaks);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, options))
+            {
+                writer.WriteMessage(message);
+            }
+
+            var body = (ImfMultipart)Mailboxes.ReadMessage(Octets.ToText(output.ToArray()), options).Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(AttachmentWithLineBreaks);
+        }
+
+        [Fact]
+        public void WriteMessage_BuiltPartLabelledBinary_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var builder = new ImfMessageBuilder(options).AddAttachment(AttachmentFileName, MimeMediaType.Parse(AttachmentMediaType), AttachmentWithLineBreaks);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = MimeTransferEncoding.Binary;
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartLabelledBinaryAddedToAMessageFromAMailbox_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions { AllowBinaryTransferEncoding = true };
+            var message = Mailboxes.ReadFirst(MultipartInFile, options: options).Message;
+            var part = new ImfEntity(options) { ContentType = MimeMediaType.Parse(AttachmentMediaType) };
+            part.SetContent(AttachmentWithLineBreaks);
+            part.ContentTransferEncoding = MimeTransferEncoding.Binary;
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_CrLfFileWithAPartOfSevenBitOctetsWithLineFeedAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+
+            // act
+            var written = Mailboxes.WriteOne(Envelope, message, MboxVariant.Mboxrd, MboxLineBreak.CarriageReturnLineFeed);
+            var testResult = ((ImfMultipart)Mailboxes.ReadFirst(written, options: AllowCrLf).Message.Body).Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartOfSevenBitOctetsWithLineFeedAddedToAMessageFromAMailbox_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)message.Body).Parts.Add(part);
+
+            // act
+            var written = WriteStandalone(message);
+            var testResult = ((ImfMultipart)Mailboxes.ReadMessage(written).Body).Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAPartWithLineFeedLabelledSevenBitAddedToAMessageFromAMailbox_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_LineFeedFileWithABuiltAttachmentWithCrLfLabelledSevenBit_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+            ((ImfMultipart)message.Body).Parts[OnlyAttachmentPartIndex].ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_LineFeedFileWithABuiltAttachmentOfSevenBitOctetsWithCrLf_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().AddAttachment(DataFileName, MimeMediaType.Parse(DataMediaType), SevenBitDataWithCrLf);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            var message = builder.Build();
+
+            // act
+            var written = Mailboxes.WriteOne(Envelope, message);
+            var testResult = ((ImfMultipart)Mailboxes.ReadFirst(written).Message.Body).Parts[OnlyAttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithCrLf);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterForwardingAMessageFromAMailboxWithAPartWithLineFeedLabelledSevenBit_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions();
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)forwarded.Body).Parts.Add(part);
+            var message = BuildForwarding(forwarded, options);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterForwardingAMessageFromAMailboxWithAPartWithLineFeedLabelledSevenBit_ThrowsWithThePathOfThePartInTheMessage()
+        {
+            // arrange
+            var options = new ImfOptions();
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)forwarded.Body).Parts.Add(part);
+            var message = BuildForwarding(forwarded, options);
+            using (var subject = new ImfWriter(new MemoryStream(), options))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(HeldSecondPartPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithABodyHoldingAMessageFromAMailboxWithAPartWithLineFeedLabelledSevenBit_ThrowsWithThePathOfThePartInTheMessage()
+        {
+            // arrange
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            part.ContentTransferEncoding = MimeTransferEncoding.SevenBit;
+            ((ImfMultipart)forwarded.Body).Parts.Add(part);
+            var message = Mailboxes.ReadMessage(Eml);
+            message.Body = new ImfMessagePart(forwarded);
+            using (var subject = new ImfWriter(new MemoryStream(), new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(BodyMessageSecondPartPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterForwardingAMessageFromAMailboxWithAPartOfSevenBitOctetsWithLineFeed_ReadsBackWithTheSameBytes()
+        {
+            // arrange
+            var options = new ImfOptions();
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity { ContentType = MimeMediaType.Parse(DataMediaType) };
+            part.SetContent(SevenBitDataWithLineFeed);
+            ((ImfMultipart)forwarded.Body).Parts.Add(part);
+            var message = BuildForwarding(forwarded, options);
+
+            // act
+            var written = WriteStandalone(message, options);
+            var held = (ImfMessagePart)((ImfMultipart)Mailboxes.ReadMessage(written).Body).Parts[AttachmentPartIndex];
+            var testResult = ((ImfMultipart)held.Message.Body).Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(SevenBitDataWithLineFeed);
+        }
+
+        [Theory]
+        [InlineData(MessageInFile, Eml)]
+        [InlineData(HeaderOnlyInFile, CrLfHeader)]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxAttached_WritesItWithCrLfLineBreaks(string mailbox, string expected)
+        {
+            // arrange
+            var written = WriteForwarded(Mailboxes.ReadFirst(mailbox).Message, new ImfOptions());
+            var body = (ImfMultipart)Mailboxes.ReadMessage(written).Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(Octets.Of(expected));
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxAttachedAndBareLineFeedsAccepted_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var options = new ImfOptions { AcceptBareLineFeed = true, AllowInvalidBodyOctets = true };
+            var written = WriteForwarded(Mailboxes.ReadFirst(MessageInFile, options: options).Message, options);
+            var body = (ImfMultipart)Mailboxes.ReadMessage(written).Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(Octets.Of(Eml));
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxAttached_LabelsTheMultipartSevenBit()
+        {
+            // arrange
+            var written = WriteForwarded(Mailboxes.ReadFirst(MessageInFile).Message, new ImfOptions());
+            var message = Mailboxes.ReadMessage(written);
+
+            // act
+            var testResult = message.Body.ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.SevenBit);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithABinaryMessageFromAMailboxAttached_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = BuildForwarding(Mailboxes.ReadFirst(BinaryInLineFeedFile).Message, new ImfOptions());
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().WithMessage(ImfLineBreaks.OpaqueEntityMessage);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithABinaryMessageFromAMailboxAttached_ThrowsWithThePathOfItsBody()
+        {
+            // arrange
+            var message = BuildForwarding(Mailboxes.ReadFirst(BinaryInLineFeedFile).Message, new ImfOptions());
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxWithABinaryPartInABinaryMultipartAttached_ThrowsWithThePathOfThePart()
+        {
+            // arrange
+            var message = BuildForwarding(Mailboxes.ReadFirst(BinaryMultipartInLineFeedFile).Message, new ImfOptions());
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(HeldFirstPartPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxWithNoPartsAttached_ThrowsWithThePathOfItsBody()
+        {
+            // arrange
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)forwarded.Body).Parts.RemoveAt(OnlyReadPartIndex);
+            var message = BuildForwarding(forwarded, new ImfOptions());
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+            }
+        }
+
+        [Fact]
+        public void GetContent_PartHoldingAMessageFromAMailbox_GivesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var subject = new ImfMessagePart(Mailboxes.ReadFirst(MessageInFile).Message);
+
+            // act
+            var testResult = subject.GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(Octets.Of(Eml));
+        }
+
+        [Fact]
+        public void WriteMessage_MboxWriterWithCrLfLineBreaksAndAMessageFromAMailboxAttached_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMboxCarriageReturnLineFeed = true };
+            var written = Mailboxes.WriteOne(Envelope, BuildForwarding(Mailboxes.ReadFirst(MessageInFile).Message, options), lineBreak: MboxLineBreak.CarriageReturnLineFeed, options: options);
+            var body = (ImfMultipart)Mailboxes.ReadFirst(written, options: options).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(Octets.Of(Eml));
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAChangedMessageFromAMailboxAttachedAndEightBitAllowed_LabelsItsNewPartEightBit()
+        {
+            // arrange
+            var forwarded = ReadMultipartWithAddedPart(EightBitText);
+            var options = new ImfOptions { AllowEightBitTransferEncoding = true };
+            var written = WriteForwarded(forwarded, options);
+            var part = (ImfMessagePart)((ImfMultipart)Mailboxes.ReadMessage(written, options).Body).Parts[AttachmentPartIndex];
+
+            // act
+            var testResult = ((ImfMultipart)part.Message.Body).Parts[AttachmentPartIndex].ContentTransferEncoding;
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.EightBit);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAChangedMessageFromAMailboxAttachedOverMaxPartCount_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = BuildForwarding(ReadMultipartWithAddedPart(SevenBitText), new ImfOptions());
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions { MaxPartCount = OneFewerThanForwardingEntityCount }))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().WithMessage(MaxPartCountMessagePattern);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAChangedMessageFromAMailboxAttachedAtMaxPartCount_DoesNotThrow()
+        {
+            // arrange
+            var message = BuildForwarding(ReadMultipartWithAddedPart(SevenBitText), new ImfOptions());
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, new ImfOptions { MaxPartCount = ForwardingEntityCount }))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_MessageFromAMailboxHoldingAnEmlMessage_WritesItWithLineFeedLineBreaks()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)message.Body).Parts.Add(new ImfMessagePart(Mailboxes.ReadMessage(Eml)));
+            var written = Mailboxes.WriteOne(Envelope, message);
+            var body = (ImfMultipart)Mailboxes.ReadFirst(written).Message.Body;
+
+            // act
+            var testResult = body.Parts[AttachmentPartIndex].GetContent().ToArray();
+
+            // assert
+            testResult.Should().Equal(Octets.Of(Message));
+        }
+
+        [Fact]
+        public void WriteMessage_MessageFromAMailboxHoldingABinaryEmlMessage_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)message.Body).Parts.Add(new ImfMessagePart(Mailboxes.ReadMessage(BinaryEml)));
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().WithMessage(ImfLineBreaks.OpaqueEntityMessage);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_MessageFromAMailboxHoldingABinaryEmlMessage_ThrowsWithThePathOfItsBody()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)message.Body).Parts.Add(new ImfMessagePart(Mailboxes.ReadMessage(BinaryEml)));
+            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxrd, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+            }
+        }
+
+        /// <summary>
+        /// Reads a multipart message from a mailbox, and adds a text part to it, so that its body has changed.
+        /// </summary>
+        private static ImfMessage ReadMultipartWithAddedPart(string text)
+        {
+            var message = Mailboxes.ReadFirst(MultipartInFile).Message;
+            var part = new ImfEntity(message.Options) { ContentType = MimeMediaType.Parse(TextMediaType) };
+            part.SetContent(Octets.Of(text));
+            ((ImfMultipart)message.Body).Parts.Add(part);
+            return message;
+        }
+
+        /// <summary>
+        /// Builds a message that forwards another, after a text part.
+        /// </summary>
+        private static ImfMessage BuildForwarding(ImfMessage forwarded, ImfOptions options)
+        {
+            var builder = new ImfMessageBuilder(options).SetText(BuiltTextPart).AddAttachment(forwarded);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            return builder.Build();
+        }
+
+        /// <summary>
+        /// Writes a message that forwards another with an <see cref="ImfWriter"/>, and gives its bytes.
+        /// </summary>
+        private static string WriteForwarded(ImfMessage forwarded, ImfOptions options)
+        {
+            return WriteStandalone(BuildForwarding(forwarded, options), options);
+        }
+
+        /// <summary>
+        /// Writes a message with an <see cref="ImfWriter"/>, and gives its bytes.
+        /// </summary>
+        private static string WriteStandalone(ImfMessage message, ImfOptions options = null)
+        {
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, options ?? new ImfOptions()))
+            {
+                writer.WriteMessage(message);
+            }
+
+            return Octets.ToText(output.ToArray());
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAFieldFromAMailboxAddedToAReadMessage_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(Eml);
+            message.Fields.Add(Mailboxes.ReadFirst(SubjectInFile).Message.Fields[FirstFieldIndex]);
+
+            // act
+            var testResult = WriteStandalone(message);
+
+            // assert
+            testResult.Should().Be(EmlWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAFieldFromAMailboxAddedToANewMessage_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var message = new ImfMessage { Date = ImfDateTime.Parse(BuiltDate), From = ImfAddressList.Parse(BuiltFrom) };
+            message.Fields.Add(Mailboxes.ReadFirst(SubjectInFile).Message.Fields[FirstFieldIndex]);
+
+            // act
+            var testResult = WriteStandalone(message);
+
+            // assert
+            testResult.Should().Be(NewMessageWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAFieldFromAMailboxAddedToABuiltMessage_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var builder = new ImfMessageBuilder().SetText(BuiltTextPart);
+            builder.Header.Date = ImfDateTime.Parse(BuiltDate);
+            builder.Header.From = ImfAddressList.Parse(BuiltFrom);
+            builder.Header.Fields.Add(Mailboxes.ReadFirst(SubjectInFile).Message.Fields[FirstFieldIndex]);
+            var message = builder.Build();
+
+            // act
+            var testResult = WriteStandalone(message);
+
+            // assert
+            testResult.Should().Be(BuiltMessageWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteMessage_ImfEntityWriterWithAFieldViewFromAMailboxAdded_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var source = ImfEntitySource.FromContent(MimeMediaType.Parse(TextMediaType), Octets.Of(SevenBitText));
+            Mailboxes.WithFirstField(SubjectInFile, field => source.AddField(field));
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Be(SourceWithAddedSubject);
+        }
+
+        [Fact]
+        public void WriteField_ImfHeaderWriterWithAFieldViewFromAMailbox_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var output = new MemoryStream();
+            using (var subject = new ImfHeaderWriter(output))
+            {
+                // act
+                Mailboxes.WithFirstField(SubjectInFile, subject.WriteField);
+                var testResult = Octets.ToText(output.ToArray());
+
+                // assert
+                testResult.Should().Be(CrLfSubject);
+            }
+        }
+
+        [Fact]
+        public async Task WriteFieldAsync_ImfHeaderWriterWithAFieldViewFromAMailbox_WritesItWithCrLfLineBreaks()
+        {
+            // arrange
+            var output = new MemoryStream();
+            var subject = new ImfHeaderWriter(output);
+            await AsyncDisposal.UsingAsync(subject, async () =>
+            {
+                // act
+                await Mailboxes.WithFirstFieldAsync(SubjectInFile, field => subject.WriteFieldAsync(field).AsTask());
+                var testResult = Octets.ToText(output.ToArray());
+
+                // assert
+                testResult.Should().Be(CrLfSubject);
+            });
+        }
+
+        [Fact]
+        public void WriteMessage_MboxWriterWithAFieldFromAStandaloneMessageAdded_WritesItWithLineFeedLineBreaks()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(MessageInFile).Message;
+            message.Fields.Add(Mailboxes.ReadMessage(SubjectEml).Fields[FirstFieldIndex]);
+
+            // act
+            var testResult = Mailboxes.WriteOne(Envelope, message);
+
+            // assert
+            testResult.Should().Be(FileWithAddedSubject);
         }
 
         [Fact]

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -15,6 +16,16 @@ namespace DataStandardizer.LanguageTag.InternalState
     internal static class Bcp47LanguageTagParser
     {
         private const char SubtagSeparator = '-';
+
+        /// <summary>
+        /// The most variants that are checked for a repeat by scanning the earlier ones, before a set of their keys is used instead.
+        /// </summary>
+        private const int LinearScanVariantLimit = 8;
+
+        /// <summary>
+        /// One more than the 36 letters and digits, so that every one of them is a non-zero digit of a variant's key.
+        /// </summary>
+        private const ulong VariantKeyBase = 37;
 
         /// <summary>
         /// Parse a language tag.
@@ -83,10 +94,16 @@ namespace DataStandardizer.LanguageTag.InternalState
             if (hasSubtag && classifier.IsVariant(languageTag.Slice(start, length)))
             {
                 firstStart = start;
+                var variantCount = 0;
+#if NETCOREAPP3_0_OR_GREATER
+                HashSet<ulong>? variantKeys = null;
+#else
+                HashSet<ulong> variantKeys = null;
+#endif
                 do
                 {
                     // A variant must not repeat an earlier one (ref. RFC 5646 §2.2.5¶5).
-                    if (start > firstStart && ContainsSubtag(languageTag.Slice(firstStart, start - 1 - firstStart), languageTag.Slice(start, length))) hasRepeatedSubtag = true;
+                    if (!hasRepeatedSubtag && IsRepeatedVariant(languageTag, firstStart, start, length, ++variantCount, ref variantKeys)) hasRepeatedSubtag = true;
 
                     end = start + length;
                     hasSubtag = MoveToNextSubtag(languageTag, ref start, ref length);
@@ -284,6 +301,63 @@ namespace DataStandardizer.LanguageTag.InternalState
         private static int GetSingletonIndex(char singleton)
         {
             return IsAsciiDigit(singleton) ? singleton - '0' : 10 + ((singleton | 0x20) - 'a');
+        }
+
+        /// <summary>
+        /// Determine whether a variant repeats one of the variants before it, compared case-insensitively (ref. RFC 5646 §2.1.1, §2.2.5¶5).
+        /// </summary>
+        /// <remarks>
+        /// Few tags have more than one or two variants, so up to <see cref="LinearScanVariantLimit"/> of them the earlier ones are scanned without allocating. After that,
+        /// each variant is kept in a set by its key, so that a tag with any number of variants is checked in linear time.
+        /// </remarks>
+        /// <param name="languageTag">Language tag being parsed.</param>
+        /// <param name="firstStart">Start of the first variant.</param>
+        /// <param name="start">Start of the variant to check.</param>
+        /// <param name="length">Length of the variant to check.</param>
+        /// <param name="variantNumber">Number of the variant to check, counting the first as 1.</param>
+        /// <param name="variantKeys">Keys of the variants so far, once there are more than <see cref="LinearScanVariantLimit"/>; otherwise, <see langword="null"/>.</param>
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool IsRepeatedVariant(ReadOnlySpan<char> languageTag, int firstStart, int start, int length, int variantNumber, ref HashSet<ulong>? variantKeys)
+#else
+        private static bool IsRepeatedVariant(ReadOnlySpan<char> languageTag, int firstStart, int start, int length, int variantNumber, [AllowNull] ref HashSet<ulong> variantKeys)
+#endif
+        {
+            var variant = languageTag.Slice(start, length);
+            if (variantNumber == 1) return false;
+
+            var earlierVariants = languageTag.Slice(firstStart, start - 1 - firstStart);
+            if (variantNumber <= LinearScanVariantLimit) return ContainsSubtag(earlierVariants, variant);
+
+            if (variantKeys == null)
+            {
+                variantKeys = new HashSet<ulong>();
+                var earlierStart = 0;
+                var earlierLength = GetSubtagLength(earlierVariants, earlierStart);
+                do
+                {
+                    variantKeys.Add(GetVariantKey(earlierVariants.Slice(earlierStart, earlierLength)));
+                } while (MoveToNextSubtag(earlierVariants, ref earlierStart, ref earlierLength));
+            }
+
+            return !variantKeys.Add(GetVariantKey(variant));
+        }
+
+        /// <summary>
+        /// Pack a variant into a number that is the same for either case of each letter and different for every other variant.
+        /// </summary>
+        /// <remarks>
+        /// Each of the variant's four to eight letters and digits (ref. RFC 5646 §2.1) is a base-37 digit from 1 to 36. None is 0, so variants of different lengths
+        /// differ, and 37 to the eighth power is less than 2 to the 64th.
+        /// </remarks>
+        private static ulong GetVariantKey(ReadOnlySpan<char> variant)
+        {
+            var key = 0UL;
+            for (var index = 0; index < variant.Length; index++)
+            {
+                key = key * VariantKeyBase + (ulong)GetSingletonIndex(variant[index]) + 1;
+            }
+
+            return key;
         }
 
         /// <summary>

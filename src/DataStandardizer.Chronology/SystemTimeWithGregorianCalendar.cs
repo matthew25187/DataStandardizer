@@ -23,10 +23,24 @@ namespace DataStandardizer.Chronology
         /// Initializes a new instance of the <see cref="SystemTimeWithGregorianCalendar"/> struct that wraps a system time.
         /// </summary>
         /// <param name="systemTime">The system time to wrap.</param>
+        /// <remarks>
+        /// When <paramref name="systemTime"/> is itself a <see cref="SystemTimeWithGregorianCalendar"/>, the new instance wraps the
+        /// system time that it wraps, so it is equal to that instance and converts in the same way, for example with
+        /// <see cref="SystemTimeExtensions.AsUnixTime(SystemTimeWithGregorianCalendar)"/>.
+        /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="systemTime"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="systemTime"/> is a default <see cref="SystemTimeWithGregorianCalendar"/>, which wraps no system time.</exception>
         public SystemTimeWithGregorianCalendar(ISystemTime systemTime)
         {
-            _systemTime = systemTime ?? throw new ArgumentNullException(nameof(systemTime));
+            if (systemTime is null)
+            {
+                throw new ArgumentNullException(nameof(systemTime));
+            }
+
+            // Store the system time a wrapper wraps, not the wrapper, so that nesting never hides it.
+            _systemTime = systemTime is SystemTimeWithGregorianCalendar wrapper
+                ? wrapper._systemTime ?? throw new ArgumentException($"The {nameof(SystemTimeWithGregorianCalendar)} to wrap is a default instance, which wraps no system time.", nameof(systemTime))
+                : systemTime;
         }
 
         #region Public Properties
@@ -40,14 +54,17 @@ namespace DataStandardizer.Chronology
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        /// <exception cref="OverflowException">The wrapped system time falls too far from the epoch of the Julian Day Number to give a year.</exception>
         public int Day => DoGetDay();
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        /// <exception cref="OverflowException">The wrapped system time falls too far from the epoch of the Julian Day Number to give a year.</exception>
         public int Month => DoGetMonth();
 
         /// <inheritdoc/>
         /// <exception cref="InvalidOperationException">The instance is a default instance, which wraps no system time, or the wrapped system time is a default instance that holds no date.</exception>
+        /// <exception cref="OverflowException">The wrapped system time falls too far from the epoch of the Julian Day Number to give a year.</exception>
         public int Year => DoGetYear();
 
         /// <inheritdoc/>

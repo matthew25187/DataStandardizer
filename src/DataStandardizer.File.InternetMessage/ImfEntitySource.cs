@@ -92,8 +92,9 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// The writer refuses an encoding that doesn't fit: <c>7bit</c> or <c>8bit</c> for data outside that domain (RFC 2045 §2.7 and §2.8), or anything but
-        /// an identity encoding for a multipart or message entity (RFC 2045 §6.4).  An extension encoding can't be written, as the writer can't apply it.  For
-        /// that, write the entity with <see cref="FromRaw(ReadOnlyMemory{byte})"/>.
+        /// an identity encoding for a multipart or message entity (RFC 2045 §6.4), other than <c>message/global</c> (RFC 6532 §3.7), <c>message/global-headers</c>,
+        /// <c>message/global-delivery-status</c> and <c>message/global-disposition-notification</c> (RFC 6533 §6.3, §6.4 and §6.5).  An extension encoding can't
+        /// be written, as the writer can't apply it.  For that, write the entity with <see cref="FromRaw(ReadOnlyMemory{byte})"/>.
         /// </remarks>
         /// <exception cref="InvalidOperationException">On set: the entity is written from its raw bytes.</exception>
         public MimeTransferEncoding TransferEncoding
@@ -142,9 +143,27 @@ namespace DataStandardizer.File.InternetMessage
         internal bool IsPreserved { get; set; }
 
         /// <summary>
+        /// Gets or sets a flag indicating that the entity was read somewhere other than where it is written: a part that was moved, or the body of a message that wasn't read
+        /// in the entity that now holds it.  A reader found no delimiter of the boundaries around that other place in what it kept, which says nothing about the boundaries
+        /// around this one, so the writer checks what is kept in it, and below it, against all of them.
+        /// </summary>
+        internal bool IsReadElsewhere { get; set; }
+
+        /// <summary>
         /// Gets or sets a flag indicating that raw bytes that were read hold a header that has since changed, so what holds them can't go by the label it was read with (RFC 2045 §6.4).
         /// </summary>
         internal bool HasChangedHeader { get; set; }
+
+        /// <summary>
+        /// Gets or sets a flag indicating that the entity is the body of the top-level message that <see cref="ImfWriter"/> writes, which gets a MIME-Version field (RFC 2045 §4) even when
+        /// it is otherwise kept as it was read.  An embedded message, which can be written on its own, never has it.
+        /// </summary>
+        internal bool IsTopLevelMessage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of entities that raw bytes hold besides the one they are, which <see cref="ImfOptions.MaxPartCount"/> counts as if the writer had written each of them.
+        /// </summary>
+        internal int HeldEntityCount { get; set; }
 
         /// <summary>
         /// Describes an entity with content in memory.
@@ -342,7 +361,8 @@ namespace DataStandardizer.File.InternetMessage
         /// Adds a field to the header of the entity, copying what a reader has just read, to be written byte for byte.
         /// </summary>
         /// <remarks>
-        /// The rules that <see cref="AddField(string, string, ImfHeaderFieldKind)"/> gives for the fields a writer adds itself apply here too.
+        /// The rules that <see cref="AddField(string, string, ImfHeaderFieldKind)"/> gives for the fields a writer adds itself apply here too.  A field read with other line breaks
+        /// than the writer's, such as one from an mbox file, is written with those of the writer (RFC 5322 §2.1).
         /// </remarks>
         /// <param name="field">The field.</param>
         /// <returns>This object.</returns>
@@ -353,7 +373,7 @@ namespace DataStandardizer.File.InternetMessage
         public ImfEntitySource AddField(ImfHeaderFieldView field)
         {
             CheckHasFields();
-            _fields.Add(new FieldEntry(field.RawBytes.ToArray(), false));
+            _fields.Add(new FieldEntry(field.RawBytes.ToArray(), false, lineFeedIsLineBreak: field.LineFeedIsLineBreak));
             return this;
         }
 
@@ -422,10 +442,12 @@ namespace DataStandardizer.File.InternetMessage
                 IsText = isText;
                 NeedsCheck = false;
                 IsModelField = false;
+                LineFeedIsLineBreak = null;
             }
 
-            internal FieldEntry(byte[] rawBytes, bool needsCheck, bool isModelField = false)
+            internal FieldEntry(byte[] rawBytes, bool needsCheck, bool isModelField = false, bool? lineFeedIsLineBreak = null)
             {
+                LineFeedIsLineBreak = lineFeedIsLineBreak;
                 Name = rawBytes;
                 Value = rawBytes;
                 Kind = ImfHeaderFieldKind.Unstructured;
@@ -449,6 +471,12 @@ namespace DataStandardizer.File.InternetMessage
             internal bool IsText { get; }
 
             internal bool NeedsCheck { get; }
+
+            /// <summary>
+            /// Gets a flag indicating if a line feed is the line break of raw bytes that a reader read, or <c>false</c> if it is CRLF, or <c>null</c> if the bytes already have
+            /// the line breaks of the writer, or are checked against them.
+            /// </summary>
+            internal bool? LineFeedIsLineBreak { get; }
 
             /// <summary>
             /// Gets a flag indicating that the field comes from an entity of the object model, whose media type is read from it, so that they can't disagree.

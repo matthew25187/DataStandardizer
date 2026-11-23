@@ -82,6 +82,8 @@ namespace DataStandardizer.File.InternetMessage
         private const string EntityPathOfMessage = "";
         private const int MaxBoundaryAttempts = 16;
 
+        private const string LineBreakDataMessage = "The line breaks of the message are changed, and a CR or LF in the content of an entity that isn't text is data (RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1), which an identity transfer encoding would let the change alter.  Its transfer encoding, from its TransferEncoding or a Content-Transfer-Encoding field, must be quoted-printable or base64.";
+
         // ref. RFC 2046 §5.1.1: boundary := 0*69<bchars> bcharsnospace
         private const int MaxBoundaryLength = 70;
         private const string MimeVersionFieldName = "MIME-Version";
@@ -95,6 +97,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private readonly List<ImfBoundary> _boundaries = new List<ImfBoundary>();
         private readonly Func<string> _boundaryGenerator;
+        private readonly bool _lineBreaksChange;
         private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _lineBreak;
         private readonly ImfOptions _options;
@@ -104,16 +107,33 @@ namespace DataStandardizer.File.InternetMessage
         private bool _isFirstPass = true;
         private int _partCount;
 
-        internal ImfEntityWritePlan(ImfEntitySource source, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
+        /// <summary>
+        /// Creates a plan for an entity.
+        /// </summary>
+        /// <param name="source">The entity.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="lineFeedIsLineBreak"><c>true</c> if a line break is LF, or <c>false</c> if it is CRLF.</param>
+        /// <param name="lineBreaksChange"><c>true</c> if the line breaks of the output will be changed after it is written, which no entity labelled <c>binary</c>
+        /// can have (RFC 2045 §2.9), so the plan doesn't choose that label, and refuses an entity that gets it.  Nor can a body whose CR and LF octets are data have
+        /// <c>7bit</c> or <c>8bit</c>, so the plan encodes it, and refuses one that asks for either.</param>
+        /// <param name="boundaryGenerator">The source of boundaries.</param>
+        internal ImfEntityWritePlan(ImfEntitySource source, ImfOptions options, bool lineFeedIsLineBreak, bool lineBreaksChange, Func<string> boundaryGenerator)
         {
             _options = options;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
+            _lineBreaksChange = lineBreaksChange;
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
             _boundaryGenerator = boundaryGenerator;
-            _root = Walk(source, EntityPathOfMessage, 0, true, NoBoundaries);
+            _root = Walk(source, EntityPathOfMessage, 0, true, NoBoundaries, 0);
             ResolveBoundaryConflicts();
             PendingScans = new List<ImfBodyScan>(_scans);
         }
+
+        /// <summary>
+        /// Gets a flag indicating if an entity may be labelled <c>binary</c>.  A line break in a binary body is data (RFC 2045 §2.9), so it can't be when the line breaks of
+        /// the output will be changed.
+        /// </summary>
+        private bool MayUseBinary => _options.AllowBinaryTransferEncoding && !_lineBreaksChange;
 
         /// <summary>
         /// Gets the scans to read in this pass.  Each is read between <see cref="BeginScan"/> and <see cref="ImfBodyScan.Complete"/>.
@@ -140,6 +160,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 _isFirstPass = false;
                 ChooseEncodings(_root);
+                CheckLineBreaksCanChange();
                 SetBodyChecks();
             }
 
@@ -183,14 +204,20 @@ namespace DataStandardizer.File.InternetMessage
             return builder.Items;
         }
 
-        private Node Walk(ImfEntitySource source, string path, int depth, bool isMessage, ImfBoundary[] enclosing)
+        /// <summary>
+        /// Plans an entity.  <paramref name="checkedFrom"/> is the index of the first of the <paramref name="enclosing"/> boundaries that were around what was read in it, and
+        /// so were checked against what it keeps: a reader found no delimiter of those in it, and says nothing about the others.
+        /// </summary>
+        private Node Walk(ImfEntitySource source, string path, int depth, bool isMessage, ImfBoundary[] enclosing, int checkedFrom)
         {
+            if (source.IsReadElsewhere) checkedFrom = enclosing.Length;
+
             if (depth > _options.MaxNestingDepth)
                 throw BuildError($"The entities are nested more than {_options.MaxNestingDepth} levels deep, the most that ImfOptions.MaxNestingDepth allows.", path);
 
             if (depth > 0)
             {
-                _partCount++;
+                _partCount += 1 + source.HeldEntityCount;
                 if (_partCount > _options.MaxPartCount)
                     throw BuildError($"The message has more than {_options.MaxPartCount} entities, the most that ImfOptions.MaxPartCount allows.", path);
             }
@@ -200,7 +227,7 @@ namespace DataStandardizer.File.InternetMessage
 
             if (source.Kind == ImfEntitySource.SourceKind.Raw)
             {
-                AddRawScan(node, depth, enclosing);
+                AddRawScan(node, depth, enclosing, checkedFrom);
                 return node;
             }
 
@@ -217,18 +244,18 @@ namespace DataStandardizer.File.InternetMessage
                     AddContentScan(node, enclosing);
                     break;
                 case ImfEntitySource.SourceKind.Multipart:
-                    WalkMultipart(node, depth, enclosing);
+                    WalkMultipart(node, depth, enclosing, checkedFrom);
                     break;
                 default:
                     // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
-                    node.Children.Add(Walk(source.Children[0], !isMessage ? path : path.Length == 0 ? "1" : path + ".1", depth + 1, true, enclosing));
+                    node.Children.Add(Walk(source.Children[0], !isMessage ? path : path.Length == 0 ? "1" : path + ".1", depth + 1, true, enclosing, checkedFrom));
                     break;
             }
 
             return node;
         }
 
-        private void WalkMultipart(Node node, int depth, ImfBoundary[] enclosing)
+        private void WalkMultipart(Node node, int depth, ImfBoundary[] enclosing, int checkedFrom)
         {
             var source = node.Source;
             MimeParameter parameter;
@@ -245,6 +272,19 @@ namespace DataStandardizer.File.InternetMessage
             _boundaries.Add(boundary);
             node.Boundary = boundary;
 
+            if (!(source.RawFraming is null))
+            {
+                // The delimiters, preamble and epilogue that were read are written as they are, so they are checked like any other bytes that were read.
+                var uncheckedBoundaries = WithoutPreserved(enclosing, checkedFrom);
+                if (uncheckedBoundaries.Length > 0)
+                {
+                    foreach (var framing in source.RawFraming)
+                    {
+                        AddScan(framing, Stream.Null, uncheckedBoundaries);
+                    }
+                }
+            }
+
             var inner = new ImfBoundary[enclosing.Length + 1];
             Array.Copy(enclosing, inner, enclosing.Length);
             inner[enclosing.Length] = boundary;
@@ -257,7 +297,7 @@ namespace DataStandardizer.File.InternetMessage
             for (var index = 0; index < source.Children.Count; index++)
             {
                 var number = (index + 1).ToString(CultureInfo.InvariantCulture);
-                node.Children.Add(Walk(source.Children[index], node.Path.Length == 0 ? number : node.Path + "." + number, depth + 1, false, inner));
+                node.Children.Add(Walk(source.Children[index], node.Path.Length == 0 ? number : node.Path + "." + number, depth + 1, false, inner, checkedFrom));
             }
 
             if (source.Epilogue is ReadOnlyMemory<byte> epilogue)
@@ -266,13 +306,13 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
-        private void AddRawScan(Node node, int depth, ImfBoundary[] enclosing)
+        private void AddRawScan(Node node, int depth, ImfBoundary[] enclosing, int checkedFrom)
         {
             // A whole message written from its raw bytes has nothing to be checked against, and nothing depends on its domain.
             if (depth == 0) return;
 
             CheckCanRead(node.Source, node.Path);
-            node.BodyScan = AddScan(node.Source.Content, node.Source.ContentStream, node.Source.IsPreserved ? WithoutPreserved(enclosing) : enclosing);
+            node.BodyScan = AddScan(node.Source.Content, node.Source.ContentStream, node.Source.IsPreserved ? WithoutPreserved(enclosing, checkedFrom) : enclosing);
         }
 
         private void AddContentScan(Node node, ImfBoundary[] enclosing)
@@ -312,11 +352,18 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the boundaries that bytes that were read have to be checked against: a reader found none of the others in them.
+        /// Gets the boundaries that bytes that were read have to be checked against: a reader found no delimiter in them of a boundary that was kept from the same read,
+        /// from <paramref name="checkedFrom"/> on, and says nothing about the others.
         /// </summary>
-        private static ImfBoundary[] WithoutPreserved(ImfBoundary[] boundaries)
+        private static ImfBoundary[] WithoutPreserved(ImfBoundary[] boundaries, int checkedFrom)
         {
-            return new List<ImfBoundary>(boundaries).FindAll(boundary => !boundary.IsPreserved).ToArray();
+            var result = new List<ImfBoundary>(boundaries.Length);
+            for (var index = 0; index < boundaries.Length; index++)
+            {
+                if (index < checkedFrom || !boundaries[index].IsPreserved) result.Add(boundaries[index]);
+            }
+
+            return result.ToArray();
         }
 
         private ImfBodyScan AddScan(ReadOnlyMemory<byte> memory, Stream stream, ImfBoundary[] enclosing)
@@ -335,7 +382,7 @@ namespace DataStandardizer.File.InternetMessage
         private void FormatFields(Node node)
         {
             var output = new MemoryStream();
-            var buffer = ArrayPool<byte>.Shared.Rent(1024);
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
             try
             {
                 foreach (var field in node.Source.Fields)
@@ -354,7 +401,11 @@ namespace DataStandardizer.File.InternetMessage
                             throw;
                         }
 
-                        output.Write(field.Value, 0, field.Value.Length);
+                        // A field a reader read with other line breaks than the writer's, such as one from an mbox file, is given those of the writer (RFC 5322 §2.1).
+                        var raw = field.LineFeedIsLineBreak.HasValue && field.LineFeedIsLineBreak.Value != _lineFeedIsLineBreak
+                            ? ImfLineBreaks.ConvertLines(field.Value, !_lineFeedIsLineBreak)
+                            : field.Value;
+                        output.Write(raw, 0, raw.Length);
                     }
                     else
                     {
@@ -484,8 +535,11 @@ namespace DataStandardizer.File.InternetMessage
             {
                 foreach (var enclosing in boundary.Enclosing)
                 {
-                    // ref. RFC 2046 §5.1.1: a reader matches a whole line, so a boundary that was read may be a prefix of another that was.
-                    if (!boundary.ConflictsWith(enclosing.Value) || (boundary.IsPreserved && enclosing.IsPreserved)) continue;
+                    // ref. RFC 2046 §5.1.1: a boundary that was read may be a prefix of one that encloses it, as no line of the enclosing entity's parts
+                    // then starts with the enclosing boundary: the reader found none, or, for what was read somewhere else, the writer looks for them.  An
+                    // enclosing boundary that is a prefix of one inside it is refused, even if both were read on their own.
+                    if (!boundary.ConflictsWith(enclosing.Value)) continue;
+                    if (boundary.IsPreserved && enclosing.IsPreserved && !boundary.Value.StartsWith(enclosing.Value, StringComparison.Ordinal)) continue;
 
                     if (boundary.IsGenerated)
                     {
@@ -566,7 +620,7 @@ namespace DataStandardizer.File.InternetMessage
         private void CheckRawEntity(Node node)
         {
             var scan = node.BodyScan;
-            if (scan is null || node.Source.IsPreserved || _options.AllowBinaryTransferEncoding) return;
+            if (scan is null || node.Source.IsPreserved || MayUseBinary) return;
 
             // ref. RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7 and §2.8.  Only the binary label of §2.9 covers these, which has to be asked for.
             if (scan.HasLongLine && !_options.AllowLongLines)
@@ -596,30 +650,40 @@ namespace DataStandardizer.File.InternetMessage
             var requested = node.RequestedEncoding;
             var isExplicit = requested != default(MimeTransferEncoding);
             node.EncodeLineBreaks = scan.HasBareLineBreak || !IsTextType(source.ContentType);
+
+            // ref. RFC 2045 §6.7 rule 4 and RFC 2046 §4.1.1: only in text, or in the lines of what holds other entities, is a CRLF a line break.  In any other body a CR or LF
+            // is data, which an identity encoding leaves as it is, so changing the line breaks of the output would change the body.
+            var lineBreaksAreData = _lineBreaksChange && scan.HasLineBreakOctet && !IsLineOrientedType(source.ContentType);
             if (isExplicit)
             {
                 if (requested.IsIdentity && requested.Domain < domain)
                     throw BuildError($"The content does not fit the transfer encoding '{requested.Name}' (RFC 2045 §2.7 and §2.8): its lines must be at most 998 octets with CRLF line breaks, and it must have no NULs.  7bit must also have no octets above 127.", node.Path);
+
+                // Binary is refused for every entity by CheckLineBreaksCanChange.
+                if (requested.IsIdentity && requested != MimeTransferEncoding.Binary && lineBreaksAreData)
+                    throw BuildError(LineBreakDataMessage, node.Path);
 
                 CheckRestrictedType(node, requested.Domain);
                 node.Encoding = requested;
                 return requested.Domain;
             }
 
-            if (domain == MimeDataDomain.SevenBit)
+            // A body whose CR and LF octets are data, and whose line breaks will be changed, is encoded.
+            if (domain == MimeDataDomain.SevenBit && !lineBreaksAreData)
             {
                 node.Encoding = MimeTransferEncoding.SevenBit;
                 return domain;
             }
 
-            if (domain == MimeDataDomain.EightBit && (_options.AllowEightBitTransferEncoding || _options.AllowBinaryTransferEncoding))
+            // A body whose line breaks will be changed is given another encoding than binary.
+            if (domain == MimeDataDomain.EightBit && !lineBreaksAreData && (_options.AllowEightBitTransferEncoding || MayUseBinary))
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = _options.AllowEightBitTransferEncoding ? MimeTransferEncoding.EightBit : MimeTransferEncoding.Binary;
                 return node.Encoding.Domain;
             }
 
-            if (_options.AllowBinaryTransferEncoding)
+            if (MayUseBinary)
             {
                 CheckRestrictedType(node, domain);
                 node.Encoding = MimeTransferEncoding.Binary;
@@ -633,6 +697,21 @@ namespace DataStandardizer.File.InternetMessage
                 ? MimeTransferEncoding.QuotedPrintable
                 : MimeTransferEncoding.Base64;
             return MimeDataDomain.SevenBit;
+        }
+
+        /// <summary>
+        /// Refuses an entity labelled <c>binary</c> when the line breaks of the output will be changed, as that would change its data (RFC 2045 §2.9).
+        /// </summary>
+        private void CheckLineBreaksCanChange()
+        {
+            if (!_lineBreaksChange) return;
+
+            // The nodes are in the order they were walked, an entity before what it holds, so the last one labelled binary is one whose own content is.
+            for (var index = _nodes.Count - 1; index >= 0; index--)
+            {
+                if (_nodes[index].Encoding == MimeTransferEncoding.Binary)
+                    throw BuildError(ImfLineBreaks.OpaqueEntityMessage, _nodes[index].Path);
+            }
         }
 
         private MimeDataDomain ChooseCompositeEncoding(Node node)
@@ -677,8 +756,8 @@ namespace DataStandardizer.File.InternetMessage
             if (scan is null) return MimeDataDomain.SevenBit;
 
             var domain = scan.Domain;
-            if (domain == MimeDataDomain.Binary ? !_options.AllowBinaryTransferEncoding
-                : domain == MimeDataDomain.EightBit && !_options.AllowEightBitTransferEncoding && !_options.AllowBinaryTransferEncoding)
+            if (domain == MimeDataDomain.Binary ? !MayUseBinary
+                : domain == MimeDataDomain.EightBit && !_options.AllowEightBitTransferEncoding && !MayUseBinary)
                 throw BuildError("A preamble or epilogue must be lines of text (RFC 2046 §5.1.1), which the options must allow if they have octets above 127.", node.Path);
 
             return domain;
@@ -753,7 +832,9 @@ namespace DataStandardizer.File.InternetMessage
 
         private void AddGeneratedFields(Node node, ItemBuilder builder)
         {
-            if (node.IsMessage && !node.HasMimeVersion && !node.Source.IsPreserved)
+            // ref. RFC 2045 §4.  ImfWriter only writes a message whose body has changed through this plan, and ImfConformance.CheckContent leaves the field of that message to it, so the
+            // top-level message gets the field even when what holds its parts is kept as it was read.  An embedded message that was read stays as it was, however it is written.
+            if (node.IsMessage && !node.HasMimeVersion && (node.Source.IsTopLevelMessage || !node.Source.IsPreserved))
             {
                 AddGeneratedField(MimeVersionFieldName, MimeVersionValue, builder);
             }
@@ -775,7 +856,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private void AddGeneratedField(string name, string value, ItemBuilder builder)
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(1024);
+            var buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
             try
             {
                 var length = ImfHeaderFormatter.Format(ImfHeaderFormatter.GetBytes(name), ImfHeaderFormatter.GetBytes(value), ImfHeaderFieldKind.Structured,
@@ -873,9 +954,12 @@ namespace DataStandardizer.File.InternetMessage
             return true;
         }
 
-        private static ImfFileException BuildCompositeEncodingError(Node node)
+        private ImfFileException BuildCompositeEncodingError(Node node)
         {
-            return BuildError($"A {node.Source.ContentType.Type}/{node.Source.ContentType.Subtype} entity can have only an identity transfer encoding, 7bit, 8bit or binary (RFC 2045 §6.4), which the options or its TransferEncoding must allow.", node.Path);
+            var reason = _options.AllowBinaryTransferEncoding && _lineBreaksChange
+                ? "  The binary transfer encoding can't be used here, as the line breaks of the message are changed, and a line break in a binary body is data (RFC 2045 §2.9)."
+                : string.Empty;
+            return BuildError($"A {node.Source.ContentType.Type}/{node.Source.ContentType.Subtype} entity can have only an identity transfer encoding, 7bit, 8bit or binary (RFC 2045 §6.4), which the options or its TransferEncoding must allow.{reason}", node.Path);
         }
 
         private static ImfFileException BuildError(string message, string path)
@@ -889,14 +973,27 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase)) return true;
 
-            // ref. RFC 6532 §3.7: message/global may have any transfer encoding.
+            // ref. RFC 6532 §3.7: message/global may have any transfer encoding.  RFC 6533 §6.3, §6.4 and §6.5 allow quoted-printable and base64 on
+            // message/global-headers, message/global-delivery-status and message/global-disposition-notification.
             return string.Equals(contentType.Type, MimeTopLevelTypes.Message, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(contentType.Subtype, "global", StringComparison.OrdinalIgnoreCase);
+                && !string.Equals(contentType.Subtype, "global", StringComparison.OrdinalIgnoreCase)
+                && !ImfEntityScanner.IsRfc6533Subtype(contentType.Subtype);
         }
 
         private static bool IsTextType(MimeMediaType contentType)
         {
             return string.Equals(contentType.Type, MimeTopLevelTypes.Text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Gets a flag indicating that a CRLF in a body of a media type is a line break: one of text, or of a message or multipart entity, whose lines hold the header and
+        /// delimiters of what it holds (RFC 2046 §5).
+        /// </summary>
+        private static bool IsLineOrientedType(MimeMediaType contentType)
+        {
+            return IsTextType(contentType)
+                || string.Equals(contentType.Type, MimeTopLevelTypes.Message, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsValidBoundary(string boundary)

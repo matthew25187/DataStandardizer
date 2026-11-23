@@ -244,12 +244,12 @@ function Get-IdentifierMethodsSnippet {
         /// <summary>
         /// Compares the timezone with another, by the ordinal order of their identifiers.
         /// </summary>
-        /// <param name=`"obj`">The timezone to compare with.</param>
+        /// <param name=`"obj`">The timezone to compare with, or <see langword=`"null`"/>.</param>
         /// <returns>
         /// A negative number if the identifier of the timezone comes before that of <paramref name=`"obj`"/>; zero if they are equal; otherwise,
-        /// a positive number.
+        /// a positive number.  Every timezone compares greater than <see langword=`"null`"/>, so the result is a positive number when
+        /// <paramref name=`"obj`"/> is <see langword=`"null`"/>.
         /// </returns>
-        /// <exception cref=`"System.ArgumentNullException`"><paramref name=`"obj`"/> is <see langword=`"null`"/>.</exception>
         /// <exception cref=`"System.ArgumentException`"><paramref name=`"obj`"/> is not a <see cref=`"$TypeName`"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public int CompareTo(object? obj)
@@ -259,7 +259,7 @@ function Get-IdentifierMethodsSnippet {
         {
             if (obj == null)
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
             if (!(obj is DataStandardizer.Chronology.$TypeName other))
             {
@@ -848,6 +848,8 @@ function Out-SourceCode {
         $referencedRuleSets = [System.Collections.Generic.SortedDictionary[string, string]]::new([System.StringComparer]::Ordinal)
         $zoneLineDataFieldNames = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
         $ruleSetFieldNames = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+        # The names of the rule sets referenced by the zone lines, mapped to the last year in which a zone line that uses them resolves their rules.
+        $ruleSetLastYears = [System.Collections.Generic.Dictionary[string, int]]::new([System.StringComparer]::Ordinal)
         $ruleSetNames = [string[]]@($TzDataSource.Rules.Keys)
 
         # The identifiers of the canonical timezones, and the path of the field of every timezone, from the struct.
@@ -870,7 +872,7 @@ function Out-SourceCode {
 
         if (-not [string]::IsNullOrEmpty($TypeComment)) {
             $enumTypeOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
-            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new($TypeComment, $true)
+            $enumTypeSummaryContentComment = [System.CodeDom.CodeCommentStatement]::new(($TypeComment -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
             $enumTypeCloseSummaryComment = [System.CodeDom.CodeCommentStatement]::new('</summary>', $true)
             $structType.Comments.AddRange(@($enumTypeOpenSummaryComment, $enumTypeSummaryContentComment, $enumTypeCloseSummaryComment))
         }
@@ -1004,6 +1006,7 @@ function Out-SourceCode {
             $memberHostType = [System.CodeDom.CodeTypeDeclaration]::new($hostTypeName)
             $memberHostType.IsClass = $true
             $memberHostType.TypeAttributes = [System.Reflection.TypeAttributes]::NestedPublic -bor [System.Reflection.TypeAttributes]::Sealed -bor [System.Reflection.TypeAttributes]::Abstract
+            @('<summary>', "The timezones directly under <c>$hostIdentifier/</c> in the TZ Database's naming hierarchy.", '</summary>') | ForEach-Object { [void]$memberHostType.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
             $memberHostTypes[$hostIdentifier] = $memberHostType
         }
 
@@ -1051,6 +1054,10 @@ function Out-SourceCode {
                         $referencedRuleSets[$zoneLine.RuleSetName] = $ruleSetFieldName
                     }
                     $ruleSetFieldName = $referencedRuleSets[$zoneLine.RuleSetName]
+                    $zoneLineLastYear = $null -ne $zoneLine.Until ? $zoneLine.Until.Year : [int]::MaxValue
+                    if (-not $ruleSetLastYears.ContainsKey($zoneLine.RuleSetName) -or $ruleSetLastYears[$zoneLine.RuleSetName] -lt $zoneLineLastYear) {
+                        $ruleSetLastYears[$zoneLine.RuleSetName] = $zoneLineLastYear
+                    }
                 }
                 Format-ZoneLineExpression -ZoneLine $zoneLine -RuleSetFieldName $ruleSetFieldName
             }
@@ -1103,7 +1110,7 @@ function Out-SourceCode {
         $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", $constructorArguments)
 
         $summaryOpenComment = [System.CodeDom.CodeComment]::new('<summary>', $true)
-        $summaryContentComment = [System.CodeDom.CodeComment]::new($_.TZ, $true)
+        $summaryContentComment = [System.CodeDom.CodeComment]::new(($_.TZ -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'), $true)
         $summaryCloseComment = [System.CodeDom.CodeComment]::new('</summary>', $true)
         @($summaryOpenComment, $summaryContentComment, $summaryCloseComment) | ForEach-Object { [void]$enumField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_)) }
 
@@ -1127,7 +1134,7 @@ function Out-SourceCode {
 
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<item>", $true)
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>$_</term>", $true)
-                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$countryName</description>", $true)
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$($countryName -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')</description>", $true)
                 $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</item>", $true)
             }
             $remarksComments += [System.CodeDom.CodeComment]::new("`t</list>", $true)
@@ -1197,7 +1204,7 @@ function Out-SourceCode {
         Write-Progress -Activity $activity -CurrentOperation 'Declaring rule sets' -PercentComplete -1
 
         foreach ($referencedRuleSet in $referencedRuleSets.GetEnumerator()) {
-            $rules = ConvertFrom-TzDataRule -Name $referencedRuleSet.Key -Lines $TzDataSource.Rules[$referencedRuleSet.Key]
+            $rules = ConvertFrom-TzDataRule -Name $referencedRuleSet.Key -Lines $TzDataSource.Rules[$referencedRuleSet.Key] -LastYear $ruleSetLastYears[$referencedRuleSet.Key]
             [string[]]$ruleExpressions = foreach ($rule in $rules) { Format-RuleExpression -Rule $rule }
             $ruleSetField = New-DataArrayFieldDeclaration -ElementTypeName 'TzDataRule' -FieldName $referencedRuleSet.Value -ElementExpressions $ruleExpressions
             @('<summary>', "Rule set $($referencedRuleSet.Key)", '</summary>') | ForEach-Object { [void]$ruleSetField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }

@@ -208,6 +208,9 @@ namespace DataStandardizer.Chronology
         #endregion
         
         #region Public Fields
+        /// <summary>
+        /// The timezones directly under <c>Europe/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Europe
         {
             
@@ -403,7 +406,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 		<item>
             /// 			<term>SJ</term>
-            /// 			<description>Svalbard & Jan Mayen</description>
+            /// 			<description>Svalbard &amp; Jan Mayen</description>
             /// 		</item>
             /// 	</list>
             /// </remarks>
@@ -759,7 +762,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 		<item>
             /// 			<term>BA</term>
-            /// 			<description>Bosnia & Herzegovina</description>
+            /// 			<description>Bosnia &amp; Herzegovina</description>
             /// 		</item>
             /// 		<item>
             /// 			<term>HR</term>
@@ -1014,7 +1017,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>BA</term>
-            /// 			<description>Bosnia & Herzegovina</description>
+            /// 			<description>Bosnia &amp; Herzegovina</description>
             /// 		</item>
             /// 	</list>
             /// <para>A link to <see cref="TzDataTimezone.Europe.Belgrade"/>, whose zone lines it shares, including those before 1970.</para>
@@ -1364,6 +1367,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Vatican = new DataStandardizer.Chronology.TzDataTimezone("Europe/Vatican", linkTarget: "Europe/Rome", TzDataTimezone.ZoneLineData.Europe_Rome, latitude: 41.90222222222222D, longitude: 12.453055555555554D, isoCountryCodes: new string[] { "VA" }, comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Asia/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Asia
         {
             
@@ -2920,6 +2926,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Aden = new DataStandardizer.Chronology.TzDataTimezone("Asia/Aden", linkTarget: "Asia/Riyadh", TzDataTimezone.ZoneLineData.Asia_Riyadh, latitude: 12.75D, longitude: 45.2D, isoCountryCodes: new string[] { "YE" }, comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Antarctica/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Antarctica
         {
             
@@ -3125,6 +3134,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Syowa = new DataStandardizer.Chronology.TzDataTimezone("Antarctica/Syowa", linkTarget: "Asia/Riyadh", TzDataTimezone.ZoneLineData.Asia_Riyadh, latitude: -69.00611111111111D, longitude: 39.59D, isoCountryCodes: new string[] { "AQ" }, comment: "Syowa");
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Pacific/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Pacific
         {
             
@@ -3290,7 +3302,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 		<item>
             /// 			<term>WF</term>
-            /// 			<description>Wallis & Futuna</description>
+            /// 			<description>Wallis &amp; Futuna</description>
             /// 		</item>
             /// 	</list>
             /// </remarks>
@@ -3853,7 +3865,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>WF</term>
-            /// 			<description>Wallis & Futuna</description>
+            /// 			<description>Wallis &amp; Futuna</description>
             /// 		</item>
             /// 	</list>
             /// <para>A link to <see cref="TzDataTimezone.Pacific.Tarawa"/>, whose zone lines it shares, including those before 1970.</para>
@@ -3861,6 +3873,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Wallis = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Wallis", linkTarget: "Pacific/Tarawa", TzDataTimezone.ZoneLineData.Pacific_Tarawa, latitude: -13.3D, longitude: -176.16666666666666D, isoCountryCodes: new string[] { "WF" }, comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Australia/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Australia
         {
             
@@ -4063,6 +4078,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Eucla = new DataStandardizer.Chronology.TzDataTimezone("Australia/Eucla", TzDataTimezone.ZoneLineData.Australia_Eucla, latitude: -31.716666666666665D, longitude: 128.86666666666667D, isoCountryCodes: new string[] { "AU" }, comment: "Western Australia (Eucla)");
         }
         
+        /// <summary>
+        /// The timezones directly under <c>America/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class America
         {
             
@@ -5404,7 +5422,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>PM</term>
-            /// 			<description>St Pierre & Miquelon</description>
+            /// 			<description>St Pierre &amp; Miquelon</description>
             /// 		</item>
             /// 	</list>
             /// </remarks>
@@ -5426,7 +5444,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 		<item>
             /// 			<term>AG</term>
-            /// 			<description>Antigua & Barbuda</description>
+            /// 			<description>Antigua &amp; Barbuda</description>
             /// 		</item>
             /// 		<item>
             /// 			<term>CA</term>
@@ -5466,7 +5484,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 		<item>
             /// 			<term>KN</term>
-            /// 			<description>St Kitts & Nevis</description>
+            /// 			<description>St Kitts &amp; Nevis</description>
             /// 		</item>
             /// 		<item>
             /// 			<term>LC</term>
@@ -5486,7 +5504,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 		<item>
             /// 			<term>TT</term>
-            /// 			<description>Trinidad & Tobago</description>
+            /// 			<description>Trinidad &amp; Tobago</description>
             /// 		</item>
             /// 		<item>
             /// 			<term>VC</term>
@@ -5570,7 +5588,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>TC</term>
-            /// 			<description>Turks & Caicos Is</description>
+            /// 			<description>Turks &amp; Caicos Is</description>
             /// 		</item>
             /// 	</list>
             /// </remarks>
@@ -5898,7 +5916,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>AG</term>
-            /// 			<description>Antigua & Barbuda</description>
+            /// 			<description>Antigua &amp; Barbuda</description>
             /// 		</item>
             /// 	</list>
             /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
@@ -6145,7 +6163,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>KN</term>
-            /// 			<description>St Kitts & Nevis</description>
+            /// 			<description>St Kitts &amp; Nevis</description>
             /// 		</item>
             /// 	</list>
             /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
@@ -6259,7 +6277,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>TT</term>
-            /// 			<description>Trinidad & Tobago</description>
+            /// 			<description>Trinidad &amp; Tobago</description>
             /// 		</item>
             /// 	</list>
             /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
@@ -6323,6 +6341,9 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             public static readonly DataStandardizer.Chronology.TzDataTimezone St_Thomas = new DataStandardizer.Chronology.TzDataTimezone("America/St_Thomas", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 18.35D, longitude: -64.93333333333334D, isoCountryCodes: new string[] { "VI" }, comment: null);
             
+            /// <summary>
+            /// The timezones directly under <c>America/Argentina/</c> in the TZ Database's naming hierarchy.
+            /// </summary>
             public static class Argentina
             {
                 
@@ -6543,6 +6564,9 @@ namespace DataStandardizer.Chronology
                 public static readonly DataStandardizer.Chronology.TzDataTimezone Ushuaia = new DataStandardizer.Chronology.TzDataTimezone("America/Argentina/Ushuaia", TzDataTimezone.ZoneLineData.America_Argentina_Ushuaia, latitude: -54.8D, longitude: -68.3D, isoCountryCodes: new string[] { "AR" }, comment: "Tierra del Fuego (TF)");
             }
             
+            /// <summary>
+            /// The timezones directly under <c>America/Kentucky/</c> in the TZ Database's naming hierarchy.
+            /// </summary>
             public static class Kentucky
             {
                 
@@ -6583,6 +6607,9 @@ namespace DataStandardizer.Chronology
                 public static readonly DataStandardizer.Chronology.TzDataTimezone Monticello = new DataStandardizer.Chronology.TzDataTimezone("America/Kentucky/Monticello", TzDataTimezone.ZoneLineData.America_Kentucky_Monticello, latitude: 36.82972222222222D, longitude: -84.84916666666666D, isoCountryCodes: new string[] { "US" }, comment: "Eastern - KY (Wayne)");
             }
             
+            /// <summary>
+            /// The timezones directly under <c>America/Indiana/</c> in the TZ Database's naming hierarchy.
+            /// </summary>
             public static class Indiana
             {
                 
@@ -6731,6 +6758,9 @@ namespace DataStandardizer.Chronology
                 public static readonly DataStandardizer.Chronology.TzDataTimezone Knox = new DataStandardizer.Chronology.TzDataTimezone("America/Indiana/Knox", TzDataTimezone.ZoneLineData.America_Indiana_Knox, latitude: 41.295833333333334D, longitude: -86.625D, isoCountryCodes: new string[] { "US" }, comment: "Central - IN (Starke)");
             }
             
+            /// <summary>
+            /// The timezones directly under <c>America/North_Dakota/</c> in the TZ Database's naming hierarchy.
+            /// </summary>
             public static class North_Dakota
             {
                 
@@ -6790,6 +6820,9 @@ namespace DataStandardizer.Chronology
             }
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Atlantic/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Atlantic
         {
             
@@ -6895,7 +6928,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>GS</term>
-            /// 			<description>South Georgia & the South Sandwich Islands</description>
+            /// 			<description>South Georgia &amp; the South Sandwich Islands</description>
             /// 		</item>
             /// 	</list>
             /// </remarks>
@@ -6976,6 +7009,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone St_Helena = new DataStandardizer.Chronology.TzDataTimezone("Atlantic/St_Helena", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: -15.916666666666666D, longitude: -5.7D, isoCountryCodes: new string[] { "SH" }, comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Africa/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Africa
         {
             
@@ -7405,7 +7441,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>ST</term>
-            /// 			<description>Sao Tome & Principe</description>
+            /// 			<description>Sao Tome &amp; Principe</description>
             /// 		</item>
             /// 	</list>
             /// </remarks>
@@ -8101,6 +8137,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Harare = new DataStandardizer.Chronology.TzDataTimezone("Africa/Harare", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -17.833333333333332D, longitude: 31.05D, isoCountryCodes: new string[] { "ZW" }, comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Indian/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Indian
         {
             
@@ -8315,6 +8354,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Mayotte = new DataStandardizer.Chronology.TzDataTimezone("Indian/Mayotte", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: -12.783333333333333D, longitude: 45.233333333333334D, isoCountryCodes: new string[] { "YT" }, comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Etc/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Etc
         {
             
@@ -8336,6 +8378,9 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone GMT = new DataStandardizer.Chronology.TzDataTimezone("Etc/GMT", TzDataTimezone.ZoneLineData.Etc_GMT, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
         }
         
+        /// <summary>
+        /// The timezones directly under <c>Arctic/</c> in the TZ Database's naming hierarchy.
+        /// </summary>
         public static class Arctic
         {
             
@@ -8351,7 +8396,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>SJ</term>
-            /// 			<description>Svalbard & Jan Mayen</description>
+            /// 			<description>Svalbard &amp; Jan Mayen</description>
             /// 		</item>
             /// 	</list>
             /// <para>A link to <see cref="TzDataTimezone.Europe.Berlin"/>, whose zone lines it shares, including those before 1970.</para>
@@ -8383,12 +8428,12 @@ namespace DataStandardizer.Chronology
         /// <summary>
         /// Compares the timezone with another, by the ordinal order of their identifiers.
         /// </summary>
-        /// <param name="obj">The timezone to compare with.</param>
+        /// <param name="obj">The timezone to compare with, or <see langword="null"/>.</param>
         /// <returns>
         /// A negative number if the identifier of the timezone comes before that of <paramref name="obj"/>; zero if they are equal; otherwise,
-        /// a positive number.
+        /// a positive number.  Every timezone compares greater than <see langword="null"/>, so the result is a positive number when
+        /// <paramref name="obj"/> is <see langword="null"/>.
         /// </returns>
-        /// <exception cref="System.ArgumentNullException"><paramref name="obj"/> is <see langword="null"/>.</exception>
         /// <exception cref="System.ArgumentException"><paramref name="obj"/> is not a <see cref="TzDataTimezone"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public int CompareTo(object? obj)
@@ -8398,7 +8443,7 @@ namespace DataStandardizer.Chronology
         {
             if (obj == null)
             {
-                throw new System.ArgumentNullException(nameof(obj));
+                return 1;
             }
             if (!(obj is DataStandardizer.Chronology.TzDataTimezone other))
             {

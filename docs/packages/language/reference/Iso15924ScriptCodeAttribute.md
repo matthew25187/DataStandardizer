@@ -31,19 +31,17 @@ attribute yourself.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Age` | `double? Age { get; }` | The Unicode version in which the script was encoded, or `null`. |
+| `Age` | `double? Age { get; }` | The Unicode version in which the script was added (the code table's "Unicode Version" column), or `null` if the script isn't in Unicode. |
 | `Alias` | `string? Alias { get; set; }` | The alias for the script code, or `null`. |
-| `Date` | `DateOnly? Date { get; }` *(`net10.0` only)* / `DateTime? Date { get; }` | The script code's date. Returns a `DateOnly?` on the `net10.0` target and a `DateTime?` on the .NET Standard targets. |
+| `Date` | `DateTime? Date { get; }` | The script code's date at midnight (`DateTimeKind.Unspecified`), or `null`. |
 
 Inherited from `CodeAttributeBase`: `EnglishName`, `EnglishNames`, `FrenchName`,
 `FrenchNames`.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. The `Date`
-property is `DateOnly?` on the `net10.0` build and `DateTime?` on the
-`netstandard1.0` and `netstandard2.0` builds. On the .NET Standard targets the
-`Alias` property is annotated with `[MaybeNull, AllowNull]` from
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. On the .NET Standard
+targets the `Alias` property is annotated with `[MaybeNull, AllowNull]` from
 `System.Diagnostics.CodeAnalysis` rather than a C# nullable reference type.
 A project gets null warnings from them only on C# 8 or later with nullable enabled.
 

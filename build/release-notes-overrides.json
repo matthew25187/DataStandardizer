@@ -1,6 +1,106 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "33419276b959705d1cfe27215c9e91ca7f8cabbc": {
+      "subject": "ItuE164InternationalNumber.CreateNumberForNetwork rejects an Identification Code that isn't assigned under the given Country Code (#1175)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber)` throws `ArgumentException` for an Identification Code not assigned under the Country Code, such as `IC110` (883) with `GMSS` (881)."
+        }
+      ]
+    },
+    "ce93e3bc2fd6b01450f0221920ad45c9e486808d": {
+      "subject": "E.164 formatting no longer drops digits, handles empty and null patterns, and leaves other arguments in the current culture (#1178)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`ItuE164InternationalNumber.ToString` and `TelephonyInfo` formatting throw `FormatException` for a pattern without a placeholder for every digit of the number, instead of dropping digits."
+        },
+        {
+          "category": "fixed",
+          "text": "A new `ItuE164InternationalNumberFormatInfo` has the invariant patterns, so the `i` and `I` formats no longer give an empty string, and setting either pattern to `null` throws `ArgumentNullException`."
+        },
+        {
+          "category": "fixed",
+          "text": "With `TelephonyInfo` as the format provider, `string.Format` formats arguments that aren't E.164 numbers with the current culture."
+        },
+        {
+          "category": "fixed",
+          "text": "`TelephonyInfo` takes the neutral number patterns from the invariant culture, not the current UI culture."
+        }
+      ]
+    },
+    "01b58ca7576003e2554567d86c241859daf7bdd8": {
+      "subject": "ItuE164InternationalNumber.Parse and TryParse reject a number with any character between its digits, whatever the style (#1174)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`ItuE164InternationalNumber.Parse` and `TryParse` reject a number with any character between its digits, such as `1-205-555-0199`, whatever the `ItuE164InternationalNumberStyles`; remove any grouping before parsing."
+        }
+      ]
+    },
+    "2ed02120cd49e88afde6eb6986fa38a86a4e303f": {
+      "subject": "Charset decoding gives the same results on netstandard1.1 as on the other targets (#1137)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "The netstandard1.1 build decodes runtime and custom character sets as the other builds do: invalid octets become U+FFFD with `AllowInvalidOctets`, and valid ISO-2022-JP values are accepted."
+        },
+        {
+          "category": "breaking",
+          "text": "An encoded word in a character set that switches modes, such as ISO-2022-JP, is accepted only if it switches back to ASCII by its end (RFC 2047 §3), on every target and with every option."
+        },
+        {
+          "category": "fixed",
+          "text": "`Encoder.Convert` and `Decoder.Convert` of the built-in encodings accept empty input, and the netstandard1.1 `UTF-32` decoder fits the array `GetMaxCharCount` sizes."
+        },
+        {
+          "category": "fixed",
+          "text": "On netstandard2.0, `ISO-8859-1` from `MimeCharsetResolver` uses the caller's fallbacks, and `UTF-16` and `UTF-32` have a `BodyName` and `HeaderName`."
+        }
+      ]
+    },
+    "b47a407899e01ff32c0dbe3b9751f0c9725ec749": {
+      "subject": "A number parsed with separators between its digits formats, and gives its fields, like one built from digits (#1171)",
+      "notes": []
+    },
+    "3357ecc9aba261abd463275c98fe2f9053a2bed4": {
+      "subject": "MimeCharset.TryGetDefault gives no default character set for text/*+xml types, so ImfEntity.GetText throws for one with no charset parameter instead of decoding it as US-ASCII (#1167)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`MimeCharset.TryGetDefault` returns `false` for a `text` subtype with the `+xml` suffix, such as `text/foo+xml`, which has no default character set (RFC 7303 §4.2), instead of giving `US-ASCII`",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "breaking",
+          "text": "`ImfEntity.GetText` throws `ImfFileException` for a `text` entity with the `+xml` suffix, such as `text/foo+xml`, and no `charset` parameter, instead of decoding it as US-ASCII. These types have no default character set (RFC 7303 §4.2), so read `GetContent` and find it as XML says.",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
+    },
+    "d1b4b6928ccb76cbf16c5d5338edfd2365f14a17": {
+      "subject": "MimeParameter compares access-type values case-insensitively, accepts apostrophes in quoted extended values, and formats a default instance as empty (#1153)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`MimeMediaTypeParseOptions.AllowQuotedExtendedValues` accepts an apostrophe in the value, as its docs say"
+        },
+        {
+          "category": "fixed",
+          "text": "`default(MimeParameter).TryFormat` and `FormatSections` no longer throw"
+        }
+      ]
+    },
+    "abe9eb3be659272c7bda2efb15b69ce67eb146cb": {
+      "subject": "ISO 3166-2 subdivision lookups return null for a code with a trailing line feed (#1068)",
+      "notes": []
+    },
     "dd5754f7021311b50c911052dfe54bfdd8fe127a": {
       "subject": "VcardOptions.MaxLineLength is a required property on .NET 10 and later (#788)",
       "notes": []
@@ -935,6 +1035,95 @@
         {
           "category": "breaking",
           "text": "`IcalValue.TryFormatUri`, `TryFormatCalAddress` and the `Url`, `Organizer`, `Source` and `TimeZoneUrl` setters write a `Uri` as given (`OriginalString`), not as `AbsoluteUri`, and throw `ArgumentException` for text the readers reject (RFC 5545 §3.3.13), such as a space, a non-ASCII character or a Windows file path; percent-encode such characters, and give an internationalized host in ASCII, before creating the `Uri`."
+        }
+      ]
+    },
+    "b75c6b31745af85d552af3b2d11b8837cabab3b0": {
+      "subject": "Quoted-printable body mode follows RFC 2045 §6.7 on line length, transport padding and bare LFs (#1139)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "In `MimeQuotedPrintableMode.Body`, the quoted-printable decoder rejects an encoded line longer than 76 characters, not counting its transport padding and CRLF (RFC 2045 §6.7 rule 5)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "added",
+          "text": "`MimeQuotedPrintableDecoderOptions.AllowLongLines` accepts quoted-printable lines longer than 76 characters (RFC 2045 §6.7 note 5)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "The quoted-printable decoder removes trailing spaces and tabs (transport padding) of any length, instead of rejecting a run of more than 76 before a line break",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "breaking",
+          "text": "The quoted-printable encoder writes a bare LF in text as `=0A`, not as a CRLF line break, so the encoded data decodes to the original octets (RFC 2045 §6.7 rule 4)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "changed",
+          "text": "A `text/*` body from a forward-only stream, written as quoted-printable, has its bare LFs encoded as `=0A` instead of written as CRLF line breaks, so the content is kept as it is (RFC 2045 §6.7 rule 4)",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
+    },
+    "38814270040e32f7df2c18455ac048021753ed3a": {
+      "subject": "Lower-case hex digits are accepted by default in RFC 2231 values and \"Q\"-encoded words (#1144)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "\"Q\"-encoded words (`MimeEncodedWord`, and the \"Q\" modes of `MimeQuotedPrintable`) accept lower-case hexadecimal digits such as `=c3=a9` by default, which RFC 2047 §4.2 allows",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "`MimeMediaType` accepts lower-case hexadecimal digits in RFC 2231 extended parameter values, such as `%c3%a9`, by default (RFC 2231 §7, RFC 822 §2.1)",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "deprecated",
+          "text": "`MimeMediaTypeParseOptions.AllowLowercaseHexDigits` and `MimeEncodedWordParseOptions.AllowLowercaseHexDigits` are obsolete and have no effect, as lower-case hexadecimal digits are always accepted; they will be removed in a future major version",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "fixed",
+          "text": "Header text decoding (`ImfHeaderText`) decodes \"Q\"-encoded words with lower-case hexadecimal digits, such as `=?UTF-8?Q?=c3=a9?=`, by default, which RFC 2047 §4.2 allows; before, they were decoded only with `ImfOptions.AllowMalformedEncodedWords`",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
+    },
+    "6ff883a6dd00e722e0e7593b421deadff119c42d": {
+      "subject": "MIME quoted-strings accept the control characters that RFC 822 allows (#1150)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Quoted parameter values accept the US-ASCII control characters that RFC 822 allows, as text or as quoted-pairs, instead of rejecting them"
+        },
+        {
+          "category": "fixed",
+          "text": "Content-Type and Content-Disposition fields accept a quoted-pair whose backslash ends a folded line, such as `filename=\"a\\<CRLF> b\"`, and read it as the space after the fold (RFC 5322 §2.2.3); before, the field was rejected",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
         }
       ]
     }

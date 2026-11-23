@@ -33,8 +33,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>PHOTO</c> properties (RFC 2426 §3.1.4), each inline data or a URI.
         /// </summary>
         /// <remarks>
-        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, is
-        /// left out on every runtime, since <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
+        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, or
+        /// with a scheme of one letter, such as <c>c:/dir/file</c>, which <see cref="Uri"/> on Windows takes for a drive path, is left out on every runtime, since
+        /// <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
         /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Photos { get; }
 
@@ -82,8 +83,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>LOGO</c> properties (RFC 2426 §3.5.3), each inline data or a URI.
         /// </summary>
         /// <remarks>
-        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, is
-        /// left out on every runtime, since <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
+        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, or
+        /// with a scheme of one letter, such as <c>c:/dir/file</c>, which <see cref="Uri"/> on Windows takes for a drive path, is left out on every runtime, since
+        /// <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
         /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Logos { get; }
 
@@ -106,8 +108,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>SOUND</c> properties (RFC 2426 §3.6.6), each inline data or a URI.
         /// </summary>
         /// <remarks>
-        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, is
-        /// left out on every runtime, since <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
+        /// Inline data of any length is here, and can be added.  A URI of another scheme with more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold, or
+        /// with a scheme of one letter, such as <c>c:/dir/file</c>, which <see cref="Uri"/> on Windows takes for a drive path, is left out on every runtime, since
+        /// <see cref="VcardMediaValue.Uri"/> holds a <see cref="Uri"/>.  It stays in <see cref="VcardCard.Properties"/>, and is written as usual.
         /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Sounds { get; }
 
@@ -194,6 +197,9 @@ namespace DataStandardizer.File.vCard
 
         /// <summary>
         /// Gets the text of the <c>SORT-STRING</c> property (RFC 2426 §3.6.5), which the model holds on the <c>N</c> or <c>ORG</c> it sorts; or <c>null</c> if the card has none.
+        /// This is the first <c>SORT-AS</c> of the first <c>N</c>, or on a card with no <c>N</c> of the first <c>ORG</c>, since that is the sort string a writer of vCard 3.0 writes;
+        /// otherwise, or when a <c>SORT-STRING</c> property of the card's own comes before that line, it is a <c>SORT-STRING</c> property of the card's own.  An <c>N</c> with
+        /// <c>PHONETIC</c> (RFC 9554 §4.6), which vCard 3.0 can't hold, isn't counted.
         /// </summary>
         string? SortString { get; }
 
@@ -254,6 +260,9 @@ namespace DataStandardizer.File.vCard
 
         /// <summary>
         /// Gets the text of the <c>SORT-STRING</c> property (RFC 2426 §3.6.5), which the model holds on the <c>N</c> or <c>ORG</c> it sorts; or <c>null</c> if the card has none.
+        /// This is the first <c>SORT-AS</c> of the first <c>N</c>, or on a card with no <c>N</c> of the first <c>ORG</c>, since that is the sort string a writer of vCard 3.0 writes;
+        /// otherwise, or when a <c>SORT-STRING</c> property of the card's own comes before that line, it is a <c>SORT-STRING</c> property of the card's own.  An <c>N</c> with
+        /// <c>PHONETIC</c> (RFC 9554 §4.6), which vCard 3.0 can't hold, isn't counted.
         /// </summary>
         string SortString { get; }
 
@@ -290,7 +299,8 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>BDAY</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <exception cref="ArgumentException">vCard 3.0 can't write <paramref name="value"/>, or it is not initialised.</exception>
+        /// <exception cref="ArgumentException">vCard 3.0 can't write <paramref name="value"/>, vCard 4.0, the canonical form, has no form for it, such as a time with a fraction of a
+        /// second, or it is not initialised.</exception>
         /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetBirthday(VcardDateAndOrTime value);
 
@@ -331,7 +341,8 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>REV</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="ArgumentException">vCard 4.0, the canonical form, has no form for <paramref name="value"/>, such as a time with a fraction of a second, or it is not
+        /// initialised.</exception>
         /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetRevision(VcardTimestamp value);
 

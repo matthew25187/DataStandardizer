@@ -49,7 +49,10 @@ Console.WriteLine(charset); // US-ASCII
 | Media type | Default | Standard |
 | --- | --- | --- |
 | `text/calendar`, `text/vcard` | `UTF-8` | RFC 5545 §8.1, RFC 6350 §10.1 |
-| `text/html`, `text/xml` | None: the text gives the character set | HTML Living Standard §16.1.2, RFC 7303 §3.2 |
+| `text/csv` | `UTF-8` | RFC 7111 §5.1 |
+| `text/turtle`, `text/vtt` | `UTF-8`, the only character set they allow | RDF 1.1 Turtle Appendix B, WebVTT §10.1 |
+| `text/javascript`, `text/ecmascript` | `UTF-8`, unless a byte order mark gives another | RFC 9239 §4.2 |
+| `text/html`, `text/xml`, `text/xml-external-parsed-entity`, and `text` subtypes with the `+xml` suffix such as `text/foo+xml` | None: the text gives the character set | HTML Living Standard §16.1.2, RFC 7303 §3.2, §4.2, §9.4 |
 | `text/markdown` | None: the `charset` parameter is required | RFC 7763 §2 |
 | Any other `text` type | `US-ASCII` | RFC 2046 §4.1.2, RFC 6657 §3 |
 | Any other type | None | |
@@ -70,21 +73,32 @@ if (MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse("latin1"), out 
 A character set is resolved by the first of these that knows its name:
 
 1. **The built-in encodings:** `US-ASCII`, `ISO-8859-1`, `UTF-8`, `UTF-16`,
-   `UTF-16BE`, `UTF-16LE`, `UTF-32`, `UTF-32BE` and `UTF-32LE`, and their aliases in
-   the IANA registry, such as `latin1` and `csUTF8`. They give the same result on every
-   target and runtime.
+   `UTF-16BE`, `UTF-16LE`, `UTF-32`, `UTF-32BE`, `UTF-32LE` and `ISO-10646-UCS-2`, and
+   their aliases in the IANA registry, such as `latin1`, `csUTF8` and `csUnicode`. They
+   give the same result on every target and runtime.
 2. **`Encoding.GetEncoding(string)`**, which knows the encodings of the runtime and
-   of any registered `EncodingProvider`.
+   of any registered `EncodingProvider`. It's asked only for the names and aliases in
+   the [IANA Character Sets registry](https://www.iana.org/assignments/character-sets/).
 3. **The resolver you passed** to the `MimeCharsetResolver` constructor, if any.
 
 A character set that none of these knows isn't resolved, and it's up to you whether
 that's an error. The machine's default encoding, `Encoding.Default`, is never used.
 
+A `charset` value is a name registered with IANA, or a private name starting with `X-`
+that the sender and receiver agree on (RFC 2046 §4.1.2, RFC 2978 §3.1). So names that
+only the runtime knows, such as `ascii`, `ucs-2`, `unicode` and `unicodeFFFE`, aren't
+resolved, and nor are private names. To accept them, supply a resolver for them, as
+[Add your own character sets](#add-your-own-character-sets) shows.
+
 The built-in encodings don't throw. They read invalid bytes as U+FFFD, and write a
 character that the character set can't hold as `?` (`US-ASCII` and `ISO-8859-1`) or
 U+FFFD (the Unicode encodings). `UTF-16` and `UTF-32` are read as big-endian unless the
 bytes start with a byte order mark, and are written as big-endian with no byte order
-mark. `UTF-8` is written with no byte order mark.
+mark. `ISO-10646-UCS-2` is big-endian, as the IANA registry gives it network byte order,
+and holds only the characters of the Basic Multilingual Plane: a surrogate code unit is
+read as U+FFFD, and a character outside that plane is written as U+FFFD for each of its
+surrogates. `UTF-8` is
+written with no byte order mark.
 
 ## Register the code pages
 

@@ -19,6 +19,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string NoMimeVersion = Header + "Content-Type: text/plain\r\n\r\nx\r\n";
         private const string WithMimeVersion = MimeHeader + "Content-Type: text/plain\r\n\r\nx\r\n";
 
+        // ref. RFC 2045 §4: a writer that changes a part of a multipart it read adds the field the top-level header lacks, after the fields it keeps.
+        private const string MultipartNoMimeVersion = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nx\r\n--b--\r\n";
+        private const string MultipartWithMimeVersion = MimeHeader + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nx\r\n--b--\r\n";
+        private const string MultipartWithAddedMimeVersion = Header + "Content-Type: multipart/mixed; boundary=b\r\nMIME-Version: 1.0\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\ny\r\n--b--\r\n";
+
+        private const string EmbeddedInMessageNoMimeVersion = Header + "Content-Type: message/rfc822\r\n\r\nSubject: y\r\nX-Note: z\r\n\r\nx\r\n";
+        private const string EmbeddedInMessageWithAddedMimeVersion = Header + "Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\n\r\nSubject: y\r\n\r\nx\r\n";
+
+        // ref. RFC 2045 §4: an embedded message that was read keeps the header it had, however it is written.
+        private const string EmbeddedMultipartNoMimeVersion = MimeHeader + "Content-Type: message/rfc822\r\n\r\n"
+            + "Subject: y\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nContent-Type: text/plain\r\n\r\nx\r\n--c--\r\n";
+        private const string EmbeddedMultipartChanged = MimeHeader + "Content-Type: message/rfc822\r\n\r\n"
+            + "Subject: y\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nContent-Type: text/plain\r\n\r\ny\r\n--c--\r\n";
+        private const string EmbeddedMultipartChangedContent = "Subject: y\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nContent-Type: text/plain\r\n\r\ny\r\n--c--\r\n";
+
         // ref. RFC 2045 §4: an embedded message needs the field only if it claims to follow MIME.
         private const string EmbeddedNoMimeVersion = MimeHeader + "Content-Type: message/rfc822\r\n\r\nSubject: y\r\nContent-Type: text/plain\r\n\r\nz\r\n";
 
@@ -49,6 +64,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // A multipart header, for a body set afterwards that has no delimiters (RFC 2046 §5.1.1).
         private const string MultipartMessage = MimeHeader + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--\r\n";
         private const string BodyWithNoDelimiters = "no delimiters\r\n";
+
+        // ref. RFC 2046 §5.1.1: a multipart body ends with a close delimiter, which only AllowMissingBoundaryTerminator lets a reader do without.  The nested one is ended by a delimiter of
+        // the one that holds it.
+        private const string NoCloseDelimiter = MimeHeader + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n";
+        private const string NoDelimiterAtAll = MimeHeader + "Content-Type: multipart/mixed; boundary=b\r\n\r\nx\r\n";
+        private const string NestedNoCloseDelimiter = MimeHeader + "Content-Type: multipart/mixed; boundary=a\r\n\r\n--a\r\nContent-Type: multipart/alternative; boundary=b\r\n\r\n--b\r\n\r\nx\r\n"
+            + "--a\r\n\r\ny\r\n--a--\r\n";
+        private const string TopLevelPath = "";
+        private const string FirstPartPath = "1";
 
         // The position of the octet above 127 in EightBitUnderDefault: 75 of the header and its empty line, and 3 of "caf", on line 5.
         private const long EightBitPosition = 78;
@@ -371,6 +395,104 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 Octets.ToText(output.ToArray()).Should().Be(NoMimeVersion);
                 subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
             }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartOfMultipartReadWithNoMimeVersion_AddsMimeVersion()
+        {
+            // arrange
+            var read = Read(MultipartNoMimeVersion, new ImfOptions { AllowMissingMimeVersion = true });
+            ((ImfMultipart)read.Body).Parts[0].SetContent(Octets.Of("y"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(MultipartWithAddedMimeVersion);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartOfMultipartWithMimeVersionRemoved_AddsMimeVersion()
+        {
+            // arrange
+            var read = Read(MultipartWithMimeVersion, new ImfOptions());
+            read.Fields.RemoveAll("MIME-Version");
+            ((ImfMultipart)read.Body).Parts[0].SetContent(Octets.Of("y"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(MultipartWithAddedMimeVersion);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedEmbeddedMessageReadWithNoMimeVersion_AddsMimeVersionToTheTopLevelOnly()
+        {
+            // arrange
+            var read = Read(EmbeddedInMessageNoMimeVersion, new ImfOptions { AllowMissingMimeVersion = true });
+            ((ImfMessagePart)read.Body).Message.Fields.RemoveAll("X-Note");
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(EmbeddedInMessageWithAddedMimeVersion);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartOfEmbeddedMultipartWithNoMimeVersion_WritesTheEmbeddedHeaderAsItWasRead()
+        {
+            // arrange
+            var read = Read(EmbeddedMultipartNoMimeVersion, new ImfOptions());
+            ((ImfMultipart)((ImfMessagePart)read.Body).Message.Body).Parts[0].SetContent(Octets.Of("y"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(EmbeddedMultipartChanged);
+            }
+        }
+
+        [Fact]
+        public void GetContent_ChangedPartOfEmbeddedMultipartWithNoMimeVersion_WritesTheEmbeddedHeaderAsItWasRead()
+        {
+            // arrange
+            var read = Read(EmbeddedMultipartNoMimeVersion, new ImfOptions());
+            var subject = (ImfMessagePart)read.Body;
+            ((ImfMultipart)subject.Message.Body).Parts[0].SetContent(Octets.Of("y"));
+
+            // act
+            var testResult = subject.GetContent();
+
+            // assert
+            Octets.ToText(testResult.ToArray()).Should().Be(EmbeddedMultipartChangedContent);
+        }
+
+        [Fact]
+        public void Validate_ChangedPartOfMultipartReadWithNoMimeVersion_ReportsNothing()
+        {
+            // arrange
+            var subject = Read(MultipartNoMimeVersion, new ImfOptions { AllowMissingMimeVersion = true });
+            ((ImfMultipart)subject.Body).Parts[0].SetContent(Octets.Of("y"));
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         [Fact]
@@ -918,6 +1040,135 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingRequiredField);
+        }
+
+        [Theory]
+        [InlineData(NoCloseDelimiter, TopLevelPath)]
+        [InlineData(NoDelimiterAtAll, TopLevelPath)]
+        [InlineData(NestedNoCloseDelimiter, FirstPartPath)]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiter_ThrowsByDefaultAndWritesNothing(string message, string expectedPath)
+        {
+            // arrange
+            var read = Read(message, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(read);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+                exception.Data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Theory]
+        [InlineData(NoCloseDelimiter, TopLevelPath)]
+        [InlineData(NoDelimiterAtAll, TopLevelPath)]
+        [InlineData(NestedNoCloseDelimiter, FirstPartPath)]
+        public void WriteMessage_UnchangedMultipartWithNoCloseDelimiterAllowed_WritesItAsReadAndRecordsADiagnostic(string message, string expectedPath)
+        {
+            // arrange
+            var options = new ImfOptions { AllowMissingBoundaryTerminator = true };
+            var read = Read(message, options);
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output, options))
+            {
+                // act
+                subject.WriteMessage(read);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(message);
+                var diagnostic = subject.Diagnostics.Should().ContainSingle().Which;
+                diagnostic.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+                diagnostic.EntityPath.Should().Be(expectedPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_MultipartWithNoCloseDelimiterWhoseFieldsAloneChanged_ThrowsWithItsPath()
+        {
+            // arrange
+            var read = Read(NestedNoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            ((ImfMultipart)read.Body).Parts[0].ContentDescription = "z";
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(read);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteEntry_UnchangedMultipartWithNoCloseDelimiter_ThrowsByDefaultAndWritesNothing()
+        {
+            // arrange
+            var entry = new EmlxEntry(Read(NoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true }), new EmlxMetadata());
+            var output = new MemoryStream();
+            var subject = new EmlxWriter(output);
+
+            // act
+            Action testAction = () => subject.WriteEntry(entry);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+            output.Length.Should().Be(0);
+        }
+
+        [Fact]
+        public void WriteMessage_ChangedPartBesideUnchangedMultipartWithNoCloseDelimiter_ThrowsWithItsPath()
+        {
+            // arrange
+            var read = Read(NestedNoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            ((ImfMultipart)read.Body).Parts[1].SetContent(Octets.Of("z"));
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(read);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(FirstPartPath);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Theory]
+        [InlineData(NoCloseDelimiter, TopLevelPath)]
+        [InlineData(NoDelimiterAtAll, TopLevelPath)]
+        [InlineData(NestedNoCloseDelimiter, FirstPartPath)]
+        public void Validate_UnchangedMultipartWithNoCloseDelimiter_GivesTheProblem(string message, string expectedPath)
+        {
+            // arrange
+            var subject = Read(message, new ImfOptions { AllowMissingBoundaryTerminator = true });
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            var diagnostic = testResult.Should().ContainSingle().Which;
+            diagnostic.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
+            diagnostic.EntityPath.Should().Be(expectedPath);
+        }
+
+        [Fact]
+        public void Validate_ChangedMultipartWithNoCloseDelimiter_GivesNoProblem()
+        {
+            // arrange
+            var subject = Read(NoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true });
+            ((ImfMultipart)subject.Body).Parts[0].SetContent(Octets.Of("y"));
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         private static ImfMessage Read(string message, ImfOptions options)

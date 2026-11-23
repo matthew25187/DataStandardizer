@@ -432,6 +432,10 @@ namespace DataStandardizer.File.vCard
         /// A URI of more than 65519 characters gives <c>false</c> on every runtime, because <see cref="Uri"/> on .NET Framework can't hold one.  Neither RFC 6350 nor RFC 3986 sets a limit,
         /// so such a value is valid, and a content line keeps it; <see cref="VcardMediaUri"/> holds one as text.
         /// </para>
+        /// <para>
+        /// A URI whose scheme is one letter, such as <c>c:/dir/file</c>, gives <c>false</c> on every runtime and operating system.  RFC 3986 §3.1 allows such a scheme, so the value is
+        /// valid, and a content line keeps it, but <see cref="Uri"/> on Windows takes the text for a drive path and gives a <c>file</c> URI, whose scheme isn't the one written.
+        /// </para>
         /// </remarks>
         /// <param name="value">The value, such as <c>http://www.example.com/my/picture.jpg</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
@@ -473,7 +477,8 @@ namespace DataStandardizer.File.vCard
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, was given with characters a URI value can't hold, such as a space, which
-        /// <see cref="Uri"/> accepts and <see cref="TryParseUri"/> doesn't, or has more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold.</exception>
+        /// <see cref="Uri"/> accepts and <see cref="TryParseUri"/> doesn't, was given as text whose scheme is one letter, such as the drive path <c>C:/dir/file</c>, which
+        /// <see cref="TryParseUri"/> doesn't give, or has more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
@@ -568,13 +573,12 @@ namespace DataStandardizer.File.vCard
                 if (index == fractionStart || index != value.Length) return false;
             }
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-            if (!double.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out result)) return false;
-#else
-            if (!double.TryParse(value.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out result)) return false;
-#endif
+            if (!NearestDoubleParser.TryParse(value, out result)) return false;
 
-            return !double.IsInfinity(result);
+            if (!double.IsInfinity(result)) return true;
+
+            result = 0;
+            return false;
         }
 
         /// <summary>
@@ -617,13 +621,12 @@ namespace DataStandardizer.File.vCard
             result = 0;
             if (!VcardValueFormatting.IsXmlFloatNumeral(value)) return false;
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#else
-            if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#endif
+            if (!NearestDoubleParser.TryParse(value, out result)) return false;
 
-            return !double.IsInfinity(result);
+            if (!double.IsInfinity(result)) return true;
+
+            result = 0;
+            return false;
         }
 
         /// <summary>
@@ -666,13 +669,12 @@ namespace DataStandardizer.File.vCard
             result = 0;
             if (!VcardValueFormatting.IsJsonNumber(value)) return false;
 
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#else
-            if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
-#endif
+            if (!NearestDoubleParser.TryParse(value, out result)) return false;
 
-            return !double.IsInfinity(result);
+            if (!double.IsInfinity(result)) return true;
+
+            result = 0;
+            return false;
         }
 
         /// <summary>
@@ -691,7 +693,8 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Checks that a URI is one a URI value can hold.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, its text is not that of a URI value, or it is longer than <see cref="MaxUriLengthOnEveryRuntime"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, its text is not that of a URI value or has a scheme of one letter, or it is longer than
+        /// <see cref="MaxUriLengthOnEveryRuntime"/>.</exception>
         internal static void CheckUri(Uri uri, string parameterName)
         {
             if (!uri.IsAbsoluteUri)
@@ -700,11 +703,15 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentException("The URI has more than " + MaxUriLengthOnEveryRuntime + " characters, which a Uri on .NET Framework can't hold.", parameterName);
             if (!IsUriText(uri.OriginalString.AsSpan()))
                 throw new ArgumentException("The URI was given with characters that a URI value can't hold.", parameterName);
+
+            // A Uri made from a drive path such as C:/dir/file has the file scheme, but its text would be read as a URI whose scheme is "C", which TryParseUriText doesn't give.
+            if (HasOneLetterScheme(uri.OriginalString.AsSpan()))
+                throw new ArgumentException("The URI was given as text whose scheme is one letter, such as a drive path, which a Uri can't hold as it was written.", parameterName);
         }
 
         /// <summary>
         /// Parses the text of a URI that has no escaping of a content line, such as the value of a <c>GEO</c> parameter, or the text a <see cref="Uri"/> was given.  Text longer than
-        /// <see cref="MaxUriLengthOnEveryRuntime"/> gives <c>false</c> on every runtime.
+        /// <see cref="MaxUriLengthOnEveryRuntime"/>, or whose scheme is one letter (see <see cref="HasOneLetterScheme"/>), gives <c>false</c> on every runtime.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal static bool TryParseUriText(ReadOnlySpan<char> text, [NotNullWhen(true)] out Uri? result)
@@ -713,7 +720,7 @@ namespace DataStandardizer.File.vCard
 #endif
         {
             result = null;
-            return text.Length <= MaxUriLengthOnEveryRuntime && IsUriText(text) && Uri.TryCreate(text.ToString(), UriKind.Absolute, out result);
+            return text.Length <= MaxUriLengthOnEveryRuntime && IsUriText(text) && !HasOneLetterScheme(text) && Uri.TryCreate(text.ToString(), UriKind.Absolute, out result);
         }
 
         /// <summary>
@@ -772,11 +779,12 @@ namespace DataStandardizer.File.vCard
 
         /// <summary>
         /// Gets whether a URI value, as it appears in a content line of vCard 4.0, is valid, with the same answer on every runtime.  <see cref="Uri"/> on .NET Framework can't hold a long one, such
-        /// as the <c>data:</c> URI of a photo, and neither RFC 6350 nor RFC 3986 sets a limit, so a long one is checked without it.
+        /// as the <c>data:</c> URI of a photo, and neither RFC 6350 nor RFC 3986 sets a limit, so a long one is checked without it.  So is one whose scheme is one letter, which
+        /// <see cref="Uri"/> on Windows takes for a drive path.
         /// </summary>
         internal static bool IsValidUriValue(ReadOnlySpan<char> value)
         {
-            if (value.Length > MaxUriLengthOnEveryRuntime) return IsUriValue(value);
+            if (value.Length > MaxUriLengthOnEveryRuntime || HasOneLetterScheme(value)) return IsUriValue(value);
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             Uri? uri;
@@ -791,7 +799,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         internal static bool IsValidUriText(ReadOnlySpan<char> text)
         {
-            if (text.Length > MaxUriLengthOnEveryRuntime) return IsUriText(text);
+            if (text.Length > MaxUriLengthOnEveryRuntime || HasOneLetterScheme(text)) return IsUriText(text);
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             Uri? uri;
@@ -821,6 +829,16 @@ namespace DataStandardizer.File.vCard
             }
 
             return TryUnescapeUri(value.AsSpan(), out text);
+        }
+
+        /// <summary>
+        /// Gets whether the text of a URI, with or without the escaping of a content line, starts with a scheme of one letter, such as <c>c:/dir/file</c>.  RFC 3986 §3.1 allows such a
+        /// scheme, but <see cref="Uri"/> on Windows takes the text for a drive path and gives a <c>file</c> URI, and may read it differently elsewhere, so no <see cref="Uri"/> is made from
+        /// it on any runtime.
+        /// </summary>
+        internal static bool HasOneLetterScheme(ReadOnlySpan<char> value)
+        {
+            return value.Length >= 2 && IsAsciiLetter(value[0]) && value[1] == ':';
         }
 
         /// <summary>

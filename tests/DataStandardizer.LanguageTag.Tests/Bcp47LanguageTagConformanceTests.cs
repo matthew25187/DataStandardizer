@@ -49,6 +49,21 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string RepeatedSingleton = "en-a-bb-a-cc";
 
         /// <summary>
+        /// Ten distinct variant subtags (RFC 5646 §2.1, §2.2.5), more than a tag usually has. Pairs differ only in a leading digit or a trailing letter.
+        /// </summary>
+        private const string ManyDistinctVariants = "de-1901-01901-aaaaa-aaaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg";
+
+        /// <summary>
+        /// Ten variant subtags whose tenth repeats the second (RFC 5646 §2.2.5¶5).
+        /// </summary>
+        private const string RepeatedVariantAfterManyVariants = "de-aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg-hhhhh-iiiii-bbbbb";
+
+        /// <summary>
+        /// Ten variant subtags whose tenth repeats the second in upper case, the same subtag compared case-insensitively (RFC 5646 §2.1.1, §2.2.5¶5).
+        /// </summary>
+        private const string RepeatedVariantInOtherCaseAfterManyVariants = "de-aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg-hhhhh-iiiii-BBBBB";
+
+        /// <summary>
         /// A singleton followed by a one-character subtag, where <c>extension = singleton 1*("-" (2*8alphanum))</c> requires two to eight (RFC 5646 §2.1).
         /// </summary>
         private const string SingletonWithOneCharacterSubtag = "en-a-x-a-y";
@@ -139,30 +154,21 @@ namespace DataStandardizer.LanguageTag.Tests
         private const LanguageTagConformance UndefinedConformance = (LanguageTagConformance)99;
 
         /// <summary>
-        /// A registry with records that have the shape RFC 5646 §2.1 gives their type (<c>en</c>, <c>enochian</c>, <c>yue</c>), and records that don't, which can't make a tag valid.
+        /// A registry whose records have the shape RFC 5646 §2.2 gives their type, as every record of a registry that loads does (§3.1.4), and grandfathered
+        /// records whose tags §2.1 doesn't list, which can't make a tag valid where the ABNF of §2.1 doesn't allow the subtag.
         /// </summary>
         private const string RegistryWithRecordsOutsideTheAbnf =
             "File-Date: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: en\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: language\r\nSubtag: enochian\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: a\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: ab1\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: language\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
-            "%%\r\nType: extlang\r\nSubtag: yuee\r\nDescription: T\r\nAdded: 2026-11-02\r\nPrefix: zh\r\n" +
-            "%%\r\nType: script\r\nSubtag: Lat\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: script\r\nSubtag: Latin\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: region\r\nSubtag: U\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: region\r\nSubtag: USA\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abc\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abcd\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
-            "%%\r\nType: variant\r\nSubtag: abcdefghi\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
+            "%%\r\nType: extlang\r\nSubtag: yue\r\nDescription: T\r\nAdded: 2026-11-02\r\nPreferred-Value: yue\r\nPrefix: zh\r\n" +
             "%%\r\nType: grandfathered\r\nTag: a-bb\r\nDescription: T\r\nAdded: 2026-11-02\r\n" +
             "%%\r\nType: grandfathered\r\nTag: en-abcde\r\nDescription: T\r\nAdded: 2026-11-02\r\n";
 
         private const string NotWellFormedMessage = "The language tag is not well-formed.";
         private const string NotValidMessage = "The language tag is not valid against the subtag registry.";
         private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
+        private const string RepeatedSubtagMessage = "The language tag repeats a variant subtag or extension singleton.";
         private const string NeedsRegistryMessagePattern = "Validity needs a subtag registry. Use the overload that takes a SubtagRegistry.*";
         private const string LanguageTagNotInitialisedMessage = "The Bcp47LanguageTag instance is not initialised.";
         private const string KeyedSubtagNotInitialisedMessage = "The Bcp47KeyedSubtag instance is not initialised.";
@@ -199,13 +205,14 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
-        /// Tags that <see cref="RegistryWithRecordsOutsideTheAbnf"/> has records for only in a position whose shape they don't have (RFC 5646 §2.1), or as a grandfathered tag that §2.1 doesn't list.
-        /// The tags in the first row aren't well-formed. Those in the second are, as a different kind of subtag, for which the registry has no record.
+        /// Tags that <see cref="RegistryWithRecordsOutsideTheAbnf"/> has records for only in a position that the ABNF of RFC 5646 §2.1 doesn't allow them in, or as a
+        /// grandfathered tag that §2.1 doesn't list. The tags in the first row aren't well-formed. The one in the second is, as a language and a variant, for which the
+        /// registry has no variant record.
         /// </summary>
         public static TheoryData<string> LanguageTagsWithRecordOutsideTheAbnf => new TheoryData<string>
         {
-            "a", "ab1", "abcdefghi", "enochian-yue", "en-U", "en-abcdefghi", "a-bb",
-            "en-yuee", "en-Lat", "en-Latin", "en-USA", "en-abc", "en-abcd", "en-abcde"
+            "enochian-yue", "a-bb",
+            "en-abcde"
         };
 
         /// <summary>
@@ -225,6 +232,22 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
+        /// Tags that the ISO code lists opt-in rejects for a code that is not in the lists, although they are well-formed.
+        /// </summary>
+        public static TheoryData<string> UnlistedCodeLanguageTags => new TheoryData<string>
+        {
+            UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode
+        };
+
+        /// <summary>
+        /// Tags whose only fault under the ISO code lists opt-in is a repeated variant subtag or extension singleton (RFC 5646 §2.2.9).
+        /// </summary>
+        public static TheoryData<string> RepeatedSubtagLanguageTags => new TheoryData<string>
+        {
+            RepeatedVariant, RepeatedSingleton, RepeatedVariantAfterManyVariants, RepeatedVariantInOtherCaseAfterManyVariants
+        };
+
+        /// <summary>
         /// Three-letter codes of languages for which the registry defines a two-letter subtag, which only the grammar accepts (RFC 5646 §2.2.1).
         /// </summary>
         public static TheoryData<string> ThreeLetterCodesWithTwoLetterSubtag => new TheoryData<string>
@@ -238,7 +261,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public static TheoryData<string> InIsoCodeListsLanguageTags => new TheoryData<string>
         {
             EnglishUnitedStates, KlingonGrandfathered, PrivateUseOneLetter, AsturianThreeLetterCode, HawaiianThreeLetterCode, MultipleLanguagesCode, UndeterminedLanguageCode,
-            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, SerboCroatianThreeLetterCode, UncodedScript
+            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, SerboCroatianThreeLetterCode, UncodedScript, ManyDistinctVariants
         };
 
         /// <summary>
@@ -671,7 +694,7 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(NotInIsoCodeListsLanguageTags))]
+        [MemberData(nameof(UnlistedCodeLanguageTags))]
         public void Create_WithIsoCodeListsAndUnlistedLanguageTag_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
@@ -679,6 +702,17 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>().WithMessage(NotInIsoCodeListsMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatedSubtagLanguageTags))]
+        public void Create_WithIsoCodeListsAndRepeatedSubtag_ThrowsLanguageTagFormatExceptionNamingTheRepeat(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>().WithMessage(RepeatedSubtagMessage);
         }
 
         [Theory]

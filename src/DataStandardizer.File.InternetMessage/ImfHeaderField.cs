@@ -5,8 +5,8 @@ using System.Text;
 namespace DataStandardizer.File.InternetMessage
 {
     /// <summary>
-    /// One field of the header of an Internet message: either what a reader read, which is written back byte for byte, or a name and body that a writer
-    /// formats.  A field doesn't change.  To change a field of a message, replace it in its <see cref="ImfHeaderFieldCollection"/>.
+    /// One field of the header of an Internet message: either what a reader read, which is written back byte for byte with the line breaks of the message it is in, or a
+    /// name and body that a writer formats.  A field doesn't change.  To change a field of a message, replace it in its <see cref="ImfHeaderFieldCollection"/>.
     /// </summary>
     public sealed class ImfHeaderField
     {
@@ -16,6 +16,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly ImfHeaderFieldKind _kind;
         private readonly byte[] _nameBytes;
         private readonly byte[] _rawBytes;
+        private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _value;
 
         private string _valueText;
@@ -54,22 +55,34 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Creates a field by copying what a reader has just read, to be written byte for byte.
+        /// Creates a field by copying what a reader has just read, to be written byte for byte with the line breaks of the message it is in.
         /// </summary>
+        /// <remarks>
+        /// A field read with LF line breaks, as in an mbox or EMLX file, is written with CRLF line breaks into a message that has them, as RFC 5322 §2.1 requires, and a field read with CRLF
+        /// line breaks is written with LF line breaks into a message from such a file.
+        /// </remarks>
         /// <param name="field">The field.</param>
         /// <exception cref="ObjectDisposedException">The reader of the field has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The reader has moved on from the field, or the view was not obtained from a reader.</exception>
         public ImfHeaderField(ImfHeaderFieldView field)
-            : this(field.GetName(), field.RawBytes.ToArray(), field.Value.ToArray(), field.NeedsHeaderFallbackCharset ? field.GetValue() : string.Empty, field.BytePosition, field.LineNumber)
+            : this(field.GetName(), field.RawBytes.ToArray(), field.Value.ToArray(), field.NeedsHeaderFallbackCharset ? field.GetValue() : string.Empty, field.BytePosition, field.LineNumber,
+                field.LineFeedIsLineBreak)
         {
         }
 
         /// <summary>
         /// Creates a field from what a reader read.
         /// </summary>
+        /// <param name="name">The field name.</param>
+        /// <param name="rawBytes">The bytes of the whole field as read.</param>
+        /// <param name="value">The bytes of the field body.</param>
         /// <param name="valueText">The body as a string, if it had to be decoded with the fallback character set; otherwise empty, for it to be decoded as UTF-8 when asked for.</param>
-        internal ImfHeaderField(string name, byte[] rawBytes, byte[] value, string valueText, long bytePosition, long lineNumber)
+        /// <param name="bytePosition">The position of the field's first byte in the source.</param>
+        /// <param name="lineNumber">The number of the field's first line in the source.</param>
+        /// <param name="lineFeedIsLineBreak"><c>true</c> if a line feed is the line break of the source, as in mbox and EMLX files, or <c>false</c> if it is CRLF.</param>
+        internal ImfHeaderField(string name, byte[] rawBytes, byte[] value, string valueText, long bytePosition, long lineNumber, bool lineFeedIsLineBreak)
         {
+            _lineFeedIsLineBreak = lineFeedIsLineBreak;
             Name = name;
             BytePosition = bytePosition;
             LineNumber = lineNumber;
@@ -126,7 +139,7 @@ namespace DataStandardizer.File.InternetMessage
 
         /// <summary>
         /// Gets the whole field exactly as it was read: its name, any white space before the colon, its folds and its final line break.  It is empty for a field
-        /// that was not read, which a writer formats.
+        /// that was not read, which a writer formats.  A writer changes its line breaks to those of the message it writes the field in.
         /// </summary>
         public ReadOnlyMemory<byte> RawBytes => _rawBytes;
 
@@ -165,6 +178,9 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Creates a field from its raw bytes, to be written byte for byte, including its folding and its final line break.
         /// </summary>
+        /// <remarks>
+        /// The bytes are read as a field of a standalone message, whose line breaks are CRLF (RFC 5322 §2.1).  In a message from an mbox or EMLX file, a writer gives the field LF line breaks.
+        /// </remarks>
         /// <param name="rawField">The bytes of one whole field.</param>
         /// <returns>The field.</returns>
         /// <exception cref="ImfFileException">The bytes are not one whole field, as an <see cref="ImfHeaderReader"/> would read one.</exception>
@@ -176,6 +192,9 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Creates a field from its raw bytes, to be written byte for byte, including its folding and its final line break.
         /// </summary>
+        /// <remarks>
+        /// The bytes are read as a field of a standalone message, whose line breaks are CRLF (RFC 5322 §2.1).  In a message from an mbox or EMLX file, a writer gives the field LF line breaks.
+        /// </remarks>
         /// <param name="rawField">The bytes of one whole field.</param>
         /// <param name="options">The options to read the bytes under.</param>
         /// <returns>The field.</returns>
@@ -242,12 +261,17 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the bytes a writer writes for the field: those it was read with, or a new formatting of it.
+        /// Gets the bytes a writer writes for the field: those it was read with, or a new formatting of it.  A field read with other line breaks than <paramref name="lineBreak"/>,
+        /// such as one from an mbox file added to a message with CRLF line breaks, is given those of the writer (RFC 5322 §2.1), as a writer does with a whole message.
         /// </summary>
         /// <exception cref="ImfFileException">The field can't be written.</exception>
         internal ReadOnlyMemory<byte> GetOutput(ImfHeaderEncoding encoding, byte[] lineBreak, ref byte[] buffer)
         {
-            if (_rawBytes.Length > 0) return _rawBytes;
+            if (_rawBytes.Length > 0)
+            {
+                var toCrLf = lineBreak.Length == 2;
+                return _lineFeedIsLineBreak != toCrLf ? _rawBytes : ImfLineBreaks.ConvertLines(_rawBytes, toCrLf);
+            }
 
             var length = ImfHeaderFormatter.Format(_nameBytes, _getBody(encoding), _kind, encoding, lineBreak, ref buffer);
             var output = new byte[length];

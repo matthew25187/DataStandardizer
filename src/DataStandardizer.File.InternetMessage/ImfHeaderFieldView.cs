@@ -140,6 +140,22 @@ namespace DataStandardizer.File.InternetMessage
             return GetScanner().GetDecodedValue();
         }
 
+        /// <summary>
+        /// Gets a flag indicating if a line feed is the line break of the data, as in mbox and EMLX files, or <c>false</c> if it is CRLF.
+        /// </summary>
+        internal bool LineFeedIsLineBreak => GetScanner().LineFeedIsLineBreak;
+
+        /// <summary>
+        /// Gets the bytes of the whole field with the line breaks of a writer: those it was read with, or, if they are other line breaks, such as those of an mbox file for a
+        /// writer of a standalone message, the bytes with those of the writer (RFC 5322 §2.1).
+        /// </summary>
+        /// <param name="lineFeedIsLineBreak"><c>true</c> if a line feed is the line break of the writer, or <c>false</c> if it is CRLF.</param>
+        internal ReadOnlyMemory<byte> GetRawBytes(bool lineFeedIsLineBreak)
+        {
+            var scanner = GetScanner();
+            return scanner.LineFeedIsLineBreak == lineFeedIsLineBreak ? scanner.RawBytes : ImfLineBreaks.ConvertLines(scanner.RawBytes.Span, !lineFeedIsLineBreak);
+        }
+
         private ImfHeaderScanner GetScanner()
         {
             if (_source is null)

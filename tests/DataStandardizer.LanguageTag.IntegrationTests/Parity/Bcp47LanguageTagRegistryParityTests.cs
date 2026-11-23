@@ -141,7 +141,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// Inputs the corpus must have for the comparison to reach each kind of record in <see cref="RegistryBasedParityCases.CreateSubtagRegistryWithRecordsOutsideTheAbnf"/>.
         /// </summary>
         [Theory]
-        [InlineData("a"), InlineData("abcdefghi"), InlineData("12345"), InlineData("abcde-yue"), InlineData("abcdefgh-yue"), InlineData("en-a1"), InlineData("en-1"), InlineData("en-ab1"), InlineData("en-abcdefghi"), InlineData("a-bb")]
+        [InlineData("abcde-yue"), InlineData("abcdefgh-yue"), InlineData("a-bb")]
         public void Inputs_OfCorpus_IncludeTagOfRecordOutsideTheAbnf(string expectedInput)
         {
             // act

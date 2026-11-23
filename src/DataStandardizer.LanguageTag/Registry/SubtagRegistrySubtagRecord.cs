@@ -26,7 +26,8 @@ namespace DataStandardizer.LanguageTag.Registry
         /// Gets the Subtag field value.
         /// </summary>
         /// <remarks>
-        /// The value may denote a range of subtags, such as <c>qaa..qtz</c> (ref. RFC 5646 §3.1.4).
+        /// The value is a subtag of the record's <see cref="SubtagRegistryTagRecordBase.Type"/> in the case that RFC 5646 §3.1.4 gives it, or a range
+        /// of such subtags, such as <c>qaa..qtz</c> (ref. RFC 5646 §3.1.1).
         /// </remarks>
         public string Subtag { get; }
     }

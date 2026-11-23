@@ -358,7 +358,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format, VcardVersion version)
         {
-            var buffer = new char[VcardDateTime.MaxLength];
+            var buffer = new char[VcardDate.MaxLength + 1 + _time.MaxFormattedLength];
             int charsWritten;
             return VcardValueFormatting.ToString(buffer, TryFormat(buffer, out charsWritten, format, version), charsWritten);
         }

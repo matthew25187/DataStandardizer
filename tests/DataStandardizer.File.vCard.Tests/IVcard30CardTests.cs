@@ -12,6 +12,16 @@ namespace DataStandardizer.File.vCard.Tests
     public class IVcard30CardTests
     {
         private const string Base64 = "AQID";
+        private const string OrganizationSortKey = "Acme";
+        private const string SortedOrganization = "ORG;SORT-AS=" + OrganizationSortKey + ":Acme";
+        private const string OwnSortString = "Own";
+        private const string OwnSortStringProperty = "SORT-STRING:" + OwnSortString;
+        private const string UnsortedName = "N:Doe;;;;";
+        private const string SecondSortedOrganization = "ORG;SORT-AS=Bolt:Bolt";
+        private const string NameSortKey = "Chan";
+        private const string SortedName = "N;ALTID=1;SORT-AS=" + NameSortKey + ":Chan;;;;";
+        // ref. RFC 9554 §4.6: PHONETIC marks an N as the pronunciation of another, which vCard 3.0 can't hold.
+        private const string PhoneticName = "N;ALTID=1;PHONETIC=ipa:chan;;;;";
         private static readonly byte[] Data = { 1, 2, 3 };
         private static readonly Uri ExampleUri = new Uri("http://example.com/a,b");
 
@@ -288,6 +298,19 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Labels_LabelParameterWithABackslashAndN_GivesThemUnchanged()
+        {
+            // arrange: ref. RFC 6350 §5.1 and RFC 6868 §3.  A param-value has no backslash escapes, so "\n" in a LABEL is two characters.
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("ADR;LABEL=\"C:\\new\":;;1 First St;;;;"));
+
+            // act
+            var testResult = card.AsVersion30().Labels.Single().Value;
+
+            // assert
+            testResult.Should().Be("C:\\new");
+        }
+
+        [Fact]
         public void Labels_LabelOfItsOwn_GivesIt()
         {
             // act
@@ -350,6 +373,110 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be("Doe");
         }
 
+        public static TheoryData<string[]> SortKeyAVersion30WriterLeavesOutData()
+        {
+            // ref. RFC 2426 §3.6.5: SORT-STRING sorts FN and N, so a writer of vCard 3.0 writes the sort key of the first N, or on a card with no N of the first ORG.
+            return new TheoryData<string[]>
+            {
+                new[] { Vcard30TestData.FormattedName, UnsortedName, SortedOrganization },
+                new[] { Vcard30TestData.FormattedName, "ORG:Acme", SecondSortedOrganization }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(SortKeyAVersion30WriterLeavesOutData))]
+        public void SortString_SortKeyAVersion30WriterLeavesOut_GivesNull(string[] properties)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(properties));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void SortString_SortKeyOnSecondNameOnly_GivesNull()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts the name, which is the first N.
+            var options = new VcardOptions { MaxLineLength = null, AllowCardinalityViolations = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, UnsortedName, "N;SORT-AS=Roe:Roe;;;;"), options);
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void SortString_SortKeyOnFirstOrganizationOfCardWithNoName_GivesIt()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, SortedOrganization, SecondSortedOrganization));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OrganizationSortKey);
+        }
+
+        [Fact]
+        public void SortString_SortKeyOnOrganizationAndSortStringOfItsOwnOnCardWithName_GivesTheSortString()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, UnsortedName, SortedOrganization, OwnSortStringProperty));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OwnSortString);
+        }
+
+        [Fact]
+        public void SortString_SortStringOfItsOwnBeforeSortedName_GivesTheSortString()
+        {
+            // arrange: a reader of vCard 3.0 gives the first SORT-STRING to the first N, so a writer leaves out the sort key of an N after one.
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, OwnSortStringProperty, SortedName));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OwnSortString);
+        }
+
+        [Fact]
+        public void SortString_PhoneticNameBeforeSortedName_GivesTheSortKeyOfTheSortedName()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, PhoneticName, SortedName));
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(NameSortKey);
+        }
+
+        [Fact]
+        public void SortString_PhoneticNameOnlyAndSortedOrganization_GivesTheSortKeyOfTheOrganization()
+        {
+            // arrange: RFC 9554 §4.6 requires an N without PHONETIC, which AllowInvalidValues waives.
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.BareCard(Vcard30TestData.FormattedName, PhoneticName, SortedOrganization), options);
+
+            // act
+            var testResult = card.AsVersion30().SortString;
+
+            // assert
+            testResult.Should().Be(OrganizationSortKey);
+        }
+
         [Fact]
         public void SetSortString_CardWithAName_HoldsItOnTheName()
         {
@@ -399,6 +526,90 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().BeNull();
+        }
+
+        // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which RFC 6350 §4.3.2 doesn't have, so a card read from vCard 3.0 keeps the value as it was read.
+        private const string RevisionWithSecondFraction = "1995-10-31T22:27:10,5Z";
+        private const string RevisionLineWithSecondFraction = "REV:1995-10-31T22:27:10,5Z";
+        private const string BirthdayWithSecondFraction = "1996-04-15T10:22:00,5Z";
+        private const string BirthdayLineWithSecondFraction = "BDAY;VALUE=date-time:1996-04-15T10:22:00,5Z";
+
+        // ref. vCard 2.1 §2.6.2 and ISO 8601: 24:00:00 is the end of a day, which RFC 2425 §5.8.4 doesn't have.
+        private const string RevisionLineAtHour24 = "REV:19951031T240000";
+
+        [Fact]
+        public void Birthday_DateTimeWithNoVersion40Form_GivesIt()
+        {
+            // act
+            var testResult = View(BirthdayLineWithSecondFraction).Birthday.Value;
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V3_0).Should().Be(BirthdayWithSecondFraction);
+        }
+
+        [Fact]
+        public void Revision_TimestampWithNoVersion40Form_GivesIt()
+        {
+            // act
+            var testResult = View(RevisionLineWithSecondFraction).Revision.Value;
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V3_0).Should().Be(RevisionWithSecondFraction);
+        }
+
+        [Fact]
+        public void Revision_TimestampWithNoVersion40FormOfCardBuiltInCode_IsHidden()
+        {
+            // arrange
+            var card = VcardCardTestData.NewCard();
+            card.Properties.Add(new VcardContentLine("REV", RevisionWithSecondFraction));
+
+            // act
+            var testResult = card.AsVersion30().Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void Revision_TimestampOfVersion21Version30CanNotShow_IsHidden()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(RevisionLineAtHour24)).AsVersion30();
+
+            // act
+            var testResult = card.Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void SetRevision_TimestampWithNoVersion40Form_ThrowsArgumentException()
+        {
+            // arrange
+            var card = View(RevisionLineWithSecondFraction);
+            var value = card.Revision.Value;
+
+            // act
+            Action testAction = () => card.SetRevision(value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void SetBirthday_DateTimeWithNoVersion40Form_ThrowsArgumentException()
+        {
+            // arrange
+            var card = View(BirthdayLineWithSecondFraction);
+            var value = card.Birthday.Value;
+
+            // act
+            Action testAction = () => card.SetBirthday(value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
@@ -488,7 +699,10 @@ namespace DataStandardizer.File.vCard.Tests
             return new TheoryData<string, string[], string>
             {
                 { "abc", new[] { "VALUE=text" }, "abc" },
-                { "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", new string[0], "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6" }
+                { "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", new string[0], "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6" },
+
+                // ref. RFC 3986 §3.1: a scheme of one letter, which no Uri is made from (#867), is still a URI.
+                { "c:/dir/file", new string[0], "c:/dir/file" }
             };
         }
 

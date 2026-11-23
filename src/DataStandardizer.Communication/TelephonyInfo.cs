@@ -39,18 +39,42 @@ namespace DataStandardizer.Communication
 
         #region Constructors
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TelephonyInfo"/> class that is not specific to any country,
+        /// with the invariant number format information.
+        /// </summary>
+        /// <remarks>
+        /// The instance is not read-only. Unlike <see cref="InvariantTelephony"/>, its
+        /// <see cref="ItuE164InternationalNumberFormat"/> can be replaced and its patterns changed.
+        /// </remarks>
         public TelephonyInfo()
             : this(NoCountryCode, Resources.ResourceManager)
         {
         }
 
         // TODO: This functionality is not yet fully supported; addition of country-specific telephony rules is pending.
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TelephonyInfo"/> class for a country.
+        /// </summary>
+        /// <param name="countryCode">The ISO 3166-1 alpha-2 code of the country.</param>
+        /// <remarks>
+        /// The number format information comes from the country's own resources where it has them, and from the invariant
+        /// resources otherwise. Country-specific telephony rules are not yet supported. The instance is not read-only.
+        /// </remarks>
         public TelephonyInfo(Iso3166Part1Alpha2Country countryCode)
             : this(countryCode, Resources.ResourceManager)
         {
         }
 
         // TODO: This functionality is not yet fully supported; addition of country-specific telephony rules is pending.
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TelephonyInfo"/> class for a country.
+        /// </summary>
+        /// <param name="countryCode">The ISO 3166-1 alpha-3 code of the country.</param>
+        /// <remarks>
+        /// The number format information comes from the country's own resources where it has them, and from the invariant
+        /// resources otherwise. Country-specific telephony rules are not yet supported. The instance is not read-only.
+        /// </remarks>
         public TelephonyInfo(Iso3166Part1Alpha3Country countryCode)
             : this(countryCode, Resources.ResourceManager)
         {
@@ -87,6 +111,12 @@ namespace DataStandardizer.Communication
         #region Public Methods
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Returns an <see cref="ICustomFormatter"/> that formats an <see cref="ItuE164InternationalNumber"/>, and any other
+        /// argument with the culture of the current thread, when <paramref name="formatType"/> is <see cref="ICustomFormatter"/>; the <see cref="ItuE164InternationalNumberFormat"/>
+        /// of this instance when it is <see cref="ItuE164InternationalNumberFormatInfo"/>; and <c>null</c> for any other type.
+        /// </remarks>
         public object? GetFormat(Type? formatType)
         {
             if (formatType == typeof(ICustomFormatter))
@@ -102,6 +132,12 @@ namespace DataStandardizer.Communication
             return null;
         } 
 #else
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Returns an <see cref="ICustomFormatter"/> that formats an <see cref="ItuE164InternationalNumber"/>, and any other
+        /// argument with the culture of the current thread, when <paramref name="formatType"/> is <see cref="ICustomFormatter"/>; the <see cref="ItuE164InternationalNumberFormat"/>
+        /// of this instance when it is <see cref="ItuE164InternationalNumberFormatInfo"/>; and <c>null</c> for any other type.
+        /// </remarks>
         public object GetFormat(Type formatType)
         {
             if (formatType == typeof(ICustomFormatter))
@@ -173,12 +209,26 @@ namespace DataStandardizer.Communication
         /// </remarks>
         public Iso3166Part1Alpha3Country? Iso3166Part1Alpha3Code => Enum.IsDefined(typeof(Iso3166Part1Alpha3Country), _countryCode) ? (Iso3166Part1Alpha3Country)_countryCode : default(Iso3166Part1Alpha3Country?);
 
+        /// <summary>
+        /// Gets a value indicating whether this telephony information is read-only.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if <see cref="ItuE164InternationalNumberFormat"/> can't be replaced and its patterns can't be changed, as for
+        /// <see cref="InvariantTelephony"/>; otherwise, <c>false</c>.
+        /// </value>
         public bool IsReadOnly
         {
             get => _isReadOnly;
             internal set => _isReadOnly = ItuE164InternationalNumberFormat.IsReadOnly = value;
         }
 
+        /// <summary>
+        /// Gets or sets the format information used to format ITU E.164 international numbers.
+        /// </summary>
+        /// <value>
+        /// The format information, which holds the patterns of the short and long international formats.
+        /// </value>
+        /// <exception cref="InvalidOperationException">The property is being set and this telephony information is read-only.</exception>
         public ItuE164InternationalNumberFormatInfo ItuE164InternationalNumberFormat
         {
             get => _ituE164InternationalNumberFormat;
@@ -243,9 +293,11 @@ namespace DataStandardizer.Communication
         private static string GetPattern(ResourceManager resourceManager, string name, CultureInfo regionCulture)
 #endif
         {
+            // The neutral resources are those of the invariant culture. The overload without a culture would look the pattern up
+            // through the current thread's UI culture, whose satellite resources aren't the neutral ones.
             var pattern = regionCulture == null ? null : resourceManager.GetString(name, regionCulture);
             return string.IsNullOrEmpty(pattern)
-                ? resourceManager.GetString(name) ?? string.Empty
+                ? resourceManager.GetString(name, CultureInfo.InvariantCulture) ?? string.Empty
                 : pattern;
         }
 

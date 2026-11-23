@@ -16,6 +16,33 @@ namespace DataStandardizer.File.InternetMessage.Tests
     internal static class Mailboxes
     {
         /// <summary>
+        /// Reads the events of the first message of a file as far as its first header field, and gives that field's view to <paramref name="use"/> while the reader is on it.
+        /// </summary>
+        public static void WithFirstField(string mailbox, Action<ImfHeaderFieldView> use)
+        {
+            using (var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox))))
+            {
+                var events = reader.ReadEntityEvents();
+                events.ReadEvent();
+                use(events.ReadEvent().Value.Field);
+            }
+        }
+
+        /// <summary>
+        /// Reads the events of the first message of a file as far as its first header field, and gives that field's view to <paramref name="use"/>, which the reader stays on
+        /// until the task completes.
+        /// </summary>
+        public static async Task WithFirstFieldAsync(string mailbox, Func<ImfHeaderFieldView, Task> use)
+        {
+            using (var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox))))
+            {
+                var events = await reader.ReadEntityEventsAsync();
+                await events.ReadEventAsync();
+                await use((await events.ReadEventAsync()).Value.Field);
+            }
+        }
+
+        /// <summary>
         /// Describes a message, with the line breaks it was read with.
         /// </summary>
         public static string Describe(ImfMessage message)
@@ -242,6 +269,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Starts reading the first message of a file, skips the rest of it by moving to the next, and describes that one.
+        /// </summary>
+        public static string ReadSecondAfterSkipping(string mailbox, ImfOptions options)
+        {
+            using (var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox)), MboxVariant.Mboxrd, options))
+            {
+                reader.ReadEntityEvents();
+                return Describe(reader.ReadMessage().Message);
+            }
+        }
+
+        /// <summary>
+        /// Starts reading the first message of a file asynchronously, skips the rest of it by moving to the next, and describes that one.
+        /// </summary>
+        public static async Task<string> ReadSecondAfterSkippingAsync(string mailbox, ImfOptions options)
+        {
+            var reader = new MboxReader(new MemoryStream(Octets.Of(mailbox)), MboxVariant.Mboxrd, options);
+            string description = null;
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                await reader.ReadEntityEventsAsync();
+                description = Describe((await reader.ReadMessageAsync()).Message);
+            });
+
+            return description;
         }
 
         /// <summary>

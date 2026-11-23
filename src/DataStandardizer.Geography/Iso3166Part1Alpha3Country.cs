@@ -20,7 +20,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Andorra
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Andorra", "ANDORRA", "the Principality of Andorra", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Andorra", "Andorre (l\')", "ANDORRA", "the Principality of Andorra", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Andorra", "ANDORRA", "the Principality of Andorra")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Andorre (l\')", "ANDORRE", "la Principauté d\'Andorre")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ca", "cat", "Andorra", "Andorra")]
@@ -32,7 +32,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// United Arab Emirates (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United Arab Emirates (the)", "UNITED ARAB EMIRATES", "the United Arab Emirates", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United Arab Emirates (the)", "Émirats arabes unis (les)", "UNITED ARAB EMIRATES", "the United Arab Emirates", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "United Arab Emirates (the)", "UNITED ARAB EMIRATES", "the United Arab Emirates")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Émirats arabes unis (les)", "ÉMIRATS ARABES UNIS", "les Émirats arabes unis")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Imārāt", "Al Imārāt")]
@@ -44,7 +44,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Afghanistan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Afghanistan", "AFGHANISTAN", "the Islamic Republic of Afghanistan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Afghanistan", "Afghanistan (l\')", "AFGHANISTAN", "the Islamic Republic of Afghanistan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Afghanistan", "AFGHANISTAN", "the Islamic Republic of Afghanistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Afghanistan (l\')", "AFGHANISTAN", "la République islamique d\'Afghanistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fa", "fas", "Afghānistān", "Afghānistān")]
@@ -58,7 +58,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Antigua and Barbuda
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Antigua and Barbuda", "ANTIGUA AND BARBUDA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Antigua and Barbuda", "Antigua-et-Barbuda", "ANTIGUA AND BARBUDA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Antigua and Barbuda", "ANTIGUA AND BARBUDA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Antigua-et-Barbuda", "ANTIGUA-ET-BARBUDA")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1019, "Redonda Island")]
@@ -70,7 +70,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Anguilla
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Anguilla", "ANGUILLA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Anguilla", "Anguilla", "ANGUILLA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Anguilla", "ANGUILLA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Anguilla", "ANGUILLA")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -80,7 +80,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Albania
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Albania", "ALBANIA", "the Republic of Albania", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Albania", "Albanie (l\')", "ALBANIA", "the Republic of Albania", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Albania", "ALBANIA", "the Republic of Albania")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Albanie (l\')", "ALBANIE", "la République d\'Albanie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sq", "sqi", "Shqipëria; Shqipëri", "Shqipëria; Shqipëri")]
@@ -92,7 +92,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Armenia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Armenia", "ARMENIA", "the Republic of Armenia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Armenia", "Arménie (l\')", "ARMENIA", "the Republic of Armenia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Armenia", "ARMENIA", "the Republic of Armenia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Arménie (l\')", "ARMÉNIE", "la République d\'Arménie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("hy", "hye", "Hayastan", "Hayastan")]
@@ -104,7 +104,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Angola
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Angola", "ANGOLA", "the Republic of Angola", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Angola", "Angola (l\')", "ANGOLA", "the Republic of Angola", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Angola", "ANGOLA", "the Republic of Angola")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Angola (l\')", "ANGOLA", "la République d\'Angola")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Angola", "Angola")]
@@ -118,7 +118,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Antarctica
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Antarctica", "ANTARCTICA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Antarctica", "Antarctique (l\')", "ANTARCTICA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Antarctica", "ANTARCTICA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Antarctique (l\')", "ANTARCTIQUE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -128,7 +128,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Argentina
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Argentina", "ARGENTINA", "the Argentine Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Argentina", "Argentine (l\')", "ARGENTINA", "the Argentine Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Argentina", "ARGENTINA", "the Argentine Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Argentine (l\')", "ARGENTINE", "la République argentine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Argentina (la)", "Argentina (la)")]
@@ -140,7 +140,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// American Samoa
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("American Samoa", "AMERICAN SAMOA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("American Samoa", "Samoa américaines (les)", "AMERICAN SAMOA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "American Samoa", "AMERICAN SAMOA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Samoa américaines (les)", "SAMOA AMÉRICAINES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1205, "Swain\'s Island")]
@@ -154,7 +154,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Austria
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Austria", "AUSTRIA", "the Republic of Austria", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Austria", "Autriche (l\')", "AUSTRIA", "the Republic of Austria", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Austria", "AUSTRIA", "the Republic of Austria")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Autriche (l\')", "AUTRICHE", "la République d\'Autriche")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("de", "deu", "Österreich", "Österreich")]
@@ -166,7 +166,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Australia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Australia", "AUSTRALIA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Australia", "Australie (l\')", "AUSTRALIA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Australia", "AUSTRALIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Australie (l\')", "AUSTRALIE")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1009, "Ashmore and Cartier Islands")]
@@ -184,7 +184,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Aruba
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Aruba", "ARUBA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Aruba", "Aruba", "ARUBA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Aruba", "ARUBA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Aruba", "ARUBA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nl", "nld", "Aruba", "ARUBA")]
@@ -198,7 +198,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Åland Islands
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Åland Islands", "ÅLAND ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Åland Islands", "Åland(les Îles)", "ÅLAND ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Åland Islands", "ÅLAND ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Åland(les Îles)", "ÅLAND, ÎLES")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sv", "swe", "Åland", "Åland")]
@@ -210,7 +210,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Azerbaijan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Azerbaijan", "AZERBAIJAN", "the Republic of Azerbaijan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Azerbaijan", "Azerbaïdjan (l\')", "AZERBAIJAN", "the Republic of Azerbaijan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Azerbaijan", "AZERBAIJAN", "the Republic of Azerbaijan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Azerbaïdjan (l\')", "AZERBAÏDJAN", "la République d\'Azerbaïdjan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("az", "aze", "Azərbaycan", "Azərbaycan")]
@@ -222,7 +222,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bosnia and Herzegovina
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bosnia and Herzegovina", "BOSNIA AND HERZEGOVINA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bosnia and Herzegovina", "Bosnie-Herzégovine (la)", "BOSNIA AND HERZEGOVINA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("bs", "bos", "Bosna i Hercegovina", "Bosna i Hercegovina")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bosnia and Herzegovina", "BOSNIA AND HERZEGOVINA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bosnie-Herzégovine (la)", "BOSNIE-HERZÉGOVINE")]
@@ -240,7 +240,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Barbados
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Barbados", "BARBADOS", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Barbados", "Barbade (la)", "BARBADOS", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Barbados", "BARBADOS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Barbade (la)", "BARBADE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -250,7 +250,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bangladesh
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bangladesh", "BANGLADESH", "the People\'s Republic of Bangladesh", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bangladesh", "Bangladesh (le)", "BANGLADESH", "the People\'s Republic of Bangladesh", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bangladesh", "BANGLADESH", "the People\'s Republic of Bangladesh")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bangladesh (le)", "BANGLADESH", "la République populaire du Bangladesh")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("bn", "ben", "Bāṁlādesh", "Bāṁlādesh")]
@@ -262,7 +262,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Belgium
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belgium", "BELGIUM", "the Kingdom of Belgium", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belgium", "Belgique (la)", "BELGIUM", "the Kingdom of Belgium", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Belgium", "BELGIUM", "the Kingdom of Belgium")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Belgique (la)", "BELGIQUE", "le Royaume de Belgique")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("de", "deu", "Belgien", "Belgien")]
@@ -276,21 +276,17 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Burkina Faso
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Burkina Faso", "BURKINA FASO", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Burkina Faso", "Burkina Faso (le)", "BURKINA FASO", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Burkina Faso (le)", "BURKINA FASO", "le Burkina Faso")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Burkina Faso", "BURKINA FASO")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Upper Volta", "UPPER VOLTA")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Haute-Volta", "HAUTE-VOLTA")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=true)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         BFA = 854,
         
         /// <summary>
         /// Bulgaria
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bulgaria", "BULGARIA", "the Republic of Bulgaria", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bulgaria", "Bulgarie (la)", "BULGARIA", "the Republic of Bulgaria", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bulgaria", "BULGARIA", "the Republic of Bulgaria")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bulgarie (la)", "BULGARIE", "la République de Bulgarie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("bg", "bul", "Bulgaria", "Bulgaria")]
@@ -302,7 +298,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bahrain
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bahrain", "BAHRAIN", "the Kingdom of Bahrain", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bahrain", "Bahreïn", "BAHRAIN", "the Kingdom of Bahrain", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bahrain", "BAHRAIN", "the Kingdom of Bahrain")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bahreïn", "BAHREÏN", "le Royaume de Bahreïn")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Baḩrayn", "Al Baḩrayn")]
@@ -314,7 +310,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Burundi
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Burundi", "BURUNDI", "the Republic of Burundi", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Burundi", "Burundi (le)", "BURUNDI", "the Republic of Burundi", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Burundi", "BURUNDI", "the Republic of Burundi")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Burundi (le)", "BURUNDI", "la République du Burundi")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("rn", "run", "Burundi", "Burundi")]
@@ -326,7 +322,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Benin
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Benin", "BENIN", "the Republic of Benin", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Benin", "Bénin (le)", "BENIN", "the Republic of Benin", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Benin", "BENIN", "the Republic of Benin")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bénin (le)", "BÉNIN", "la République du Bénin")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -336,7 +332,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Barthélemy
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Barthélemy", "SAINT BARTHÉLEMY", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Barthélemy", "Saint-Barthélemy", "SAINT BARTHÉLEMY", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Barthélemy", "SAINT BARTHÉLEMY")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Barthélemy", "SAINT-BARTHÉLEMY")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -346,7 +342,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bermuda
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bermuda", "BERMUDA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bermuda", "Bermudes (les)", "BERMUDA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bermuda", "BERMUDA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bermudes (les)", "BERMUDES")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -356,7 +352,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Brunei Darussalam
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Brunei Darussalam", "BRUNEI DARUSSALAM", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Brunei Darussalam", "Brunéi Darussalam (le)", "BRUNEI DARUSSALAM", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Brunei Darussalam", "BRUNEI DARUSSALAM")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Brunéi Darussalam (le)", "BRUNEI DARUSSALAM")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ms", "msa", "Negara Brunei Darussalam", "Negara Brunei Darussalam")]
@@ -368,7 +364,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bolivia (Plurinational State of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bolivia (Plurinational State of)", "BOLIVIA, PLURINATIONAL STATE OF", "the Plurinational State of Bolivia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bolivia (Plurinational State of)", "Bolivie (État plurinational de)", "BOLIVIA, PLURINATIONAL STATE OF", "the Plurinational State of Bolivia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bolivia (Plurinational State of)", "BOLIVIA, PLURINATIONAL STATE OF", "the Plurinational State of Bolivia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bolivie (État plurinational de)", "BOLIVIE, ÉTAT PLURINATIONAL DE", "l\'État plurinational de Bolivie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Bolivia,  Estado Plurinacional de", "Bolivia, Estado Plurinacional de")]
@@ -380,7 +376,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bonaire, Sint Eustatius and Saba
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bonaire, Sint Eustatius and Saba", "BONAIRE, SINT EUSTATIUS AND SABA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bonaire, Sint Eustatius and Saba", "Bonaire, Saint-Eustache et Saba", "BONAIRE, SINT EUSTATIUS AND SABA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bonaire, Sint Eustatius and Saba", "BONAIRE, SINT EUSTATIUS AND SABA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bonaire, Saint-Eustache et Saba", "BONAIRE, SAINT-EUSTACHE ET SABA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nl", "nld", "Bonaire, Sint Eustatius en Saba", "Bonaire, Sint Eustatius en Saba")]
@@ -400,7 +396,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Brazil
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Brazil", "BRAZIL", "the Federative Republic of Brazil", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Brazil", "Brésil (le)", "BRAZIL", "the Federative Republic of Brazil", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Brazil", "BRAZIL", "the Federative Republic of Brazil")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Brésil (le)", "BRÉSIL", "la République fédérative du Brésil")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Brasil (o)", "Brasil (o)")]
@@ -418,7 +414,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bahamas (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bahamas (the)", "BAHAMAS", "the Commonwealth of the Bahamas", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bahamas (the)", "Bahamas (les)", "BAHAMAS", "the Commonwealth of the Bahamas", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bahamas (the)", "BAHAMAS", "the Commonwealth of the Bahamas")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bahamas (les)", "BAHAMAS", "le Commonwealth des Bahamas")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -428,7 +424,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bhutan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bhutan", "BHUTAN", "the Kingdom of Bhutan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bhutan", "Bhoutan (le)", "BHUTAN", "the Kingdom of Bhutan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bhutan", "BHUTAN", "the Kingdom of Bhutan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bhoutan (le)", "BHOUTAN", "le Royaume du Bhoutan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("dz", "dzo", "Druk-Yul", "Druk-Yul")]
@@ -440,7 +436,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Bouvet Island
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bouvet Island", "BOUVET ISLAND", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Bouvet Island", "Bouvet (l\'Île)", "BOUVET ISLAND", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Bouvet Island", "BOUVET ISLAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bouvet (l\'Île)", "BOUVET, ÎLE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nn", "nno", "Bouvetøya", "Bouvetøya")]
@@ -454,7 +450,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Botswana
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Botswana", "BOTSWANA", "the Republic of Botswana", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Botswana", "Botswana (le)", "BOTSWANA", "the Republic of Botswana", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Botswana", "BOTSWANA", "the Republic of Botswana")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Botswana (le)", "BOTSWANA", "la République du Botswana")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -464,15 +460,11 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Belarus
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belarus", "BELARUS", "the Republic of Belarus", IsIndependent=true)]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Byelorussian SSR", "BYELORUSSIAN SSR")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Biélorussie, RSS de", "BIÉLORUSSIE, RSS DE")]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belarus", "Bélarus (le)", "BELARUS", "the Republic of Belarus", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Belarus", "BELARUS", "the Republic of Belarus")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Bélarus (le)", "BÉLARUS", "la République du Bélarus")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("be", "bel", "Bielaruś", "Bielaruś")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ru", "rus", "Belarus\'", "Belarus\'")]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("be", "bel", IsAdministrative=true)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
@@ -482,7 +474,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Belize
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belize", "BELIZE", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Belize", "Belize (le)", "BELIZE", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Belize", "BELIZE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Belize (le)", "BELIZE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -492,7 +484,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Canada
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Canada", "CANADA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Canada", "Canada (le)", "CANADA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Canada", "CANADA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Canada (le)", "CANADA")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -502,7 +494,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cocos (Keeling) Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cocos (Keeling) Islands (the)", "COCOS (KEELING) ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cocos (Keeling) Islands (the)", "Cocos (les Îles)/ Keeling (les Îles)", "COCOS (KEELING) ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cocos (Keeling) Islands (the)", "COCOS (KEELING) ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Cocos (les Îles)/ Keeling (les Îles)", "COCOS (KEELING), ÎLES")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -512,21 +504,17 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Congo (the Democratic Republic of the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Congo (the Democratic Republic of the)", "CONGO, DEMOCRATIC REPUBLIC OF THE", "the Democratic Republic of the Congo", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Congo (the Democratic Republic of the)", "Congo (la République démocratique du)", "CONGO, DEMOCRATIC REPUBLIC OF THE", "the Democratic Republic of the Congo", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Congo (the Democratic Republic of the)", "CONGO, DEMOCRATIC REPUBLIC OF THE", "the Democratic Republic of the Congo")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Congo (la République démocratique du)", "CONGO, RÉPUBLIQUE DÉMOCRATIQUE DU", "la République démocratique du Congo")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Zaire", "Zaire")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Zaïre", "ZAÏRE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=true)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         COD = 180,
         
         /// <summary>
         /// Central African Republic (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Central African Republic (the)", "CENTRAL AFRICAN REPUBLIC", "the Central African Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Central African Republic (the)", "République centrafricaine (la)", "CENTRAL AFRICAN REPUBLIC", "the Central African Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Central African Republic (the)", "CENTRAL AFRICAN REPUBLIC", "the Central African Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "République centrafricaine (la)", "CENTRAFRICAINE, RÉPUBLIQUE", "la République centrafricaine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sg", "sag", "Ködörösêse tî Bêafrîka", "Ködörösêse tî Bêafrîka")]
@@ -538,7 +526,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Congo (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Congo (the)", "CONGO", "the Republic of the Congo", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Congo (the)", "Congo (le)", "CONGO", "the Republic of the Congo", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Congo (the)", "CONGO", "the Republic of the Congo")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Congo (le)", "CONGO", "la République du Congo")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -548,7 +536,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Switzerland
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Switzerland", "SWITZERLAND", "the Swiss Confederation", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Switzerland", "Suisse (la)", "SWITZERLAND", "the Swiss Confederation", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Switzerland", "SWITZERLAND", "the Swiss Confederation")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Suisse (la)", "SUISSE", "la Confédération suisse")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("de", "deu", "Schweiz (die)", "Schweiz (die)")]
@@ -564,7 +552,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Côte d'Ivoire
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Côte d\'Ivoire", "CÔTE D\'IVOIRE", "the Republic of Côte d\'Ivoire", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Côte d\'Ivoire", "Côte d\'Ivoire (la)", "CÔTE D\'IVOIRE", "the Republic of Côte d\'Ivoire", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Côte d\'Ivoire", "CÔTE D\'IVOIRE", "the Republic of Côte d\'Ivoire")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Côte d\'Ivoire (la)", "CÔTE D\'IVOIRE", "la République de Côte d\'Ivoire")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -574,7 +562,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cook Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cook Islands (the)", "COOK ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cook Islands (the)", "Cook (les Îles)", "COOK ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cook Islands (the)", "COOK ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Cook (les Îles)", "COOK, ÎLES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1155, "Rarotonga")]
@@ -586,7 +574,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Chile
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Chile", "CHILE", "the Republic of Chile", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Chile", "Chili (le)", "CHILE", "the Republic of Chile", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Chile", "CHILE", "the Republic of Chile")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Chili (le)", "CHILI", "la République du Chili")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Chile", "Chile")]
@@ -608,7 +596,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cameroon
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cameroon", "CAMEROON", "the Republic of Cameroon", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cameroon", "Cameroun (le)", "CAMEROON", "the Republic of Cameroon", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cameroon", "CAMEROON", "the Republic of Cameroon")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Cameroun (le)", "CAMEROUN", "la République du Cameroun")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -618,7 +606,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// China
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("China", "CHINA", "the People\'s Republic of China", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("China", "Chine (la)", "CHINA", "the People\'s Republic of China", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "China", "CHINA", "the People\'s Republic of China")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Chine (la)", "CHINE", "la République populaire de Chine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("zh", "zho", "Zhongguo", "Zhongguo")]
@@ -630,7 +618,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Colombia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Colombia", "COLOMBIA", "the Republic of Colombia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Colombia", "Colombie (la)", "COLOMBIA", "the Republic of Colombia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Colombia", "COLOMBIA", "the Republic of Colombia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Colombie (la)", "COLOMBIE", "la République de Colombie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Colombia", "Colombia")]
@@ -646,7 +634,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Costa Rica
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Costa Rica", "COSTA RICA", "the Republic of Costa Rica", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Costa Rica", "Costa Rica (le)", "COSTA RICA", "the Republic of Costa Rica", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Costa Rica", "COSTA RICA", "the Republic of Costa Rica")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Costa Rica (le)", "COSTA RICA", "la République du Costa Rica")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Costa Rica", "Costa Rica")]
@@ -660,7 +648,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cuba
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cuba", "CUBA", "the Republic of Cuba", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cuba", "Cuba", "CUBA", "the Republic of Cuba", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cuba", "CUBA", "the Republic of Cuba")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Cuba", "CUBA", "la République de Cuba")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Cuba", "Cuba")]
@@ -672,7 +660,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cabo Verde
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cabo Verde", "CABO VERDE", "the Republic of Cabo Verde", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cabo Verde", "Cabo Verde", "CABO VERDE", "the Republic of Cabo Verde", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cabo Verde", "CABO VERDE", "the Republic of Cabo Verde")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Cabo Verde", "CABO VERDE", "la République du Cabo Verde")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Cabo Verde", "Cabo Verde")]
@@ -688,7 +676,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Curaçao
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Curaçao", "CURAÇAO", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Curaçao", "Curaçao", "CURAÇAO", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Curaçao", "CURAÇAO")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Curaçao", "CURAÇAO")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nl", "nld", "Curaçao", "Curaçao")]
@@ -702,7 +690,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Christmas Island
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Christmas Island", "CHRISTMAS ISLAND", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Christmas Island", "Christmas (l\'Île)", "CHRISTMAS ISLAND", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Christmas Island", "CHRISTMAS ISLAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Christmas (l\'Île)", "CHRISTMAS, ÎLE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -712,7 +700,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cyprus
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cyprus", "CYPRUS", "the Republic of Cyprus", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cyprus", "Chypre", "CYPRUS", "the Republic of Cyprus", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cyprus", "CYPRUS", "the Republic of Cyprus")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Chypre", "CHYPRE", "la République de Chypre")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("el", "ell", "Kýpros", "Kýpros")]
@@ -726,7 +714,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Czechia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Czechia", "CZECHIA", "the Czech Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Czechia", "Tchéquie (la)", "CZECHIA", "the Czech Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Czechia", "CZECHIA", "the Czech Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tchéquie (la)", "TCHÉQUIE (LA)", "la République tchèque")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("cs", "ces", "Česko", "Česko")]
@@ -738,7 +726,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Germany
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Germany", "GERMANY", "the Federal Republic of Germany", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Germany", "Allemagne (l\')", "GERMANY", "the Federal Republic of Germany", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Germany", "GERMANY", "the Federal Republic of Germany")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Allemagne (l\')", "ALLEMAGNE", "la République fédérale d\'Allemagne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("de", "deu", "Deutschland", "Deutschland")]
@@ -750,7 +738,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Djibouti
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Djibouti", "DJIBOUTI", "the Republic of Djibouti", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Djibouti", "Djibouti", "DJIBOUTI", "the Republic of Djibouti", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Djibouti", "DJIBOUTI", "the Republic of Djibouti")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Djibouti", "DJIBOUTI", "la République de Djibouti")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Jībūtī", "Jībūtī")]
@@ -762,7 +750,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Denmark
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Denmark", "DENMARK", "the Kingdom of Denmark", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Denmark", "Danemark (le)", "DENMARK", "the Kingdom of Denmark", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Denmark", "DENMARK", "the Kingdom of Denmark")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Danemark (le)", "DANEMARK", "le Royaume du Danemark")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("da", "dan", "Danmark", "Danmark")]
@@ -774,7 +762,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Dominica
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Dominica", "DOMINICA", "the Commonwealth of Dominica", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Dominica", "Dominique (la)", "DOMINICA", "the Commonwealth of Dominica", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Dominica", "DOMINICA", "the Commonwealth of Dominica")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Dominique (la)", "DOMINIQUE", "le Commonwealth de Dominique")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -784,7 +772,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Dominican Republic (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Dominican Republic (the)", "DOMINICAN REPUBLIC", "the Dominican Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Dominican Republic (the)", "dominicaine (la République)", "DOMINICAN REPUBLIC", "the Dominican Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Dominican Republic (the)", "DOMINICAN REPUBLIC", "the Dominican Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "dominicaine (la République)", "DOMINICAINE, RÉPUBLIQUE", "la République dominicaine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "República Dominicana (la)", "República Dominicana (la)")]
@@ -796,7 +784,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Algeria
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Algeria", "ALGERIA", "the People\'s Democratic Republic of Algeria", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Algeria", "Algérie (l\')", "ALGERIA", "the People\'s Democratic Republic of Algeria", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Algeria", "ALGERIA", "the People\'s Democratic Republic of Algeria")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Algérie (l\')", "ALGÉRIE", "la République algérienne démocratique et populaire")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Jazā\'ir", "Al Jazā\'ir")]
@@ -808,7 +796,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Ecuador
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ecuador", "ECUADOR", "the Republic of Ecuador", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ecuador", "Équateur (l\')", "ECUADOR", "the Republic of Ecuador", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Ecuador", "ECUADOR", "the Republic of Ecuador")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Équateur (l\')", "ÉQUATEUR", "la République d\'Équateur")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Ecuador (el)", "Ecuador (el)")]
@@ -822,7 +810,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Estonia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Estonia", "ESTONIA", "the Republic of Estonia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Estonia", "Estonie (l\')", "ESTONIA", "the Republic of Estonia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Estonia", "ESTONIA", "the Republic of Estonia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Estonie (l\')", "ESTONIE", "la République d\'Estonie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("et", "est", "Eesti", "Eesti")]
@@ -834,7 +822,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Egypt
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Egypt", "EGYPT", "the Arab Republic of Egypt", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Egypt", "Égypte (l\')", "EGYPT", "the Arab Republic of Egypt", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Egypt", "EGYPT", "the Arab Republic of Egypt")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Égypte (l\')", "ÉGYPTE", "la République arabe d\'Égypte")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Mişr", "Mişr")]
@@ -846,7 +834,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Western Sahara*
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Western Sahara*", "WESTERN SAHARA *", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Western Sahara*", "Sahara occidental (le)*", "WESTERN SAHARA *", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Aş Şaḩrā\' al Gharbīyah", "Aş Şaḩrā\' al Gharbīyah")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Western Sahara*", "WESTERN SAHARA *")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sahara occidental (le)*", "SAHARA OCCIDENTAL*")]
@@ -858,7 +846,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Eritrea
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Eritrea", "ERITREA", "the State of Eritrea", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Eritrea", "Érythrée (l\')", "ERITREA", "the State of Eritrea", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Eritrea", "ERITREA", "the State of Eritrea")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Érythrée (l\')", "ÉRYTHRÉE", "l\'État d\'Érythrée")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Irītrīyā", "Irītrīyā")]
@@ -872,7 +860,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Spain
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Spain", "SPAIN", "the Kingdom of Spain", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Spain", "Espagne (l\')", "SPAIN", "the Kingdom of Spain", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Spain", "SPAIN", "the Kingdom of Spain")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Espagne (l\')", "ESPAGNE", "le Royaume d\'Espagne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "España", "España")]
@@ -884,7 +872,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Ethiopia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ethiopia", "ETHIOPIA", "the Federal Democratic Republic of Ethiopia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ethiopia", "Éthiopie (l\')", "ETHIOPIA", "the Federal Democratic Republic of Ethiopia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Ethiopia", "ETHIOPIA", "the Federal Democratic Republic of Ethiopia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Éthiopie (l\')", "ÉTHIOPIE", "la République fédérale démocratique d\'Éthiopie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("am", "amh", "Ītyop\'iya", "Ītyop\'iya")]
@@ -896,7 +884,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Finland
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Finland", "FINLAND", "the Republic of Finland", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Finland", "Finlande (la)", "FINLAND", "the Republic of Finland", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Finland", "FINLAND", "the Republic of Finland")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Finlande (la)", "FINLANDE", "la République de Finlande")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fi", "fin", "Suomi", "Suomi")]
@@ -912,7 +900,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Fiji
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Fiji", "FIJI", "the Republic of Fiji", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Fiji", "Fidji (les)", "FIJI", "the Republic of Fiji", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Fiji", "FIJI", "the Republic of Fiji")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Fidji (les)", "FIDJI", "la République des Fidji")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fj", "fij", "Viti", "Viti")]
@@ -930,7 +918,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Falkland Islands (the) [Malvinas]
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Falkland Islands (the) [Malvinas]", "FALKLAND ISLANDS (MALVINAS)", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Falkland Islands (the) [Malvinas]", "Falkland (les Îles)/Malouines (les Îles)", "FALKLAND ISLANDS (MALVINAS)", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Falkland Islands (the) [Malvinas]", "FALKLAND ISLANDS (MALVINAS)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Falkland (les Îles)/Malouines (les Îles)", "FALKLAND, ÎLES (MALVINAS)")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -940,7 +928,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Micronesia (Federated States of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Micronesia (Federated States of)", "MICRONESIA, FEDERATED STATES OF", "the Federated States of Micronesia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Micronesia (Federated States of)", "Micronésie (États fédérés de)", "MICRONESIA, FEDERATED STATES OF", "the Federated States of Micronesia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Micronesia (Federated States of)", "MICRONESIA, FEDERATED STATES OF", "the Federated States of Micronesia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Micronésie (États fédérés de)", "MICRONÉSIE, ÉTATS FÉDÉRÉS DE", "les États fédérés de Micronésie")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1035, "Caroline Islands")]
@@ -960,7 +948,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Faroe Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Faroe Islands (the)", "FAROE ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Faroe Islands (the)", "Féroé (les Îles)", "FAROE ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("da", "dan", "Færøerne", "Færøerne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Faroe Islands (the)", "FAROE ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fo", "fao", "Føroyar", "Føroyar")]
@@ -974,7 +962,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// France
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("France", "FRANCE", "the French Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("France", "France (la)", "FRANCE", "the French Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "France", "FRANCE", "the French Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "France (la)", "FRANCE", "la République française")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("fr", "fra", 1043, "l\'Île Clipperton")]
@@ -986,7 +974,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Gabon
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Gabon", "GABON", "the Gabonese Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Gabon", "Gabon (le)", "GABON", "the Gabonese Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Gabon", "GABON", "the Gabonese Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Gabon (le)", "GABON", "la République gabonaise")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -996,7 +984,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// United Kingdom of Great Britain and Northern Ireland (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United Kingdom of Great Britain and Northern Ireland (the)", "UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND", "the United Kingdom of Great Britain and Northern Ireland", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United Kingdom of Great Britain and Northern Ireland (the)", "Royaume-Uni de Grande-Bretagne et d\'Irlande du Nord (le)", "UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND", "the United Kingdom of Great Britain and Northern Ireland", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "United Kingdom of Great Britain and Northern Ireland (the)", "UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND", "the United Kingdom of Great Britain and Northern Ireland")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Royaume-Uni de Grande-Bretagne et d\'Irlande du Nord (le)", "ROYAUME-UNI DE GRANDE-BRETAGNE ET D\'IRLANDE DU NORD", "le Royaume-Uni de Grande-Bretagne et d\'Irlande du Nord")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1006,7 +994,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Grenada
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Grenada", "GRENADA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Grenada", "Grenade (la)", "GRENADA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Grenada", "GRENADA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Grenade (la)", "GRENADE")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1039, "Carriacou")]
@@ -1020,7 +1008,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Georgia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Georgia", "GEORGIA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Georgia", "Géorgie (la)", "GEORGIA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Georgia", "GEORGIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Géorgie (la)", "GÉORGIE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ka", "kat", "Sakartvelo", "Sakartvelo")]
@@ -1032,7 +1020,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// French Guiana
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("French Guiana", "FRENCH GUIANA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("French Guiana", "Guyane française (la )", "FRENCH GUIANA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "French Guiana", "FRENCH GUIANA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guyane française (la )", "GUYANE FRANÇAISE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -1042,7 +1030,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guernsey
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guernsey", "GUERNSEY", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guernsey", "Guernesey", "GUERNSEY", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guernsey", "GUERNSEY")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guernesey", "GUERNESEY")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1012, "Alderney Island")]
@@ -1068,7 +1056,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Ghana
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ghana", "GHANA", "the Republic of Ghana", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ghana", "Ghana (le)", "GHANA", "the Republic of Ghana", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Ghana", "GHANA", "the Republic of Ghana")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Ghana (le)", "GHANA", "la République du Ghana")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1078,7 +1066,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Gibraltar
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Gibraltar", "GIBRALTAR", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Gibraltar", "Gibraltar", "GIBRALTAR", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Gibraltar", "GIBRALTAR")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Gibraltar", "GIBRALTAR")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1088,7 +1076,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Greenland
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Greenland", "GREENLAND", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Greenland", "Groenland (le)", "GREENLAND", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("da", "dan", "Grønland", "Grønland")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Greenland", "GREENLAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Groenland (le)", "GROENLAND")]
@@ -1102,7 +1090,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Gambia (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Gambia (the)", "GAMBIA", "the Republic of the Gambia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Gambia (the)", "Gambie (la)", "GAMBIA", "the Republic of the Gambia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Gambia (the)", "GAMBIA", "the Republic of the Gambia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Gambie (la)", "GAMBIE", "la République de Gambie")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1112,7 +1100,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guinea
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guinea", "GUINEA", "the Republic of Guinea", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guinea", "Guinée (la)", "GUINEA", "the Republic of Guinea", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guinea", "GUINEA", "the Republic of Guinea")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guinée (la)", "GUINÉE", "la République de Guinée")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -1122,7 +1110,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guadeloupe
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guadeloupe", "GUADELOUPE", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guadeloupe", "Guadeloupe (la)", "GUADELOUPE", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guadeloupe", "GUADELOUPE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guadeloupe (la)", "GUADELOUPE")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1050, "la Désirade")]
@@ -1138,7 +1126,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Equatorial Guinea
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Equatorial Guinea", "EQUATORIAL GUINEA", "the Republic of Equatorial Guinea", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Equatorial Guinea", "Guinée équatoriale (la)", "EQUATORIAL GUINEA", "the Republic of Equatorial Guinea", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Equatorial Guinea", "EQUATORIAL GUINEA", "the Republic of Equatorial Guinea")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guinée équatoriale (la)", "GUINÉE ÉQUATORIALE", "la République de Guinée équatoriale")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Guiné Equatorial (a)", "Guiné Equatorial (a)")]
@@ -1160,7 +1148,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Greece
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Greece", "GREECE", "the Hellenic Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Greece", "Grèce (la)", "GREECE", "the Hellenic Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Greece", "GREECE", "the Hellenic Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Grèce (la)", "GRÈCE", "la République hellénique")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("el", "ell", "Elláda", "Elláda")]
@@ -1174,7 +1162,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// South Georgia and the South Sandwich Islands
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("South Georgia and the South Sandwich Islands", "SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("South Georgia and the South Sandwich Islands", "Géorgie du Sud-et-les Îles Sandwich du Sud (la)", "SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "South Georgia and the South Sandwich Islands", "SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Géorgie du Sud-et-les Îles Sandwich du Sud (la)", "GÉORGIE DU SUD-ET-LES ÎLES SANDWICH DU SUD")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1184, "South Sandwich Islands  *")]
@@ -1186,7 +1174,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guatemala
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guatemala", "GUATEMALA", "the Republic of Guatemala", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guatemala", "Guatemala (le)", "GUATEMALA", "the Republic of Guatemala", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guatemala", "GUATEMALA", "the Republic of Guatemala")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guatemala (le)", "GUATEMALA", "la République du Guatemala")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Guatemala", "Guatemala")]
@@ -1198,7 +1186,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guam
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guam", "GUAM", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guam", "Guam", "GUAM", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guam", "GUAM")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guam", "GUAM")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1208,7 +1196,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guinea-Bissau
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guinea-Bissau", "GUINEA-BISSAU", "the Republic of Guinea-Bissau", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guinea-Bissau", "Guinée-Bissau (la)", "GUINEA-BISSAU", "the Republic of Guinea-Bissau", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guinea-Bissau", "GUINEA-BISSAU", "the Republic of Guinea-Bissau")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guinée-Bissau (la)", "GUINÉE-BISSAU", "la République de Guinée-Bissau")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Guiné-Bissau (a)", "Guiné-Bissau (a)")]
@@ -1220,7 +1208,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Guyana
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guyana", "GUYANA", "the Co-operative Republic of Guyana", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Guyana", "Guyana (le)", "GUYANA", "the Co-operative Republic of Guyana", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Guyana", "GUYANA", "the Co-operative Republic of Guyana")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Guyana (le)", "GUYANA", "la République coopérative du Guyana")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1230,7 +1218,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Hong Kong
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Hong Kong", "HONG KONG", "the Hong Kong Special Administrative Region of China", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Hong Kong", "Hong Kong", "HONG KONG", "the Hong Kong Special Administrative Region of China", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Hong Kong", "HONG KONG", "the Hong Kong Special Administrative Region of China")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Hong Kong", "HONG KONG", "Hong Kong, Région administrative spéciale de Chine (la)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("zh", "zho", "Xianggang", "Xianggang")]
@@ -1242,7 +1230,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Heard Island and McDonald Islands
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Heard Island and McDonald Islands", "HEARD ISLAND AND MCDONALD ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Heard Island and McDonald Islands", "Heard-et-Îles MacDonald (l\'Île)", "HEARD ISLAND AND MCDONALD ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Heard-et-Îles MacDonald (l\'Île)", "HEARD-ET-ÎLES MACDONALD, ÎLE", "ll\'Île Heard-et-Îles MacDonald")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Heard Island and McDonald Islands", "HEARD ISLAND AND MCDONALD ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1110, "McDonald Islands  *")]
@@ -1254,7 +1242,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Honduras
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Honduras", "HONDURAS", "the Republic of Honduras", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Honduras", "Honduras (le)", "HONDURAS", "the Republic of Honduras", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Honduras", "HONDURAS", "the Republic of Honduras")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Honduras (le)", "HONDURAS", "la République du Honduras")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Honduras", "Honduras")]
@@ -1268,7 +1256,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Croatia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Croatia", "CROATIA", "the Republic of Croatia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Croatia", "Croatie (la)", "CROATIA", "the Republic of Croatia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Croatia", "CROATIA", "the Republic of Croatia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Croatie (la)", "CROATIE", "la République de Croatie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("hr", "hrv", "Hrvatska", "Hrvatska")]
@@ -1280,7 +1268,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Haiti
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Haiti", "HAITI", "the Republic of Haiti", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Haiti", "Haïti", "HAITI", "the Republic of Haiti", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Haiti", "HAITI", "the Republic of Haiti")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Haïti", "HAÏTI", "la République d\'Haïti")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ht", "hat", "Ayiti", "Ayiti")]
@@ -1292,7 +1280,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Hungary
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Hungary", "HUNGARY", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Hungary", "Hongrie (la)", "HUNGARY", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Hungary", "HUNGARY")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Hongrie (la)", "HONGRIE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("hu", "hun", "Magyarország", "Magyarország")]
@@ -1304,7 +1292,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Indonesia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Indonesia", "INDONESIA", "the Republic of Indonesia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Indonesia", "Indonésie (l\')", "INDONESIA", "the Republic of Indonesia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Indonesia", "INDONESIA", "the Republic of Indonesia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Indonésie (l\')", "INDONÉSIE", "la République d\'Indonésie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("id", "ind", "Indonesia", "Indonesia")]
@@ -1316,7 +1304,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Ireland
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ireland", "IRELAND", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ireland", "Irlande (l\')", "IRELAND", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Ireland", "IRELAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Irlande (l\')", "IRLANDE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ga", "gle", "Éire", "Éire")]
@@ -1328,7 +1316,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Israel
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Israel", "ISRAEL", "the State of Israel", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Israel", "Israël", "ISRAEL", "the State of Israel", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Israel", "ISRAEL", "the State of Israel")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Israël", "ISRAËL", "l\'État d\'Israël")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Isrā\'īl", "Isrā\'īl")]
@@ -1342,7 +1330,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Isle of Man
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Isle of Man", "ISLE OF MAN", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Isle of Man", "Île de Man", "ISLE OF MAN", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Isle of Man", "ISLE OF MAN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Île de Man", "ÎLE DE MAN")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1352,7 +1340,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// India
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("India", "INDIA", "the Republic of India", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("India", "Inde (l\')", "INDIA", "the Republic of India", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "India", "INDIA", "the Republic of India")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Inde (l\')", "INDE", "la République de l\'Inde")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("hi", "hin", "Bhārat", "Bhārat")]
@@ -1374,7 +1362,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// British Indian Ocean Territory (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("British Indian Ocean Territory (the)", "BRITISH INDIAN OCEAN TERRITORY", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("British Indian Ocean Territory (the)", "Indien (le Territoire britannique de l\'océan)", "BRITISH INDIAN OCEAN TERRITORY", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Indien (le Territoire britannique de l\'océan)", "OCÉAN INDIEN, TERRITOIRE BRITANNIQUE DE L\'", "le Territoire britannique de l\'océan Indien")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "British Indian Ocean Territory (the)", "BRITISH INDIAN OCEAN TERRITORY")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1040, "Chagos Archipelago")]
@@ -1388,7 +1376,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Iraq
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Iraq", "IRAQ", "the Republic of Iraq", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Iraq", "Iraq (l\')", "IRAQ", "the Republic of Iraq", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Iraq", "IRAQ", "the Republic of Iraq")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Iraq (l\')", "IRAQ", "la République d\'Iraq")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al ‘Irāq", "Al ‘Irāq")]
@@ -1402,7 +1390,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Iran (Islamic Republic of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Iran (Islamic Republic of)", "IRAN, ISLAMIC REPUBLIC OF", "the Islamic Republic of Iran", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Iran (Islamic Republic of)", "Iran (République Islamique d\')", "IRAN, ISLAMIC REPUBLIC OF", "the Islamic Republic of Iran", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Iran (Islamic Republic of)", "IRAN, ISLAMIC REPUBLIC OF", "the Islamic Republic of Iran")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Iran (République Islamique d\')", "IRAN, RÉPUBLIQUE ISLAMIQUE D\'", "la République islamique d\'Iran")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fa", "fas", "Jomhūrī-ye Eslāmī-ye Īrān", "Jomhūrī-ye Eslāmī-ye Īrān")]
@@ -1414,7 +1402,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Iceland
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Iceland", "ICELAND", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Iceland", "Islande (l\')", "ICELAND", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Iceland", "ICELAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Islande (l\')", "ISLANDE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("is", "isl", "Ísland", "Ísland")]
@@ -1426,7 +1414,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Italy
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Italy", "ITALY", "the Republic of Italy", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Italy", "Italie (l\')", "ITALY", "the Republic of Italy", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Italy", "ITALY", "the Republic of Italy")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Italie (l\')", "ITALIE", "la République italienne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("it", "ita", "Italia (l\')", "Italia (l\')")]
@@ -1438,7 +1426,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Jersey
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Jersey", "JERSEY", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Jersey", "Jersey", "JERSEY", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Jersey", "JERSEY")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Jersey", "JERSEY")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1448,7 +1436,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Jamaica
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Jamaica", "JAMAICA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Jamaica", "Jamaïque (la)", "JAMAICA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Jamaica", "JAMAICA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Jamaïque (la)", "JAMAÏQUE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1458,7 +1446,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Jordan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Jordan", "JORDAN", "the Hashemite Kingdom of Jordan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Jordan", "Jordanie (la)", "JORDAN", "the Hashemite Kingdom of Jordan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Jordan", "JORDAN", "the Hashemite Kingdom of Jordan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Jordanie (la)", "JORDANIE", "le Royaume hachémite de Jordanie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Urdun", "Al Urdun")]
@@ -1470,7 +1458,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Japan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Japan", "JAPAN", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Japan", "Japon (le)", "JAPAN", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Japan", "JAPAN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Japon (le)", "JAPON")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ja", "jpn", "Nihon/Nippon", "Nihon/Nippon")]
@@ -1482,7 +1470,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Kenya
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kenya", "KENYA", "the Republic of Kenya", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kenya", "Kenya (le)", "KENYA", "the Republic of Kenya", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Kenya", "KENYA", "the Republic of Kenya")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Kenya (le)", "KENYA", "la République du Kenya")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sw", "swa", "Kenya", "Kenya")]
@@ -1494,7 +1482,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Kyrgyzstan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kyrgyzstan", "KYRGYZSTAN", "the Kyrgyz Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kyrgyzstan", "Kirghizistan (le)", "KYRGYZSTAN", "the Kyrgyz Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Kyrgyzstan", "KYRGYZSTAN", "the Kyrgyz Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Kirghizistan (le)", "KIRGHIZISTAN", "la République kirghize")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ky", "kir", "Kyrgyzstan", "Kyrgyzstan")]
@@ -1508,7 +1496,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cambodia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cambodia", "CAMBODIA", "the Kingdom of Cambodia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cambodia", "Cambodge (le)", "CAMBODIA", "the Kingdom of Cambodia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cambodia", "CAMBODIA", "the Kingdom of Cambodia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Cambodge (le)", "CAMBODGE", "le Royaume du Cambodge")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("km", "khm", "Kâmpŭchéa", "Kâmpŭchéa")]
@@ -1520,7 +1508,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Kiribati
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kiribati", "KIRIBATI", "the Republic of Kiribati", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kiribati", "Kiribati", "KIRIBATI", "the Republic of Kiribati", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Kiribati", "KIRIBATI", "the Republic of Kiribati")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Kiribati", "KIRIBATI", "la République de Kiribati")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "gil", "Kiribati", "Kiribati")]
@@ -1548,7 +1536,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Comoros (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Comoros (the)", "COMOROS", "the Union of the Comoros", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Comoros (the)", "Comores (les)", "COMOROS", "the Union of the Comoros", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Comoros (the)", "COMOROS", "the Union of the Comoros")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Comores (les)", "COMORES", "l\'Union des Comores")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "002", "Komori", "Komori")]
@@ -1568,7 +1556,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Kitts and Nevis
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Kitts and Nevis", "SAINT KITTS AND NEVIS", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Kitts and Nevis", "Saint-Kitts-et-Nevis", "SAINT KITTS AND NEVIS", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Kitts and Nevis", "SAINT KITTS AND NEVIS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Kitts-et-Nevis", "SAINT-KITTS-ET-NEVIS")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1137, "Nevis *")]
@@ -1580,7 +1568,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Korea (the Democratic People's Republic of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Korea (the Democratic People\'s Republic of)", "KOREA, DEMOCRATIC PEOPLE\'S REPUBLIC OF", "the Democratic People\'s Republic of Korea", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Korea (the Democratic People\'s Republic of)", "Corée (la République populaire démocratique de)", "KOREA, DEMOCRATIC PEOPLE\'S REPUBLIC OF", "the Democratic People\'s Republic of Korea", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Korea (the Democratic People\'s Republic of)", "KOREA, DEMOCRATIC PEOPLE\'S REPUBLIC OF", "the Democratic People\'s Republic of Korea")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Corée (la République populaire démocratique de)", "CORÉE, RÉPUBLIQUE POPULAIRE DÉMOCRATIQUE DE", "la République populaire démocratique de Corée")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ko", "kor", "Chosŏn", "Chosŏn")]
@@ -1592,7 +1580,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Korea (the Republic of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Korea (the Republic of)", "KOREA, REPUBLIC OF", "the Republic of Korea", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Korea (the Republic of)", "Corée (la République de)", "KOREA, REPUBLIC OF", "the Republic of Korea", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Korea (the Republic of)", "KOREA, REPUBLIC OF", "the Republic of Korea")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Corée (la République de)", "CORÉE, RÉPUBLIQUE DE", "la République de Corée")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ko", "kor", "Hanguk", "Hanguk")]
@@ -1604,7 +1592,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Kuwait
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kuwait", "KUWAIT", "the State of Kuwait", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kuwait", "Koweït (le)", "KUWAIT", "the State of Kuwait", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Kuwait", "KUWAIT", "the State of Kuwait")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Koweït (le)", "KOWEÏT", "l\'État du Koweït")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Kuwayt", "Al Kuwayt")]
@@ -1616,7 +1604,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Cayman Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cayman Islands (the)", "CAYMAN ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Cayman Islands (the)", "Caïmans (les Îles)", "CAYMAN ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Cayman Islands (the)", "CAYMAN ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Caïmans (les Îles)", "CAÏMANS, ÎLES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1071, "Grand Cayman")]
@@ -1628,7 +1616,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Kazakhstan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kazakhstan", "KAZAKHSTAN", "the Republic of Kazakhstan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Kazakhstan", "Kazakhstan (le)", "KAZAKHSTAN", "the Republic of Kazakhstan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Kazakhstan", "KAZAKHSTAN", "the Republic of Kazakhstan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Kazakhstan (le)", "KAZAKHSTAN", "la République du Kazakhstan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("kk", "kaz", "Qazaqstan", "Qazaqstan")]
@@ -1642,7 +1630,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Lao People's Democratic Republic (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lao People\'s Democratic Republic (the)", "LAO PEOPLE\'S DEMOCRATIC REPUBLIC", "the Lao People\'s Democratic Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lao People\'s Democratic Republic (the)", "Lao (la République démocratique populaire)", "LAO PEOPLE\'S DEMOCRATIC REPUBLIC", "the Lao People\'s Democratic Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Lao People\'s Democratic Republic (the)", "LAO PEOPLE\'S DEMOCRATIC REPUBLIC", "the Lao People\'s Democratic Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Lao (la République démocratique populaire)", "LAO, RÉPUBLIQUE DÉMOCRATIQUE POPULAIRE", "la République démocratique populaire lao")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("lo", "lao", "Sathalanalat Paxathipatai Paxaxôn Lao", "Sathalanalat Paxathipatai Paxaxôn Lao")]
@@ -1654,7 +1642,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Lebanon
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lebanon", "LEBANON", "the Lebanese Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lebanon", "Liban (le)", "LEBANON", "the Lebanese Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Lebanon", "LEBANON", "the Lebanese Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Liban (le)", "LIBAN", "la République libanaise")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Lubnān", "Lubnān")]
@@ -1666,7 +1654,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Lucia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Lucia", "SAINT LUCIA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Lucia", "Sainte-Lucie", "SAINT LUCIA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Lucia", "SAINT LUCIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sainte-Lucie", "SAINTE-LUCIE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1676,7 +1664,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Liechtenstein
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Liechtenstein", "LIECHTENSTEIN", "the Principality of Liechtenstein", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Liechtenstein", "Liechtenstein (le)", "LIECHTENSTEIN", "the Principality of Liechtenstein", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Liechtenstein", "LIECHTENSTEIN", "the Principality of Liechtenstein")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Liechtenstein (le)", "LIECHTENSTEIN", "la Principauté du Liechtenstein")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("de", "deu", "Liechtenstein", "Liechtenstein")]
@@ -1688,7 +1676,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Sri Lanka
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sri Lanka", "SRI LANKA", "the Democratic Socialist Republic of Sri Lanka", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sri Lanka", "Sri Lanka", "SRI LANKA", "the Democratic Socialist Republic of Sri Lanka", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Sri Lanka", "SRI LANKA", "the Democratic Socialist Republic of Sri Lanka")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sri Lanka", "SRI LANKA", "la République socialiste démocratique du Sri Lanka")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("si", "sin", "Shrī Laṁkā", "Shrī Laṁkā")]
@@ -1702,7 +1690,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Liberia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Liberia", "LIBERIA", "the Republic of Liberia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Liberia", "Libéria (le)", "LIBERIA", "the Republic of Liberia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Liberia", "LIBERIA", "the Republic of Liberia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Libéria (le)", "LIBÉRIA", "la République du Libéria")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1712,7 +1700,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Lesotho
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lesotho", "LESOTHO", "the Kingdom of Lesotho", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lesotho", "Lesotho (le)", "LESOTHO", "the Kingdom of Lesotho", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Lesotho", "LESOTHO", "the Kingdom of Lesotho")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Lesotho (le)", "LESOTHO", "le Royaume du Lesotho")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("st", "sot", "Lesotho", "Lesotho")]
@@ -1724,7 +1712,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Lithuania
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lithuania", "LITHUANIA", "the Republic of Lithuania", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Lithuania", "Lituanie (la)", "LITHUANIA", "the Republic of Lithuania", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Lithuania", "LITHUANIA", "the Republic of Lithuania")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Lituanie (la)", "LITUANIE", "la République de Lituanie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("lt", "lit", "Lietuva", "Lietuva")]
@@ -1736,7 +1724,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Luxembourg
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Luxembourg", "LUXEMBOURG", "the Grand Duchy of Luxembourg", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Luxembourg", "Luxembourg (le)", "LUXEMBOURG", "the Grand Duchy of Luxembourg", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Luxembourg", "LUXEMBOURG", "the Grand Duchy of Luxembourg")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Luxembourg (le)", "LUXEMBOURG", "le Grand-Duché de Luxembourg")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("de", "deu", "Luxemburg", "Luxemburg")]
@@ -1750,7 +1738,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Latvia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Latvia", "LATVIA", "the Republic of Latvia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Latvia", "Lettonie (la)", "LATVIA", "the Republic of Latvia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Latvia", "LATVIA", "the Republic of Latvia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Lettonie (la)", "LETTONIE", "la République de Lettonie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("lv", "lav", "Latvija", "Latvija")]
@@ -1762,7 +1750,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Libya
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Libya", "LIBYA", "the State of Libya", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Libya", "Libye (la)", "LIBYA", "the State of Libya", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Libya", "LIBYA", "the State of Libya")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Libye (la)", "LIBYE", "l\'État de Libye")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Lībiyā", "Lībiyā")]
@@ -1774,7 +1762,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Morocco
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Morocco", "MOROCCO", "the Kingdom of Morocco", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Morocco", "Maroc (le)", "MOROCCO", "the Kingdom of Morocco", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Morocco", "MOROCCO", "the Kingdom of Morocco")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Maroc (le)", "MAROC", "le Royaume du Maroc")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Maghrib", "Al Maghrib")]
@@ -1786,7 +1774,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Monaco
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Monaco", "MONACO", "the Principality of Monaco", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Monaco", "Monaco", "MONACO", "the Principality of Monaco", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Monaco", "MONACO", "the Principality of Monaco")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Monaco", "MONACO", "la Principauté de Monaco")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -1796,7 +1784,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Moldova (the Republic of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Moldova (the Republic of)", "MOLDOVA, REPUBLIC OF", "the Republic of Moldova", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Moldova (the Republic of)", "Moldova (la République de)", "MOLDOVA, REPUBLIC OF", "the Republic of Moldova", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Moldova (the Republic of)", "MOLDOVA, REPUBLIC OF", "the Republic of Moldova")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Moldova (la République de)", "MOLDOVA, RÉPUBLIQUE DE", "la République de Moldova")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ro", "ron", "Republica Moldova", "Republica Moldova")]
@@ -1808,7 +1796,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Montenegro
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Montenegro", "MONTENEGRO", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Montenegro", "Monténégro (le)", "MONTENEGRO", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Monténégro (le)", "MONTÉNÉGRO", "Monténégro (le)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "cnr", "Crna Gora", "Crna Gora")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Montenegro", "MONTENEGRO")]
@@ -1820,7 +1808,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Martin (French part)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Martin (French part)", "SAINT MARTIN (FRENCH PART)", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Martin (French part)", "Saint-Martin (partie française)", "SAINT MARTIN (FRENCH PART)", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Martin (French part)", "SAINT MARTIN (FRENCH PART)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Martin (partie française)", "SAINT-MARTIN (PARTIE FRANÇAISE)")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("fr", "fra", 1171, "Saint-Martin, partie nord de")]
@@ -1831,7 +1819,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Madagascar
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Madagascar", "MADAGASCAR", "the Republic of Madagascar", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Madagascar", "Madagascar", "MADAGASCAR", "the Republic of Madagascar", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Madagascar", "MADAGASCAR", "the Republic of Madagascar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Madagascar", "MADAGASCAR", "la République de Madagascar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("mg", "mlg", "Madagasikara", "Madagasikara")]
@@ -1843,7 +1831,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Marshall Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Marshall Islands (the)", "MARSHALL ISLANDS", "the Republic of the Marshall Islands", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Marshall Islands (the)", "Marshall (les Îles)", "MARSHALL ISLANDS", "the Republic of the Marshall Islands", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Marshall Islands (the)", "MARSHALL ISLANDS", "the Republic of the Marshall Islands")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Marshall (les Îles)", "MARSHALL, ÎLES", "la République des Îles Marshall")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("mh", "mah", "Aelōn̄ in M̧ajeļ", "Aelōn̄ in M̧ajeļ")]
@@ -1861,7 +1849,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// North Macedonia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("North Macedonia", "NORTH MACEDONIA", "the Republic of North Macedonia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("North Macedonia", "Macédoine du Nord (la)", "NORTH MACEDONIA", "the Republic of North Macedonia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "North Macedonia", "NORTH MACEDONIA", "the Republic of North Macedonia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Macédoine du Nord (la)", "MACÉDOINE DU NORD", "la République de Macédoine du Nord")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("mk", "mkd", "Severna Makedonija", "Severna Makedonija")]
@@ -1873,7 +1861,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mali
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mali", "MALI", "the Republic of Mali", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mali", "Mali (le)", "MALI", "the Republic of Mali", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mali", "MALI", "the Republic of Mali")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mali (le)", "MALI", "la République du Mali")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -1883,14 +1871,10 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Myanmar
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Myanmar", "MYANMAR", "the Republic of the Union of Myanmar", IsIndependent=true)]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Burma", "Burma")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Birmanie", "BIRMANIE")]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Myanmar", "Myanmar (le)", "MYANMAR", "the Republic of the Union of Myanmar", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Myanmar", "MYANMAR", "the Republic of the Union of Myanmar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Myanmar (le)", "MYANMAR", "la République de l\'Union du Myanmar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("my", "mya", "Myanma", "Myanma")]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("my", "mya", IsAdministrative=true)]
@@ -1899,7 +1883,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mongolia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mongolia", "MONGOLIA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mongolia", "Mongolie (la)", "MONGOLIA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mongolia", "MONGOLIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mongolie (la)", "MONGOLIE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("mn", "mon", "Mongol", "Mongol")]
@@ -1911,7 +1895,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Macao
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Macao", "MACAO", "Macao Special Administrative Region of China", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Macao", "Macao", "MACAO", "Macao Special Administrative Region of China", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Macao", "MACAO", "Macao Special Administrative Region of China")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Macao", "MACAO", "Macao, Région administrative spéciale de Chine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Macau", "Macau")]
@@ -1925,7 +1909,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Northern Mariana Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Northern Mariana Islands (the)", "NORTHERN MARIANA ISLANDS", "the Commonwealth of the Northern Mariana Islands", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Northern Mariana Islands (the)", "Mariannes du Nord (les Îles)", "NORTHERN MARIANA ISLANDS", "the Commonwealth of the Northern Mariana Islands", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Northern Mariana Islands (the)", "NORTHERN MARIANA ISLANDS", "the Commonwealth of the Northern Mariana Islands")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mariannes du Nord (les Îles)", "MARIANNES DU NORD, ÎLES", "les Îles Mariannes du Nord")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1117, "Mariana Islands (except GUAM)")]
@@ -1939,7 +1923,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Martinique
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Martinique", "MARTINIQUE", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Martinique", "Martinique (la)", "MARTINIQUE", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Martinique", "MARTINIQUE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Martinique (la)", "MARTINIQUE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -1949,7 +1933,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mauritania
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mauritania", "MAURITANIA", "the Islamic Republic of Mauritania", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mauritania", "Mauritanie (la)", "MAURITANIA", "the Islamic Republic of Mauritania", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mauritania", "MAURITANIA", "the Islamic Republic of Mauritania")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mauritanie (la)", "MAURITANIE", "la République islamique de Mauritanie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Mūrītāniyā", "Mūrītāniyā")]
@@ -1961,7 +1945,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Montserrat
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Montserrat", "MONTSERRAT", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Montserrat", "Montserrat", "MONTSERRAT", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Montserrat", "MONTSERRAT")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Montserrat", "MONTSERRAT")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -1971,7 +1955,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Malta
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Malta", "MALTA", "the Republic of Malta", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Malta", "Malte", "MALTA", "the Republic of Malta", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Malta", "MALTA", "the Republic of Malta")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Malte", "MALTE", "la République de Malte")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("mt", "mlt", "Malta", "Malta")]
@@ -1983,7 +1967,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mauritius
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mauritius", "MAURITIUS", "the Republic of Mauritius", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mauritius", "Maurice", "MAURITIUS", "the Republic of Mauritius", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mauritius", "MAURITIUS", "the Republic of Mauritius")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Maurice", "MAURICE", "la République de Maurice")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1001, "Agalega Islands")]
@@ -1999,7 +1983,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Maldives
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Maldives", "MALDIVES", "the Republic of Maldives", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Maldives", "Maldives (les)", "MALDIVES", "the Republic of Maldives", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Maldives", "MALDIVES", "the Republic of Maldives")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Maldives (les)", "MALDIVES", "la République des Maldives")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("dv", "div", "Dhivehi Raajje", "Dhivehi Raajje")]
@@ -2011,7 +1995,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Malawi
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Malawi", "MALAWI", "the Republic of Malawi", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Malawi", "Malawi (le)", "MALAWI", "the Republic of Malawi", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Malawi", "MALAWI", "the Republic of Malawi")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Malawi (le)", "MALAWI", "la République du Malawi")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ny", "nya", "Malaŵi", "Malaŵi")]
@@ -2023,7 +2007,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mexico
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mexico", "MEXICO", "the United Mexican States", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mexico", "Mexique (le)", "MEXICO", "the United Mexican States", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mexico", "MEXICO", "the United Mexican States")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mexique (le)", "MEXIQUE", "les États-Unis du Mexique")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "México", "México")]
@@ -2035,7 +2019,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Malaysia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Malaysia", "MALAYSIA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Malaysia", "Malaisie (la)", "MALAYSIA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Malaysia", "MALAYSIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Malaisie (la)", "MALAISIE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ms", "msa", "Malaysia", "Malaysia")]
@@ -2053,7 +2037,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mozambique
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mozambique", "MOZAMBIQUE", "the Republic of Mozambique", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mozambique", "Mozambique (le)", "MOZAMBIQUE", "the Republic of Mozambique", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mozambique", "MOZAMBIQUE", "the Republic of Mozambique")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mozambique (le)", "MOZAMBIQUE", "la République du Mozambique")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Moçambique", "Moçambique")]
@@ -2065,7 +2049,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Namibia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Namibia", "NAMIBIA", "the Republic of Namibia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Namibia", "Namibie (la)", "NAMIBIA", "the Republic of Namibia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Namibia", "NAMIBIA", "the Republic of Namibia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Namibie (la)", "NAMIBIE", "la République de Namibie")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -2075,7 +2059,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// New Caledonia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("New Caledonia", "NEW CALEDONIA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("New Caledonia", "Nouvelle-Calédonie (la)", "NEW CALEDONIA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "New Caledonia", "NEW CALEDONIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Nouvelle-Calédonie (la)", "NOUVELLE-CALÉDONIE")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1108, "Loyalty Islands")]
@@ -2087,7 +2071,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Niger (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Niger (the)", "NIGER", "the Republic of the Niger", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Niger (the)", "Niger (le)", "NIGER", "the Republic of the Niger", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Niger (the)", "NIGER", "the Republic of the Niger")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Niger (le)", "NIGER", "la République du Niger")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -2097,7 +2081,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Norfolk Island
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Norfolk Island", "NORFOLK ISLAND", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Norfolk Island", "Norfolk (l\'Île)", "NORFOLK ISLAND", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Norfolk Island", "NORFOLK ISLAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Norfolk (l\'Île)", "NORFOLK, ÎLE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -2107,7 +2091,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Nigeria
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nigeria", "NIGERIA", "the Federal Republic of Nigeria", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nigeria", "Nigéria (le)", "NIGERIA", "the Federal Republic of Nigeria", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Nigeria", "NIGERIA", "the Federal Republic of Nigeria")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Nigéria (le)", "NIGÉRIA", "la République fédérale du Nigéria")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -2117,7 +2101,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Nicaragua
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nicaragua", "NICARAGUA", "the Republic of Nicaragua", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nicaragua", "Nicaragua (le)", "NICARAGUA", "the Republic of Nicaragua", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Nicaragua", "NICARAGUA", "the Republic of Nicaragua")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Nicaragua (le)", "NICARAGUA", "la République du Nicaragua")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Nicaragua", "Nicaragua")]
@@ -2129,7 +2113,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Netherlands (Kingdom of the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Netherlands (Kingdom of the)", "NETHERLANDS, KINGDOM OF THE", "the Kingdom of the Netherlands", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Netherlands (Kingdom of the)", "Pays-Bas (Royaume des)", "NETHERLANDS, KINGDOM OF THE", "the Kingdom of the Netherlands", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Netherlands (Kingdom of the)", "NETHERLANDS, KINGDOM OF THE", "the Kingdom of the Netherlands")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Pays-Bas (Royaume des)", "PAYS-BAS, ROYAUME DES", "le Royaume des Pays-Bas")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nl", "nld", "Nederland", "Nederland")]
@@ -2141,7 +2125,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Norway
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Norway", "NORWAY", "the Kingdom of Norway", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Norway", "Norvège (la)", "NORWAY", "the Kingdom of Norway", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Norway", "NORWAY", "the Kingdom of Norway")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Norvège (la)", "NORVÈGE", "le Royaume de Norvège")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nn", "nno", "Noreg", "Noreg")]
@@ -2155,7 +2139,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Nepal
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nepal", "NEPAL", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nepal", "Népal (le)", "NEPAL", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Nepal", "NEPAL")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Népal (le)", "NÉPAL")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ne", "nep", "Nepāl", "Nepāl")]
@@ -2167,7 +2151,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Nauru
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nauru", "NAURU", "the Republic of Nauru", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Nauru", "Nauru", "NAURU", "the Republic of Nauru", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Nauru", "NAURU", "the Republic of Nauru")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Nauru", "NAURU", "la République de Nauru")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("na", "nau", "Naoero", "Naoero")]
@@ -2179,7 +2163,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Niue
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Niue", "NIUE", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Niue", "Niue", "NIUE", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Niue", "NIUE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Niue", "NIUE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "niu", "Niue", "Niue")]
@@ -2191,7 +2175,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// New Zealand
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("New Zealand", "NEW ZEALAND", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("New Zealand", "Nouvelle-Zélande (la)", "NEW ZEALAND", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "New Zealand", "NEW ZEALAND")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Nouvelle-Zélande (la)", "NOUVELLE-ZÉLANDE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("mi", "mri", "Aotearoa", "Aotearoa")]
@@ -2213,7 +2197,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Oman
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Oman", "OMAN", "the Sultanate of Oman", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Oman", "Oman", "OMAN", "the Sultanate of Oman", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Oman", "OMAN", "the Sultanate of Oman")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Oman", "OMAN", "le Sultanat d\'Oman")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "‘Umān", "‘Umān")]
@@ -2227,7 +2211,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Panama
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Panama", "PANAMA", "the Republic of Panama", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Panama", "Panama (le)", "PANAMA", "the Republic of Panama", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Panama", "PANAMA", "the Republic of Panama")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Panama (le)", "PANAMA", "la République du Panama")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Panamá", "Panamá")]
@@ -2239,7 +2223,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Peru
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Peru", "PERU", "the Republic of Peru", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Peru", "Pérou (le)", "PERU", "the Republic of Peru", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Peru", "PERU", "the Republic of Peru")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Pérou (le)", "PÉROU", "la République du Pérou")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ay", "aym", "Perú", "Perú")]
@@ -2255,7 +2239,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// French Polynesia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("French Polynesia", "FRENCH POLYNESIA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("French Polynesia", "Polynésie française (la)", "FRENCH POLYNESIA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "French Polynesia", "FRENCH POLYNESIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Polynésie française (la)", "POLYNÉSIE FRANÇAISE")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1013, "Austral Islands")]
@@ -2277,7 +2261,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Papua New Guinea
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Papua New Guinea", "PAPUA NEW GUINEA", "the Independent State of Papua New Guinea", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Papua New Guinea", "Papouasie-Nouvelle-Guinée (la)", "PAPUA NEW GUINEA", "the Independent State of Papua New Guinea", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Papua New Guinea", "PAPUA NEW GUINEA", "the Independent State of Papua New Guinea")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Papouasie-Nouvelle-Guinée (la)", "PAPOUASIE-NOUVELLE-GUINÉE", "l\'État indépendant de Papouasie-Nouvelle-Guinée")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ho", "hmo", "Papuaniugini", "Papuaniugini")]
@@ -2297,7 +2281,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Philippines (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Philippines (the)", "PHILIPPINES", "the Republic of the Philippines", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Philippines (the)", "Philippines (les)", "PHILIPPINES", "the Republic of the Philippines", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Philippines (the)", "PHILIPPINES", "the Republic of the Philippines")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Philippines (les)", "PHILIPPINES", "la République des Philippines")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("tl", "tgl", "Pilipinas", "Pilipinas")]
@@ -2309,7 +2293,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Pakistan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Pakistan", "PAKISTAN", "the Islamic Republic of Pakistan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Pakistan", "Pakistan (le)", "PAKISTAN", "the Islamic Republic of Pakistan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Pakistan", "PAKISTAN", "the Islamic Republic of Pakistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Pakistan (le)", "PAKISTAN", "la République islamique du Pakistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ur", "urd", "Pākistān", "Pākistān")]
@@ -2321,7 +2305,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Poland
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Poland", "POLAND", "the Republic of Poland", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Poland", "Pologne (la)", "POLAND", "the Republic of Poland", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Poland", "POLAND", "the Republic of Poland")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Pologne (la)", "POLOGNE", "la République de Pologne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pl", "pol", "Polska", "Polska")]
@@ -2333,7 +2317,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Pierre and Miquelon
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Pierre and Miquelon", "SAINT PIERRE AND MIQUELON", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Pierre and Miquelon", "Saint-Pierre-et-Miquelon", "SAINT PIERRE AND MIQUELON", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Pierre and Miquelon", "SAINT PIERRE AND MIQUELON")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Pierre-et-Miquelon", "SAINT-PIERRE-ET-MIQUELON")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1129, "Miquelon *")]
@@ -2345,7 +2329,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Pitcairn
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Pitcairn", "PITCAIRN", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Pitcairn", "Pitcairn", "PITCAIRN", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Pitcairn", "PITCAIRN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Pitcairn", "PITCAIRN")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1052, "Ducie Island")]
@@ -2361,7 +2345,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Puerto Rico
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Puerto Rico", "PUERTO RICO", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Puerto Rico", "Porto Rico", "PUERTO RICO", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Puerto Rico", "PUERTO RICO")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Porto Rico", "PORTO RICO")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Puerto Rico", "Puerto Rico")]
@@ -2373,7 +2357,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Palestine, State of
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Palestine, State of", "PALESTINE, STATE OF", "the State of Palestine", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Palestine, State of", "Palestine, État de", "PALESTINE, STATE OF", "the State of Palestine", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Palestine, State of", "PALESTINE, STATE OF", "the State of Palestine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Palestine, État de", "PALESTINE, ÉTAT DE", "l\'État de Palestine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Dawlat Filasţīn", "Dawlat Filasţīn")]
@@ -2385,7 +2369,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Portugal
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Portugal", "PORTUGAL", "the Portuguese Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Portugal", "Portugal (le)", "PORTUGAL", "the Portuguese Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Portugal", "PORTUGAL", "the Portuguese Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Portugal (le)", "PORTUGAL", "la République portugaise")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Portugal", "Portugal")]
@@ -2397,7 +2381,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Palau
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Palau", "PALAU", "the Republic of Palau", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Palau", "Palaos (les)", "PALAU", "the Republic of Palau", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Palau", "PALAU", "the Republic of Palau")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Palaos (les)", "PALAOS", "la République des Palaos")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "pau", "Belau", "Belau")]
@@ -2413,7 +2397,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Paraguay
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Paraguay", "PARAGUAY", "the Republic of Paraguay", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Paraguay", "Paraguay (le)", "PARAGUAY", "the Republic of Paraguay", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Paraguay", "PARAGUAY", "the Republic of Paraguay")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Paraguay (le)", "PARAGUAY", "la République du Paraguay")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("gn", "grn", "Paraguay", "Paraguay")]
@@ -2427,7 +2411,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Qatar
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Qatar", "QATAR", "the State of Qatar", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Qatar", "Qatar (le)", "QATAR", "the State of Qatar", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Qatar", "QATAR", "the State of Qatar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Qatar (le)", "QATAR", "l\'État du Qatar")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Qaţar", "Qaţar")]
@@ -2439,7 +2423,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Réunion
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Réunion", "RÉUNION", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Réunion", "Réunion (La)", "RÉUNION", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Réunion", "RÉUNION")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Réunion (La)", "RÉUNION")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -2449,7 +2433,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Romania
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Romania", "ROMANIA", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Romania", "Roumanie (la)", "ROMANIA", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Romania", "ROMANIA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Roumanie (la)", "ROUMANIE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ro", "ron", "România", "România")]
@@ -2461,7 +2445,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Serbia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Serbia", "SERBIA", "the Republic of Serbia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Serbia", "Serbie (la)", "SERBIA", "the Republic of Serbia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Serbia", "SERBIA", "the Republic of Serbia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Serbie (la)", "SERBIE", "la République de Serbie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sr", "srp", "Srbija", "Srbija")]
@@ -2473,7 +2457,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Russian Federation (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Russian Federation (the)", "RUSSIAN FEDERATION", "the Russian Federation", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Russian Federation (the)", "Russie (la Fédération de)", "RUSSIAN FEDERATION", "the Russian Federation", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Russian Federation (the)", "RUSSIAN FEDERATION", "the Russian Federation")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Russie (la Fédération de)", "RUSSIE, FÉDÉRATION DE", "la Fédération de Russie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ru", "rus", "Rossijskaja Federacija", "Rossijskaja Federacija")]
@@ -2487,7 +2471,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Rwanda
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Rwanda", "RWANDA", "the Republic of Rwanda", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Rwanda", "Rwanda (le)", "RWANDA", "the Republic of Rwanda", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Rwanda", "RWANDA", "the Republic of Rwanda")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Rwanda (le)", "RWANDA", "la République du Rwanda")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("rw", "kin", "Rwanda", "Rwanda")]
@@ -2499,7 +2483,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saudi Arabia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saudi Arabia", "SAUDI ARABIA", "the Kingdom of Saudi Arabia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saudi Arabia", "Arabie saoudite (l\')", "SAUDI ARABIA", "the Kingdom of Saudi Arabia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saudi Arabia", "SAUDI ARABIA", "the Kingdom of Saudi Arabia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Arabie saoudite (l\')", "ARABIE SAOUDITE", "le Royaume d\'Arabie saoudite")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "As Su‘ūdīyah", "As Su‘ūdīyah")]
@@ -2511,7 +2495,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Solomon Islands
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Solomon Islands", "SOLOMON ISLANDS", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Solomon Islands", "Salomon (les Îles)", "SOLOMON ISLANDS", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Salomon (les Îles)", "SALOMON, ÎLES", "les Îles Salomon")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Solomon Islands", "SOLOMON ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1079, "Guadalcanal (principal island)")]
@@ -2527,7 +2511,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Seychelles
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Seychelles", "SEYCHELLES", "the Republic of Seychelles", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Seychelles", "Seychelles (les)", "SEYCHELLES", "the Republic of Seychelles", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Seychelles", "SEYCHELLES", "the Republic of Seychelles")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Seychelles (les)", "SEYCHELLES", "la République des Seychelles")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "crs", "Sesel", "Sesel")]
@@ -2549,7 +2533,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Sudan (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sudan (the)", "SUDAN", "the Republic of the Sudan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sudan (the)", "Soudan (le)", "SUDAN", "the Republic of the Sudan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Sudan (the)", "SUDAN", "the Republic of the Sudan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Soudan (le)", "SOUDAN", "la République du Soudan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "As Sūdān", "As Sūdān")]
@@ -2561,7 +2545,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Sweden
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sweden", "SWEDEN", "the Kingdom of Sweden", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sweden", "Suède (la)", "SWEDEN", "the Kingdom of Sweden", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Sweden", "SWEDEN", "the Kingdom of Sweden")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Suède (la)", "SUÈDE", "le Royaume de Suède")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sv", "swe", "Sverige", "Sverige")]
@@ -2573,7 +2557,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Singapore
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Singapore", "SINGAPORE", "the Republic of Singapore", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Singapore", "Singapour", "SINGAPORE", "the Republic of Singapore", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Singapore", "SINGAPORE", "the Republic of Singapore")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Singapour", "SINGAPOUR", "la République de Singapour")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ms", "msa", "Singapura", "Singapura")]
@@ -2589,7 +2573,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Helena, Ascension and Tristan da Cunha
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Helena, Ascension and Tristan da Cunha", "SAINT HELENA, ASCENSION AND TRISTAN DA CUNHA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Helena, Ascension and Tristan da Cunha", "Sainte-Hélène, Ascension et Tristan da Cunha", "SAINT HELENA, ASCENSION AND TRISTAN DA CUNHA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Helena, Ascension and Tristan da Cunha", "SAINT HELENA, ASCENSION AND TRISTAN DA CUNHA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sainte-Hélène, Ascension et Tristan da Cunha", "SAINTE-HÉLÈNE, ASCENSION ET TRISTAN DA CUNHA")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1008, "Ascension Island")]
@@ -2613,7 +2597,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Slovenia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Slovenia", "SLOVENIA", "the Republic of Slovenia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Slovenia", "Slovénie (la)", "SLOVENIA", "the Republic of Slovenia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Slovenia", "SLOVENIA", "the Republic of Slovenia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Slovénie (la)", "SLOVÉNIE", "la République de Slovénie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sl", "slv", "Slovenija", "Slovenija")]
@@ -2625,7 +2609,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Svalbard and Jan Mayen
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Svalbard and Jan Mayen", "SVALBARD AND JAN MAYEN", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Svalbard and Jan Mayen", "Svalbard et l\'Île Jan Mayen (le)", "SVALBARD AND JAN MAYEN", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Svalbard and Jan Mayen", "SVALBARD AND JAN MAYEN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Svalbard et l\'Île Jan Mayen (le)", "SVALBARD ET ÎLE JAN MAYEN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nn", "nno", "Svalbard og Jan Mayen", "Svalbard og Jan Mayen")]
@@ -2643,7 +2627,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Slovakia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Slovakia", "SLOVAKIA", "the Slovak Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Slovakia", "Slovaquie (la)", "SLOVAKIA", "the Slovak Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Slovakia", "SLOVAKIA", "the Slovak Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Slovaquie (la)", "SLOVAQUIE", "la République slovaque")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sk", "slk", "Slovensko", "Slovensko")]
@@ -2655,7 +2639,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Sierra Leone
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sierra Leone", "SIERRA LEONE", "the Republic of Sierra Leone", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sierra Leone", "Sierra Leone (la)", "SIERRA LEONE", "the Republic of Sierra Leone", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Sierra Leone", "SIERRA LEONE", "the Republic of Sierra Leone")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sierra Leone (la)", "SIERRA LEONE", "la République de Sierra Leone")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -2665,7 +2649,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// San Marino
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("San Marino", "SAN MARINO", "the Republic of San Marino", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("San Marino", "Saint-Marin", "SAN MARINO", "the Republic of San Marino", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "San Marino", "SAN MARINO", "the Republic of San Marino")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Marin", "SAINT-MARIN", "la République de Saint-Marin")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("it", "ita", "San Marino", "San Marino")]
@@ -2677,7 +2661,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Senegal
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Senegal", "SENEGAL", "the Republic of Senegal", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Senegal", "Sénégal (le)", "SENEGAL", "the Republic of Senegal", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Senegal", "SENEGAL", "the Republic of Senegal")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sénégal (le)", "SÉNÉGAL", "la République du Sénégal")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -2687,7 +2671,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Somalia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Somalia", "SOMALIA", "the Federal Republic of Somalia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Somalia", "Somalie (la)", "SOMALIA", "the Federal Republic of Somalia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Somalia", "SOMALIA", "the Federal Republic of Somalia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Somalie (la)", "SOMALIE", "la République fédérale de Somalie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Aş Şūmāl", "Aş Şūmāl")]
@@ -2701,7 +2685,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Suriname
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Suriname", "SURINAME", "the Republic of Suriname", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Suriname", "Suriname (le)", "SURINAME", "the Republic of Suriname", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Suriname", "SURINAME", "the Republic of Suriname")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Suriname (le)", "SURINAME", "la République du Suriname")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nl", "nld", "Suriname", "Suriname")]
@@ -2713,7 +2697,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// South Sudan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("South Sudan", "SOUTH SUDAN", "the Republic of South Sudan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("South Sudan", "Soudan du Sud (le)", "SOUTH SUDAN", "the Republic of South Sudan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "South Sudan", "SOUTH SUDAN", "the Republic of South Sudan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Soudan du Sud (le)", "SOUDAN DU SUD", "la République du Soudan du Sud")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -2723,7 +2707,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Sao Tome and Principe
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sao Tome and Principe", "SAO TOME AND PRINCIPE", "the Democratic Republic of Sao Tome and Principe", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sao Tome and Principe", "Sao Tomé-et-Principe", "SAO TOME AND PRINCIPE", "the Democratic Republic of Sao Tome and Principe", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Sao Tome and Principe", "SAO TOME AND PRINCIPE", "the Democratic Republic of Sao Tome and Principe")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Sao Tomé-et-Principe", "SAO TOMÉ-ET-PRINCIPE", "la République démocratique de Sao Tomé-et-Principe")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "São Tomé e Príncipe", "São Tomé e Príncipe")]
@@ -2737,7 +2721,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// El Salvador
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("El Salvador", "EL SALVADOR", "the Republic of El Salvador", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("El Salvador", "El Salvador", "EL SALVADOR", "the Republic of El Salvador", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "El Salvador", "EL SALVADOR", "the Republic of El Salvador")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "El Salvador", "EL SALVADOR", "la République d\'El Salvador")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "El Salvador", "El Salvador")]
@@ -2749,7 +2733,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Sint Maarten (Dutch part)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sint Maarten (Dutch part)", "SINT MAARTEN (DUTCH PART)", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Sint Maarten (Dutch part)", "Saint-Martin (partie néerlandaise)", "SINT MAARTEN (DUTCH PART)", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Sint Maarten (Dutch part)", "SINT MAARTEN (DUTCH PART)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Martin (partie néerlandaise)", "SAINT-MARTIN (PARTIE NÉERLANDAISE)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("nl", "nld", "Sint Maarten", "Sint Maarten")]
@@ -2761,7 +2745,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Syrian Arab Republic (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Syrian Arab Republic (the)", "SYRIAN ARAB REPUBLIC", "the Syrian Arab Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Syrian Arab Republic (the)", "République arabe syrienne (la)", "SYRIAN ARAB REPUBLIC", "the Syrian Arab Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Syrian Arab Republic (the)", "SYRIAN ARAB REPUBLIC", "the Syrian Arab Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "République arabe syrienne (la)", "SYRIENNE, RÉPUBLIQUE ARABE", "la République arabe syrienne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Jumhūrīyah al ‘Arabīyah as Sūrīyah", "Al Jumhūrīyah al ‘Arabīyah as Sūrīyah")]
@@ -2773,7 +2757,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Eswatini
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Eswatini", "ESWATINI", "the Kingdom of Eswatini", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Eswatini", "Eswatini (l\')", "ESWATINI", "the Kingdom of Eswatini", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Eswatini", "ESWATINI", "the Kingdom of Eswatini")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Eswatini (l\')", "ESWATINI", "le Royaume d’Eswatini")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ss", "ssw", "eSwatini", "eSwatini")]
@@ -2785,7 +2769,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Turks and Caicos Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Turks and Caicos Islands (the)", "TURKS AND CAICOS ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Turks and Caicos Islands (the)", "Turks-et-Caïcos (les Îles)", "TURKS AND CAICOS ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Turks and Caicos Islands (the)", "TURKS AND CAICOS ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Turks-et-Caïcos (les Îles)", "TURKS-ET-CAÏCOS, ÎLES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1032, "Caicos Islands")]
@@ -2797,7 +2781,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Chad
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Chad", "CHAD", "the Republic of Chad", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Chad", "Tchad (le)", "CHAD", "the Republic of Chad", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Chad", "CHAD", "the Republic of Chad")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tchad (le)", "TCHAD", "la République du Tchad")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Tshād", "Tshād")]
@@ -2809,7 +2793,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// French Southern Territories (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("French Southern Territories (the)", "FRENCH SOUTHERN TERRITORIES", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("French Southern Territories (the)", "Terres australes françaises (les)", "FRENCH SOUTHERN TERRITORIES", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "French Southern Territories (the)", "FRENCH SOUTHERN TERRITORIES")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Terres australes françaises (les)", "TERRES AUSTRALES FRANÇAISES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1020, "Bassas da India")]
@@ -2839,7 +2823,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Togo
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Togo", "TOGO", "the Togolese Republic", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Togo", "Togo (le)", "TOGO", "the Togolese Republic", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Togo", "TOGO", "the Togolese Republic")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Togo (le)", "TOGO", "la République togolaise")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -2849,7 +2833,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Thailand
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Thailand", "THAILAND", "the Kingdom of Thailand", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Thailand", "Thaïlande (la)", "THAILAND", "the Kingdom of Thailand", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Thailand", "THAILAND", "the Kingdom of Thailand")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Thaïlande (la)", "THAÏLANDE", "le Royaume de Thaïlande")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("th", "tha", "Prathet Thai", "Prathet Thai")]
@@ -2861,7 +2845,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Tajikistan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tajikistan", "TAJIKISTAN", "the Republic of Tajikistan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tajikistan", "Tadjikistan (le)", "TAJIKISTAN", "the Republic of Tajikistan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Tajikistan", "TAJIKISTAN", "the Republic of Tajikistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tadjikistan (le)", "TADJIKISTAN", "la République du Tadjikistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("tg", "tgk", "Tojikiston", "Tojikiston")]
@@ -2873,7 +2857,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Tokelau
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tokelau", "TOKELAU", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tokelau", "Tokelau (les)", "TOKELAU", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Tokelau", "TOKELAU")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tokelau (les)", "TOKELAU")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "tkl", "Tokelau", "TOKELAU")]
@@ -2885,27 +2869,23 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Timor-Leste
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Timor-Leste", "TIMOR-LESTE", "the Democratic Republic of Timor-Leste", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Timor-Leste", "Timor-Leste (le)", "TIMOR-LESTE", "the Democratic Republic of Timor-Leste", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Timor-Leste", "TIMOR-LESTE", "the Democratic Republic of Timor-Leste")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Timor-Leste (le)", "TIMOR-LESTE", "la République démocratique du Timor-Leste")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("pt", "por", "Timor-Leste", "Timor-Leste")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "tet", "Timor Lorosa\'e", "Timor Lorosa\'e")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "East Timor", "East Timor")]
-        [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Timor oriental", "TIMOR ORIENTAL")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1143, "the exclave of Oecussi")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("fr", "fra", 1143, "l\'exclave d\'Oecussi")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("pt", "por", IsAdministrative=true)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute(null, "tet", IsAdministrative=true)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         TLS = 626,
         
         /// <summary>
         /// Turkmenistan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Turkmenistan", "TURKMENISTAN", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Turkmenistan", "Turkménistan (le)", "TURKMENISTAN", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Turkmenistan", "TURKMENISTAN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Turkménistan (le)", "TURKMÉNISTAN")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("tk", "tuk", "Türkmenistan", "Türkmenistan")]
@@ -2917,7 +2897,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Tunisia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tunisia", "TUNISIA", "the Republic of Tunisia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tunisia", "Tunisie (la)", "TUNISIA", "the Republic of Tunisia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Tunisia", "TUNISIA", "the Republic of Tunisia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tunisie (la)", "TUNISIE", "la République tunisienne")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Tūnis", "Tūnis")]
@@ -2929,7 +2909,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Tonga
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tonga", "TONGA", "the Kingdom of Tonga", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tonga", "Tonga (les)", "TONGA", "the Kingdom of Tonga", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Tonga", "TONGA", "the Kingdom of Tonga")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tonga (les)", "TONGA", "le Royaume des Tonga")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("to", "ton", "Tonga", "Tonga")]
@@ -2943,7 +2923,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Türkiye
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Türkiye", "TÜRKİYE", "the Republic of Türkiye", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Türkiye", "Türkiye (la)", "TÜRKİYE", "the Republic of Türkiye", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Türkiye", "TÜRKİYE", "the Republic of Türkiye")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Türkiye (la)", "TÜRKİYE", "la République de Türkiye")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("tr", "tur", "Türkiye", "Türkiye")]
@@ -2955,7 +2935,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Trinidad and Tobago
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Trinidad and Tobago", "TRINIDAD AND TOBAGO", "the Republic of Trinidad and Tobago", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Trinidad and Tobago", "Trinité-et-Tobago (la)", "TRINIDAD AND TOBAGO", "the Republic of Trinidad and Tobago", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Trinidad and Tobago", "TRINIDAD AND TOBAGO", "the Republic of Trinidad and Tobago")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Trinité-et-Tobago (la)", "TRINITÉ-ET-TOBAGO", "la République de Trinité-et-Tobago")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1209, "Tobago *")]
@@ -2967,7 +2947,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Tuvalu
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tuvalu", "TUVALU", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tuvalu", "Tuvalu (les)", "TUVALU", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Tuvalu", "TUVALU")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tuvalu (les)", "TUVALU")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute(null, "tvl", "Tuvalu", "Tuvalu")]
@@ -2981,7 +2961,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Taiwan (Province of China)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Taiwan (Province of China)", "TAIWAN, PROVINCE OF CHINA", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Taiwan (Province of China)", "Taïwan (Province de Chine)", "TAIWAN, PROVINCE OF CHINA", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Taiwan (Province of China)", "TAIWAN, PROVINCE OF CHINA")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Taïwan (Province de Chine)", "TAÏWAN, PROVINCE DE CHINE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("zh", "zho", "Taiwan", "Taiwan")]
@@ -2995,7 +2975,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Tanzania, the United Republic of
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tanzania, the United Republic of", "TANZANIA, UNITED REPUBLIC OF", "the United Republic of Tanzania", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Tanzania, the United Republic of", "Tanzanie (la République-Unie de)", "TANZANIA, UNITED REPUBLIC OF", "the United Republic of Tanzania", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Tanzania, the United Republic of", "TANZANIA, UNITED REPUBLIC OF", "the United Republic of Tanzania")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Tanzanie (la République-Unie de)", "TANZANIE, RÉPUBLIQUE-UNIE DE", "la République-Unie de Tanzanie")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sw", "swa", "Jamhuri ya Muungano wa Tanzania", "Jamhuri ya Muungano wa Tanzania")]
@@ -3007,7 +2987,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Ukraine
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ukraine", "UKRAINE", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Ukraine", "Ukraine (l\')", "UKRAINE", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Ukraine", "UKRAINE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Ukraine (l\')", "UKRAINE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("uk", "ukr", "Ukraina", "Ukraina")]
@@ -3019,7 +2999,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Uganda
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Uganda", "UGANDA", "the Republic of Uganda", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Uganda", "Ouganda (l\')", "UGANDA", "the Republic of Uganda", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Uganda", "UGANDA", "the Republic of Uganda")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Ouganda (l\')", "OUGANDA", "la République d\'Ouganda")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -3029,7 +3009,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// United States Minor Outlying Islands (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United States Minor Outlying Islands (the)", "UNITED STATES MINOR OUTLYING ISLANDS", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United States Minor Outlying Islands (the)", "Îles mineures éloignées des États-Unis (les)", "UNITED STATES MINOR OUTLYING ISLANDS", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "United States Minor Outlying Islands (the)", "UNITED STATES MINOR OUTLYING ISLANDS")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Îles mineures éloignées des États-Unis (les)", "ÎLES MINEURES ÉLOIGNÉES DES ÉTATS-UNIS")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1017, "Baker Island")]
@@ -3057,7 +3037,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// United States of America (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United States of America (the)", "UNITED STATES OF AMERICA", "the United States of America", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("United States of America (the)", "États-Unis d\'Amérique (les)", "UNITED STATES OF AMERICA", "the United States of America", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "United States of America (the)", "UNITED STATES OF AMERICA", "the United States of America")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "États-Unis d\'Amérique (les)", "ÉTATS-UNIS D\'AMÉRIQUE", "les États-Unis d\'Amérique")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -3067,7 +3047,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Uruguay
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Uruguay", "URUGUAY", "the Eastern Republic of Uruguay", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Uruguay", "Uruguay (l\')", "URUGUAY", "the Eastern Republic of Uruguay", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Uruguay", "URUGUAY", "the Eastern Republic of Uruguay")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Uruguay (l\')", "URUGUAY", "la République orientale de l\'Uruguay")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Uruguay (el)", "Uruguay (el)")]
@@ -3079,7 +3059,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Uzbekistan
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Uzbekistan", "UZBEKISTAN", "the Republic of Uzbekistan", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Uzbekistan", "Ouzbékistan (l\')", "UZBEKISTAN", "the Republic of Uzbekistan", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Uzbekistan", "UZBEKISTAN", "the Republic of Uzbekistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Ouzbékistan (l\')", "OUZBÉKISTAN", "la République d\'Ouzbékistan")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("uz", "uzb", "O‘zbekiston", "O‘zbekiston")]
@@ -3091,7 +3071,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Holy See (the)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Holy See (the)", "HOLY SEE", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Holy See (the)", "Saint-Siège (le)", "HOLY SEE", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Holy See (the)", "HOLY SEE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Siège (le)", "SAINT-SIÈGE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("it", "ita", "Santa Sede (la)", "Santa Sede (la)")]
@@ -3105,7 +3085,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Saint Vincent and the Grenadines
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Vincent and the Grenadines", "SAINT VINCENT AND THE GRENADINES", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Saint Vincent and the Grenadines", "Saint-Vincent-et-les Grenadines", "SAINT VINCENT AND THE GRENADINES", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Saint Vincent and the Grenadines", "SAINT VINCENT AND THE GRENADINES")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Saint-Vincent-et-les Grenadines", "SAINT-VINCENT-ET-LES GRENADINES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1022, "Bequia (principal island)")]
@@ -3121,7 +3101,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Venezuela (Bolivarian Republic of)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Venezuela (Bolivarian Republic of)", "VENEZUELA, BOLIVARIAN REPUBLIC OF", "the Bolivarian Republic of Venezuela", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Venezuela (Bolivarian Republic of)", "Venezuela (République bolivarienne du)", "VENEZUELA, BOLIVARIAN REPUBLIC OF", "the Bolivarian Republic of Venezuela", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Venezuela (Bolivarian Republic of)", "VENEZUELA, BOLIVARIAN REPUBLIC OF", "the Bolivarian Republic of Venezuela")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Venezuela (République bolivarienne du)", "VENEZUELA, RÉPUBLIQUE BOLIVARIENNE DU", "la République bolivarienne du Venezuela")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("es", "spa", "Venezuela, República Bolivariana de", "Venezuela, República Bolivariana de")]
@@ -3135,7 +3115,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Virgin Islands (British)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Virgin Islands (British)", "VIRGIN ISLANDS (BRITISH)", "British Virgin Islands (the)", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Virgin Islands (British)", "Vierges britanniques (les Îles)", "VIRGIN ISLANDS (BRITISH)", "British Virgin Islands (the)", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Virgin Islands (British)", "VIRGIN ISLANDS (BRITISH)", "British Virgin Islands (the)")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Vierges britanniques (les Îles)", "ÎLES VIERGES BRITANNIQUES")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1004, "Anegada")]
@@ -3153,7 +3133,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Virgin Islands (U.S.)
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Virgin Islands (U.S.)", "VIRGIN ISLANDS (U.S.)", "the Virgin Islands of the United States", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Virgin Islands (U.S.)", "Vierges des États-Unis (les Îles)", "VIRGIN ISLANDS (U.S.)", "the Virgin Islands of the United States", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Virgin Islands (U.S.)", "VIRGIN ISLANDS (U.S.)", "the Virgin Islands of the United States")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Vierges des États-Unis (les Îles)", "ÎLES VIERGES DES ÉTATS-UNIS")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1165, "Saint Croix")]
@@ -3169,7 +3149,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Viet Nam
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Viet Nam", "VIET NAM", "the Socialist Republic of Viet Nam", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Viet Nam", "Viet Nam (le)", "VIET NAM", "the Socialist Republic of Viet Nam", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Viet Nam", "VIET NAM", "the Socialist Republic of Viet Nam")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Viet Nam (le)", "VIET NAM", "la République socialiste du Viet Nam")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("vi", "vie", "Việt Nam", "Việt Nam")]
@@ -3181,7 +3161,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Vanuatu
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Vanuatu", "VANUATU", "the Republic of Vanuatu", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Vanuatu", "Vanuatu (le)", "VANUATU", "the Republic of Vanuatu", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Vanuatu", "VANUATU", "the Republic of Vanuatu")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Vanuatu (le)", "VANUATU", "la République du Vanuatu")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("bi", "bis", "Vanuatu", "Vanuatu")]
@@ -3197,7 +3177,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Wallis and Futuna
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Wallis and Futuna", "WALLIS AND FUTUNA", "Wallis and Futuna Islands", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Wallis and Futuna", "Wallis-et-Futuna ", "WALLIS AND FUTUNA", "Wallis and Futuna Islands", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Wallis and Futuna", "WALLIS AND FUTUNA", "Wallis and Futuna Islands")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Wallis-et-Futuna ", "WALLIS-ET-FUTUNA", "les Îles Wallis-et-Futuna")]
         [DataStandardizer.Geography.Iso3166CountryTerritoryAttribute("en", "eng", 1064, "Futuna")]
@@ -3215,7 +3195,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Samoa
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Samoa", "SAMOA", "the Independent State of Samoa", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Samoa", "Samoa (le)", "SAMOA", "the Independent State of Samoa", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Samoa", "SAMOA", "the Independent State of Samoa")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Samoa (le)", "SAMOA", "l\'État indépendant du Samoa")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("sm", "smo", "Samoa", "Samoa")]
@@ -3231,7 +3211,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Yemen
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Yemen", "YEMEN", "the Republic of Yemen", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Yemen", "Yémen (le)", "YEMEN", "the Republic of Yemen", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Yemen", "YEMEN", "the Republic of Yemen")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Yémen (le)", "YÉMEN", "la République du Yémen")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("ar", "ara", "Al Yaman", "Al Yaman")]
@@ -3245,7 +3225,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Mayotte
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mayotte", "MAYOTTE", IsIndependent=false)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Mayotte", "Mayotte", "MAYOTTE", IsIndependent=false)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Mayotte", "MAYOTTE")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Mayotte", "MAYOTTE")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
@@ -3255,7 +3235,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// South Africa
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("South Africa", "SOUTH AFRICA", "the Republic of South Africa", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("South Africa", "Afrique du Sud (l\')", "SOUTH AFRICA", "the Republic of South Africa", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "South Africa", "SOUTH AFRICA", "the Republic of South Africa")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Afrique du Sud (l\')", "AFRIQUE DU SUD", "la République sud-africaine")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("af", "afr", "Suid-Afrika", "Suid-Afrika")]
@@ -3289,7 +3269,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Zambia
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Zambia", "ZAMBIA", "the Republic of Zambia", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Zambia", "Zambie (la)", "ZAMBIA", "the Republic of Zambia", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Zambia", "ZAMBIA", "the Republic of Zambia")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Zambie (la)", "ZAMBIE", "la République de Zambie")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]
@@ -3299,7 +3279,7 @@ namespace DataStandardizer.Geography
         /// <summary>
         /// Zimbabwe
         /// </summary>
-        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Zimbabwe", "ZIMBABWE", "the Republic of Zimbabwe", IsIndependent=true)]
+        [DataStandardizer.Geography.Iso3166CountryCodeAttribute("Zimbabwe", "Zimbabwe (le)", "ZIMBABWE", "the Republic of Zimbabwe", IsIndependent=true)]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("en", "eng", "Zimbabwe", "ZIMBABWE", "the Republic of Zimbabwe")]
         [DataStandardizer.Geography.Iso3166CountryNameAttribute("fr", "fra", "Zimbabwe (le)", "ZIMBABWE", "la République du Zimbabwe")]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=true)]

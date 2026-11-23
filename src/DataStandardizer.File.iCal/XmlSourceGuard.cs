@@ -16,11 +16,11 @@ namespace DataStandardizer.File.iCal
     /// On .NET Framework, <c>XmlReader.ReadAsync</c> takes a task that has already been canceled for one that has succeeded, and calls itself
     /// again for as long as its source's read completes that way, until the stack overflows.  A source's read completes that way when it throws
     /// an <see cref="OperationCanceledException"/>, or returns a task that has already been canceled or faulted with one, since the XML reader's
-    /// own async methods cancel their tasks for it.  A <see cref="StackOverflowException"/> can't be caught, so the process ends.
+    /// own async methods cancel their tasks for it.  A <see cref="T:System.StackOverflowException"/> can't be caught, so the process ends.
     /// </para>
     /// <para>
     /// So on the <c>netstandard2.0</c> build, the only one that runs on .NET Framework, the source is wrapped, and such a failure reaches the XML
-    /// reader as a <see cref="SourceCanceledException"/> in a faulted task, which it reports as it does any other failure of its source.  The
+    /// reader as a <c>SourceCanceledException</c> in a faulted task, which it reports as it does any other failure of its source.  The
     /// read then completes with the <see cref="OperationCanceledException"/> it holds, through <see cref="Unwrap"/>, as it does on every other
     /// target.  A read that hasn't completed when it is returned is shielded the same way once it completes, since it could complete before the
     /// XML reader looks at its task.  Other builds use the source as it is.
@@ -56,7 +56,7 @@ namespace DataStandardizer.File.iCal
 
         /// <summary>
         /// Returns the exception that a read failed with, as the caller sees it: the <see cref="OperationCanceledException"/> that a
-        /// <see cref="SourceCanceledException"/> carries, or any other exception as it is.
+        /// <c>SourceCanceledException</c> carries, or any other exception as it is.
         /// </summary>
         internal static Exception Unwrap(Exception exception)
         {

@@ -14,6 +14,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.File.CSV
 {
+    /// <summary>
+    /// Represents a writer that writes header and record lines as CSV data.
+    /// </summary>
+    /// <typeparam name="TRecordLine">The type of the record lines written.</typeparam>
     public sealed class CsvFileWriter<TRecordLine> : CsvFileIoBase<TRecordLine>, IDisposable
         where TRecordLine : CsvFileRecordLine
     {
@@ -29,7 +33,7 @@ namespace DataStandardizer.File.CSV
         private const char QuoteCharacter = '"';
 
         /// <summary>
-        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <see cref="FileStream"/> (in bytes)
+        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <see cref="T:System.IO.FileStream"/> (in bytes)
         /// the writer creates itself.  A caller-supplied <see cref="TextWriter"/> keeps its own buffering.
         /// </summary>
         internal const int StreamBufferSize = 16 * 1024;
@@ -88,19 +92,46 @@ namespace DataStandardizer.File.CSV
         private int _previousLineFieldCount;
         private readonly TextWriter _writer;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileWriter{TRecordLine}"/> class that writes CSV data to a stream, with the default options.
+        /// </summary>
+        /// <param name="csvStream">The stream to write to.  It is encoded as UTF-8, without a byte order mark.  The writer disposes of it when the
+        /// writer is disposed.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvStream"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvStream"/> doesn't support writing.</exception>
         public CsvFileWriter(Stream csvStream)
         {
             if (csvStream is null)
                 throw new ArgumentNullException(nameof(csvStream));
+            if (!csvStream.CanWrite)
+                throw new ArgumentException("Expected a stream supporting write.", nameof(csvStream));
 
             _writer = CreateStreamWriter(csvStream, DefaultEncoding);
             _isInternalWriter = true;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileWriter{TRecordLine}"/> class that writes CSV data to a stream, with the given options.
+        /// </summary>
+        /// <param name="csvStream">The stream to write to.  It is encoded with <see cref="ICsvFileOptions.Encoding"/> if it is set, or else as UTF-8
+        /// without a byte order mark.  The writer disposes of it when the writer is disposed.</param>
+        /// <param name="options">The options that configure the writer.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvStream"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvStream"/> doesn't support writing.
+        /// -or-
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> of <paramref name="options"/> is set to a delegate of a type the writer
+        /// doesn't call.
+        /// -or-
+        /// <paramref name="options"/> would write output that can't be read back: <see cref="ICsvFileOptions.TerminatorLineBreak"/> is <c>null</c> or
+        /// empty or starts with a double quote, <see cref="ICsvFileOptions.FieldDelimiterCharacter"/> is a double quote or the first character of the
+        /// terminator line break, or <see cref="ICsvFileOptions.QuoteHandling"/> isn't a defined <see cref="CsvFieldQuoteHandling"/> value.
+        /// </exception>
         public CsvFileWriter(Stream csvStream, CsvFileOptions options)
         {
             if (csvStream is null)
                 throw new ArgumentNullException(nameof(csvStream));
+            if (!csvStream.CanWrite)
+                throw new ArgumentException("Expected a stream supporting write.", nameof(csvStream));
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
@@ -115,6 +146,16 @@ namespace DataStandardizer.File.CSV
         }
 
 #if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileWriter{TRecordLine}"/> class that writes CSV data to a file, with the default options.
+        /// </summary>
+        /// <param name="csvFilePath">The path of the file to write.  A file that exists is overwritten.  It is encoded as UTF-8, without a byte order
+        /// mark.  The writer closes it when the writer is disposed.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvFilePath"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvFilePath"/> is empty or isn't a valid path.</exception>
+        /// <exception cref="T:System.IO.DirectoryNotFoundException">The directory of <paramref name="csvFilePath"/> doesn't exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">The caller doesn't have permission to write the file.</exception>
+        /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
         public CsvFileWriter(string csvFilePath)
         {
             if (csvFilePath is null)
@@ -124,6 +165,26 @@ namespace DataStandardizer.File.CSV
             _isInternalWriter = true;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileWriter{TRecordLine}"/> class that writes CSV data to a file, with the given options.
+        /// </summary>
+        /// <param name="csvFilePath">The path of the file to write.  A file that exists is overwritten.  It is encoded with
+        /// <see cref="ICsvFileOptions.Encoding"/> if it is set, or else as UTF-8 without a byte order mark.  The writer closes it when the writer is
+        /// disposed.</param>
+        /// <param name="options">The options that configure the writer.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="csvFilePath"/> is empty or isn't a valid path.
+        /// -or-
+        /// <see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> of <paramref name="options"/> is set to a delegate of a type the writer
+        /// doesn't call.
+        /// -or-
+        /// <paramref name="options"/> would write output that can't be read back: <see cref="ICsvFileOptions.TerminatorLineBreak"/> is <c>null</c> or
+        /// empty or starts with a double quote, <see cref="ICsvFileOptions.FieldDelimiterCharacter"/> is a double quote or the first character of the
+        /// terminator line break, or <see cref="ICsvFileOptions.QuoteHandling"/> isn't a defined <see cref="CsvFieldQuoteHandling"/> value.
+        /// </exception>
+        /// <exception cref="T:System.IO.DirectoryNotFoundException">The directory of <paramref name="csvFilePath"/> doesn't exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">The caller doesn't have permission to write the file.</exception>
+        /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
         public CsvFileWriter(string csvFilePath, CsvFileOptions options)
         {
             if (csvFilePath is null)
@@ -142,6 +203,12 @@ namespace DataStandardizer.File.CSV
         }
 #endif
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileWriter{TRecordLine}"/> class that writes CSV data to a text writer, with the default
+        /// options.
+        /// </summary>
+        /// <param name="writer">The text writer to write to.  The writer doesn't dispose of it.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="writer"/> is <c>null</c>.</exception>
         public CsvFileWriter(TextWriter writer)
         {
             if (writer is null)
@@ -150,6 +217,23 @@ namespace DataStandardizer.File.CSV
             _writer = writer;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CsvFileWriter{TRecordLine}"/> class that writes CSV data to a text writer, with the given
+        /// options.
+        /// </summary>
+        /// <param name="writer">The text writer to write to.  The writer doesn't dispose of it.</param>
+        /// <param name="options">The options that configure the writer.  <see cref="ICsvFileOptions.Encoding"/> must not be set, as the text writer
+        /// encodes its own text.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="writer"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><see cref="ICsvFileOptions.InconsistentFieldCountHandler"/> of <paramref name="options"/> is set to a delegate of a type the writer
+        /// doesn't call.
+        /// -or-
+        /// <paramref name="options"/> would write output that can't be read back: <see cref="ICsvFileOptions.TerminatorLineBreak"/> is <c>null</c> or
+        /// empty or starts with a double quote, <see cref="ICsvFileOptions.FieldDelimiterCharacter"/> is a double quote or the first character of the
+        /// terminator line break, or <see cref="ICsvFileOptions.QuoteHandling"/> isn't a defined <see cref="CsvFieldQuoteHandling"/> value.
+        /// -or-
+        /// <see cref="ICsvFileOptions.Encoding"/> of <paramref name="options"/> is set.
+        /// </exception>
         public CsvFileWriter(TextWriter writer, CsvFileOptions options) : this(writer)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -159,7 +243,7 @@ namespace DataStandardizer.File.CSV
 
             if (_options.Encoding != null)
             {
-                throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(writer));
+                throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(options));
             }
         }
 
@@ -197,6 +281,10 @@ namespace DataStandardizer.File.CSV
         }
 #endif
 
+        /// <summary>
+        /// Releases the resources the writer uses.  A writer created from a stream or a file path flushes what it has written and disposes of the
+        /// stream or closes the file; a writer created from a <see cref="TextWriter"/> leaves it open, without flushing it.
+        /// </summary>
         public void Dispose()
         {
             if (!MarkDisposed()) return;
@@ -987,8 +1075,14 @@ namespace DataStandardizer.File.CSV
         /// Converts a mapped field value: with the mapping's converter if it has one, else its type converter if that can
         /// convert to a string, else with <see cref="FormatFieldValue"/>.
         /// </summary>
+        /// <param name="headerLine">The header line written, which the converter is given, or <c>null</c> if the file has none.</param>
+        /// <param name="recordLine">The record line written, which the converter is given.</param>
+        /// <param name="options">The options of the writer, which the converter is given.</param>
         /// <param name="fieldName">The name of the field written, as the line names it, which a reader with the same mapper resolves it to.</param>
         /// <param name="fieldIndex">The position of the field in the line written, or <c>null</c> for a constant or generated value.</param>
+        /// <param name="converter">The mapping's converter, or <c>null</c> if it has none.</param>
+        /// <param name="typeConverter">The mapping's type converter, or <c>null</c> if it has none.</param>
+        /// <param name="fieldValue">The value to convert.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, string fieldName, int? fieldIndex,
             CsvFieldConvertToString<TRecordLine>? converter, TypeConverter? typeConverter, object fieldValue)

@@ -7,7 +7,7 @@ namespace DataStandardizer.Communication.Mime
 {
     /// <summary>
     /// Gets the <see cref="Encoding"/> for a character set, from the encodings built into the package, then the encodings the runtime
-    /// provides, and then, optionally, a resolver the caller supplies.
+    /// provides for the names registered with IANA, and then, optionally, a resolver the caller supplies.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -15,10 +15,11 @@ namespace DataStandardizer.Communication.Mime
     /// </para>
     /// <list type="number">
     /// <item>The built-in encodings, which give the same result on every target and runtime: <c>US-ASCII</c>, <c>ISO-8859-1</c>,
-    /// <c>UTF-8</c>, <c>UTF-16</c>, <c>UTF-16BE</c>, <c>UTF-16LE</c>, <c>UTF-32</c>, <c>UTF-32BE</c> and <c>UTF-32LE</c>, and their
-    /// aliases in the IANA registry, such as <c>latin1</c> and <c>csUTF8</c>.</item>
+    /// <c>UTF-8</c>, <c>UTF-16</c>, <c>UTF-16BE</c>, <c>UTF-16LE</c>, <c>UTF-32</c>, <c>UTF-32BE</c>, <c>UTF-32LE</c> and
+    /// <c>ISO-10646-UCS-2</c>, and their aliases in the IANA registry, such as <c>latin1</c>, <c>csUTF8</c> and <c>csUnicode</c>.</item>
     /// <item><see cref="Encoding.GetEncoding(string)"/>, which knows the encodings of the runtime, and those of any
-    /// <see cref="EncodingProvider"/> registered with <see cref="Encoding.RegisterProvider(EncodingProvider)"/>.</item>
+    /// <see cref="T:System.Text.EncodingProvider"/> registered with <see cref="M:System.Text.Encoding.RegisterProvider(System.Text.EncodingProvider)"/>,
+    /// for a name or alias registered in the IANA Character Sets registry only.</item>
     /// <item>The resolver passed to <see cref="MimeCharsetResolver(IMimeCharsetResolver)"/>, if any.</item>
     /// </list>
     /// <para>
@@ -26,10 +27,30 @@ namespace DataStandardizer.Communication.Mime
     /// encoding, <c>Encoding.Default</c>, is never used.
     /// </para>
     /// <para>
+    /// A <c>charset</c> value is a name registered with IANA, or a private name that starts with <c>X-</c> and is agreed between the
+    /// sender and the receiver (RFC 2046 §4.1.2, RFC 2978 §3.1), so the runtime is asked only for the registered names and aliases.
+    /// Names that only the runtime knows, such as <c>ascii</c>, <c>ucs-2</c>, <c>unicode</c> and <c>unicodeFFFE</c>, are not resolved,
+    /// nor are private names. A caller that accepts them passes a resolver that resolves them to
+    /// <see cref="MimeCharsetResolver(IMimeCharsetResolver)"/>.
+    /// </para>
+    /// <para>
     /// The built-in encodings don't throw: they read bytes that are not valid in the character set as U+FFFD, and write characters that
     /// the character set can't hold as <c>?</c> (<c>US-ASCII</c> and <c>ISO-8859-1</c>) or U+FFFD (the Unicode encodings). <c>UTF-16</c> and <c>UTF-32</c> are read as
     /// big-endian unless the bytes start with a byte order mark, which is removed (RFC 2781 §4.3); they are written as big-endian with no
-    /// byte order mark. <c>UTF-8</c> is written with no byte order mark.
+    /// byte order mark. <c>ISO-10646-UCS-2</c> is big-endian, as the IANA registry gives it network byte order, and holds only the
+    /// characters of the Basic Multilingual Plane, so a surrogate code unit is read as U+FFFD, and a character outside that plane is
+    /// written as U+FFFD for each of its surrogates. <c>UTF-8</c> is written with no byte order mark.
+    /// </para>
+    /// <para>
+    /// Each call returns a new instance of a built-in encoding, so a caller can change its <c>EncoderFallback</c> or
+    /// <c>DecoderFallback</c> without changing the encoding that other callers get. The netstandard1.1 build has no fallbacks to change.
+    /// The encodings the runtime provides are returned as the runtime returns them.
+    /// </para>
+    /// <para>
+    /// In the netstandard1.1 build, <c>US-ASCII</c>, <c>ISO-8859-1</c> and <c>UTF-32</c> are hand-coded, as netstandard1.1 has no way to
+    /// give the runtime's encodings these fallbacks. They read and write the same bytes as the other builds' encodings, but an encoding
+    /// in that build can't set the properties that netstandard1.1 leaves out, such as <c>CodePage</c>, <c>IsSingleByte</c>,
+    /// <c>BodyName</c> and <c>EncodingName</c>, so code compiled for a later target that reads them gets what the base class gives.
     /// </para>
     /// <para>
     /// The encodings the runtime provides depend on the runtime, not on the target framework of the package. .NET Framework has the Windows
@@ -70,7 +91,7 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
-        /// Gets the resolver that resolves the built-in encodings and those the runtime provides.
+        /// Gets the resolver that resolves the built-in encodings, and those the runtime provides for the names registered with IANA.
         /// </summary>
         public static MimeCharsetResolver Default { get; } = new MimeCharsetResolver();
 
@@ -89,20 +110,31 @@ namespace DataStandardizer.Communication.Mime
         {
             if (!charset.IsInitialized) throw new ArgumentException("The character set is not initialised.", nameof(charset));
 
-            if (BuiltInEncodings.TryGetValue(charset.Name, out encoding)) return true;
-
-            try
+            if (BuiltInEncodings.TryGetValue(charset.Name, out encoding))
             {
-                encoding = Encoding.GetEncoding(charset.Name);
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+                // The built-in encodings are shared, and some are writable, so each caller gets its own copy to change.
+                encoding = (Encoding)encoding.Clone();
+#endif
                 return true;
             }
-            catch (ArgumentException)
+
+            // The runtime also knows names that aren't registered, and reads some of them, such as "unicode", as little-endian UTF-16.
+            if (MimeCharsetRegistry.Names.Contains(charset.Name))
             {
-                // The runtime doesn't know the name.
-            }
-            catch (NotSupportedException)
-            {
-                // The runtime knows the name, but has no encoding for it.
+                try
+                {
+                    encoding = Encoding.GetEncoding(charset.Name);
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    // The runtime doesn't know the name.
+                }
+                catch (NotSupportedException)
+                {
+                    // The runtime knows the name, but has no encoding for it.
+                }
             }
 
             if (_fallback != null && _fallback.TryGetEncoding(charset, out encoding)) return true;
@@ -116,18 +148,18 @@ namespace DataStandardizer.Communication.Mime
             // The runtime's US-ASCII and ISO-8859-1 write a best fit for some characters they can't hold, which changes the text, and
             // read invalid bytes as '?' on .NET Framework, so they are given the same fallbacks as the hand-coded ones.
 #if NETSTANDARD1_3_OR_GREATER || NETCOREAPP
-            var ascii = Encoding.GetEncoding("us-ascii", EncoderFallback.ReplacementFallback, new DecoderReplacementFallback("\uFFFD"));
+            var ascii = Encoding.GetEncoding("us-ascii", EncoderFallback.ReplacementFallback,
+                new DecoderReplacementFallback(MimeDecoderFallbacks.ReplacementString));
+            var latin1 = Encoding.GetEncoding("iso-8859-1", EncoderFallback.ReplacementFallback,
+                new DecoderReplacementFallback(MimeDecoderFallbacks.ReplacementString));
 #else
             var ascii = MimeSingleByteEncoding.Ascii;
-#endif
-#if NET5_0_OR_GREATER
-            var latin1 = Encoding.GetEncoding("iso-8859-1", EncoderFallback.ReplacementFallback, new DecoderReplacementFallback("\uFFFD"));
-#else
             var latin1 = MimeSingleByteEncoding.Latin1;
 #endif
             var utf8 = new UTF8Encoding(false);
             var utf16 = MimeUnicodeSchemeEncoding.Utf16;
             var utf32 = MimeUnicodeSchemeEncoding.Utf32;
+            var ucs2 = MimeUcs2Encoding.Instance;
 
             // ref. IANA Character Sets registry: each name, its preferred MIME name and its aliases. Names that are not valid mime-charset
             // names (RFC 2978 §2.3), such as ANSI_X3.4-1968 and ISO_8859-1:1987, are left out, as a MimeCharset can't hold them.
@@ -144,6 +176,9 @@ namespace DataStandardizer.Communication.Mime
                 { MimeCharset.Utf32.Name, utf32 }, { "csUTF32", utf32 },
                 { MimeCharset.Utf32BigEndian.Name, utf32.BigEndian }, { "csUTF32BE", utf32.BigEndian },
                 { MimeCharset.Utf32LittleEndian.Name, utf32.LittleEndian }, { "csUTF32LE", utf32.LittleEndian },
+                // The runtime reads ISO-10646-UCS-2 as little-endian UTF-16, which neither has the byte order the registry gives it nor
+                // keeps to the Basic Multilingual Plane.
+                { "ISO-10646-UCS-2", ucs2 }, { "csUnicode", ucs2 },
             };
         }
     }

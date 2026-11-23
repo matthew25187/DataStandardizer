@@ -22,6 +22,7 @@ namespace DataStandardizer.File.vCard
         }
 
         private readonly bool _acceptLegacySyntax;
+        private readonly bool _acceptRfc6350FoldsInVersion21;
         private readonly VcardLexicalState _state;
 
         // How far the search for the value has got, kept so that a line with many folds before its value is searched once.
@@ -30,11 +31,32 @@ namespace DataStandardizer.File.vCard
         private int _searchPosition;
         private int _valueOffset;
 
-        internal VcardLineContinuation(VcardLexicalState state, bool acceptLegacySyntax)
+        // Whether the physical line being ended follows a fold, rather than a soft line break or nothing, and the same for the one after it.  The scanner can ask
+        // about one physical line more than once, so the answer for the next is taken up only when a call is about another physical line.
+        private bool _followsFold;
+        private bool _nextFollowsFold;
+        private int _physicalLineStart;
+        private int _physicalLineEnd;
+
+        // The length of the longest physical line of the logical line so far.
+        private int _longestPhysicalLine;
+
+        internal VcardLineContinuation(VcardLexicalState state, bool acceptLegacySyntax, bool acceptRfc6350FoldsInVersion21)
         {
             _state = state;
             _acceptLegacySyntax = acceptLegacySyntax;
+            _acceptRfc6350FoldsInVersion21 = acceptRfc6350FoldsInVersion21;
         }
+
+        /// <summary>
+        /// Gets the length of the longest physical line of the last logical line that holds a <c>QUOTED-PRINTABLE</c> value, not counting its line break; or 0 if
+        /// the line's value isn't quoted-printable.
+        /// </summary>
+        /// <remarks>
+        /// Each physical line of the logical line is counted whole, including those with the property name and parameters.  A physical line that ends the data
+        /// without a line break isn't counted.
+        /// </remarks>
+        internal int LongestQuotedPrintableLine => _kind == ValueKind.QuotedPrintable ? _longestPhysicalLine : 0;
 
         /// <inheritdoc/>
         public ContentLineContinuationKind GetContinuation(ReadOnlySpan<char> line, int physicalLineStart, out int dataLength)
@@ -47,8 +69,19 @@ namespace DataStandardizer.File.vCard
                 _isInQuotes = false;
                 _kind = ValueKind.NotFound;
                 _searchPosition = 0;
+                _followsFold = false;
+                _nextFollowsFold = false;
+                _longestPhysicalLine = 0;
+            }
+            else if (physicalLineStart != _physicalLineStart || line.Length != _physicalLineEnd)
+            {
+                _followsFold = _nextFollowsFold;
             }
 
+            _physicalLineStart = physicalLineStart;
+            _physicalLineEnd = line.Length;
+
+            MeasurePhysicalLine(line, physicalLineStart);
             if (_kind == ValueKind.NotFound)
             {
                 FindValue(line);
@@ -59,8 +92,14 @@ namespace DataStandardizer.File.vCard
                 case ValueKind.QuotedPrintable:
                     // ref. vCard 2.1 §2.1.3 and RFC 2045 §6.7 rule 5.  What the next line starts with is data, so no fold can follow.
                     int quotedPrintableLength;
-                    if (!MimeQuotedPrintable.EndsWithSoftLineBreak(line.Slice(_valueOffset), out quotedPrintableLength)) return ContentLineContinuationKind.None;
+                    if (!MimeQuotedPrintable.EndsWithSoftLineBreak(line.Slice(_valueOffset), out quotedPrintableLength))
+                    {
+                        // The line ends here, or the next physical line is a fold.
+                        _nextFollowsFold = true;
+                        return ContentLineContinuationKind.None;
+                    }
 
+                    _nextFollowsFold = false;
                     dataLength = _valueOffset + quotedPrintableLength;
                     return ContentLineContinuationKind.Join;
                 case ValueKind.Base64:
@@ -71,8 +110,32 @@ namespace DataStandardizer.File.vCard
                         ? ContentLineContinuationKind.JoinUntilEnd
                         : ContentLineContinuationKind.Invalid;
                 default:
+                    _nextFollowsFold = true;
                     return ContentLineContinuationKind.None;
             }
+        }
+
+        /// <summary>
+        /// Forgets the line before, as the reader starts to read another.
+        /// </summary>
+        internal void StartLine()
+        {
+            _kind = ValueKind.NotFound;
+            _longestPhysicalLine = 0;
+        }
+
+        /// <summary>
+        /// Notes the length of the physical line just ended, which counts if the value turns out to be quoted-printable.  ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be
+        /// limited to less than 76 characters.  The 76 characters does not include the CRLF (RFC 822) line break sequence."
+        /// </summary>
+        private void MeasurePhysicalLine(ReadOnlySpan<char> line, int physicalLineStart)
+        {
+            var physicalLength = line.Length - physicalLineStart;
+
+            // A fold by the rule of RFC 6350 §3.2 removed the white space that started the physical line, as well as the line break.
+            if (_followsFold && (!_state.IsVersion21 || _acceptRfc6350FoldsInVersion21)) physicalLength++;
+
+            if (physicalLength > _longestPhysicalLine) _longestPhysicalLine = physicalLength;
         }
 
         /// <summary>

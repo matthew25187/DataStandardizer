@@ -21,6 +21,11 @@ namespace DataStandardizer.File.vCard.Tests
         private const string Rfc2426Label = "LABEL;TYPE=dom,home,postal,parcel:Mr.John Q. Public\\, Esq.\\nMail Drop: TNE QB\\n123 Main Street\\nAny Town\\, CA  91921-1234\\nU.S.A.";
         private const string Rfc2426Address = "ADR;TYPE=dom,home,postal,parcel:;;123 Main Street;Any Town;CA;91921-1234";
 
+        private const string FirstSortKey = "d";
+        private const string FirstSortString = "SORT-STRING:" + FirstSortKey;
+        private const string SecondSortKey = "x";
+        private const string SecondSortString = "SORT-STRING:" + SecondSortKey;
+
         // ref. RFC 2426 §7 as erratum 872 corrects it, with the N it adds, and the fold of the RFC.
         private static readonly string Rfc2426Authors = VcardTestData.Crlf(
             "BEGIN:vCard",
@@ -222,6 +227,93 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Value.Should().Be(expectedValue);
         }
 
+        // ref. RFC 2425 §5.8.4: time-secfrac = "," 1*DIGIT, which RFC 6350 §4.3.2 forbids.
+        private const string RevisionWithSecondFraction = "REV:1995-10-31T22:27:10,5Z";
+        private const string BirthdayWithSecondFraction = "BDAY;VALUE=date-time:1996-04-15T10:22:00,5Z";
+
+        public static TheoryData<string, string[], string> NoVersion40FormData()
+        {
+            return new TheoryData<string, string[], string>
+            {
+                { RevisionWithSecondFraction, NoParameters, "1995-10-31T22:27:10,5Z" },
+                { BirthdayWithSecondFraction, new[] { "VALUE=date-time" }, "1996-04-15T10:22:00,5Z" }
+            };
+        }
+
+        public static TheoryData<string> NoVersion40FormCardData()
+        {
+            return new TheoryData<string> { Vcard30TestData.Card(RevisionWithSecondFraction), Vcard30TestData.Card(BirthdayWithSecondFraction) };
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormCardData))]
+        public void WriteCard_Version30ValueWithNoVersion40FormAsVersion30_RoundTrips(string text)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(text);
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormCardData))]
+        public void WriteCard_Version30ValueWithNoVersion40FormAsVersion40_ThrowsInvalidValue(string text)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(text);
+
+            // act
+            Action testAction = () => Vcard30TestData.Write(card, VcardVersion.V4_0);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Theory]
+        [MemberData(nameof(NoVersion40FormData))]
+        public void ReadCard_Version30ValueWithNoVersion40Form_KeepsTheLineAsItIs(string line, string[] expectedParameters, string expectedValue)
+        {
+            // arrange
+            var text = Vcard30TestData.Card(line);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Properties.Last();
+
+            // assert
+            Vcard30TestData.ParametersOf(testResult).Should().Equal(expectedParameters);
+            testResult.Value.Should().Be(expectedValue);
+        }
+
+        [Fact]
+        public void ReadCard_RevisionWithNoVersion40Form_IsNotItsVersion40Revision()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(RevisionWithSecondFraction);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Revision;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void ReadCard_BirthdayWithNoVersion40Form_IsNotItsVersion40Birthday()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(BirthdayWithSecondFraction);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Birthday;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
         public static TheoryData<string, string> ShortStructuredValueData()
         {
             return new TheoryData<string, string>
@@ -354,6 +446,36 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Organizations.Single().SortAs.Should().Equal("Acme");
+        }
+
+        [Fact]
+        public void ReadCard_SecondSortStringOnCardWithName_KeepsItAsAPropertyOfItsOwn()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts FN and N.
+            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, Vcard30TestData.Name, "ORG:Acme", FirstSortString, SecondSortString);
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be(SecondSortKey);
+            testResult.Name.SortAs.Should().Equal(FirstSortKey);
+            testResult.Organizations.Single().SortAs.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadCard_SecondSortStringOnCardWithTwoNames_KeepsItAsAPropertyOfItsOwn()
+        {
+            // arrange: ref. RFC 2426 §3.6.5: SORT-STRING sorts the name, which is the first N.
+            var text = Vcard30TestData.BareCard(Vcard30TestData.FormattedName, Vcard30TestData.Name, "N:Roe;John;;;", FirstSortString, SecondSortString);
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Properties.Should().ContainSingle(line => line.Name == VcardPropertyNames.SortString).Which.Value.Should().Be(SecondSortKey);
+            testResult.Name.SortAs.Should().Equal(FirstSortKey);
+            testResult.GetProperties(VcardPropertyNames.Name).Should().ContainSingle(line => line.GetParameter(VcardParameterNames.SortAs) != null);
         }
 
         public static TheoryData<string> UnattachedSortStringData()

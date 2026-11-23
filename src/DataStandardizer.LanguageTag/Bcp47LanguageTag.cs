@@ -31,6 +31,7 @@ namespace DataStandardizer.LanguageTag
             internal const string LanguageTagNotValid = "The language tag is not valid against the subtag registry.";
             internal const string LanguageTagNotWellFormed = "The language tag is not well-formed.";
             internal const string LanguageTagNull = "The language tag must not be null.";
+            internal const string LanguageTagRepeatsSubtag = "The language tag repeats a variant subtag or extension singleton.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47LanguageTag) + " instance is not initialised.";
         }
 
@@ -90,8 +91,18 @@ namespace DataStandardizer.LanguageTag
         }
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Convert a language tag object to a string.
+        /// </summary>
+        /// <param name="languageTag">Language tag object to convert.</param>
+        /// <returns>The language tag, in the case it was written in; <c>null</c> if <paramref name="languageTag"/> is a default instance.</returns>
         public static implicit operator string?(Bcp47LanguageTag languageTag)
 #else
+        /// <summary>
+        /// Convert a language tag object to a string.
+        /// </summary>
+        /// <param name="languageTag">Language tag object to convert.</param>
+        /// <returns>The language tag, in the case it was written in; <c>null</c> if <paramref name="languageTag"/> is a default instance.</returns>
         [return: MaybeNull]
         public static implicit operator string(Bcp47LanguageTag languageTag)
 #endif
@@ -99,11 +110,23 @@ namespace DataStandardizer.LanguageTag
             return languageTag._languageTag;
         }
 
+        /// <summary>
+        /// Determine whether two language tags are equal, ignoring case.
+        /// </summary>
+        /// <param name="left">The first language tag to compare.</param>
+        /// <param name="right">The second language tag to compare.</param>
+        /// <returns><c>true</c> if the language tags are the same apart from the case of their letters, or both are default instances; otherwise <c>false</c>.</returns>
         public static bool operator ==(Bcp47LanguageTag left, Bcp47LanguageTag right)
         {
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Determine whether two language tags are not equal, ignoring case.
+        /// </summary>
+        /// <param name="left">The first language tag to compare.</param>
+        /// <param name="right">The second language tag to compare.</param>
+        /// <returns><c>true</c> if the language tags differ other than in the case of their letters, or only one is a default instance; otherwise <c>false</c>.</returns>
         public static bool operator !=(Bcp47LanguageTag left, Bcp47LanguageTag right)
         {
             return !left.Equals(right);
@@ -204,13 +227,13 @@ namespace DataStandardizer.LanguageTag
             }
 
             var classifier = GetClassifier(conformance);
-            var parts = ParseToParts(languageTag, classifier, conformance);
-            if (parts is null)
+            var status = Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), classifier, out var ranges);
+            if (!Satisfies(status, conformance))
             {
-                throw new LanguageTagFormatException(conformance == LanguageTagConformance.WellFormed ? ErrorMessage.LanguageTagNotWellFormed : ErrorMessage.LanguageTagNotInIsoCodeLists, languageTag);
+                throw new LanguageTagFormatException(GetFailureMessage(status, conformance), languageTag);
             }
 
-            return new Bcp47LanguageTag(languageTag, parts);
+            return new Bcp47LanguageTag(languageTag, Bcp47LanguageTagParts.FromRanges(languageTag, ranges, conformance));
         }
 
         /// <summary>
@@ -222,6 +245,11 @@ namespace DataStandardizer.LanguageTag
             return _languageTag.AsSpan();
         }
 
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Language tags are compared ordinally, ignoring case (RFC 5646 §2.1.1), so <c>en-GB</c> equals <c>en-gb</c>. Only the text is compared, so the
+        /// same tag created with different conformance checks is equal, and tags that differ other than in case are not, even when they mean the same, such as <c>iw</c> and its preferred value <c>he</c>.
+        /// </remarks>
         public bool Equals(Bcp47LanguageTag other)
         {
             return string.Equals(_languageTag, other._languageTag, StringComparison.OrdinalIgnoreCase);
@@ -266,6 +294,7 @@ namespace DataStandardizer.LanguageTag
             return IsValid(_languageTag.AsSpan(), conformance);
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             // Must agree with Equals, which compares case-insensitively.
@@ -342,6 +371,10 @@ namespace DataStandardizer.LanguageTag
 
         }
 
+        /// <summary>
+        /// Returns the language tag.
+        /// </summary>
+        /// <returns>The language tag, in the case it was written in; the name of the type if this is a default instance.</returns>
         public override string ToString()
         {
             return _languageTag ?? base.ToString() ?? GetType().FullName ?? GetType().Name;
@@ -393,11 +426,19 @@ namespace DataStandardizer.LanguageTag
         }
 
 #if NETCOREAPP3_0_OR_GREATER
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Language tags are compared ordinally, ignoring case (RFC 5646 §2.1.1).
+        /// </remarks>
         public override bool Equals(object? obj)
         {
             return obj is Bcp47LanguageTag other && Equals(other);
         }
 #else
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Language tags are compared ordinally, ignoring case (RFC 5646 §2.1.1).
+        /// </remarks>
         public override bool Equals(object obj)
         {
             return obj is Bcp47LanguageTag other && Equals(other);
@@ -984,12 +1025,12 @@ namespace DataStandardizer.LanguageTag
         internal static int IndexOfRepeatedVariantSubtag([DisallowNull] string[] variantSubtags)
 #endif
         {
-            for (var index = 1; index < variantSubtags.Length; index++)
+            if (variantSubtags.Length < 2) return -1;
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var index = 0; index < variantSubtags.Length; index++)
             {
-                for (var earlierIndex = 0; earlierIndex < index; earlierIndex++)
-                {
-                    if (string.Equals(variantSubtags[index], variantSubtags[earlierIndex], StringComparison.OrdinalIgnoreCase)) return index;
-                }
+                if (!seen.Add(variantSubtags[index])) return index;
             }
 
             return -1;
@@ -1212,6 +1253,19 @@ namespace DataStandardizer.LanguageTag
         private static bool Satisfies(Bcp47ParseStatus status, LanguageTagConformance conformance)
         {
             return status == Bcp47ParseStatus.Accepted || (status == Bcp47ParseStatus.RepeatedSubtag && conformance == LanguageTagConformance.WellFormed);
+        }
+
+        /// <summary>
+        /// Gets the message for a parse outcome that does not satisfy a conformance that needs no Subtag Registry.
+        /// </summary>
+        /// <remarks>
+        /// The parser reports a repeat only when the classifier accepted every subtag, so a repeat is then the only fault (ref. RFC 5646 §2.2.9).
+        /// </remarks>
+        private static string GetFailureMessage(Bcp47ParseStatus status, LanguageTagConformance conformance)
+        {
+            if (status == Bcp47ParseStatus.RepeatedSubtag) return ErrorMessage.LanguageTagRepeatsSubtag;
+
+            return conformance == LanguageTagConformance.WellFormed ? ErrorMessage.LanguageTagNotWellFormed : ErrorMessage.LanguageTagNotInIsoCodeLists;
         }
 
         /// <summary>

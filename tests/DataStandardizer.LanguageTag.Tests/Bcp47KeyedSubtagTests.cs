@@ -42,6 +42,16 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         private const string PhonebookCollationExtensionUpperCase = "U-CO-PHONEBK";
 
+        /// <summary>
+        /// A Unicode locale extension with the calendar key (RFC 5646 §2.2.6; RFC 6067).
+        /// </summary>
+        private const string GregorianCalendarExtension = "u-ca-gregory";
+
+        /// <summary>
+        /// A private use sequence: the singleton <c>x</c> and one subtag (RFC 5646 §2.2.7).
+        /// </summary>
+        private const string PrivateUseSequence = "x-abc";
+
         private const string EmptyFirstSegment = "-a";
         private const string EmptyLastSegment = "a-";
         private const string EmptyMiddleSegment = "a--b";
@@ -104,6 +114,39 @@ namespace DataStandardizer.LanguageTag.Tests
             testAction.Should().Throw<InvalidCastException>();
         }
 
+        [Theory]
+        [InlineData(" u-ca"), InlineData("ab-cd"), InlineData("u"), InlineData("x"), InlineData("u-toolongsubtag"), InlineData(""), InlineData("x-abc "), InlineData("u-ca-"),
+         InlineData("x-abcdefghi"), InlineData("u-c"), InlineData("u-ca\x00E9"), InlineData("\x00E9-ca")]
+        public void ExplicitOperator_WithStringThatIsNeitherExtensionNorPrivateUse_ThrowsInvalidCastException(string testSubtag)
+        {
+            // act
+            Action testAction = () => _ = (Bcp47KeyedSubtag)testSubtag;
+
+            // assert
+            testAction.Should().Throw<InvalidCastException>("{0} is neither one extension (RFC 5646 §2.2.6) nor one private use sequence (§2.2.7)", testSubtag);
+        }
+
+        [Theory]
+        [InlineData(GregorianCalendarExtension), InlineData(PrivateUseSequence), InlineData(PhonebookCollationExtensionUpperCase), InlineData("1-abc")]
+        public void ExplicitOperator_WithExtensionOrPrivateUseSequence_DoesNotThrow(string testSubtag)
+        {
+            // act
+            Action testAction = () => _ = (Bcp47KeyedSubtag)testSubtag;
+
+            // assert
+            testAction.Should().NotThrow("{0} is one extension (RFC 5646 §2.2.6) or one private use sequence (§2.2.7)", testSubtag);
+        }
+
+        [Fact]
+        public void ExplicitOperator_WithValidSubtag_KeepsTheSubtagAsWritten()
+        {
+            // act
+            string testResult = (Bcp47KeyedSubtag)PhonebookCollationExtensionUpperCase;
+
+            // assert
+            testResult.Should().Be(PhonebookCollationExtensionUpperCase);
+        }
+
         [Fact]
         public void Singleton_OnInstanceWithNoSubtag_ThrowsInvalidOperationException()
         {
@@ -134,31 +177,17 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData(""), InlineData(EmptyFirstSegment), InlineData(" -a"), InlineData(" \t-a-b")]
-        public void Singleton_OnInstanceWithEmptyOrWhitespaceFirstSegment_ReturnsNull(string testSubtag)
+        [InlineData(GregorianCalendarExtension, 'u'), InlineData(PrivateUseSequence, 'x')]
+        public void Singleton_OnInstanceFromExplicitOperator_ReturnsSingletonOfSubtag(string testSubtag, char expectedResult)
         {
             // arrange
-            var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
+            var keyedSubtag = (Bcp47KeyedSubtag)testSubtag;
 
             // act
             var testResult = keyedSubtag.Singleton;
 
             // assert
-            testResult.Should().BeNull("the first segment of {0} has no non-whitespace character", testSubtag);
-        }
-
-        [Theory]
-        [InlineData("a", 'a'), InlineData(EmptyLastSegment, 'a'), InlineData(EmptyMiddleSegment, 'a'), InlineData(" x-y", ' '), InlineData("ab-c", 'a')]
-        public void Singleton_OnInstanceWithNonWhitespaceFirstSegment_ReturnsFirstCharacter(string testSubtag, char expectedResult)
-        {
-            // arrange
-            var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
-
-            // act
-            var testResult = keyedSubtag.Singleton;
-
-            // assert
-            testResult.Should().Be(expectedResult);
+            testResult.Should().Be(expectedResult, "{0} is the singleton of the {1} subtag", expectedResult, testSubtag);
         }
 
         /// <summary>

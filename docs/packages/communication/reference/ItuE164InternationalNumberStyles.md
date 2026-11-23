@@ -11,8 +11,11 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.Communication.E164`
 
-Controls what a parse method tolerates in the input string. This is a flags
+Controls what a parse method tolerates around the digits of the input string.
+No style allows anything between the digits. This is a flags
 enumeration; its members can be combined with the bitwise OR operator.
+`Parse` and `TryParse` throw `ArgumentOutOfRangeException` for a value with
+any other bit set.
 
 ```csharp
 [Flags]
@@ -23,7 +26,7 @@ public enum ItuE164InternationalNumberStyles : uint
 
 | Field | Value | Description |
 | --- | --- | --- |
-| `None` | `0` | Strict parsing; no extra symbols or whitespace. |
+| `None` | `0` | Strict parsing: digits only, with no extra symbols or whitespace. |
 | `AllowInternationalPrefixSymbol` | `1` | Permit a leading international prefix symbol (`+`). |
 | `AllowLeadingWhite` | `2` | Permit leading whitespace. |
 | `AllowTrailingWhite` | `4` | Permit trailing whitespace. |

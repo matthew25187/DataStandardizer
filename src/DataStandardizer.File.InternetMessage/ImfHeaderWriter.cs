@@ -57,8 +57,6 @@ namespace DataStandardizer.File.InternetMessage
         , IAsyncDisposable
 #endif
     {
-        private const int InitialBufferSize = 1024;
-
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
         private static readonly byte[] Lf = { 0x0A };
 
@@ -134,7 +132,7 @@ namespace DataStandardizer.File.InternetMessage
             _acceptBareLineFeed = options.AcceptBareLineFeed;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
-            _buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
+            _buffer = ArrayPool<byte>.Shared.Rent(ImfHeaderFormatter.InitialBufferSize);
         }
 
         /// <summary>
@@ -342,6 +340,9 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Writes a field that a reader has just read, byte for byte.
         /// </summary>
+        /// <remarks>
+        /// A field read with other line breaks than the writer's, such as one from an mbox file, is written with those of the writer (RFC 5322 §2.1).
+        /// </remarks>
         /// <param name="field">The field.</param>
         /// <exception cref="ObjectDisposedException">The writer has been disposed, or the reader of the field has.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
@@ -358,7 +359,7 @@ namespace DataStandardizer.File.InternetMessage
             try
             {
                 ThrowIfEnded();
-                _output.Write(field.RawBytes);
+                _output.Write(field.GetRawBytes(_lineFeedIsLineBreak).Span);
                 _fieldsWritten++;
                 _output.ThrowIfDisposed();
             }
@@ -437,7 +438,7 @@ namespace DataStandardizer.File.InternetMessage
                 while (reader.ReadField() is ImfHeaderFieldView field)
                 {
                     _output.ThrowIfDisposed();
-                    _output.Write(field.RawBytes);
+                    _output.Write(field.GetRawBytes(_lineFeedIsLineBreak).Span);
                     _fieldsWritten++;
                     progress?.Report(new ImfWriteProgress(_fieldsWritten, 0, _output.BytePosition));
                 }
@@ -595,7 +596,8 @@ namespace DataStandardizer.File.InternetMessage
         /// Writes a field that a reader has just read, byte for byte, asynchronously.
         /// </summary>
         /// <remarks>
-        /// The field must stay current until the task completes, so don't read from the reader until then.
+        /// The field must stay current until the task completes, so don't read from the reader until then.  A field read with other line breaks than the writer's, such as
+        /// one from an mbox file, is written with those of the writer (RFC 5322 §2.1).
         /// </remarks>
         /// <param name="field">The field.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is canceled, and the writer then cannot
@@ -795,7 +797,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 ThrowIfEnded();
                 cancellationToken.ThrowIfCancellationRequested();
-                await _output.WriteAsync(field.RawBytesMemory, cancellationToken).ConfigureAwait(false);
+                await _output.WriteAsync(field.GetRawBytes(_lineFeedIsLineBreak), cancellationToken).ConfigureAwait(false);
                 _fieldsWritten++;
                 _output.ThrowIfDisposed();
             }
@@ -847,7 +849,7 @@ namespace DataStandardizer.File.InternetMessage
                 {
                     _output.ThrowIfDisposed();
                     cancellationToken.ThrowIfCancellationRequested();
-                    await _output.WriteAsync(field.RawBytesMemory, cancellationToken).ConfigureAwait(false);
+                    await _output.WriteAsync(field.GetRawBytes(_lineFeedIsLineBreak), cancellationToken).ConfigureAwait(false);
                     _fieldsWritten++;
                     progress?.Report(new ImfWriteProgress(_fieldsWritten, 0, _output.BytePosition));
                 }

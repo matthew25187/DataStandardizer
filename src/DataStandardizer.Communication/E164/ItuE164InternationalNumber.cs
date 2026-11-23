@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Globalization;
-#if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
-#endif
+using System.Globalization;
 using static DataStandardizer.Communication.E164.ItuE164Constants;
 
 namespace DataStandardizer.Communication.E164
@@ -28,7 +26,9 @@ namespace DataStandardizer.Communication.E164
             internal const string DigitCountRangeInvalidTemplate = "{0} must be {1} to {2} digits.";
             internal const string FieldNotSupportedTemplate = "This number does not support the {0} field.";
             internal const string FieldValueInvalidTemplate = "'{0}' is not a valid {1}.";
+            internal const string IdentificationCodeNotAssignedTemplate = "Identification Code '{0}' is not assigned under Country Code '{1}'.";
             internal const string NumberForStructureInvalidTemplate = "'{0}' is not a valid number for {1}.";
+            internal const string NumberStylesInvalid = "The number styles are not a combination of ItuE164InternationalNumberStyles values.";
         }
 
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
@@ -116,6 +116,12 @@ namespace DataStandardizer.Communication.E164
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Converts an <see cref="ItuE164InternationalNumber"/> to its <see cref="Number"/>.
+        /// </summary>
+        /// <param name="value">The international number to convert.</param>
+        /// <returns>The digits of <paramref name="value"/> as a number, as <see cref="Number"/> gives them.</returns>
+        /// <exception cref="InvalidCastException"><paramref name="value"/> is uninitialized.</exception>
         public static explicit operator ulong(ItuE164InternationalNumber value)
         {
             return value._numberStructure?.Number ?? throw new InvalidCastException($"{nameof(ItuE164InternationalNumber)} is uninitialized.");
@@ -235,6 +241,7 @@ namespace DataStandardizer.Communication.E164
         /// The number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, which supplies both the formatter
         /// and the patterns of the <c>i</c> and <c>I</c> formats, so the result doesn't depend on the culture of the current thread.
         /// </remarks>
+        /// <exception cref="FormatException">The pattern doesn't have a placeholder for every digit of the number.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(string? format)
 #else
@@ -298,9 +305,17 @@ namespace DataStandardizer.Communication.E164
         /// international pattern. Any other format, including a longer one that begins with one of those letters, is a custom
         /// pattern, in which <c>+</c> is the international prefix symbol, each <c>c</c> a digit of the country code, each
         /// <c>i</c> a digit of the identification code, each <c>s</c> a digit of the subscriber number, and any other character
-        /// is copied as it stands. A format that is only white space is the default format, not a custom pattern.
+        /// is copied as it stands. The letters <c>c</c>, <c>i</c> and <c>s</c> are always placeholders. A placeholder with no
+        /// digit left to write writes nothing. A format that is only white space is the default format, not a custom pattern.
+        /// </para>
+        /// <para>
+        /// A custom pattern, or the pattern of the <c>i</c> or <c>I</c> format, must have a placeholder for every digit of the
+        /// number, so that every digit of each field is written. The pattern decides the order in which the fields are written.
         /// </para>
         /// </remarks>
+        /// <exception cref="FormatException">
+        /// The built-in formatter is used, and the pattern doesn't have a placeholder for every digit of the number.
+        /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(string? format, IFormatProvider? formatProvider)
 #else
@@ -340,6 +355,11 @@ namespace DataStandardizer.Communication.E164
 
         #region Public Properties
 
+        /// <summary>
+        /// Gets the international number as a single numeric value: the country code followed by the rest of the number's digits.
+        /// </summary>
+        /// <value>The digits of the international number, without the international prefix symbol, as a number.</value>
+        /// <exception cref="InvalidOperationException">The instance is uninitialized.</exception>
         public ulong Number => _numberStructure?.Number ?? throw new InvalidOperationException($"{nameof(ItuE164InternationalNumber)} is uninitialized.");
 
         ushort IItuE164InternationalNumber.CountryCode => _numberStructure?.CountryCode ??
@@ -584,7 +604,8 @@ namespace DataStandardizer.Communication.E164
         /// An instance of <see cref="ItuE164InternationalNumber"/> representing the constructed international number.
         /// </returns>
         /// <exception cref="ArgumentException">
-        /// Thrown when the <paramref name="countryCode"/> or <paramref name="identificationCode"/> is invalid.
+        /// Thrown when the <paramref name="countryCode"/> or <paramref name="identificationCode"/> is invalid, or when the
+        /// <paramref name="identificationCode"/> is not assigned under the <paramref name="countryCode"/>.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="subscriberNumber"/> has no digits, or more digits than the maximum digit count
@@ -601,6 +622,14 @@ namespace DataStandardizer.Communication.E164
             if (!Enum.IsDefined(typeof(ItuE164AssignedIdentificationCodesForNetworks), identificationCode))
             {
                 var message = string.Format(ErrorMessage.FieldValueInvalidTemplate, identificationCode, "Identification Code");
+                throw new ArgumentException(message, nameof(identificationCode));
+            }
+
+            // An Identification Code belongs to the Country Code it is assigned under; under another one, its digits
+            // would be read as a different code or as none.
+            if (!ItuE164InternationalNumberStructureForNetworks.IsIdentificationCodeAssigned(countryCode, identificationCode))
+            {
+                var message = string.Format(ErrorMessage.IdentificationCodeNotAssignedTemplate, (ushort)identificationCode, (ushort)countryCode);
                 throw new ArgumentException(message, nameof(identificationCode));
             }
 
@@ -779,6 +808,15 @@ namespace DataStandardizer.Communication.E164
             return new ItuE164InternationalNumber(numberStructure);
         }
 
+        // Throws when the number styles have a bit that no ItuE164InternationalNumberStyles value defines.
+        private static void ThrowIfNumberStylesInvalid(ItuE164InternationalNumberStyles numberStyles)
+        {
+            if ((numberStyles & ~ItuE164InternationalNumberStyles.Any) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(numberStyles), numberStyles, ErrorMessage.NumberStylesInvalid);
+            }
+        }
+
         // Throws when a field of a number has no digits, or more than the digits the number leaves for it.
         private static void ThrowIfDigitCountOutOfRange(int digitCount, int maximumDigitCount, string fieldName, object fieldValue, string parameterName)
         {
@@ -822,12 +860,22 @@ namespace DataStandardizer.Communication.E164
         /// <exception cref="ArgumentNullException">
         /// Thrown when the input string <paramref name="s"/> is <c>null</c>.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when <paramref name="numberStyles"/> is not a combination of <see cref="ItuE164InternationalNumberStyles"/> values.
+        /// </exception>
         /// <exception cref="FormatException">
         /// Thrown when the input string <paramref name="s"/> is not in a valid ITU E.164 format
         /// or does not conform to the specified <paramref name="numberStyles"/>.
         /// </exception>
         public static ItuE164InternationalNumber Parse(string s, ItuE164InternationalNumberStyles numberStyles)
         {
+            if (s is null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            ThrowIfNumberStylesInvalid(numberStyles);
+
             ItuE164InternationalNumber result;
             if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, numberStyles, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
             {
@@ -866,9 +914,14 @@ namespace DataStandardizer.Communication.E164
         /// or the default value of <see cref="ItuE164InternationalNumber"/> if the parsing failed.
         /// </param>
         /// <returns>
-        /// <c>true</c> if the string was successfully parsed into an <see cref="ItuE164InternationalNumber"/>; otherwise, <c>false</c>.
+        /// <c>true</c> if the string was successfully parsed into an <see cref="ItuE164InternationalNumber"/>; otherwise, <c>false</c>,
+        /// including when <paramref name="s"/> is <c>null</c>.
         /// </returns>
-        public static bool TryParse(string s, out ItuE164InternationalNumber result)
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse([NotNullWhen(true)] string? s, out ItuE164InternationalNumber result)
+#else
+        public static bool TryParse([NotNullWhen(true)] string s, out ItuE164InternationalNumber result)
+#endif
         {
             return TryParse(s, ItuE164InternationalNumberStyles.None, out result);
         }
@@ -889,12 +942,25 @@ namespace DataStandardizer.Communication.E164
         /// </param>
         /// <returns>
         /// <c>true</c> if the parsing succeeded and <paramref name="s"/> was successfully converted to an
-        /// <see cref="ItuE164InternationalNumber"/>; otherwise, <c>false</c>.
+        /// <see cref="ItuE164InternationalNumber"/>; otherwise, <c>false</c>, including when <paramref name="s"/> is <c>null</c>.
         /// </returns>
-        public static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when <paramref name="numberStyles"/> is not a combination of <see cref="ItuE164InternationalNumberStyles"/> values.
+        /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse([NotNullWhen(true)] string? s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)
+#else
+        public static bool TryParse([NotNullWhen(true)] string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)
+#endif
         {
+            ThrowIfNumberStylesInvalid(numberStyles);
+
             var isParsed = false;
-            if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, numberStyles, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
+            if (s is null)
+            {
+                result = default;
+            }
+            else if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, numberStyles, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGeographicAreasResult);
                 isParsed = true;

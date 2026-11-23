@@ -15,7 +15,12 @@ A subtag introduced by a single-character key — used for extension subtags
 (singleton `u`, `t`, …) and the private-use subtag (singleton `x`). The
 constructor is internal; you obtain instances from a
 [Bcp47LanguageTag](Bcp47LanguageTag.md)'s `ExtensionSubtags` and
-`PrivateUseSubtag` members.
+`PrivateUseSubtag` members, or by casting a string.
+
+Every instance holds either one extension (RFC 5646 section 2.2.6): a singleton
+other than `x` followed by one or more subtags of two to eight letters or digits,
+such as `u-ca-gregory`; or one private use sequence (section 2.2.7): `x` followed
+by one or more subtags of one to eight letters or digits, such as `x-abc`.
 
 ```csharp
 public readonly struct Bcp47KeyedSubtag : IEquatable<Bcp47KeyedSubtag>
@@ -40,7 +45,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Singleton` | `char? Singleton { get; }` | The leading single character, or `null` if empty. |
+| `Singleton` | `char Singleton { get; }` | The singleton, in the case it was written in: the extension's leading character, or `x` or `X` for a private use sequence. |
 | `Subtags` | `IReadOnlyList<string> Subtags { get; }` | The remaining hyphen-separated parts. Each read splits the subtag again and returns a new list. |
 
 ## Methods
@@ -58,7 +63,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Bcp47KeyedSubtag(string)` | Throws `InvalidCastException` if `null`. |
+| Explicit | `explicit operator Bcp47KeyedSubtag(string)` | Accepts one extension or one private use sequence, in either case, and keeps the case as written. Throws `InvalidCastException` if `null` or anything else, such as `" u-ca"`, `"ab-cd"`, `"u"` or `"x"`. Checks the shape only: the singleton need not be one that has been assigned. |
 | Implicit | `implicit operator string?(Bcp47KeyedSubtag)` | Unwraps to the raw subtag string. |
 | Equality | `operator ==`, `!=` `(Bcp47KeyedSubtag, Bcp47KeyedSubtag)` | Case-insensitive comparison of the subtag string. |
 

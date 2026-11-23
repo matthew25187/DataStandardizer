@@ -30,17 +30,19 @@ RFC 6838 §4.2 naming rules. [MimeMediaTypeParseOptions](MimeMediaTypeParseOptio
 names each accommodation.
 
 **RFC 2231.** When parsed, a value split into sections is joined, and an extended value
-is decoded, so that each parameter appears once with its whole value. When a parameter
-is given both as `name` and in an RFC 2231 form such as `name*`, the RFC 2231 form is
-used.
+is decoded, so that each parameter appears once with its whole value. A parameter given
+both as `name` and in an RFC 2231 form such as `name*` is given more than once, so the
+media type is not valid (RFC 6838 §4.3).
 
 **Formatting.** A media type is written with no whitespace, and with each parameter
 value as a token if it is one, or otherwise as a quoted-string. A value that isn't
 US-ASCII, or that has a language, is written as an RFC 2231 extended value.
 
 **Equality.** The type, subtype and parameter names are compared case-insensitively.
-Parameter values are compared case-sensitively, except for the value of `charset`. The
-order of the parameters doesn't matter.
+Parameter values are compared case-sensitively, except for the value of `charset`
+(RFC 2046 §4.1.2), and in `message/external-body` the values of `access-type` and
+`permission` (RFC 2046 §5.2.3.1), and of `mode` when the access-type is `ftp`, `anon-ftp`
+or `tftp` (RFC 2046 §5.2.3.2 and §5.2.3.3). The order of the parameters doesn't matter.
 
 See [Use media types](../how-to/use-media-types.md).
 

@@ -75,6 +75,12 @@ namespace DataStandardizer.Communication.Mime
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         public override string EncodingName => _encodingName;
+
+        // The names for a message body and header, which System.Net.Mime.ContentType and AlternateView use as the charset. The encoding
+        // has no code page, which the base class would look them up by.
+        public override string BodyName => _webName;
+
+        public override string HeaderName => _webName;
 #endif
 
         private int MarkLength => _bigEndianMark.Length;
@@ -138,7 +144,12 @@ namespace DataStandardizer.Communication.Mime
         public override bool Equals(object obj)
 #endif
         {
-            return ReferenceEquals(this, obj);
+            // A clone is equal to the encoding it was cloned from while it has the same fallbacks, as the runtime's encodings are.
+            return obj is MimeUnicodeSchemeEncoding other && other._webName == _webName
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+                && other.EncoderFallback.Equals(EncoderFallback) && other.DecoderFallback.Equals(DecoderFallback)
+#endif
+                ;
         }
 
         public override int GetHashCode()
@@ -162,6 +173,19 @@ namespace DataStandardizer.Communication.Mime
 
             markLength = 0;
             return WithFallbacks(BigEndian);
+        }
+
+        /// <summary>
+        /// Gets the byte order mark that selects the byte order of some bytes: the little-endian mark if they start with it; otherwise the
+        /// big-endian mark, as bytes with no mark are big-endian.
+        /// </summary>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="index">The position of the first byte.</param>
+        /// <param name="count">The number of bytes.</param>
+        /// <returns>The byte order mark.</returns>
+        internal byte[] GetByteOrderMark(byte[] bytes, int index, int count)
+        {
+            return StartsWith(bytes, index, count, _littleEndianMark) ? _littleEndianMark : _bigEndianMark;
         }
 
         /// <summary>
@@ -204,7 +228,7 @@ namespace DataStandardizer.Communication.Mime
         /// Decodes bytes that may arrive in several blocks, holding back the first bytes until there are enough to tell whether they are a
         /// byte order mark.
         /// </summary>
-        private sealed class SchemeDecoder : Decoder
+        private sealed class SchemeDecoder : MimeDecoder
         {
             private readonly MimeUnicodeSchemeEncoding _encoding;
             private readonly byte[] _pending;

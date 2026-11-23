@@ -16,7 +16,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// </summary>
         public static ImfHeaderField BuildField(string name, string value)
         {
-            return new ImfHeaderField(name, Octets.Of(name + ":" + value + "\r\n"), Octets.Of(value), string.Empty, 0, 1);
+            return new ImfHeaderField(name, Octets.Of(name + ":" + value + "\r\n"), Octets.Of(value), string.Empty, 0, 1, false);
         }
 
         /// <summary>

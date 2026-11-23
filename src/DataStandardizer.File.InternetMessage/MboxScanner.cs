@@ -227,7 +227,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets a flag indicating that nothing more of the current message is left to read, or that there is no current message.
         /// </summary>
-        internal bool IsMessageEnded => _phase == Phase.MessageEnded || _phase == Phase.FirstSeparator || _phase == Phase.NoMoreMessages;
+        internal bool IsMessageEnded => (_phase == Phase.MessageEnded && _queueLength == 0 && _quotesToWrite == 0) || _phase == Phase.FirstSeparator || _phase == Phase.NoMoreMessages;
 
         /// <summary>
         /// Gets the 0-based index of the current message, which is 0 before the first.
@@ -479,6 +479,9 @@ namespace DataStandardizer.File.InternetMessage
             _reportedInvalidSeparator = false;
             _quotedLineLength = NotAQuotedLine;
             _messageOffset = 0;
+            _queueLength = 0;
+            _queueStart = 0;
+            _quotesToWrite = 0;
             LongQuotedLines.Clear();
         }
 
@@ -617,7 +620,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private void EndAtEndOfInput()
         {
-            CheckQuotedLine();
+            CheckQuotedLine(false);
             if (_inHeader && !_allowInvalidContentLength)
                 throw Fault(ErrorMessage.ContentLengthInvalid, ImfDiagnosticKind.InvalidMboxContentLength);
 
@@ -730,12 +733,13 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, and so counts the quote that a reader takes off.
-        private void CheckQuotedLine()
+        private void CheckQuotedLine(bool endsWithLineFeed)
         {
             if (_quotedLineLength != NotAQuotedLine)
             {
-                // A file of CRLF has already left its line break out.  In a file of LF, a carriage return before the line feed is the line break that AllowMboxCarriageReturnLineFeed accepts.
-                var length = !_isCrLf && _previousOctet == CarriageReturn ? _quotedLineLength - 1 : _quotedLineLength;
+                // A file of CRLF has already left its line break out.  In a file of LF, a carriage return before the line feed is the line break that AllowMboxCarriageReturnLineFeed accepts,
+                // but one that ends the file with no line feed after it is an octet of the line.
+                var length = endsWithLineFeed && !_isCrLf && _previousOctet == CarriageReturn ? _quotedLineLength - 1 : _quotedLineLength;
                 if (length > ImfBodyCheck.MaxLineLength) LongQuotedLines.Add(new ImfLongLine(_quotedLineOffset, _bytePosition - _quotedLineLength, _lineNumber));
             }
 
@@ -744,7 +748,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private void EndLine(int length)
         {
-            CheckQuotedLine();
+            CheckQuotedLine(true);
             Consume(length);
             _heldLength = length;
             _heldIsHeaderEnd = false;
@@ -987,6 +991,9 @@ namespace DataStandardizer.File.InternetMessage
             }
             else
             {
+                // CheckQuotedLine reads the octet before a line feed, whichever way the content was consumed.
+                if (count > 0) _previousOctet = bytes[count - 1];
+
                 while (true)
                 {
                     var lineFeed = bytes.IndexOf(LineFeed);

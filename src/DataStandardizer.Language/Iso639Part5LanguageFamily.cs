@@ -20,6 +20,9 @@ namespace DataStandardizer.Language
     /// Codes for the representation of names of languages -- Part 5: Alpha-3 code for language families and groups
     /// </summary>
     public readonly struct Iso639Part5LanguageFamily : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.Language.Iso639Part5LanguageFamily>
+#if NETSTANDARD1_3_OR_GREATER||NET
+, System.IConvertible
+#endif
     {
         
         #region Declarations
@@ -47,15 +50,38 @@ namespace DataStandardizer.Language
         #endregion
         
         #region Operators
+        /// <summary>
+        /// Converts an ISO 639-5 code to the <see cref="Iso639Part5LanguageFamily"/> member with that code.
+        /// </summary>
+        /// <param name="value">The code, such as <c>gem</c>. Codes are case-sensitive.</param>
+        /// <returns>The predefined member with the code.</returns>
+        /// <exception cref="System.InvalidCastException">
+        /// <paramref name="value"/> is <see langword="null"/>, or is not an ISO 639-5 code.
+        /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator DataStandardizer.Language.Iso639Part5LanguageFamily(string value)
 #else
         public static explicit operator DataStandardizer.Language.Iso639Part5LanguageFamily([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
         {
-            return new DataStandardizer.Language.Iso639Part5LanguageFamily(value);
+            if (value is null)
+            {
+                throw new System.InvalidCastException("A null string cannot be converted to Iso639Part5LanguageFamily.");
+            }
+
+            if (!MembersByCode.Value.TryGetValue(value, out var member))
+            {
+                throw new System.InvalidCastException("'" + value + "' is not an ISO 639-5 code.");
+            }
+
+            return member;
         }
         
+        /// <summary>
+        /// Converts a <see cref="Iso639Part5LanguageFamily"/> to its code.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The code, or <see langword="null"/> for the default value.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(DataStandardizer.Language.Iso639Part5LanguageFamily value)
 #else
@@ -66,11 +92,23 @@ namespace DataStandardizer.Language
             return value._value;
         }
         
+        /// <summary>
+        /// Determines whether two <see cref="Iso639Part5LanguageFamily"/> values have the same code.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the codes are equal; otherwise, <see langword="false"/>.</returns>
         public static bool operator ==(DataStandardizer.Language.Iso639Part5LanguageFamily left, DataStandardizer.Language.Iso639Part5LanguageFamily right)
         {
             return left.Equals(right);
         }
         
+        /// <summary>
+        /// Determines whether two <see cref="Iso639Part5LanguageFamily"/> values have different codes.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the codes differ; otherwise, <see langword="false"/>.</returns>
         public static bool operator !=(DataStandardizer.Language.Iso639Part5LanguageFamily left, DataStandardizer.Language.Iso639Part5LanguageFamily right)
         {
             return !left.Equals(right);
@@ -888,11 +926,13 @@ namespace DataStandardizer.Language
         #endregion
         
         #region Public Methods
+        /// <inheritdoc/>
         public bool Equals(DataStandardizer.Language.Iso639Part5LanguageFamily other)
         {
             return (this._value == other._value);
         }
         
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             if ((this._value == null))
@@ -904,6 +944,7 @@ namespace DataStandardizer.Language
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <inheritdoc/>
         public int CompareTo(object? obj)
         {
             if ((this._value == null))
@@ -925,11 +966,19 @@ namespace DataStandardizer.Language
             return string.CompareOrdinal(this._value, other._value);
         }
         
+        /// <inheritdoc/>
         public override bool Equals(object? obj)
         {
             return (obj is DataStandardizer.Language.Iso639Part5LanguageFamily other && this.Equals(other));
         }
         
+        /// <summary>
+        /// Returns the name of the predefined member that holds this value.
+        /// </summary>
+        /// <returns>
+        /// The name of the public static field that holds this value; the code, if no field holds it; or the full name of the type, for the
+        /// default value.
+        /// </returns>
         public override string ToString()
         {
             var memberField = System.Linq.Enumerable.FirstOrDefault(this.GetType().GetTypeInfo().DeclaredFields, this.MemberFieldPredicate);
@@ -959,6 +1008,7 @@ namespace DataStandardizer.Language
         
 #else
         
+        /// <inheritdoc/>
         public int CompareTo(object obj)
         {
             if ((this._value == null))
@@ -980,11 +1030,19 @@ namespace DataStandardizer.Language
             return string.CompareOrdinal(this._value, other._value);
         }
         
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return (obj is DataStandardizer.Language.Iso639Part5LanguageFamily other && this.Equals(other));
         }
         
+        /// <summary>
+        /// Returns the name of the predefined member that holds this value.
+        /// </summary>
+        /// <returns>
+        /// The name of the public static field that holds this value; the code, if no field holds it; or the full name of the type, for the
+        /// default value.
+        /// </returns>
         public override string ToString()
         {
             var memberField = System.Linq.Enumerable.FirstOrDefault(this.GetType().GetTypeInfo().DeclaredFields, this.MemberFieldPredicate);
@@ -1016,6 +1074,7 @@ namespace DataStandardizer.Language
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <inheritdoc/>
         public System.TypeCode GetTypeCode()
         {
             if ((this._value == null))
@@ -1124,6 +1183,12 @@ namespace DataStandardizer.Language
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
+        /// <summary>
+        /// Returns the code.  The format provider is not used.
+        /// </summary>
+        /// <param name="provider">Not used.</param>
+        /// <returns>The code.</returns>
+        /// <exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider? provider)
@@ -1173,6 +1238,7 @@ namespace DataStandardizer.Language
         
 #elif NETSTANDARD1_3_OR_GREATER||NET
         
+        /// <inheritdoc/>
         public System.TypeCode GetTypeCode()
         {
             if ((this._value == null))
@@ -1281,6 +1347,12 @@ namespace DataStandardizer.Language
             return ((System.IConvertible)(this._value)).ToSingle(provider);
         }
         
+        /// <summary>
+        /// Returns the code.  The format provider is not used.
+        /// </summary>
+        /// <param name="provider">Not used.</param>
+        /// <returns>The code.</returns>
+        /// <exception cref="System.InvalidCastException">This is the default value, which has no code.</exception>
         [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
                     + (nameof(ToString) + "().")))]
         public string ToString(System.IFormatProvider provider)
@@ -1338,6 +1410,23 @@ namespace DataStandardizer.Language
                         && (field.IsStatic 
                         && (field.GetValue(null) is DataStandardizer.Language.Iso639Part5LanguageFamily memberValue 
                         && (memberValue._value == this._value))));
+        }
+        
+        // Built on first use rather than in a static field initializer, which could run before the member fields it reads are assigned.
+        // PublicationOnly doesn't cache an exception thrown while building it, so a later cast tries again.
+        private static readonly System.Lazy<System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily>> MembersByCode = new System.Lazy<System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily>>(CreateMembersByCode, System.Threading.LazyThreadSafetyMode.PublicationOnly);
+
+        private static System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily> CreateMembersByCode()
+        {
+            var membersByCode = new System.Collections.Generic.Dictionary<string, DataStandardizer.Language.Iso639Part5LanguageFamily>(System.StringComparer.Ordinal);
+            foreach (var field in typeof(DataStandardizer.Language.Iso639Part5LanguageFamily).GetTypeInfo().DeclaredFields)
+            {
+                if (field.IsPublic && field.IsStatic && field.GetValue(null) is DataStandardizer.Language.Iso639Part5LanguageFamily member && member._value is string code)
+                {
+                    membersByCode[code] = member;
+                }
+            }
+            return membersByCode;
         }
         #endregion
     }

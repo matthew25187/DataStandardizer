@@ -15,6 +15,11 @@ namespace DataStandardizer.Money
     [Obsolete("The package no longer throws MissingCultureResourceException, which will be removed in a future major version. Remove code that catches it.")]
     public sealed class MissingCultureResourceException : Exception
     {
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MissingCultureResourceException"/> class for a resource missing for a culture.
+        /// </summary>
+        /// <param name="cultureName">The name of the culture for which the resource is missing.</param>
+        /// <param name="resourceName">The name of the missing resource.</param>
         public MissingCultureResourceException(string cultureName, string resourceName)
             : base($"Resource {resourceName} not found for culture {cultureName}.")
         {
