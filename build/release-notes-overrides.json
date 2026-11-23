@@ -1,6 +1,10 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "b47a407899e01ff32c0dbe3b9751f0c9725ec749": {
+      "subject": "A number parsed with separators between its digits formats, and gives its fields, like one built from digits (#1171)",
+      "notes": []
+    },
     "3357ecc9aba261abd463275c98fe2f9053a2bed4": {
       "subject": "MimeCharset.TryGetDefault gives no default character set for text/*+xml types, so ImfEntity.GetText throws for one with no charset parameter instead of decoding it as US-ASCII (#1167)",
       "notes": [

@@ -18,13 +18,11 @@ namespace DataStandardizer.Communication.E164
             internal const string SubscriberNumber = "SubscriberNumber";
         }
 
-        protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass + @"\p{Pd}\p{Po}";
         // White space: the space separators (Unicode category Zs) and the white-space controls U+0009 to U+000D.
         protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\t\n\v\f\r";
 
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
         private static readonly object ParseExpressionsLock = new object();
-        private static readonly Regex SeparatorExpression = new Regex(string.Concat("[", PatternSeparatorCharacterClass, "]"));
 
         protected internal ItuE164InternationalNumberStructureBase(ulong number)
         {
@@ -65,20 +63,18 @@ namespace DataStandardizer.Communication.E164
             var countryCodePatterns = new List<string>();
             foreach (var kvp in identificationCodeLookup)
             {
-                var countryCodePattern = string.Concat("(?<", NumberPart.CountryCode, ">", kvp.Key, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.IdentificationCode, ">", string.Join("|", kvp), ")");
+                var countryCodePattern = string.Concat("(?<", NumberPart.CountryCode, ">", kvp.Key, ")(?<", NumberPart.IdentificationCode, ">", string.Join("|", kvp), ")");
                 countryCodePatterns.Add(countryCodePattern);
             }
 
             patternBuilder.Append(string.Concat("(?:", string.Join("|", countryCodePatterns), ")"));
 
-            // Add separation.
-            patternBuilder.Append(string.Concat("[", PatternSeparatorCharacterClass, "]*"));
-
-            // Add Subscriber Number field. The quantifier only keeps the field from running away; the
-            // digit-count lookahead at the start of the pattern enforces the limit on the whole number.
+            // Add Subscriber Number field. ITU-T E.164 defines the number as a string of decimal digits, so
+            // nothing may separate them. The quantifier only keeps the field from running away; the digit-count lookahead at
+            // the start of the pattern enforces the limit on the whole number.
             if (identificationCodeLookup.Count > 0)
             {
-                patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){", subscriberNumberMinimumDigitCount, ",", MaximumDigitCount - 1, "})"));
+                patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, @">\d{", subscriberNumberMinimumDigitCount + 1, ",", MaximumDigitCount, "})"));
             }
 
             patternBuilder.Append(ComposePatternEnd(numberStyles));
@@ -109,15 +105,6 @@ namespace DataStandardizer.Communication.E164
             }
 
             return patternBuilder.ToString();
-        }
-
-        /// <summary>
-        /// Removes the separators that a parse pattern allows between the digits of <paramref name="part"/>, so
-        /// that a field built from the part holds only its digits.
-        /// </summary>
-        protected static string RemoveSeparators(string part)
-        {
-            return SeparatorExpression.Replace(part, string.Empty);
         }
 
         /// <summary>

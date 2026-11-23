@@ -25,7 +25,7 @@ namespace DataStandardizer.Communication.IntegrationTests.E164
         /// </summary>
         private const string UnparsableNumber = "+0 999 9999";
 
-        private const string ValidNumberForGeographicArea = "+64 411 5550100";
+        private const string ValidNumberForGeographicArea = "+644115550100";
         private const ulong ValidNumberForGeographicAreaValue = 644115550100L;
 
         // The styles of Parse_CalledConcurrentlyWithColdParseExpressionCacheAcrossDistinctStyles_CachesOneExpressionPerStyle, each parsed by
