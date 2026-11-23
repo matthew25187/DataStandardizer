@@ -21,6 +21,11 @@ namespace DataStandardizer.Communication.E164
         // White space: the space separators (Unicode category Zs) and the white-space controls U+0009 to U+000D.
         protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\t\n\v\f\r";
 
+        // ITU-T E.164 digits are the decimal digits 0-9 only. Without RegexOptions.ECMAScript, \d would also match every
+        // Unicode decimal digit (category Nd), and \D would exclude them.
+        protected const string PatternDigit = "[0-9]";
+        private const string PatternNonDigit = "[^0-9]";
+
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
         private static readonly object ParseExpressionsLock = new object();
 
@@ -75,7 +80,7 @@ namespace DataStandardizer.Communication.E164
             // whole number.
             if (identificationCodeLookup.Count > 0)
             {
-                patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, @">\d{", subscriberNumberMinimumDigitCount, ",", MaximumDigitCount, "})"));
+                patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, ">", PatternDigit, "{", subscriberNumberMinimumDigitCount, ",", MaximumDigitCount, "})"));
             }
 
             patternBuilder.Append(ComposePatternEnd(numberStyles));
@@ -91,7 +96,7 @@ namespace DataStandardizer.Communication.E164
         /// </summary>
         protected static string ComposePatternStart(int minimumDigitCount, ItuE164InternationalNumberStyles numberStyles)
         {
-            var patternBuilder = new StringBuilder(string.Concat(@"^(?=(?:\D*\d){", minimumDigitCount, ",", MaximumDigitCount, @"}\D*\z)"));
+            var patternBuilder = new StringBuilder(string.Concat("^(?=(?:", PatternNonDigit, "*", PatternDigit, "){", minimumDigitCount, ",", MaximumDigitCount, "}", PatternNonDigit, @"*\z)"));
 
             // Allow leading white space.
             if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite))

@@ -29,7 +29,7 @@ namespace DataStandardizer.Communication.E164
             // Compose expressions for parsing a number.
             // The Global Subscriber Number quantifier allows the 12 digits that follow the three-digit Country Code.
             return string.Concat(ComposePatternStart(4, numberStyles), "(?<", NumberPart.CountryCode, ">",
-                countryCodePattern, ")(?<", NumberPart.SubscriberNumber, @">\d{1,", MaximumDigitCount - 3, "})",
+                countryCodePattern, ")(?<", NumberPart.SubscriberNumber, ">", PatternDigit, "{1,", MaximumDigitCount - 3, "})",
                 ComposePatternEnd(numberStyles));
         }
 #if NETCOREAPP3_0_OR_GREATER
