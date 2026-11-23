@@ -15,6 +15,33 @@ namespace DataStandardizer.File.vCard.Tests
         // ref. vCard 2.1 §2.5.5: the example.
         private const string Version21Organization = "ORG:ABC, Inc.;North American Division;Marketing";
 
+        // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters."  These lines are 75 and 76 characters long.
+        private const string FirstLineEndingInSoftLineBreak = "NOTE;ENCODING=QUOTED-PRINTABLE:a=";
+        private const string FirstLineEndingWithoutSoftLineBreak = "NOTE;ENCODING=QUOTED-PRINTABLE:a";
+        private const string LineOf75Characters = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+        // A line after a fold, which is 76 characters with the white space that starts it.
+        private const string FoldedLineOf76Characters = " ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+        // The parameters of a quoted-printable value on lines of 75 and 76 characters, and the folded line after them, by the rule of RFC 6350 §3.2, with its value.
+        private const string ParametersLineOf75Characters = "NOTE;CHARSET=US-ASCII;X-A=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        private const string ParametersLineOf76Characters = "NOTE;CHARSET=US-ASCII;X-A=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        private const string FoldedEncodingLine = " ;ENCODING=QUOTED-PRINTABLE:abc";
+        private const string ValueOfFoldedEncodingLine = "abc";
+
+        private const string QuotedPrintableLineOf75Characters = "NOTE;ENCODING=QUOTED-PRINTABLE:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string QuotedPrintableLineOf76Characters = "NOTE;ENCODING=QUOTED-PRINTABLE:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string ValueOfQuotedPrintableLineOf75Characters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // A soft line break, then a line of 75 characters, then a fold by the rule of RFC 6350 §3.2, whose line is 75 characters with its white space.
+        private static readonly string QuotedPrintableLinesOf75CharactersFoldedByRfc6350 = Vcard21TestData.Card(
+            FirstLineEndingInSoftLineBreak,
+            LineOf75Characters,
+            " cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+
+        private const string ValueOfQuotedPrintableLinesOf75CharactersFoldedByRfc6350 = "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+        private const string ValueOfQuotedPrintableLineOf76Characters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
         // ref. vCard 2.1 §2.6.5: the example.
         private const string Version21Uid = "UID:19950401-080045-40000F192713-0052";
 
@@ -434,6 +461,143 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().Equal("Jim");
+        }
+
+        public static TheoryData<string[]> LongQuotedPrintableLineData()
+        {
+            return new TheoryData<string[]>
+            {
+                // The first line, which holds the property name.
+                new[] { QuotedPrintableLineOf76Characters },
+
+                // A line that ends with a soft line break, whose = counts.
+                new[] { FirstLineEndingInSoftLineBreak, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb=", "c" },
+
+                // The last line, after a soft line break.
+                new[] { FirstLineEndingInSoftLineBreak, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+
+                // A line after a fold, whose white space vCard 2.1 §2.1.3 keeps.
+                new[] { FirstLineEndingWithoutSoftLineBreak, FoldedLineOf76Characters }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(LongQuotedPrintableLineData))]
+        public void ReadCard_QuotedPrintableLineOf76Characters_ThrowsInvalidValue(string[] properties)
+        {
+            // arrange
+            var text = Vcard21TestData.Card(properties);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void ReadCard_QuotedPrintableLineOf76CharactersAfterRfc6350FoldWithAcceptRfc6350FoldsInVersion21_ThrowsInvalidValue()
+        {
+            // arrange
+            var options = new VcardOptions { MaxLineLength = null, AcceptRfc6350FoldsInVersion21 = true };
+            var text = Vcard21TestData.Card(FirstLineEndingWithoutSoftLineBreak, FoldedLineOf76Characters);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text, options);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void ReadCard_QuotedPrintableLinesOf75CharactersFoldedByRfc6350WithAcceptRfc6350FoldsInVersion21_DecodesThem()
+        {
+            // arrange
+            var options = new VcardOptions { MaxLineLength = null, AcceptRfc6350FoldsInVersion21 = true };
+
+            // act
+            var testResult = VcardCardTestData.Read(QuotedPrintableLinesOf75CharactersFoldedByRfc6350, options).Notes.Single().Value;
+
+            // assert
+            testResult.Should().Be(ValueOfQuotedPrintableLinesOf75CharactersFoldedByRfc6350);
+        }
+
+        [Fact]
+        public void ReadCard_QuotedPrintableParametersOnLineOf76CharactersWithAcceptRfc6350FoldsInVersion21_ThrowsInvalidValue()
+        {
+            // arrange
+            var options = new VcardOptions { MaxLineLength = null, AcceptRfc6350FoldsInVersion21 = true };
+            var text = Vcard21TestData.Card(ParametersLineOf76Characters, FoldedEncodingLine);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text, options);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void ReadCard_QuotedPrintableParametersOnLineOf75CharactersWithAcceptRfc6350FoldsInVersion21_DecodesIt()
+        {
+            // arrange
+            var options = new VcardOptions { MaxLineLength = null, AcceptRfc6350FoldsInVersion21 = true };
+            var text = Vcard21TestData.Card(ParametersLineOf75Characters, FoldedEncodingLine);
+
+            // act
+            var testResult = VcardCardTestData.Read(text, options).Notes.Single().Value;
+
+            // assert
+            testResult.Should().Be(ValueOfFoldedEncodingLine);
+        }
+
+        public static TheoryData<string[]> QuotedPrintableLinesOf75CharactersData()
+        {
+            return new TheoryData<string[]>
+            {
+                new[] { QuotedPrintableLineOf75Characters },
+                new[] { FirstLineEndingInSoftLineBreak, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb=", LineOf75Characters }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(QuotedPrintableLinesOf75CharactersData))]
+        public void ReadCard_QuotedPrintableLinesOf75Characters_IsRead(string[] properties)
+        {
+            // arrange
+            var text = Vcard21TestData.Card(properties);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Fact]
+        public void ReadCard_QuotedPrintableLineOf75Characters_DecodesIt()
+        {
+            // arrange
+            var text = Vcard21TestData.Card(QuotedPrintableLineOf75Characters);
+
+            // act
+            var testResult = VcardCardTestData.Read(text).Notes.Single().Value;
+
+            // assert
+            testResult.Should().Be(ValueOfQuotedPrintableLineOf75Characters);
+        }
+
+        [Fact]
+        public void ReadCard_QuotedPrintableLineOf76CharactersWithAllowInvalidValues_DecodesIt()
+        {
+            // arrange
+            var options = new VcardOptions { MaxLineLength = null, AllowInvalidValues = true };
+            var text = Vcard21TestData.Card(QuotedPrintableLineOf76Characters);
+
+            // act
+            var testResult = VcardCardTestData.Read(text, options).Notes.Single().Value;
+
+            // assert
+            testResult.Should().Be(ValueOfQuotedPrintableLineOf76Characters);
         }
 
         [Fact]

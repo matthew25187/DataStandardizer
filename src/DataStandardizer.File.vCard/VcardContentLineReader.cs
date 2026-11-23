@@ -95,12 +95,14 @@ namespace DataStandardizer.File.vCard
         private static readonly Func<VcardContentLineReader, bool, VcardContentLine> LineResult =
 #endif
             (reader, lineRead) => lineRead
-                ? VcardContentLine.FromScanner(reader._scanner, reader.DecodesCaretEncoding, reader._state.CardIndexOfLine, reader.ValueDecoder, reader.LineVersion)
+                ? VcardContentLine.FromScanner(reader._scanner, reader.DecodesCaretEncoding, reader._state.CardIndexOfLine, reader.ValueDecoder, reader.LineVersion,
+                    reader.LongestQuotedPrintableLine)
                 : null;
 
         private readonly bool _acceptCaretEncodingInAllVersions;
         private readonly bool _acceptLegacySyntax;
         private readonly bool _acceptRfc6350FoldsInVersion21;
+        private readonly VcardLineContinuation _continuation;
         private bool _hasCurrentLine;
         private bool _isSourceFaulted;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
@@ -218,11 +220,12 @@ namespace DataStandardizer.File.vCard
             _acceptLegacySyntax = options.AcceptLegacySyntax;
             _acceptRfc6350FoldsInVersion21 = options.AcceptRfc6350FoldsInVersion21;
             ValueDecoder = new VcardValueDecoder(options);
+            _continuation = new VcardLineContinuation(_state, options.AcceptLegacySyntax, options.AcceptRfc6350FoldsInVersion21);
 
             // ref. RFC 6350 §3.3: contentline = [group "."] name *(";" param) ":" value CRLF
             var settings = new ContentLineScannerSettings(options.AcceptBareLineFeed, options.MaxLineLength ?? int.MaxValue, allowGroupPrefix: true,
                 rejectByteOrderMark: !options.AcceptByteOrderMark, requireFinalLineBreak: !options.AcceptMissingFinalLineBreak,
-                continuation: new VcardLineContinuation(_state, options.AcceptLegacySyntax));
+                continuation: _continuation);
             _scanner = new ContentLineScanner(bufferSize, settings, new VcardContentLineErrorFactory(_state));
         }
 
@@ -467,6 +470,11 @@ namespace DataStandardizer.File.vCard
         /// Gets what decodes the values of the lines read.
         /// </summary>
         internal VcardValueDecoder ValueDecoder { get; }
+
+        /// <summary>
+        /// Gets the length of the longest physical line of the current line, if its value is <c>QUOTED-PRINTABLE</c>; or 0.
+        /// </summary>
+        internal int LongestQuotedPrintableLine => _continuation.LongestQuotedPrintableLine;
 
         /// <summary>
         /// Gets the 0-based index of the card the current line is in, or -1 if it is outside a card.
@@ -730,6 +738,7 @@ namespace DataStandardizer.File.vCard
 
             _hasCurrentLine = false;
             _state.MoveToNextLine();
+            _continuation.StartLine();
 
             // ref. vCard 2.1 §2.1.3 and §2.9.  The version can only change on a line that is read as the one before it says.
             _scanner.AllowValuelessParameters = _state.IsVersion21 || _acceptLegacySyntax;

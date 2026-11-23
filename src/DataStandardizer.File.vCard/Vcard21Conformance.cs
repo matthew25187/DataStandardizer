@@ -22,6 +22,10 @@ namespace DataStandardizer.File.vCard
         internal const string ContentIdValue = "CONTENT-ID";
         internal const string ShortContentIdValue = "CID";
 
+        // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters.  The 76 characters does not include the CRLF (RFC 822)
+        // line break sequence."
+        private const int MaxQuotedPrintableLineLength = 75;
+
         private static readonly string[] SingleParameters =
         {
             VcardParameterNames.Value, VcardLegacyTokens.EncodingName, VcardLegacyTokens.CharsetName, VcardParameterNames.Language
@@ -57,6 +61,21 @@ namespace DataStandardizer.File.vCard
             if (!hasName)
             {
                 found.Add(new VcardDiagnostic(VcardDiagnosticKind.MissingRequiredProperty, "vCard 2.1 §2.2.2 requires an N property.", VcardPropertyNames.Name, null, card.LineNumber, card.CardIndex));
+            }
+        }
+
+        /// <summary>
+        /// Checks the physical lines on which the <c>QUOTED-PRINTABLE</c> values of a card were read.  Only a reader checks this, since a writer breaks every
+        /// quoted-printable value into lines short enough, whatever lines it was read from.
+        /// </summary>
+        internal static void ValidateQuotedPrintableLines(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found)
+        {
+            foreach (var line in lines)
+            {
+                if (line.LongestQuotedPrintableLine <= MaxQuotedPrintableLineLength) continue;
+
+                Add(found, VcardDiagnosticKind.InvalidValue, Format("The QUOTED-PRINTABLE value of {0} is on a line of {1} characters, and vCard 2.1 §2.1.3 limits a quoted-printable line " +
+                    "to less than 76.", line.Name, line.LongestQuotedPrintableLine), line, card);
             }
         }
 

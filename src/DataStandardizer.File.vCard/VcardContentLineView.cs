@@ -307,7 +307,8 @@ namespace DataStandardizer.File.vCard
         public VcardContentLine ToContentLine()
         {
             var scanner = GetScanner();
-            return VcardContentLine.FromScanner(scanner, _reader.DecodesCaretEncoding, _reader.CardIndexOfLine, _reader.ValueDecoder, _reader.LineVersion);
+            return VcardContentLine.FromScanner(scanner, _reader.DecodesCaretEncoding, _reader.CardIndexOfLine, _reader.ValueDecoder, _reader.LineVersion,
+                _reader.LongestQuotedPrintableLine);
         }
 
         private ContentLineScanner GetScanner()
