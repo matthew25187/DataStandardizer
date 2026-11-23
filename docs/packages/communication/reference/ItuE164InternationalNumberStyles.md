@@ -14,6 +14,8 @@ Namespace: `DataStandardizer.Communication.E164`
 Controls what a parse method tolerates around the digits of the input string.
 No style allows anything between the digits. This is a flags
 enumeration; its members can be combined with the bitwise OR operator.
+`Parse` and `TryParse` throw `ArgumentOutOfRangeException` for a value with
+any other bit set.
 
 ```csharp
 [Flags]

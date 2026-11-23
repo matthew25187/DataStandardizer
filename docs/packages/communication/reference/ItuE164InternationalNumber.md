@@ -104,14 +104,14 @@ interface; reading it on a number of a different kind throws
 | `IsNumberForGroupOfCountries()` | `bool` | Kind test. |
 | `IsNumberForNetwork()` | `bool` | Kind test. |
 | `IsNumberForTrial()` | `bool` | Kind test. |
-| `Parse(string s)` | `ItuE164InternationalNumber` | Static. Throws `FormatException` if `s` is not a recognised number. |
-| `Parse(string s, ItuE164InternationalNumberStyles numberStyles)` | `ItuE164InternationalNumber` | Static. As above, with permitted styles. |
+| `Parse(string s)` | `ItuE164InternationalNumber` | Static. Throws `ArgumentNullException` if `s` is `null`, and `FormatException` if `s` is not a recognised number. |
+| `Parse(string s, ItuE164InternationalNumberStyles numberStyles)` | `ItuE164InternationalNumber` | Static. As above, with permitted styles. Throws `ArgumentOutOfRangeException` if `numberStyles` has a bit that no style defines. |
 | `ToString()` | `string` | Override. Uses the invariant "G" format. |
 | `ToString(IFormatProvider? formatProvider)` | `string` | Pass a `TelephonyInfo` to format for a culture/region. |
 | `ToString(string? format)` | `string` | See [Format strings](#format-strings). |
 | `ToString(string? format, IFormatProvider? formatProvider)` | `string` | `IFormattable` implementation (a normal public method). |
-| `TryParse(string s, out ItuE164InternationalNumber result)` | `bool` | Static. Returns `false` instead of throwing. |
-| `TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)` | `bool` | Static. As above, with permitted styles. |
+| `TryParse(string? s, out ItuE164InternationalNumber result)` | `bool` | Static. Returns `false` instead of throwing, including when `s` is `null`. |
+| `TryParse(string? s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)` | `bool` | Static. As above, with permitted styles. Throws `ArgumentOutOfRangeException` if `numberStyles` has a bit that no style defines. |
 
 ## Operators
 
@@ -125,8 +125,8 @@ interface; reading it on a number of a different kind throws
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
 .NET Standard targets the `string`/`IFormatProvider` parameters of the `ToString`
-overloads are non-nullable; on `net10.0` they are nullable reference types
-(`string?` / `IFormatProvider?`). The available overloads are otherwise the same on
+overloads, and the `s` parameter of `TryParse`, are non-nullable; on `net10.0` they
+are nullable reference types (`string?` / `IFormatProvider?`). The available overloads are otherwise the same on
 all targets.
 
 ## See also
