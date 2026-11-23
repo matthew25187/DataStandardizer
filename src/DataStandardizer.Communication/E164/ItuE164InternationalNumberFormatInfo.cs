@@ -86,7 +86,7 @@ namespace DataStandardizer.Communication.E164
                     throw new InvalidOperationException($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
                 }
 
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
@@ -117,7 +117,7 @@ namespace DataStandardizer.Communication.E164
                     throw new InvalidOperationException($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
                 }
 
-                if (value == null)
+                if (value is null)
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
