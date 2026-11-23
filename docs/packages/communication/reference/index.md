@@ -33,7 +33,7 @@ in the `DataStandardizer.Communication.Mime` namespace.
 
 | Type | Description |
 | --- | --- |
-| [ItuE164InternationalNumberStyles](ItuE164InternationalNumberStyles.md) | Flags that control what a parse method tolerates in the input string. |
+| [ItuE164InternationalNumberStyles](ItuE164InternationalNumberStyles.md) | Flags that control what a parse method tolerates around the digits of the input string. |
 | [ItuE164AssignedCountryCodesForGeographicAreas](ItuE164AssignedCountryCodesForGeographicAreas.md) | Country codes assigned by the ITU for geographic areas. |
 | [ItuE164AssignedCountryCodesForGlobalServices](ItuE164AssignedCountryCodesForGlobalServices.md) | Country codes assigned by the ITU for global services. |
 | [ItuE164AssignedCountryCodesForNetworks](ItuE164AssignedCountryCodesForNetworks.md) | Country codes assigned by the ITU for networks. |

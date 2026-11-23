@@ -7,7 +7,10 @@ namespace DataStandardizer.Communication.E164
     /// </summary>
     /// <remarks>
     /// ITU-T E.164 defines an international number as a string of decimal digits. With every style, the digits of the
-    /// number are consecutive: no white space, punctuation or other character may separate them.
+    /// number are consecutive: no white space, punctuation or other character may separate them. Of the standard
+    /// formats of <see cref="ItuE164InternationalNumber"/>, only the general format with no separators, <c>g</c>,
+    /// parses again, with <see cref="InternationalNumber"/>; formats that group the digits, such as the default
+    /// <c>G</c>, don't.
     /// </remarks>
     [Flags]
     public enum ItuE164InternationalNumberStyles : uint

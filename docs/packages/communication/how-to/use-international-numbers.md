@@ -92,7 +92,7 @@ format, you can attempt to parse the string without an exception being thrown if
 it fails:
 
 ```csharp
-var isValid = ItuE164InternationalNumber.TryParse(myNumberString, out var myNumber);
+var isValid = ItuE164InternationalNumber.TryParse(myNumberString, ItuE164InternationalNumberStyles.InternationalNumber, out var myNumber);
 ```
 
 It should be noted that when parsing a string to extract an international number,

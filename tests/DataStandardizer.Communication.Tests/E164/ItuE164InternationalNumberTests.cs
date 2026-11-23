@@ -2060,16 +2060,17 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().BeFalse();
         }
 
-        [Fact]
-        public void Parse_SpaceAndHyphenBetweenDigitsWithDefaultStyle_ThrowsFormatException()
+        [Theory]
+        [InlineData("44 307 123-4567", "The input string '44 307 123-4567' was not in a correct format.")]
+        public void Parse_SpaceAndHyphenBetweenDigitsWithDefaultStyle_ThrowsFormatException(string testNumber, string expectedMessage)
         {
             // act
-            Action testAction = () => _ = ItuE164InternationalNumber.Parse("44 307 123-4567");
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber);
 
             // assert
             testAction.Should()
                 .Throw<FormatException>()
-                .WithMessage("The input string '44 307 123-4567' was not in a correct format.");
+                .WithMessage(expectedMessage);
         }
 
         [Theory]
