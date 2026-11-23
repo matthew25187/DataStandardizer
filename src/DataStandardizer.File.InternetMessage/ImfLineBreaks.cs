@@ -25,11 +25,18 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="bytes">The bytes.</param>
         /// <param name="toCrLf"><c>true</c> to change them to CRLF, or <c>false</c> to change them to LF.</param>
         /// <returns>The changed bytes.</returns>
-        /// <exception cref="ImfFileException">The message has a <c>binary</c> entity.</exception>
+        /// <exception cref="ImfFileException">The message has a <c>binary</c> entity, or one with an extension mechanism: its
+        /// <see cref="ImfFileException.DataItemName.EntityPath"/> item says which, the last in the order of <see cref="ImfMessage.EnumerateEntities"/>, as an entity comes
+        /// before what it holds, so that it is one whose own content is labelled so, as an <see cref="ImfEntityWriter"/> reports it.</exception>
         internal static byte[] Convert(ImfMessage message, ReadOnlySpan<byte> bytes, bool toCrLf)
         {
-            if (HasOpaqueEntity(message.Body))
-                throw new ImfFileException(OpaqueEntityMessage);
+            var opaque = FindLastOpaqueEntity(message.Body);
+            if (!(opaque is null))
+            {
+                var exception = new ImfFileException(OpaqueEntityMessage);
+                exception.Data[ImfFileException.DataItemName.EntityPath] = GetPath(message, opaque);
+                throw exception;
+            }
 
             return ConvertLines(bytes, toCrLf);
         }
@@ -74,16 +81,26 @@ namespace DataStandardizer.File.InternetMessage
 #endif
         }
 
-        // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
-        private static bool HasOpaqueEntity(ImfEntity body)
+        // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.  The parts are pushed last first, so the entities are looked at in the
+        // order of ImfMessage.EnumerateEntities, without the cost of a path for each.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static ImfEntity? FindLastOpaqueEntity(ImfEntity body)
+#else
+        private static ImfEntity FindLastOpaqueEntity(ImfEntity body)
+#endif
         {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            ImfEntity? found = null;
+#else
+            ImfEntity found = null;
+#endif
             var pending = new Stack<ImfEntity>();
             pending.Push(body);
             while (pending.Count > 0)
             {
                 var entity = pending.Pop();
                 var encoding = entity.ContentTransferEncoding;
-                if (encoding == MimeTransferEncoding.Binary || !encoding.IsKnown) return true;
+                if (encoding == MimeTransferEncoding.Binary || !encoding.IsKnown) found = entity;
 
                 if (entity is ImfMessagePart messagePart)
                 {
@@ -91,14 +108,24 @@ namespace DataStandardizer.File.InternetMessage
                 }
                 else if (entity is ImfMultipart multipart)
                 {
-                    foreach (var part in multipart.Parts)
+                    for (var index = multipart.Parts.Count - 1; index >= 0; index--)
                     {
-                        pending.Push(part);
+                        pending.Push(multipart.Parts[index]);
                     }
                 }
             }
 
-            return false;
+            return found;
+        }
+
+        private static string GetPath(ImfMessage message, ImfEntity entity)
+        {
+            foreach (var node in message.EnumerateEntities())
+            {
+                if (ReferenceEquals(node.Entity, entity)) return node.Path;
+            }
+
+            return string.Empty;
         }
     }
 }

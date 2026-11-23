@@ -69,6 +69,7 @@ namespace DataStandardizer.File.InternetMessage
 #endif
     {
         private const int BlockSize = 16 * 1024;
+        private const string MessagePath = "";
 
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
         private static readonly byte[] Lf = { 0x0A };
@@ -599,7 +600,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             diagnostics = CheckConformance(message);
             message.Body.CheckChangedDepth(_options.MaxNestingDepth);
-            var source = message.Body.ToSource(_options, _lineBreak, _boundaryGenerator);
+            var source = message.Body.ToSource(_options, _lineBreak, _boundaryGenerator, MessagePath, true);
             source.IsTopLevelMessage = true;
             return source;
         }

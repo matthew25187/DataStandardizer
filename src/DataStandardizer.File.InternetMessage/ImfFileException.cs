@@ -30,7 +30,8 @@ namespace DataStandardizer.File.InternetMessage
             /// <summary>
             /// The path of the entity in which the problem was found, as a <see cref="string"/>, in the form that
             /// <see cref="ImfEntityEvent.EntityPath"/> describes.  Present only for a problem found by an <see cref="ImfEntityReader"/> or
-            /// <see cref="ImfEntityWriter"/>, or by the conformance checks of an <see cref="ImfReader"/> or <see cref="ImfWriter"/>.
+            /// <see cref="ImfEntityWriter"/>, by the conformance checks of an <see cref="ImfReader"/> or <see cref="ImfWriter"/>, or by a writer that can't change the line breaks of
+            /// an entity (RFC 2045 §2.9 and §6.3).
             /// </summary>
             public const string EntityPath = "EntityPath";
 
