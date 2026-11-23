@@ -76,6 +76,12 @@ namespace DataStandardizer.Communication.Tests.E164
         private const ItuE164InternationalNumberStyles UndefinedNumberStyles = (ItuE164InternationalNumberStyles)0x08;
         private const ItuE164InternationalNumberStyles UndefinedNumberStylesWithAny = (ItuE164InternationalNumberStyles)0x0F;
         private const ItuE164InternationalNumberStyles HighestUndefinedNumberStyles = (ItuE164InternationalNumberStyles)0x80000000;
+        private const string NumberStylesParameterName = "numberStyles";
+
+        // A number for a group of countries with a one-digit Subscriber Number: Country Code 388, Group Identification Code 3,
+        // Subscriber Number 1.
+        private const string OneSubscriberDigitGroupOfCountriesNumberText = "38831";
+        private const ulong OneSubscriberDigitGroupOfCountriesNumber = 38831L;
 
         // 800 is a Country Code for a global service, not a geographic area.
         private const ulong GlobalServiceCountryCodeNumber = 800123;
@@ -178,7 +184,11 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, UndefinedNumberStyles),
             () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, UndefinedNumberStylesWithAny),
-            () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, HighestUndefinedNumberStyles),
+            () => ItuE164InternationalNumber.Parse(GreatBritainNumberText, HighestUndefinedNumberStyles)
+        };
+
+        public static TheoryData<Action> TryParseCallsWithUndefinedNumberStyles => new TheoryData<Action>
+        {
             () => ItuE164InternationalNumber.TryParse(GreatBritainNumberText, UndefinedNumberStyles, out _),
             () => ItuE164InternationalNumber.TryParse(GreatBritainNumberText, UndefinedNumberStylesWithAny, out _),
             () => ItuE164InternationalNumber.TryParse(GreatBritainNumberText, HighestUndefinedNumberStyles, out _),
@@ -2215,6 +2225,17 @@ namespace DataStandardizer.Communication.Tests.E164
             ((IItuE164InternationalNumberForNetworks)testResult).SubscriberNumber.ToString().Should().Be(OneSubscriberDigitText);
         }
 
+        [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        public void TryParse_GroupOfCountriesNumberWithOneSubscriberDigit_ReturnsNumber()
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(OneSubscriberDigitGroupOfCountriesNumberText, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(OneSubscriberDigitGroupOfCountriesNumber);
+        }
+
         [Fact(Skip = NumberForTrialsSkipMessage)]
         public void TryParse_TrialNumberWithNoSubscriberNumber_ReturnsNumberWithNoSubscriberNumber()
         {
@@ -2260,7 +2281,20 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .ThrowExactly<ArgumentOutOfRangeException>()
-                .WithParameterName("numberStyles");
+                .WithParameterName(NumberStylesParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseCallsWithUndefinedNumberStyles))]
+        public void TryParse_UndefinedNumberStyles_ThrowsArgumentOutOfRangeException(Action tryParseCall)
+        {
+            // act
+            var testAction = tryParseCall;
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentOutOfRangeException>()
+                .WithParameterName(NumberStylesParameterName);
         }
 
         public class ParseTestCaseGenerator

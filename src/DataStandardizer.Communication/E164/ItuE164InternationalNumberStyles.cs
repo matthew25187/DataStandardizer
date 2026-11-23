@@ -11,6 +11,11 @@ namespace DataStandardizer.Communication.E164
     /// formats of <see cref="ItuE164InternationalNumber"/>, only the general format with no separators, <c>g</c>,
     /// parses again, with <see cref="InternationalNumber"/>; formats that group the digits, such as the default
     /// <c>G</c>, don't.
+    /// <para>
+    /// <see cref="ItuE164InternationalNumber.Parse(string, ItuE164InternationalNumberStyles)"/> and
+    /// <see cref="ItuE164InternationalNumber.TryParse(string, ItuE164InternationalNumberStyles, out ItuE164InternationalNumber)"/>
+    /// throw <see cref="ArgumentOutOfRangeException"/> for a value with a bit that no member of this enumeration defines.
+    /// </para>
     /// </remarks>
     [Flags]
     public enum ItuE164InternationalNumberStyles : uint
