@@ -63,6 +63,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         // The attachment of a message built with no text part, which is the first part.
         private const int OnlyAttachmentPartIndex = 0;
+        private const int OnlyReadPartIndex = 0;
         private const string BuiltDate = "Thu, 1 Jan 2026 00:00:00 +0000";
         private const string BuiltFrom = "a@b.test";
 
@@ -73,6 +74,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 3501 §6.4.5: the second part of a message held by the second part of a multipart message, and of one that is the body of a message.
         private const string HeldSecondPartPath = "2.2";
         private const string BodyMessageSecondPartPath = "1.2";
+        private const string HeldFirstPartPath = "2.1";
+        private const string BinaryMultipartInLineFeedFile = Separator + Header
+            + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b--\n\n";
         private const string DataFileName = "a.bin";
         private const string DataMediaType = "application/octet-stream";
 
@@ -1005,6 +1009,38 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var message = BuildForwarding(Mailboxes.ReadFirst(BinaryInLineFeedFile).Message, new ImfOptions());
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(SecondPartPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxWithABinaryPartInABinaryMultipartAttached_ThrowsWithThePathOfThePart()
+        {
+            // arrange
+            var message = BuildForwarding(Mailboxes.ReadFirst(BinaryMultipartInLineFeedFile).Message, new ImfOptions());
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(HeldFirstPartPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAMessageFromAMailboxWithNoPartsAttached_ThrowsWithThePathOfItsBody()
+        {
+            // arrange
+            var forwarded = Mailboxes.ReadFirst(MultipartInFile).Message;
+            ((ImfMultipart)forwarded.Body).Parts.RemoveAt(OnlyReadPartIndex);
+            var message = BuildForwarding(forwarded, new ImfOptions());
             using (var subject = new ImfWriter(new MemoryStream()))
             {
                 // act

@@ -132,7 +132,11 @@ namespace DataStandardizer.File.InternetMessage
         {
             var contentType = ContentType;
             if (!IsMessageType(contentType))
-                throw new ImfFileException("The Content-Type field of an entity that holds a message must be message/rfc822 or message/global.");
+            {
+                var exception = new ImfFileException("The Content-Type field of an entity that holds a message must be message/rfc822 or message/global.");
+                exception.Data[ImfFileException.DataItemName.EntityPath] = path;
+                throw exception;
+            }
 
             // A message that wasn't read in this entity was read on its own, or in another, so nothing in it was checked against the boundaries around this one.
             // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.

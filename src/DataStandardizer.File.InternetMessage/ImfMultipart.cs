@@ -173,7 +173,11 @@ namespace DataStandardizer.File.InternetMessage
             if (!string.Equals(contentType.Type, MimeTopLevelTypes.Multipart, StringComparison.OrdinalIgnoreCase))
                 throw new ImfFileException("The Content-Type field of a multipart entity must be of the top-level type multipart.");
             if (Parts.Count == 0)
-                throw new ImfFileException("A multipart entity must have at least one part (RFC 2046 §5.1.1).");
+            {
+                var exception = new ImfFileException("A multipart entity must have at least one part (RFC 2046 §5.1.1).");
+                exception.Data[ImfFileException.DataItemName.EntityPath] = path;
+                throw exception;
+            }
 
             var parts = new List<ImfEntitySource>(Parts.Count);
             for (var index = 0; index < Parts.Count; index++)
