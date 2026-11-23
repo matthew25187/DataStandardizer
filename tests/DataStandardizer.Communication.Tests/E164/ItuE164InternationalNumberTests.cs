@@ -2184,6 +2184,7 @@ namespace DataStandardizer.Communication.Tests.E164
         // ITU-T E.164 numbers are made of the decimal digits 0-9 only, so a Unicode decimal digit from another script isn't one.
         [Theory]
         [InlineData("44٣071234567", ItuE164InternationalNumberStyles.None),
+         // Guards the Country Code, which only ever matched assigned ASCII codes; the other rows guard the Subscriber Number.
          InlineData("٤٤3071234567", ItuE164InternationalNumberStyles.None),
          InlineData("+44٣٠٧1234567", ItuE164InternationalNumberStyles.Any),
          InlineData("+44307123456१", ItuE164InternationalNumberStyles.Any),
