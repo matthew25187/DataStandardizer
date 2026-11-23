@@ -14,8 +14,8 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string InvariantLongPattern = "+ccc iiiissssssssssssss";
         private const string InvariantShortPattern = "+ccciiiissssssssssssss";
 
-        // A number for a geographic area in Great Britain, country code 44, and that number in the invariant long and short
-        // international formats.
+        // An ITU-T E.164 international number for geographic areas, under country code 44, and that number in the
+        // invariant long and short international formats.
         private const ulong GreatBritainNumber = 443071234567L;
         private const string GreatBritainNumberInInvariantLongFormat = "+44 3071234567";
         private const string GreatBritainNumberInInvariantShortFormat = "+443071234567";
@@ -76,6 +76,36 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void LongInternationalNumberPattern_ReadOnlySetToNull_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
+
+            // act
+            Action testAction = () => testSubject.LongInternationalNumberPattern = null;
+
+            // assert
+            testAction.Should()
+                .Throw<InvalidOperationException>()
+                .WithMessage(ReadOnlyMessage);
+        }
+
+        [Fact]
+        public void ShortInternationalNumberPattern_ReadOnlySetToNull_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
+
+            // act
+            Action testAction = () => testSubject.ShortInternationalNumberPattern = null;
+
+            // assert
+            testAction.Should()
+                .Throw<InvalidOperationException>()
+                .WithMessage(ReadOnlyMessage);
         }
 
         [Fact]

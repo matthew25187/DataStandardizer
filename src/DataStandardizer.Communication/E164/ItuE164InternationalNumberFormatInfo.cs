@@ -14,8 +14,13 @@ namespace DataStandardizer.Communication.E164
     /// </remarks>
     public sealed class ItuE164InternationalNumberFormatInfo : IFormatProvider
     {
-        private string _longInternationalNumberPattern = GetInvariantPattern(nameof(LongInternationalNumberPattern));
-        private string _shortInternationalNumberPattern = GetInvariantPattern(nameof(ShortInternationalNumberPattern));
+        // The neutral resources hold the invariant patterns. They are looked up once, with the invariant culture rather than the
+        // current thread's UI culture, so that a satellite assembly can't stand in for them.
+        private static readonly string InvariantLongInternationalNumberPattern = GetInvariantPattern(nameof(LongInternationalNumberPattern));
+        private static readonly string InvariantShortInternationalNumberPattern = GetInvariantPattern(nameof(ShortInternationalNumberPattern));
+
+        private string _longInternationalNumberPattern = InvariantLongInternationalNumberPattern;
+        private string _shortInternationalNumberPattern = InvariantShortInternationalNumberPattern;
 
 #if NETCOREAPP3_0_OR_GREATER
         /// <inheritdoc/>
@@ -69,21 +74,21 @@ namespace DataStandardizer.Communication.E164
         /// <c>c</c>, <c>i</c> and <c>s</c> are always placeholders. A placeholder with no digit left to write writes nothing, and a
         /// number with a digit left over after the pattern can't be formatted with it. The default is the invariant pattern.
         /// </value>
-        /// <exception cref="ArgumentNullException">The property is being set to <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException">The property is being set to <c>null</c> and this format information isn't read-only.</exception>
         /// <exception cref="InvalidOperationException">The property is being set and this format information is read-only.</exception>
         public string LongInternationalNumberPattern
         {
             get => _longInternationalNumberPattern;
             set
             {
-                if (value == null)
-                {
-                    throw new ArgumentNullException(nameof(value));
-                }
-
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+                }
+
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
                 }
 
                 _longInternationalNumberPattern = value;
@@ -100,29 +105,27 @@ namespace DataStandardizer.Communication.E164
         /// <c>c</c>, <c>i</c> and <c>s</c> are always placeholders. A placeholder with no digit left to write writes nothing, and a
         /// number with a digit left over after the pattern can't be formatted with it. The default is the invariant pattern.
         /// </value>
-        /// <exception cref="ArgumentNullException">The property is being set to <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException">The property is being set to <c>null</c> and this format information isn't read-only.</exception>
         /// <exception cref="InvalidOperationException">The property is being set and this format information is read-only.</exception>
         public string ShortInternationalNumberPattern
         {
             get => _shortInternationalNumberPattern;
             set
             {
-                if (value == null)
-                {
-                    throw new ArgumentNullException(nameof(value));
-                }
-
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+                }
+
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
                 }
 
                 _shortInternationalNumberPattern = value;
             }
         }
 
-        // The neutral resources hold the invariant patterns. They are looked up with the invariant culture, not the current
-        // thread's UI culture, so that a satellite assembly can't stand in for them.
         private static string GetInvariantPattern(string name) =>
             Resources.ResourceManager.GetString(name, CultureInfo.InvariantCulture) ?? string.Empty;
     }

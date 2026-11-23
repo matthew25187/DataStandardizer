@@ -310,7 +310,7 @@ namespace DataStandardizer.Communication.E164
         /// </para>
         /// <para>
         /// A custom pattern, or the pattern of the <c>i</c> or <c>I</c> format, must have a placeholder for every digit of the
-        /// number, so that the result is always the same number.
+        /// number, so that every digit of each field is written. The pattern decides the order in which the fields are written.
         /// </para>
         /// </remarks>
         /// <exception cref="FormatException">
