@@ -1453,11 +1453,33 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("'10000' is not a valid Identification Code.*");
         }
 
+        // Identification Codes are assigned under one Country Code each (ITU-T list of E.164 assigned country codes,
+        // International Shared Country Codes): 6 to 9 under 881, two-digit codes under 882, and three- and four-digit
+        // codes under 883.
+        [Theory]
+        [InlineData(ItuE164AssignedCountryCodesForNetworks.GMSS, ItuE164AssignedIdentificationCodesForNetworks.IC110, "5550100", "Identification Code '110' is not assigned under Country Code '881'.*")]
+        [InlineData(ItuE164AssignedCountryCodesForNetworks.IN2, ItuE164AssignedIdentificationCodesForNetworks.IC37, "0555", "Identification Code '37' is not assigned under Country Code '883'.*")]
+        [InlineData(ItuE164AssignedCountryCodesForNetworks.IN1, ItuE164AssignedIdentificationCodesForNetworks.IC6, "1234567", "Identification Code '6' is not assigned under Country Code '882'.*")]
+        public void CreateNumberForNetwork_IdentificationCodeOfAnotherCountryCode_ThrowsArgumentException(ItuE164AssignedCountryCodesForNetworks countryCode, ItuE164AssignedIdentificationCodesForNetworks identificationCode, string subscriberNumberDigits, string expectedMessage)
+        {
+            // arrange
+            var subscriberNumber = new ItuE164SubscriberNumber(subscriberNumberDigits);
+
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
+
+            // assert
+            testAction.Should()
+                .ThrowExactly<ArgumentException>()
+                .WithMessage(expectedMessage)
+                .And.ParamName.Should().Be("identificationCode");
+        }
+
         [Fact]
         public void CreateNumberForNetwork_SubscriberNumberTooLong_ThrowsArgumentOutOfRangeException()
         {
             // arrange
-            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN1;
+            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN2;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC190;
             const ulong subscriberNumber = TwelveDigitSubscriberNumber;
 
@@ -1474,11 +1496,11 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForNetwork_CountryCodeAndIdentificationCodeAndSubscriberNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.GMSS;
+            const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN2;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC110;
             const ulong subscriberNumber = SubscriberNumber;
 
-            const ulong expectedResult = 8811101234567L;
+            const ulong expectedResult = 8831101234567L;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);

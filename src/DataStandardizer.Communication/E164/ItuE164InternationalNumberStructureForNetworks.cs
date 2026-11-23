@@ -29,6 +29,14 @@ namespace DataStandardizer.Communication.E164
         {
         }
 
+        /// <summary>
+        /// Returns whether <paramref name="identificationCode"/> is assigned under <paramref name="countryCode"/>.
+        /// </summary>
+        internal static bool IsIdentificationCodeAssigned(ItuE164AssignedCountryCodesForNetworks countryCode, ItuE164AssignedIdentificationCodesForNetworks identificationCode)
+        {
+            return IdentificationCodeLookup[(ushort)countryCode].Contains((ushort)identificationCode);
+        }
+
 #if NETCOREAPP3_0_OR_GREATER
         internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForNetworks? result)
 #else
