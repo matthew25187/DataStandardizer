@@ -23,6 +23,11 @@ namespace DataStandardizer.Communication.Tests.E164
 
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
+
+        // GlobalServiceNumber and NetworkNumber written with separators between the digits of their last field.
+        private const string GlobalServiceNumberWithSeparatorsText = "800 412-123.4567";
+        private const string NetworkNumberWithSeparatorsText = "883 110 123-4567";
+
         private const ulong GlobalSubscriberNumber = 8001234567L;
         private const ulong SubscriberNumber = 1234567L;
         private const ulong TwelveDigitSubscriberNumber = 123456789012L;
@@ -140,6 +145,16 @@ namespace DataStandardizer.Communication.Tests.E164
             { ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber), "+443071234567" },
             { ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber), "+8004121234567" },
             { ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber), "+8831101234567" },
+        };
+
+        // Numbers for a geographic area with Country Codes of one and two digits, a global service and a network, each written with
+        // separators between the digits of its last field, and the same numbers in the full general format.
+        public static TheoryData<string, string> NumbersParsedWithSeparators_TestCases => new TheoryData<string, string>
+        {
+            { "1-205-555-0199", "+1 2055550199" },
+            { "44 307 123 4567", GreatBritainNumberInGeneralFormat },
+            { GlobalServiceNumberWithSeparatorsText, "+800 4121234567" },
+            { NetworkNumberWithSeparatorsText, "+883 110 1234567" },
         };
 
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
@@ -1128,6 +1143,63 @@ namespace DataStandardizer.Communication.Tests.E164
                 .Throw<NotSupportedException>()
                 .WithMessage("This number does not support the Global Subscriber Number field.");
         }
+
+        [Fact]
+        public void NationalSignificantNumber_NumberParsedWithSeparators_ReturnsDigitsOnly()
+        {
+            // arrange
+            const string numberText = "44 307 123-4567";
+            const ulong nationalSignificantNumber = 3071234567L;
+            var testSubject = ItuE164InternationalNumber.Parse(numberText);
+
+            // act
+            var testResult = ((IItuE164InternationalNumberForGeographicAreas)testSubject).NationalSignificantNumber;
+
+            // assert
+            ((ulong)testResult).Should().Be(nationalSignificantNumber);
+        }
+
+        [Fact]
+        public void GlobalSubscriberNumber_NumberParsedWithSeparators_ReturnsDigitsOnly()
+        {
+            // arrange
+            const ulong globalSubscriberNumber = 4121234567L;
+            var testSubject = ItuE164InternationalNumber.Parse(GlobalServiceNumberWithSeparatorsText);
+
+            // act
+            var testResult = ((IItuE164InternationalNumberForGlobalServices)testSubject).GlobalSubscriberNumber;
+
+            // assert
+            ((ulong)testResult).Should().Be(globalSubscriberNumber);
+        }
+
+        [Fact]
+        public void SubscriberNumber_NetworkNumberParsedWithSeparators_ReturnsDigitsOnly()
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.Parse(NetworkNumberWithSeparatorsText);
+
+            // act
+            var testResult = ((IItuE164InternationalNumberForNetworks)testSubject).SubscriberNumber;
+
+            // assert
+            ((ulong)testResult).Should().Be(SubscriberNumber);
+        }
+
+        [Theory]
+        [MemberData(nameof(NumbersParsedWithSeparators_TestCases))]
+        public void ToString_NumberParsedWithSeparators_ReturnsSameTextAsNumberFromDigits(string numberText, string expectedResult)
+        {
+            // arrange
+            var testSubject = ItuE164InternationalNumber.Parse(numberText);
+
+            // act
+            var testResult = testSubject.ToString();
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
 
         // Calls to the ulong factories with numbers whose digits don't divide into the fields of the structure the factory creates.
         public static TheoryData<Action> UlongFactoryCallsWithInvalidNumber => new TheoryData<Action>
