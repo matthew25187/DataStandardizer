@@ -37,7 +37,7 @@ namespace DataStandardizer.Communication.E164
             // that follow a one-digit Country Code; the digit-count lookahead that starts the pattern enforces
             // the limit on the whole number for Country Codes of every length.
             return string.Concat(ComposePatternStart(2, numberStyles), "(?<", NumberPart.CountryCode, ">",
-                countryCodePattern, ")(?<", NumberPart.SubscriberNumber, @">\d{1,", MaximumDigitCount - 1, "})",
+                countryCodePattern, ")(?<", NumberPart.SubscriberNumber, ">", PatternDigit, "{1,", MaximumDigitCount - 1, "})",
                 ComposePatternEnd(numberStyles));
         }
 #if NETCOREAPP3_0_OR_GREATER

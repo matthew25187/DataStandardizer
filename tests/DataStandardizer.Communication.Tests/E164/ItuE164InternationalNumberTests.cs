@@ -2181,6 +2181,40 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Should().BeFalse();
         }
 
+        // ITU-T E.164 numbers are made of the decimal digits 0-9 only, so a Unicode decimal digit from another script isn't one.
+        [Theory]
+        [InlineData("44٣071234567", ItuE164InternationalNumberStyles.None),
+         // Guards the Country Code, which only ever matched assigned ASCII codes; the other rows guard the Subscriber Number.
+         InlineData("٤٤3071234567", ItuE164InternationalNumberStyles.None),
+         InlineData("+44٣٠٧1234567", ItuE164InternationalNumberStyles.Any),
+         InlineData("+44307123456१", ItuE164InternationalNumberStyles.Any),
+         InlineData("64２１２345678", ItuE164InternationalNumberStyles.None),
+         InlineData("800412123456٣", ItuE164InternationalNumberStyles.None),
+         InlineData("+8004121234567٣", ItuE164InternationalNumberStyles.Any),
+         InlineData("883110123456٣", ItuE164InternationalNumberStyles.None),
+         InlineData("+8831101234567٣", ItuE164InternationalNumberStyles.Any)]
+        public void TryParse_NonAsciiDecimalDigit_ReturnsFalse(string testNumber, ItuE164InternationalNumberStyles numberStyles)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, numberStyles, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("44٣٠٧1234567", "The input string '44٣٠٧1234567' was not in a correct format.")]
+        public void Parse_NonAsciiDecimalDigit_ThrowsFormatException(string testNumber, string expectedMessage)
+        {
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber);
+
+            // assert
+            testAction.Should()
+                .Throw<FormatException>()
+                .WithMessage(expectedMessage);
+        }
+
         [Fact]
         public void TryParse_NetworkNumberWithOneSubscriberDigit_ReturnsNumber()
         {
