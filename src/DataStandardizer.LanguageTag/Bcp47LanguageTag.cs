@@ -1025,12 +1025,12 @@ namespace DataStandardizer.LanguageTag
         internal static int IndexOfRepeatedVariantSubtag([DisallowNull] string[] variantSubtags)
 #endif
         {
-            for (var index = 1; index < variantSubtags.Length; index++)
+            if (variantSubtags.Length < 2) return -1;
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var index = 0; index < variantSubtags.Length; index++)
             {
-                for (var earlierIndex = 0; earlierIndex < index; earlierIndex++)
-                {
-                    if (string.Equals(variantSubtags[index], variantSubtags[earlierIndex], StringComparison.OrdinalIgnoreCase)) return index;
-                }
+                if (!seen.Add(variantSubtags[index])) return index;
             }
 
             return -1;

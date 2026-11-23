@@ -49,6 +49,21 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string RepeatedSingleton = "en-a-bb-a-cc";
 
         /// <summary>
+        /// Ten distinct variant subtags (RFC 5646 §2.1, §2.2.5), more than a tag usually has. Pairs differ only in a leading digit or a trailing letter.
+        /// </summary>
+        private const string ManyDistinctVariants = "de-1901-01901-aaaaa-aaaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg";
+
+        /// <summary>
+        /// Ten variant subtags whose tenth repeats the second (RFC 5646 §2.2.5¶5).
+        /// </summary>
+        private const string RepeatedVariantAfterManyVariants = "de-aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg-hhhhh-iiiii-bbbbb";
+
+        /// <summary>
+        /// Ten variant subtags whose tenth repeats the second in upper case, the same subtag compared case-insensitively (RFC 5646 §2.1.1, §2.2.5¶5).
+        /// </summary>
+        private const string RepeatedVariantInOtherCaseAfterManyVariants = "de-aaaaa-bbbbb-ccccc-ddddd-eeeee-fffff-ggggg-hhhhh-iiiii-BBBBB";
+
+        /// <summary>
         /// A singleton followed by a one-character subtag, where <c>extension = singleton 1*("-" (2*8alphanum))</c> requires two to eight (RFC 5646 §2.1).
         /// </summary>
         private const string SingletonWithOneCharacterSubtag = "en-a-x-a-y";
@@ -229,7 +244,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> RepeatedSubtagLanguageTags => new TheoryData<string>
         {
-            RepeatedVariant, RepeatedSingleton
+            RepeatedVariant, RepeatedSingleton, RepeatedVariantAfterManyVariants, RepeatedVariantInOtherCaseAfterManyVariants
         };
 
         /// <summary>
@@ -246,7 +261,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public static TheoryData<string> InIsoCodeListsLanguageTags => new TheoryData<string>
         {
             EnglishUnitedStates, KlingonGrandfathered, PrivateUseOneLetter, AsturianThreeLetterCode, HawaiianThreeLetterCode, MultipleLanguagesCode, UndeterminedLanguageCode,
-            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, SerboCroatianThreeLetterCode, UncodedScript
+            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, SerboCroatianThreeLetterCode, UncodedScript, ManyDistinctVariants
         };
 
         /// <summary>
