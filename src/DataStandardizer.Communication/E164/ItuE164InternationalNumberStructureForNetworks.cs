@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -45,7 +44,7 @@ namespace DataStandardizer.Communication.E164
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var identificationCodePart = parseMatch.Groups[NumberPart.IdentificationCode].Value;
                 var subscriberNumberPart = RemoveSeparators(parseMatch.Groups[NumberPart.SubscriberNumber].Value);
-                var concatenatedParts = Regex.Replace(countryCodePart + identificationCodePart + subscriberNumberPart, @"\D", string.Empty);
+                var concatenatedParts = countryCodePart + identificationCodePart + subscriberNumberPart;
                 var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForNetworks(number)
                 {

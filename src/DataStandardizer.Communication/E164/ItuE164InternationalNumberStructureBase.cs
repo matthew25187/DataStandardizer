@@ -24,6 +24,7 @@ namespace DataStandardizer.Communication.E164
 
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
         private static readonly object ParseExpressionsLock = new object();
+        private static readonly Regex SeparatorExpression = new Regex(string.Concat("[", PatternSeparatorCharacterClass, "]"));
 
         protected internal ItuE164InternationalNumberStructureBase(ulong number)
         {
@@ -116,7 +117,7 @@ namespace DataStandardizer.Communication.E164
         /// </summary>
         protected static string RemoveSeparators(string part)
         {
-            return Regex.Replace(part, string.Concat("[", PatternSeparatorCharacterClass, "]"), string.Empty);
+            return SeparatorExpression.Replace(part, string.Empty);
         }
 
         /// <summary>

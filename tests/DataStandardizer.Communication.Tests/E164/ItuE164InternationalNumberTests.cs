@@ -23,6 +23,11 @@ namespace DataStandardizer.Communication.Tests.E164
 
         private const ulong GlobalServiceNumber = 8004121234567L;
         private const ulong NetworkNumber = 8831101234567L;
+
+        // GlobalServiceNumber and NetworkNumber written with separators between the digits of their last field.
+        private const string GlobalServiceNumberWithSeparatorsText = "800 412-123.4567";
+        private const string NetworkNumberWithSeparatorsText = "883 110 123-4567";
+
         private const ulong GlobalSubscriberNumber = 8001234567L;
         private const ulong SubscriberNumber = 1234567L;
         private const ulong TwelveDigitSubscriberNumber = 123456789012L;
@@ -148,8 +153,8 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             { "1-205-555-0199", "+1 2055550199" },
             { "44 307 123 4567", GreatBritainNumberInGeneralFormat },
-            { "800 412-123.4567", "+800 4121234567" },
-            { "883 110 123-4567", "+883 110 1234567" },
+            { GlobalServiceNumberWithSeparatorsText, "+800 4121234567" },
+            { NetworkNumberWithSeparatorsText, "+883 110 1234567" },
         };
 
         public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
@@ -1158,9 +1163,8 @@ namespace DataStandardizer.Communication.Tests.E164
         public void GlobalSubscriberNumber_NumberParsedWithSeparators_ReturnsDigitsOnly()
         {
             // arrange
-            const string numberText = "800 412-123.4567";
             const ulong globalSubscriberNumber = 4121234567L;
-            var testSubject = ItuE164InternationalNumber.Parse(numberText);
+            var testSubject = ItuE164InternationalNumber.Parse(GlobalServiceNumberWithSeparatorsText);
 
             // act
             var testResult = ((IItuE164InternationalNumberForGlobalServices)testSubject).GlobalSubscriberNumber;
@@ -1173,8 +1177,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void SubscriberNumber_NetworkNumberParsedWithSeparators_ReturnsDigitsOnly()
         {
             // arrange
-            const string numberText = "883 110 123-4567";
-            var testSubject = ItuE164InternationalNumber.Parse(numberText);
+            var testSubject = ItuE164InternationalNumber.Parse(NetworkNumberWithSeparatorsText);
 
             // act
             var testResult = ((IItuE164InternationalNumberForNetworks)testSubject).SubscriberNumber;
