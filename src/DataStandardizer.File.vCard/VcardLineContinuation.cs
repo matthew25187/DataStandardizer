@@ -38,6 +38,9 @@ namespace DataStandardizer.File.vCard
         private int _physicalLineStart;
         private int _physicalLineEnd;
 
+        // The length of the longest physical line of the logical line so far.
+        private int _longestPhysicalLine;
+
         internal VcardLineContinuation(VcardLexicalState state, bool acceptLegacySyntax, bool acceptRfc6350FoldsInVersion21)
         {
             _state = state;
@@ -50,10 +53,10 @@ namespace DataStandardizer.File.vCard
         /// the line's value isn't quoted-printable.
         /// </summary>
         /// <remarks>
-        /// Each physical line from the one on which the value starts is counted whole, with the property name and parameters on the first.  A physical line that
-        /// ends the data without a line break isn't counted.
+        /// Each physical line of the logical line is counted whole, including those with the property name and parameters.  A physical line that ends the data
+        /// without a line break isn't counted.
         /// </remarks>
-        internal int LongestQuotedPrintableLine { get; private set; }
+        internal int LongestQuotedPrintableLine => _kind == ValueKind.QuotedPrintable ? _longestPhysicalLine : 0;
 
         /// <inheritdoc/>
         public ContentLineContinuationKind GetContinuation(ReadOnlySpan<char> line, int physicalLineStart, out int dataLength)
@@ -68,6 +71,7 @@ namespace DataStandardizer.File.vCard
                 _searchPosition = 0;
                 _followsFold = false;
                 _nextFollowsFold = false;
+                _longestPhysicalLine = 0;
             }
             else if (physicalLineStart != _physicalLineStart || line.Length != _physicalLineEnd)
             {
@@ -77,6 +81,7 @@ namespace DataStandardizer.File.vCard
             _physicalLineStart = physicalLineStart;
             _physicalLineEnd = line.Length;
 
+            MeasurePhysicalLine(line, physicalLineStart);
             if (_kind == ValueKind.NotFound)
             {
                 FindValue(line);
@@ -85,8 +90,6 @@ namespace DataStandardizer.File.vCard
             switch (_kind)
             {
                 case ValueKind.QuotedPrintable:
-                    MeasureQuotedPrintableLine(line, physicalLineStart);
-
                     // ref. vCard 2.1 §2.1.3 and RFC 2045 §6.7 rule 5.  What the next line starts with is data, so no fold can follow.
                     int quotedPrintableLength;
                     if (!MimeQuotedPrintable.EndsWithSoftLineBreak(line.Slice(_valueOffset), out quotedPrintableLength))
@@ -117,21 +120,22 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         internal void StartLine()
         {
-            LongestQuotedPrintableLine = 0;
+            _kind = ValueKind.NotFound;
+            _longestPhysicalLine = 0;
         }
 
         /// <summary>
-        /// Notes the length of the physical line just ended, if the value has started by its end.  ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be
+        /// Notes the length of the physical line just ended, which counts if the value turns out to be quoted-printable.  ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be
         /// limited to less than 76 characters.  The 76 characters does not include the CRLF (RFC 822) line break sequence."
         /// </summary>
-        private void MeasureQuotedPrintableLine(ReadOnlySpan<char> line, int physicalLineStart)
+        private void MeasurePhysicalLine(ReadOnlySpan<char> line, int physicalLineStart)
         {
             var physicalLength = line.Length - physicalLineStart;
 
             // A fold by the rule of RFC 6350 §3.2 removed the white space that started the physical line, as well as the line break.
             if (_followsFold && (!_state.IsVersion21 || _acceptRfc6350FoldsInVersion21)) physicalLength++;
 
-            if (physicalLength > LongestQuotedPrintableLine) LongestQuotedPrintableLine = physicalLength;
+            if (physicalLength > _longestPhysicalLine) _longestPhysicalLine = physicalLength;
         }
 
         /// <summary>

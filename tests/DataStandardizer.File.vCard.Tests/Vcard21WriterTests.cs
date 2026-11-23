@@ -352,6 +352,28 @@ namespace DataStandardizer.File.vCard.Tests
             testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
         }
 
+        // ref. vCard 2.1 §2.1.3: a line of more than 75 characters, which a property kept as it was read, such as a URL, keeps until it is written.
+        private const string LongQuotedPrintableUrlLine = "X-FOO;VALUE=URL;ENCODING=QUOTED-PRINTABLE:http://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        [Fact]
+        public void WriteCard_QuotedPrintableReadFromLongLineWithAllowInvalidValues_BreaksItWithSoftLineBreaks()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card(LongQuotedPrintableUrlLine), AllowInvalidValues);
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be(VcardTestData.Crlf(
+                "BEGIN:VCARD",
+                "VERSION:2.1",
+                "N:Doe;Jane;;;",
+                "X-FOO;VALUE=URL;ENCODING=QUOTED-PRINTABLE:http://example.com/aaaaaaaaaaaaa=",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "END:VCARD"));
+        }
+
         [Fact]
         public void Validate_UndecodableQuotedPrintableEndingWithSoftLineBreakAsVersion21_ReportsInvalidStructure()
         {

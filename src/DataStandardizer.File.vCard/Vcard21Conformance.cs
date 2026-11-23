@@ -65,6 +65,21 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Checks the physical lines on which the <c>QUOTED-PRINTABLE</c> values of a card were read.  Only a reader checks this, since a writer breaks every
+        /// quoted-printable value into lines short enough, whatever lines it was read from.
+        /// </summary>
+        internal static void ValidateQuotedPrintableLines(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found)
+        {
+            foreach (var line in lines)
+            {
+                if (line.LongestQuotedPrintableLine <= MaxQuotedPrintableLineLength) continue;
+
+                Add(found, VcardDiagnosticKind.InvalidValue, Format("The QUOTED-PRINTABLE value of {0} is on a line of {1} characters, and vCard 2.1 §2.1.3 limits a quoted-printable line " +
+                    "to less than 76.", line.Name, line.LongestQuotedPrintableLine), line, card);
+            }
+        }
+
+        /// <summary>
         /// Gets whether vCard 2.1 defines a property, other than the <c>BEGIN</c>, <c>VERSION</c> and <c>END</c> that a writer writes.
         /// </summary>
         internal static bool IsDefinedProperty(string name)
@@ -247,12 +262,6 @@ namespace DataStandardizer.File.vCard
                 Add(found, VcardDiagnosticKind.InvalidStructure, Format("The QUOTED-PRINTABLE value of {0} can't be decoded and ends with an = that a reader would take for a soft line break, " +
                     "so it can't be written.", line.Name), line, card);
                 return;
-            }
-
-            if (line.LongestQuotedPrintableLine > MaxQuotedPrintableLineLength)
-            {
-                Add(found, VcardDiagnosticKind.InvalidValue, Format("The QUOTED-PRINTABLE value of {0} is on a line of {1} characters, and vCard 2.1 §2.1.3 limits a quoted-printable line " +
-                    "to less than 76.", line.Name, line.LongestQuotedPrintableLine), line, card);
             }
 
             if (!IsValidValue(line, isDefined))

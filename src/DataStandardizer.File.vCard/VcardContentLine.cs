@@ -121,8 +121,8 @@ namespace DataStandardizer.File.vCard
         internal int CardIndex => _cardIndex;
 
         /// <summary>
-        /// Gets the length, not counting its line break, of the longest physical line on which the line's <c>QUOTED-PRINTABLE</c> value was read; or 0 if the
-        /// line wasn't read from data, or its value wasn't quoted-printable.  A copy with another value has 0.
+        /// Gets the length, not counting its line break, of the longest physical line the line was read from, if its value is <c>QUOTED-PRINTABLE</c>; or 0 if
+        /// the line wasn't read from data, or its value wasn't quoted-printable.  A copy with another value has 0.
         /// </summary>
         internal int LongestQuotedPrintableLine { get; private set; }
 
