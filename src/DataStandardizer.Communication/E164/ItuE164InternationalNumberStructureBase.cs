@@ -111,6 +111,15 @@ namespace DataStandardizer.Communication.E164
         }
 
         /// <summary>
+        /// Removes the separators that a parse pattern allows between the digits of <paramref name="part"/>, so
+        /// that a field built from the part holds only its digits.
+        /// </summary>
+        protected static string RemoveSeparators(string part)
+        {
+            return Regex.Replace(part, string.Concat("[", PatternSeparatorCharacterClass, "]"), string.Empty);
+        }
+
+        /// <summary>
         /// Composes the end of a parse pattern: the trailing white space that <paramref name="numberStyles"/>
         /// allows, and the anchor at the end of the input.
         /// </summary>

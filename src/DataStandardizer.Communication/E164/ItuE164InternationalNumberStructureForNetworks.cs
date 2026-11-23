@@ -44,7 +44,7 @@ namespace DataStandardizer.Communication.E164
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var identificationCodePart = parseMatch.Groups[NumberPart.IdentificationCode].Value;
-                var subscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
+                var subscriberNumberPart = RemoveSeparators(parseMatch.Groups[NumberPart.SubscriberNumber].Value);
                 var concatenatedParts = Regex.Replace(countryCodePart + identificationCodePart + subscriberNumberPart, @"\D", string.Empty);
                 var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForNetworks(number)
