@@ -37,7 +37,7 @@ namespace DataStandardizer.Communication.E164
             // that follow a one-digit Country Code; the digit-count lookahead that starts the pattern enforces
             // the limit on the whole number for Country Codes of every length.
             return string.Concat(ComposePatternStart(2, numberStyles), "(?<", NumberPart.CountryCode, ">",
-                countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){0,", MaximumDigitCount - 2, "})",
+                countryCodePattern, ")(?<", NumberPart.SubscriberNumber, @">\d{1,", MaximumDigitCount - 1, "})",
                 ComposePatternEnd(numberStyles));
         }
 #if NETCOREAPP3_0_OR_GREATER
@@ -53,7 +53,7 @@ namespace DataStandardizer.Communication.E164
             if (parseMatch.Success)
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
-                var nationalSignificantNumberPart = RemoveSeparators(parseMatch.Groups[NumberPart.SubscriberNumber].Value);
+                var nationalSignificantNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
                 var concatenatedParts = countryCodePart + nationalSignificantNumberPart;
                 var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForGeographicAreas(number)

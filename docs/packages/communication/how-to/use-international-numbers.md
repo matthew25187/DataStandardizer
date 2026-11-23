@@ -70,16 +70,19 @@ a string to extract the number so it can be stored in an
 `ItuE164InternationalNumber` type variable.
 
 ```csharp
-var myNumberString = "+1 205 555-0199";
-var myNumber = ItuE164InternationalNumber.Parse(myNumberString);
+var myNumberString = "+12055550199";
+var myNumber = ItuE164InternationalNumber.Parse(myNumberString, ItuE164InternationalNumberStyles.InternationalNumber);
 ```
 
 This method will throw an exception if the input string does not contain an
 international number in a format it recognises.
 
-Valid formats for numbers stored in strings permit the use of an optional
-international prefix symbol (the "+" sign) and spacing or separator characters
-between groups of digits. The international number to be extracted must comprise
+An E.164 number is a string of digits, and by default the string must be the
+digits alone. The `ItuE164InternationalNumberStyles` flags allow an
+international prefix symbol (the "+" sign) and leading or trailing white space.
+No style allows spaces, hyphens or other characters between the digits, so
+remove any grouping before you parse a number written for display, such as
+`+1 205 555-0199`. The international number to be extracted must comprise
 the entirety of the string; the parsing methods provided by the
 `ItuE164InternationalNumber` type are not intended to be used to find
 international numbers embedded within a larger string.

@@ -5,12 +5,16 @@ namespace DataStandardizer.Communication.E164
     /// <summary>
     /// Specifies the styles that can be used when parsing ITU E.164 international numbers.
     /// </summary>
+    /// <remarks>
+    /// ITU-T E.164 defines an international number as a string of decimal digits. With every style, the digits of the
+    /// number are consecutive: no white space, punctuation or other character may separate them.
+    /// </remarks>
     [Flags]
     public enum ItuE164InternationalNumberStyles : uint
     {
         /// <summary>
-        /// No styles are allowed: the number is parsed strictly, with no international prefix symbol and no leading or
-        /// trailing white space.
+        /// No styles are allowed: the number is parsed strictly, as digits only, with no international prefix symbol
+        /// and no leading or trailing white space.
         /// </summary>
         None,
 
