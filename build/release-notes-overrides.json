@@ -1,6 +1,25 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "3357ecc9aba261abd463275c98fe2f9053a2bed4": {
+      "subject": "MimeCharset.TryGetDefault gives no default character set for text/*+xml types, so ImfEntity.GetText throws for one with no charset parameter instead of decoding it as US-ASCII (#1167)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`MimeCharset.TryGetDefault` returns `false` for a `text` subtype with the `+xml` suffix, such as `text/foo+xml`, which has no default character set (RFC 7303 §4.2), instead of giving `US-ASCII`",
+          "packages": [
+            "DataStandardizer.Communication"
+          ]
+        },
+        {
+          "category": "breaking",
+          "text": "`ImfEntity.GetText` throws `ImfFileException` for a `text` entity with the `+xml` suffix, such as `text/foo+xml`, and no `charset` parameter, instead of decoding it as US-ASCII. These types have no default character set (RFC 7303 §4.2), so read `GetContent` and find it as XML says.",
+          "packages": [
+            "DataStandardizer.File.InternetMessage"
+          ]
+        }
+      ]
+    },
     "d1b4b6928ccb76cbf16c5d5338edfd2365f14a17": {
       "subject": "MimeParameter compares access-type values case-insensitively, accepts apostrophes in quoted extended values, and formats a default instance as empty (#1153)",
       "notes": [
