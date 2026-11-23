@@ -241,6 +241,7 @@ namespace DataStandardizer.Communication.E164
         /// The number is formatted with <see cref="TelephonyInfo.InvariantTelephony"/>, which supplies both the formatter
         /// and the patterns of the <c>i</c> and <c>I</c> formats, so the result doesn't depend on the culture of the current thread.
         /// </remarks>
+        /// <exception cref="FormatException">The pattern doesn't have a placeholder for every digit of the number.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(string? format)
 #else
@@ -304,9 +305,17 @@ namespace DataStandardizer.Communication.E164
         /// international pattern. Any other format, including a longer one that begins with one of those letters, is a custom
         /// pattern, in which <c>+</c> is the international prefix symbol, each <c>c</c> a digit of the country code, each
         /// <c>i</c> a digit of the identification code, each <c>s</c> a digit of the subscriber number, and any other character
-        /// is copied as it stands. A format that is only white space is the default format, not a custom pattern.
+        /// is copied as it stands. The letters <c>c</c>, <c>i</c> and <c>s</c> are always placeholders. A placeholder with no
+        /// digit left to write writes nothing. A format that is only white space is the default format, not a custom pattern.
+        /// </para>
+        /// <para>
+        /// A custom pattern, or the pattern of the <c>i</c> or <c>I</c> format, must have a placeholder for every digit of the
+        /// number, so that the result is always the same number.
         /// </para>
         /// </remarks>
+        /// <exception cref="FormatException">
+        /// The built-in formatter is used, and the pattern doesn't have a placeholder for every digit of the number.
+        /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(string? format, IFormatProvider? formatProvider)
 #else

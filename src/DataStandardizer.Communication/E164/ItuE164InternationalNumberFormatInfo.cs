@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace DataStandardizer.Communication.E164
 {
@@ -8,10 +9,13 @@ namespace DataStandardizer.Communication.E164
     /// to define and manage the formatting of international and national numbers, 
     /// including patterns for long and short formats.
     /// </summary>
+    /// <remarks>
+    /// A new instance has the invariant patterns, those of <see cref="TelephonyInfo.InvariantTelephony"/>, until they are set.
+    /// </remarks>
     public sealed class ItuE164InternationalNumberFormatInfo : IFormatProvider
     {
-        private string _longInternationalNumberPattern = string.Empty;
-        private string _shortInternationalNumberPattern = string.Empty;
+        private string _longInternationalNumberPattern = GetInvariantPattern(nameof(LongInternationalNumberPattern));
+        private string _shortInternationalNumberPattern = GetInvariantPattern(nameof(ShortInternationalNumberPattern));
 
 #if NETCOREAPP3_0_OR_GREATER
         /// <inheritdoc/>
@@ -61,15 +65,22 @@ namespace DataStandardizer.Communication.E164
         /// <value>
         /// A custom pattern, in which <c>+</c> is the
         /// international prefix symbol, each <c>c</c> a digit of the country code, each <c>i</c> a digit of the identification
-        /// code, each <c>s</c> a digit of the subscriber number, and any other character is copied as it stands. A placeholder
-        /// with no digit left to write writes nothing.
+        /// code, each <c>s</c> a digit of the subscriber number, and any other character is copied as it stands. The letters
+        /// <c>c</c>, <c>i</c> and <c>s</c> are always placeholders. A placeholder with no digit left to write writes nothing, and a
+        /// number with a digit left over after the pattern can't be formatted with it. The default is the invariant pattern.
         /// </value>
+        /// <exception cref="ArgumentNullException">The property is being set to <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The property is being set and this format information is read-only.</exception>
         public string LongInternationalNumberPattern
         {
             get => _longInternationalNumberPattern;
             set
             {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
@@ -85,15 +96,22 @@ namespace DataStandardizer.Communication.E164
         /// <value>
         /// A custom pattern, in which <c>+</c> is the
         /// international prefix symbol, each <c>c</c> a digit of the country code, each <c>i</c> a digit of the identification
-        /// code, each <c>s</c> a digit of the subscriber number, and any other character is copied as it stands. A placeholder
-        /// with no digit left to write writes nothing.
+        /// code, each <c>s</c> a digit of the subscriber number, and any other character is copied as it stands. The letters
+        /// <c>c</c>, <c>i</c> and <c>s</c> are always placeholders. A placeholder with no digit left to write writes nothing, and a
+        /// number with a digit left over after the pattern can't be formatted with it. The default is the invariant pattern.
         /// </value>
+        /// <exception cref="ArgumentNullException">The property is being set to <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The property is being set and this format information is read-only.</exception>
         public string ShortInternationalNumberPattern
         {
             get => _shortInternationalNumberPattern;
             set
             {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 if (IsReadOnly)
                 {
                     throw new InvalidOperationException($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
@@ -102,5 +120,10 @@ namespace DataStandardizer.Communication.E164
                 _shortInternationalNumberPattern = value;
             }
         }
+
+        // The neutral resources hold the invariant patterns. They are looked up with the invariant culture, not the current
+        // thread's UI culture, so that a satellite assembly can't stand in for them.
+        private static string GetInvariantPattern(string name) =>
+            Resources.ResourceManager.GetString(name, CultureInfo.InvariantCulture) ?? string.Empty;
     }
 }

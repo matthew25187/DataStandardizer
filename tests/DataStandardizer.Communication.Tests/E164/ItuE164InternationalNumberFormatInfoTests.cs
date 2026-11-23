@@ -10,6 +10,87 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string ReadOnlyMessage = "ItuE164InternationalNumberFormatInfo is read only.";
         private const string LongPattern = "++#-###-#######";
 
+        // The package's neutral patterns, from its Resources.resx.
+        private const string InvariantLongPattern = "+ccc iiiissssssssssssss";
+        private const string InvariantShortPattern = "+ccciiiissssssssssssss";
+
+        // A number for a geographic area in Great Britain, country code 44, and that number in the invariant long and short
+        // international formats.
+        private const ulong GreatBritainNumber = 443071234567L;
+        private const string GreatBritainNumberInInvariantLongFormat = "+44 3071234567";
+        private const string GreatBritainNumberInInvariantShortFormat = "+443071234567";
+
+        private const string LongInternationalFormat = "I";
+        private const string ShortInternationalFormat = "i";
+
+        [Fact]
+        public void LongInternationalNumberPattern_NewInstance_ReturnsInvariantPattern()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo();
+
+            // act
+            var testResult = testSubject.LongInternationalNumberPattern;
+
+            // assert
+            testResult.Should().Be(InvariantLongPattern);
+        }
+
+        [Fact]
+        public void ShortInternationalNumberPattern_NewInstance_ReturnsInvariantPattern()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo();
+
+            // act
+            var testResult = testSubject.ShortInternationalNumberPattern;
+
+            // assert
+            testResult.Should().Be(InvariantShortPattern);
+        }
+
+        [Theory]
+        [InlineData(LongInternationalFormat, GreatBritainNumberInInvariantLongFormat),
+         InlineData(ShortInternationalFormat, GreatBritainNumberInInvariantShortFormat)]
+        public void ToString_NewInstanceAsFormatProvider_ReturnsNumberInInvariantFormat(string format, string expectedResult)
+        {
+            // arrange
+            var formatProvider = new ItuE164InternationalNumberFormatInfo();
+            var number = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
+
+            // act
+            var testResult = number.ToString(format, formatProvider);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Fact]
+        public void LongInternationalNumberPattern_SetToNull_ThrowsArgumentNullException()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo();
+
+            // act
+            Action testAction = () => testSubject.LongInternationalNumberPattern = null;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void ShortInternationalNumberPattern_SetToNull_ThrowsArgumentNullException()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo();
+
+            // act
+            Action testAction = () => testSubject.ShortInternationalNumberPattern = null;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
+        }
+
         [Fact]
         public void GetFormat_ForItuE164InternationalNumberFormatInfo_ReturnsInternationalNumberFormatInfo()
         {

@@ -137,6 +137,36 @@ namespace DataStandardizer.Communication.Tests
             testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(NeutralShortPattern);
         }
 
+        // The UI culture's resources hold Australian patterns, which a country without region resources must not get in place of the
+        // neutral ones.
+        [Theory]
+        [MemberData(nameof(UnitedStatesConstructors))]
+        public void Constructor_CountryWithoutRegionResourcesAndUICultureResources_LoadsNeutralLongInternationalNumberPattern(Func<ResourceManager, TelephonyInfo> createTelephony)
+        {
+            // arrange
+            var resources = CreateResourcesWithUICulturePatterns(AustralianLongPattern, AustralianShortPattern);
+
+            // act
+            var testResult = createTelephony(resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.LongInternationalNumberPattern.Should().Be(NeutralLongPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(UnitedStatesConstructors))]
+        public void Constructor_CountryWithoutRegionResourcesAndUICultureResources_LoadsNeutralShortInternationalNumberPattern(Func<ResourceManager, TelephonyInfo> createTelephony)
+        {
+            // arrange
+            var resources = CreateResourcesWithUICulturePatterns(AustralianLongPattern, AustralianShortPattern);
+
+            // act
+            var testResult = createTelephony(resources);
+
+            // assert
+            testResult.ItuE164InternationalNumberFormat.ShortInternationalNumberPattern.Should().Be(NeutralShortPattern);
+        }
+
         // Language tags are case-insensitive (RFC 5646, section 2.1.1), so a lowercase alpha-2 region subtag names a country too.
         [Theory]
         [InlineData(AustralianEnglish), InlineData(LowercaseAustralianEnglish)]
@@ -327,6 +357,14 @@ namespace DataStandardizer.Communication.Tests
                 AustralianEnglish,
                 new Dictionary<string, string> { [LongPatternResourceName] = regionLongPattern },
                 CreateNeutralPatterns());
+
+        // Resources that hold nothing for any region, the neutral patterns, and the given patterns for the current thread's UI culture.
+        private static RegionResourceManager CreateResourcesWithUICulturePatterns(string uiCultureLongPattern, string uiCultureShortPattern) =>
+            new RegionResourceManager(
+                AustralianEnglish,
+                new Dictionary<string, string>(),
+                CreateNeutralPatterns(),
+                new Dictionary<string, string> { [LongPatternResourceName] = uiCultureLongPattern, [ShortPatternResourceName] = uiCultureShortPattern });
 
         private static Dictionary<string, string> CreateNeutralPatterns() =>
             new Dictionary<string, string> { [LongPatternResourceName] = NeutralLongPattern, [ShortPatternResourceName] = NeutralShortPattern };

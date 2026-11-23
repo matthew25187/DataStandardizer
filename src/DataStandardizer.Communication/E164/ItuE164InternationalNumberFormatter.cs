@@ -15,7 +15,9 @@ namespace DataStandardizer.Communication.E164
     /// ITU E.164 international numbers. It supports multiple formats, including abbreviated, full, short, 
     /// and long international formats, as well as custom formats defined by the user.
     /// A standard format is exactly one of the letters <c>g</c>, <c>G</c>, <c>i</c> and <c>I</c>; a null, empty or white-space
-    /// format is <c>G</c>; and any other format is a custom pattern.
+    /// format is <c>G</c>; and any other format is a custom pattern. A pattern that doesn't have a placeholder for every digit of
+    /// the number throws <see cref="FormatException"/>. An argument that isn't an <see cref="ItuE164InternationalNumber"/> is
+    /// formatted with the culture of the current thread.
     /// </remarks>
     internal sealed class ItuE164InternationalNumberFormatter : ICustomFormatter
     {
@@ -200,6 +202,15 @@ namespace DataStandardizer.Communication.E164
                 }
             }
 
+            // A pattern with fewer placeholders for a field than the field has digits would write a different number, so it is
+            // refused rather than writing the number without them.
+            if (countryCodeIndex < countryCodePart.Length
+                || identificationCodeIndex < identificationCodePart.Length
+                || subscriberNumberIndex < subscriberNumberPart.Length)
+            {
+                throw new FormatException($"The format pattern '{customFormat}' doesn't have a placeholder for every digit of the number.");
+            }
+
             return formattedStringBuilder.ToString();
         }
 
@@ -209,9 +220,11 @@ namespace DataStandardizer.Communication.E164
         private string HandleOtherFormats(string format, object arg)
 #endif
         {
+            // An argument that isn't an E.164 number is formatted with the culture of the current thread, as it would be if the
+            // telephony information weren't the format provider.
             if (arg is IFormattable formattableArg)
             {
-                return formattableArg.ToString(format, CultureInfo.InvariantCulture);
+                return formattableArg.ToString(format, CultureInfo.CurrentCulture);
             }
 
             if (arg != null)

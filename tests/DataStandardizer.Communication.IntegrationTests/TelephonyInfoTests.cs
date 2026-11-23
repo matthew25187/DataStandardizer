@@ -1,4 +1,5 @@
-﻿using DataStandardizer.Geography;
+﻿using System;
+using DataStandardizer.Geography;
 using FluentAssertions;
 using Xunit;
 
@@ -22,6 +23,17 @@ namespace DataStandardizer.Communication.IntegrationTests
 
         // A culture whose region subtag is the UN M.49 code for Latin America and the Caribbean (RFC 5646, section 2.2.4).
         private const string LatinAmericanSpanish = "es-419";
+
+        // A culture whose number and date formats differ from the invariant culture's.
+        private const string German = "de-DE";
+
+        // Arguments that aren't E.164 numbers, with a composite format for each, and the result in German: a comma as the decimal
+        // separator and a full stop as the group separator, and the day before the month.
+        public static TheoryData<object, string, string> GermanFormattedArguments => new TheoryData<object, string, string>
+        {
+            { 1234.5, "{0:N2}", "1.234,50" },
+            { new DateTime(2026, 11, 15), "{0:d}", "15.11.2026" },
+        };
 
         [Theory]
         [InlineData(""), InlineData("en")]
@@ -65,6 +77,21 @@ namespace DataStandardizer.Communication.IntegrationTests
 
                 // assert
                 testResult.Iso3166Part1Alpha2Code.Should().BeNull();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GermanFormattedArguments))]
+        public void Format_InvariantTelephonyWithOtherArgument_FormatsArgumentWithCurrentCulture(object argument, string compositeFormat, string expectedResult)
+        {
+            // arrange
+            using (new CultureScope(German))
+            {
+                // act
+                var testResult = string.Format(TelephonyInfo.InvariantTelephony, compositeFormat, argument);
+
+                // assert
+                testResult.Should().Be(expectedResult);
             }
         }
 
