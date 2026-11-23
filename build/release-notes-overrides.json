@@ -1,6 +1,66 @@
 {
   "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
+    "33419276b959705d1cfe27215c9e91ca7f8cabbc": {
+      "subject": "ItuE164InternationalNumber.CreateNumberForNetwork rejects an Identification Code that isn't assigned under the given Country Code (#1175)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber)` throws `ArgumentException` for an Identification Code not assigned under the Country Code, such as `IC110` (883) with `GMSS` (881)."
+        }
+      ]
+    },
+    "ce93e3bc2fd6b01450f0221920ad45c9e486808d": {
+      "subject": "E.164 formatting no longer drops digits, handles empty and null patterns, and leaves other arguments in the current culture (#1178)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`ItuE164InternationalNumber.ToString` and `TelephonyInfo` formatting throw `FormatException` for a pattern without a placeholder for every digit of the number, instead of dropping digits."
+        },
+        {
+          "category": "fixed",
+          "text": "A new `ItuE164InternationalNumberFormatInfo` has the invariant patterns, so the `i` and `I` formats no longer give an empty string, and setting either pattern to `null` throws `ArgumentNullException`."
+        },
+        {
+          "category": "fixed",
+          "text": "With `TelephonyInfo` as the format provider, `string.Format` formats arguments that aren't E.164 numbers with the current culture."
+        },
+        {
+          "category": "fixed",
+          "text": "`TelephonyInfo` takes the neutral number patterns from the invariant culture, not the current UI culture."
+        }
+      ]
+    },
+    "01b58ca7576003e2554567d86c241859daf7bdd8": {
+      "subject": "ItuE164InternationalNumber.Parse and TryParse reject a number with any character between its digits, whatever the style (#1174)",
+      "notes": [
+        {
+          "category": "breaking",
+          "text": "`ItuE164InternationalNumber.Parse` and `TryParse` reject a number with any character between its digits, such as `1-205-555-0199`, whatever the `ItuE164InternationalNumberStyles`; remove any grouping before parsing."
+        }
+      ]
+    },
+    "2ed02120cd49e88afde6eb6986fa38a86a4e303f": {
+      "subject": "Charset decoding gives the same results on netstandard1.1 as on the other targets (#1137)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "The netstandard1.1 build decodes runtime and custom character sets as the other builds do: invalid octets become U+FFFD with `AllowInvalidOctets`, and valid ISO-2022-JP values are accepted."
+        },
+        {
+          "category": "breaking",
+          "text": "An encoded word in a character set that switches modes, such as ISO-2022-JP, is accepted only if it switches back to ASCII by its end (RFC 2047 §3), on every target and with every option."
+        },
+        {
+          "category": "fixed",
+          "text": "`Encoder.Convert` and `Decoder.Convert` of the built-in encodings accept empty input, and the netstandard1.1 `UTF-32` decoder fits the array `GetMaxCharCount` sizes."
+        },
+        {
+          "category": "fixed",
+          "text": "On netstandard2.0, `ISO-8859-1` from `MimeCharsetResolver` uses the caller's fallbacks, and `UTF-16` and `UTF-32` have a `BodyName` and `HeaderName`."
+        }
+      ]
+    },
     "b47a407899e01ff32c0dbe3b9751f0c9725ec749": {
       "subject": "A number parsed with separators between its digits formats, and gives its fields, like one built from digits (#1171)",
       "notes": []
