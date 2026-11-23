@@ -70,11 +70,12 @@ namespace DataStandardizer.Communication.E164
             patternBuilder.Append(string.Concat("(?:", string.Join("|", countryCodePatterns), ")"));
 
             // Add Subscriber Number field. ITU-T E.164 defines the number as a string of decimal digits, so
-            // nothing may separate them. The quantifier only keeps the field from running away; the digit-count lookahead at
-            // the start of the pattern enforces the limit on the whole number.
+            // nothing may separate them. The quantifier requires the minimum digit count and otherwise only keeps the
+            // field from running away; the digit-count lookahead at the start of the pattern enforces the limit on the
+            // whole number.
             if (identificationCodeLookup.Count > 0)
             {
-                patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, @">\d{", subscriberNumberMinimumDigitCount + 1, ",", MaximumDigitCount, "})"));
+                patternBuilder.Append(string.Concat("(?<", NumberPart.SubscriberNumber, @">\d{", subscriberNumberMinimumDigitCount, ",", MaximumDigitCount, "})"));
             }
 
             patternBuilder.Append(ComposePatternEnd(numberStyles));
