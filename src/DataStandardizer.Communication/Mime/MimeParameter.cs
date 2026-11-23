@@ -10,10 +10,12 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> (RFC 2046
-    /// §4.1.2) and <c>access-type</c> (RFC 2046 §5.2.3), whatever the media type the parameter belongs to. Languages are compared
-    /// case-insensitively. The character set an extended value was written in is not compared, as it doesn't change the value, except for a
-    /// value read in a character set that couldn't be resolved, as <see cref="Charset"/> describes.
+    /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c> (RFC 2046
+    /// §4.1.2). Languages are compared case-insensitively. The character set an extended value was written in is not compared, as it
+    /// doesn't change the value, except for a value read in a character set that couldn't be resolved, as <see cref="Charset"/> describes.
+    /// A parameter doesn't know the media type it belongs to, so the values that are case-insensitive only in some media types, such as
+    /// <c>access-type</c> in <c>message/external-body</c>, are compared case-sensitively here, and case-insensitively by
+    /// <see cref="MimeMediaType.Equals(MimeMediaType)"/>.
     /// </para>
     /// <para>
     /// A value of printable US-ASCII characters, spaces and horizontal tabs, with no language, is written as a token when it is one, and
@@ -26,9 +28,6 @@ namespace DataStandardizer.Communication.Mime
     public readonly struct MimeParameter : IEquatable<MimeParameter>
     {
         private const string CharsetParameterName = "charset";
-
-        // ref. RFC 2046 §5.2.3: the parameter of message/external-body that names how the body is reached.
-        private const string AccessTypeParameterName = "access-type";
 
         // ref. RFC 1428 §3: the registered character set name for octets in a character set that is not known.
         private const string UnknownCharsetName = "UNKNOWN-8BIT";
@@ -311,15 +310,21 @@ namespace DataStandardizer.Communication.Mime
         /// Indicates whether this parameter equals another.
         /// </summary>
         /// <remarks>
-        /// Names are compared case-insensitively. Values are compared case-sensitively, except for the values of <c>charset</c> and
-        /// <c>access-type</c>, whatever the media type the parameter belongs to. Languages are compared case-insensitively. The character set
-        /// is not compared, except for a value that holds the octets of a character set that couldn't be resolved, as <see cref="Charset"/>
-        /// describes.
+        /// Names are compared case-insensitively. Values are compared case-sensitively, except for the value of <c>charset</c>. Languages
+        /// are compared case-insensitively. The character set is not compared, except for a value that holds the octets of a character set
+        /// that couldn't be resolved, as <see cref="Charset"/> describes.
         /// </remarks>
         public bool Equals(MimeParameter other)
         {
+            return Equals(other, false);
+        }
+
+        // Compares the value case-insensitively when valueIgnoresCase is true, for a parameter whose value is case-insensitive in the media
+        // type it belongs to.
+        internal bool Equals(MimeParameter other, bool valueIgnoresCase)
+        {
             return string.Equals(_name, other._name, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(_value, other._value, GetValueComparison()) &&
+                   string.Equals(_value, other._value, GetValueComparison(valueIgnoresCase)) &&
                    string.Equals(_language, other._language, StringComparison.OrdinalIgnoreCase) &&
                    _isOctets == other._isOctets &&
                    (!_isOctets || string.Equals(GetOctetsCharsetName(), other.GetOctetsCharsetName(), StringComparison.OrdinalIgnoreCase));
@@ -338,10 +343,16 @@ namespace DataStandardizer.Communication.Mime
         /// <inheritdoc />
         public override int GetHashCode()
         {
+            return GetHashCode(false);
+        }
+
+        // Must agree with Equals(MimeParameter, bool) given the same valueIgnoresCase.
+        internal int GetHashCode(bool valueIgnoresCase)
+        {
             // Must agree with Equals, which compares names, languages, the character sets of octets and some values case-insensitively.
             if (_name is null) return 0;
 
-            var valueComparer = GetValueComparison() == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var valueComparer = GetValueComparison(valueIgnoresCase) == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             unchecked
             {
                 var hash = StringComparer.OrdinalIgnoreCase.GetHashCode(_name) * 31 + valueComparer.GetHashCode(_value);
@@ -366,11 +377,18 @@ namespace DataStandardizer.Communication.Mime
             return !left.Equals(right);
         }
 
-        private StringComparison GetValueComparison()
+        // Indicates whether the value is the given one, compared case-insensitively. Octets in a character set that couldn't be resolved
+        // are not known to be letters, so they never match.
+        internal bool HasValueIgnoringCase(string value)
         {
-            // ref. RFC 2046 §4.1.2 and §5.2.3: the values of the charset and access-type parameters are not case sensitive. Octets in a
-            // character set that couldn't be resolved are not known to be letters, so they are compared as they are.
-            return (HasName(CharsetParameterName) || HasName(AccessTypeParameterName)) && !_isOctets
+            return !_isOctets && string.Equals(_value, value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private StringComparison GetValueComparison(bool valueIgnoresCase)
+        {
+            // ref. RFC 2046 §4.1.2: the values of the charset parameter are not case sensitive. Octets in a character set that couldn't be
+            // resolved are not known to be letters, so they are compared as they are.
+            return (valueIgnoresCase || HasName(CharsetParameterName)) && !_isOctets
                 ? StringComparison.OrdinalIgnoreCase
                 : StringComparison.Ordinal;
         }

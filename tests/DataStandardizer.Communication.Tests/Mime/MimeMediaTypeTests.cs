@@ -34,6 +34,35 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 6839 §3.1: the structured syntax suffix of JSON.
         private const string Json = "json";
 
+        // ref. RFC 2046 §5.2.3.1: access-type and permission are case-insensitive in every message/external-body. §5.2.3.2: mode is
+        // case-insensitive for the ftp and tftp access-types, and §5.2.3.3: for anon-ftp, which is identical to ftp.
+        private const string ExternalBodyTftpOctet = "message/external-body;access-type=tftp;mode=octet";
+        private const string ExternalBodyTftpOctetUpperCase = "message/external-body;access-type=TFTP;mode=OCTET";
+        private const string ExternalBodyFtpImage = "message/external-body;access-type=ftp;mode=image";
+        private const string ExternalBodyFtpImageUpperCase = "message/external-body;access-type=FTP;mode=IMAGE";
+        private const string ExternalBodyAnonFtpImage = "message/external-body;access-type=anon-ftp;mode=image";
+        private const string ExternalBodyAnonFtpImageUpperCase = "message/external-body;access-type=ANON-FTP;mode=IMAGE";
+        private const string ExternalBodyLocalFileRead = "message/external-body;access-type=local-file;permission=read";
+        private const string ExternalBodyLocalFileReadUpperCase = "message/external-body;access-type=LOCAL-FILE;permission=READ";
+
+        // ref. RFC 2046 §5.2.3.1: access-type is mandatory, so with none, mode belongs to no access-type and is compared case-sensitively.
+        private const string ExternalBodyNoAccessTypeOctet = "message/external-body;mode=octet";
+        private const string ExternalBodyNoAccessTypeOctetUpperCase = "message/external-body;mode=OCTET";
+
+        // ref. RFC 2046 §5.2.3.4: local-file has no mode parameter, so a mode there is an unknown parameter, compared case-sensitively.
+        private const string ExternalBodyLocalFileOctet = "message/external-body;access-type=local-file;mode=octet";
+        private const string ExternalBodyLocalFileOctetUpperCase = "message/external-body;access-type=local-file;mode=OCTET";
+
+        // ref. RFC 2046 §5.2.3.2: the name parameter of the ftp access-type, a file name, which is case-sensitive.
+        private const string ExternalBodyFtpName = "message/external-body;access-type=ftp;name=File";
+        private const string ExternalBodyFtpNameLowerCase = "message/external-body;access-type=ftp;name=file";
+
+        // The external-body parameters outside message/external-body, where they are unknown parameters, compared case-sensitively.
+        private const string TextPlainAccessTypeUrl = "text/plain;access-type=url";
+        private const string TextPlainAccessTypeUrlUpperCase = "text/plain;access-type=URL";
+        private const string ApplicationOctetStreamPermissionRead = "application/octet-stream;permission=read";
+        private const string ApplicationOctetStreamPermissionReadUpperCase = "application/octet-stream;permission=READ";
+
         // A parameter name, and media types with quoted parameter values that decode to "a "quoted" \ name", "ab" and an empty value.
         private const string Name = "name";
         private const string QuotedPairsValue = "text/plain;name=\"a \\\"quoted\\\" \\\\ name\"";
@@ -143,6 +172,10 @@ namespace DataStandardizer.Communication.Tests.Mime
             { TextPlainUsAscii, TextPlainQuotedUsAscii },
             { TextPlainA1B2, "text/plain;b=2;a=1" },
             { "text/plain;a=1;B=2;c=3", "text/plain;c=3;A=1;b=2" },
+            { ExternalBodyTftpOctet, ExternalBodyTftpOctetUpperCase },
+            { ExternalBodyFtpImage, ExternalBodyFtpImageUpperCase },
+            { ExternalBodyAnonFtpImage, ExternalBodyAnonFtpImageUpperCase },
+            { ExternalBodyLocalFileRead, ExternalBodyLocalFileReadUpperCase },
         };
 
         public static TheoryData<string, string> DifferentMediaTypes => new TheoryData<string, string>
@@ -154,6 +187,11 @@ namespace DataStandardizer.Communication.Tests.Mime
             { TextPlainA1, "text/plain;b=1" },
             { TextPlainA1B2, "text/plain;a=1;c=2" },
             { "multipart/mixed;boundary=AbC", "multipart/mixed;boundary=abc" },
+            { ExternalBodyLocalFileOctet, ExternalBodyLocalFileOctetUpperCase },
+            { ExternalBodyNoAccessTypeOctet, ExternalBodyNoAccessTypeOctetUpperCase },
+            { ExternalBodyFtpName, ExternalBodyFtpNameLowerCase },
+            { TextPlainAccessTypeUrl, TextPlainAccessTypeUrlUpperCase },
+            { ApplicationOctetStreamPermissionRead, ApplicationOctetStreamPermissionReadUpperCase },
         };
 
         public static TheoryData<string> CanonicalMediaTypes => new TheoryData<string>
@@ -1332,6 +1370,21 @@ namespace DataStandardizer.Communication.Tests.Mime
         // More parameters than are searched for in a list, so that they are looked up in a set.
         private const int ParameterCountOfALargeSet = 20;
 
+        // The prefix of the names of the parameters in a large set, and the value each one has.
+        private const string LargeSetNamePrefix = "p";
+        private const string LargeSetValue = "v";
+
+        // ref. RFC 2046 §5.2.3: the external-body subtype of message, its access-type and mode parameters, and values of them.
+        private const string Message = "message";
+        private const string ExternalBody = "external-body";
+        private const string AccessType = "access-type";
+        private const string Mode = "mode";
+        private const string Tftp = "tftp";
+        private const string TftpUpperCase = "TFTP";
+        private const string LocalFile = "local-file";
+        private const string Octet = "octet";
+        private const string OctetUpperCase = "OCTET";
+
         // Pairs of media types with a large set of parameters, and whether they are equal.
         public static TheoryData<MimeMediaType, MimeMediaType, bool> LargeParameterSets()
         {
@@ -1340,21 +1393,56 @@ namespace DataStandardizer.Communication.Tests.Mime
             var differentValue = new List<MimeParameter>();
             for (var index = 0; index < ParameterCountOfALargeSet; index++)
             {
-                forward.Add(new MimeParameter("p" + index, "v"));
-                reverse.Insert(0, new MimeParameter("P" + index, "v"));
-                differentValue.Add(new MimeParameter("p" + index, index == 0 ? "w" : "v"));
+                forward.Add(new MimeParameter(LargeSetNamePrefix + index, LargeSetValue));
+                reverse.Insert(0, new MimeParameter(LargeSetNamePrefix.ToUpperInvariant() + index, LargeSetValue));
+                differentValue.Add(new MimeParameter(LargeSetNamePrefix + index, index == 0 ? "w" : LargeSetValue));
             }
 
             return new TheoryData<MimeMediaType, MimeMediaType, bool>
             {
                 { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, reverse), true },
-                { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, differentValue), false }
+                { new MimeMediaType(Text, Plain, forward), new MimeMediaType(Text, Plain, differentValue), false },
+            };
+        }
+
+        // Pairs of message/external-body media types with a large set of parameters, whose mode values differ only in case, and whether
+        // they are equal: mode is case-insensitive for tftp, and an unknown parameter for local-file.
+        public static TheoryData<MimeMediaType, MimeMediaType, bool> LargeExternalBodyParameterSets()
+        {
+            var tftpOctet = new List<MimeParameter> { new MimeParameter(AccessType, Tftp), new MimeParameter(Mode, Octet) };
+            var tftpOctetUpperCase = new List<MimeParameter> { new MimeParameter(AccessType, TftpUpperCase), new MimeParameter(Mode, OctetUpperCase) };
+            var localFileOctet = new List<MimeParameter> { new MimeParameter(AccessType, LocalFile), new MimeParameter(Mode, Octet) };
+            var localFileOctetUpperCase = new List<MimeParameter> { new MimeParameter(AccessType, LocalFile), new MimeParameter(Mode, OctetUpperCase) };
+            for (var index = tftpOctet.Count; index < ParameterCountOfALargeSet; index++)
+            {
+                var filler = new MimeParameter(LargeSetNamePrefix + index, LargeSetValue);
+                tftpOctet.Add(filler);
+                tftpOctetUpperCase.Add(filler);
+                localFileOctet.Add(filler);
+                localFileOctetUpperCase.Add(filler);
+            }
+
+            return new TheoryData<MimeMediaType, MimeMediaType, bool>
+            {
+                { new MimeMediaType(Message, ExternalBody, tftpOctet), new MimeMediaType(Message, ExternalBody, tftpOctetUpperCase), true },
+                { new MimeMediaType(Message, ExternalBody, localFileOctet), new MimeMediaType(Message, ExternalBody, localFileOctetUpperCase), false },
             };
         }
 
         [Theory]
         [MemberData(nameof(LargeParameterSets))]
         public void Equals_LargeParameterSets_ComparesByNameWithoutRegardToOrder(MimeMediaType left, MimeMediaType right, bool expected)
+        {
+            // act
+            var testResult = left.Equals(right);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(LargeExternalBodyParameterSets))]
+        public void Equals_LargeExternalBodyParameterSets_ComparesModeByAccessType(MimeMediaType left, MimeMediaType right, bool expected)
         {
             // act
             var testResult = left.Equals(right);

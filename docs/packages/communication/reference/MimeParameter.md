@@ -30,6 +30,9 @@ extended value in UTF-8, such as `title*=UTF-8'en'%C2%A3%20rates`.
 **Equality.** Names and languages are compared case-insensitively. Values are compared
 case-sensitively, except for the value of `charset` (RFC 2046 §4.1.2). The character set
 that an extended value was written in isn't compared, as it doesn't change the value.
+A parameter doesn't know its media type, so a value that is case-insensitive only in some
+media types, such as `access-type` in `message/external-body`, is compared
+case-sensitively here. `MimeMediaType` compares it case-insensitively.
 
 See [Use RFC 2231 parameter values](../how-to/use-rfc-2231-parameters.md).
 

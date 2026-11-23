@@ -137,18 +137,19 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Language.Should().BeEmpty();
         }
 
-        // Pairs of parameters that are equal: names are compared without regard to case, and charset and access-type values are too.
+        // Pairs of parameters that are equal: names are compared without regard to case, and charset values are too.
         public static TheoryData<string, string, string, string> EqualParameters => new TheoryData<string, string, string, string>
         {
             { Name, Value, "NAME", Value },
             { CharsetName, UsAscii, "Charset", "US-ASCII" },
-            { AccessTypeName, UrlAccessType, "Access-Type", "URL" },
         };
 
-        // Pairs of parameters that aren't equal: most values are compared with regard to case, and the names differ.
+        // Pairs of parameters that aren't equal: most values are compared with regard to case, including access-type, which is
+        // case-insensitive only in message/external-body, and the names differ.
         public static TheoryData<string, string, string, string> UnequalParameters => new TheoryData<string, string, string, string>
         {
             { Name, Value, Name, "VALUE" },
+            { AccessTypeName, UrlAccessType, AccessTypeName, "URL" },
             { Name, Value, "other", Value },
         };
 
