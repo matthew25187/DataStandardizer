@@ -28,6 +28,7 @@ namespace DataStandardizer.Communication.E164
             internal const string DigitCountRangeInvalidTemplate = "{0} must be {1} to {2} digits.";
             internal const string FieldNotSupportedTemplate = "This number does not support the {0} field.";
             internal const string FieldValueInvalidTemplate = "'{0}' is not a valid {1}.";
+            internal const string IdentificationCodeNotAssignedTemplate = "Identification Code '{0}' is not assigned under Country Code '{1}'.";
             internal const string NumberForStructureInvalidTemplate = "'{0}' is not a valid number for {1}.";
         }
 
@@ -595,7 +596,8 @@ namespace DataStandardizer.Communication.E164
         /// An instance of <see cref="ItuE164InternationalNumber"/> representing the constructed international number.
         /// </returns>
         /// <exception cref="ArgumentException">
-        /// Thrown when the <paramref name="countryCode"/> or <paramref name="identificationCode"/> is invalid.
+        /// Thrown when the <paramref name="countryCode"/> or <paramref name="identificationCode"/> is invalid, or when the
+        /// <paramref name="identificationCode"/> is not assigned under the <paramref name="countryCode"/>.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the <paramref name="subscriberNumber"/> has no digits, or more digits than the maximum digit count
@@ -612,6 +614,14 @@ namespace DataStandardizer.Communication.E164
             if (!Enum.IsDefined(typeof(ItuE164AssignedIdentificationCodesForNetworks), identificationCode))
             {
                 var message = string.Format(ErrorMessage.FieldValueInvalidTemplate, identificationCode, "Identification Code");
+                throw new ArgumentException(message, nameof(identificationCode));
+            }
+
+            // An Identification Code belongs to the Country Code it is assigned under; under another one, its digits
+            // would be read as a different code or as none.
+            if (!ItuE164InternationalNumberStructureForNetworks.IsIdentificationCodeAssigned(countryCode, identificationCode))
+            {
+                var message = string.Format(ErrorMessage.IdentificationCodeNotAssignedTemplate, (ushort)identificationCode, (ushort)countryCode);
                 throw new ArgumentException(message, nameof(identificationCode));
             }
 
