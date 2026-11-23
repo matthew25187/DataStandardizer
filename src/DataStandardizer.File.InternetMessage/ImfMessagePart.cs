@@ -13,6 +13,8 @@ namespace DataStandardizer.File.InternetMessage
     public sealed class ImfMessagePart : ImfEntity
     {
         private const string GlobalSubtype = "global";
+        private const string MessagePath = "";
+        private const string BodyPartNumber = "1";
         private const string Rfc822Subtype = "rfc822";
 
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
@@ -75,7 +77,7 @@ namespace DataStandardizer.File.InternetMessage
             var output = new MemoryStream();
             using (var writer = new ImfEntityWriter(output, Options, ImfEntityWriter.DefaultBlockSize, LineFeedIsLineBreak, ImfEntityWriter.GenerateBoundary))
             {
-                writer.WriteMessage(GetMessageSource(Options, LineFeedIsLineBreak ? Lf : CrLf, ImfEntityWriter.GenerateBoundary));
+                writer.WriteMessage(GetMessageSource(Options, LineFeedIsLineBreak ? Lf : CrLf, ImfEntityWriter.GenerateBoundary, MessagePath));
             }
 
             return output.ToArray();
@@ -86,41 +88,56 @@ namespace DataStandardizer.File.InternetMessage
         /// is held by a message with CRLF line breaks, is written with its own, and then changed to those of the writer (RFC 5322 §2.1), as a writer changes such a message on its
         /// own.  It can't be changed if it has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), and a body whose CR and LF octets are data isn't
         /// labelled <c>7bit</c> or <c>8bit</c>.  The caller has checked the depth of what has changed
-        /// (<see cref="ImfEntity.CheckChangedDepth"/>), which takes in the message.
+        /// (<see cref="ImfEntity.CheckChangedDepth"/>), which takes in the message.  <paramref name="bodyPath"/> is the path of the body of the message in the message being
+        /// written, as <see cref="ImfEntityEvent.EntityPath"/> describes.
         /// </summary>
         /// <exception cref="ImfFileException">The message can't be written, or can't change its line breaks.</exception>
-        private ImfEntitySource GetMessageSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
+        private ImfEntitySource GetMessageSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string bodyPath)
         {
             var toCrLf = lineBreak.Length == CrLf.Length;
-            if (_message.LineFeedIsLineBreak != toCrLf) return _message.Body.ToSource(options, lineBreak, boundaryGenerator);
+            if (_message.LineFeedIsLineBreak != toCrLf) return _message.Body.ToSource(options, lineBreak, boundaryGenerator, bodyPath, true);
 
             // The line breaks change after the message is written, so the writer labels nothing in it binary, and refuses what is.  It writes under the options of the writer that
             // the message is for, as that writer would have.
             var output = new MemoryStream();
             int heldEntityCount;
-            using (var writer = new ImfEntityWriter(options, new ImfOutput(output, false, nameof(ImfEntityWriter)), ImfEntityWriter.DefaultBlockSize, _message.LineFeedIsLineBreak, true,
-                boundaryGenerator))
+            byte[] converted;
+            try
             {
-                writer.WriteMessage(_message.Body.ToSource(options, _message.LineFeedIsLineBreak ? Lf : CrLf, boundaryGenerator));
-                heldEntityCount = (int)(writer.EntitiesWritten - 1);
+                using (var writer = new ImfEntityWriter(options, new ImfOutput(output, false, nameof(ImfEntityWriter)), ImfEntityWriter.DefaultBlockSize, _message.LineFeedIsLineBreak,
+                    true, boundaryGenerator))
+                {
+                    writer.WriteMessage(_message.Body.ToSource(options, _message.LineFeedIsLineBreak ? Lf : CrLf, boundaryGenerator, MessagePath, true));
+                    heldEntityCount = (int)(writer.EntitiesWritten - 1);
+                }
+
+                converted = ImfLineBreaks.Convert(_message, output.ToArray(), toCrLf);
+            }
+            catch (ImfFileException exception) when (exception.Data[ImfFileException.DataItemName.EntityPath] is string path)
+            {
+                // The message was written on its own, so the path of what was refused is within it, and is made one within the message being written.
+                exception.Data[ImfFileException.DataItemName.EntityPath] = JoinPath(bodyPath, path);
+                throw;
             }
 
             // What it holds is now other bytes than were read, so it is checked again as the writer's own, and what it holds counts toward ImfOptions.MaxPartCount as if the writer
             // had written it.
-            var source = ImfEntitySource.FromRaw(ImfLineBreaks.Convert(_message, output.ToArray(), toCrLf));
+            var source = ImfEntitySource.FromRaw(converted);
             source.HeldEntityCount = heldEntityCount;
             return source;
         }
 
         /// <inheritdoc />
-        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
+        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
             var contentType = ContentType;
             if (!IsMessageType(contentType))
                 throw new ImfFileException("The Content-Type field of an entity that holds a message must be message/rfc822 or message/global.");
 
             // A message that wasn't read in this entity was read on its own, or in another, so nothing in it was checked against the boundaries around this one.
-            var messageSource = GetMessageSource(options, lineBreak, boundaryGenerator);
+            // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
+            var bodyPath = !isMessageBody ? path : JoinPath(path, BodyPartNumber);
+            var messageSource = GetMessageSource(options, lineBreak, boundaryGenerator, bodyPath);
             messageSource.IsReadElsewhere |= !IsRead || !ReferenceEquals(_message, _readMessage);
             var source = ImfEntitySource.FromMessage(contentType, messageSource);
             AddFields(source, options.HeaderEncoding, lineBreak, null);
@@ -158,6 +175,17 @@ namespace DataStandardizer.File.InternetMessage
         internal override void CheckCanSetContent()
         {
             throw new InvalidOperationException("An entity that holds a message has no content of its own to set.  Set its Message.");
+        }
+
+        /// <summary>
+        /// Gets the path, within the entity at <paramref name="outer"/>, of what has the path <paramref name="inner"/> within that entity on its own.
+        /// </summary>
+        private static string JoinPath(string outer, string inner)
+        {
+            if (outer.Length == 0) return inner;
+            if (inner.Length == 0) return outer;
+
+            return outer + "." + inner;
         }
 
         private static bool IsMessageType(MimeMediaType contentType)

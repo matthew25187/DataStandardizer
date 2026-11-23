@@ -559,12 +559,14 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="options">The options of the writer.</param>
         /// <param name="lineBreak">The line break of the writer.</param>
         /// <param name="boundaryGenerator">The source of boundaries of the writer.</param>
+        /// <param name="path">The path of the entity in the message being written, as <see cref="ImfEntityEvent.EntityPath"/> describes.</param>
+        /// <param name="isMessageBody">Whether the entity is the body of a message.</param>
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
-        internal ImfEntitySource ToSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
+        internal ImfEntitySource ToSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
             if (HasChangedBody)
             {
-                var changed = ToChangedSource(options, lineBreak, boundaryGenerator);
+                var changed = ToChangedSource(options, lineBreak, boundaryGenerator, path, isMessageBody);
                 changed.IsReadElsewhere |= _isMoved;
                 return changed;
             }
@@ -597,10 +599,10 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Describes an entity whose body has changed.
+        /// Describes an entity whose body has changed.  <paramref name="path"/> and <paramref name="isMessageBody"/> are as <see cref="ToSource"/> describes.
         /// </summary>
         /// <exception cref="ImfFileException">The entity can't be written.</exception>
-        internal virtual ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
+        internal virtual ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
             var source = ImfEntitySource.FromContent(ContentType, GetContent());
             AddFields(source, options.HeaderEncoding, lineBreak, null);

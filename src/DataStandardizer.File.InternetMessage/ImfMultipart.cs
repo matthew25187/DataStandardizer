@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.InternetMessage
@@ -165,7 +166,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <inheritdoc />
-        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator)
+        internal override ImfEntitySource ToChangedSource(ImfOptions options, byte[] lineBreak, Func<string> boundaryGenerator, string path, bool isMessageBody)
         {
             var encoding = options.HeaderEncoding;
             var contentType = ContentType;
@@ -175,9 +176,10 @@ namespace DataStandardizer.File.InternetMessage
                 throw new ImfFileException("A multipart entity must have at least one part (RFC 2046 §5.1.1).");
 
             var parts = new List<ImfEntitySource>(Parts.Count);
-            foreach (var part in Parts)
+            for (var index = 0; index < Parts.Count; index++)
             {
-                parts.Add(part.ToSource(options, lineBreak, boundaryGenerator));
+                var number = (index + 1).ToString(CultureInfo.InvariantCulture);
+                parts.Add(Parts[index].ToSource(options, lineBreak, boundaryGenerator, path.Length == 0 ? number : path + "." + number, false));
             }
 
             var source = ImfEntitySource.FromParts(contentType, parts);

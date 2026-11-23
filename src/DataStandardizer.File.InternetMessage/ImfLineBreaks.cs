@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using DataStandardizer.Communication.Mime;
 
@@ -25,11 +24,20 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="bytes">The bytes.</param>
         /// <param name="toCrLf"><c>true</c> to change them to CRLF, or <c>false</c> to change them to LF.</param>
         /// <returns>The changed bytes.</returns>
-        /// <exception cref="ImfFileException">The message has a <c>binary</c> entity.</exception>
+        /// <exception cref="ImfFileException">The message has a <c>binary</c> entity, or one with an extension mechanism: its
+        /// <see cref="ImfFileException.DataItemName.EntityPath"/> item says which, the first in the order of <see cref="ImfMessage.EnumerateEntities"/>.</exception>
         internal static byte[] Convert(ImfMessage message, ReadOnlySpan<byte> bytes, bool toCrLf)
         {
-            if (HasOpaqueEntity(message.Body))
-                throw new ImfFileException(OpaqueEntityMessage);
+            foreach (var node in message.EnumerateEntities())
+            {
+                var encoding = node.Entity.ContentTransferEncoding;
+                if (encoding == MimeTransferEncoding.Binary || !encoding.IsKnown)
+                {
+                    var exception = new ImfFileException(OpaqueEntityMessage);
+                    exception.Data[ImfFileException.DataItemName.EntityPath] = node.Path;
+                    throw exception;
+                }
+            }
 
             return ConvertLines(bytes, toCrLf);
         }
@@ -72,33 +80,6 @@ namespace DataStandardizer.File.InternetMessage
             var copy = bytes.ToArray();
             output.Write(copy, 0, copy.Length);
 #endif
-        }
-
-        // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
-        private static bool HasOpaqueEntity(ImfEntity body)
-        {
-            var pending = new Stack<ImfEntity>();
-            pending.Push(body);
-            while (pending.Count > 0)
-            {
-                var entity = pending.Pop();
-                var encoding = entity.ContentTransferEncoding;
-                if (encoding == MimeTransferEncoding.Binary || !encoding.IsKnown) return true;
-
-                if (entity is ImfMessagePart messagePart)
-                {
-                    pending.Push(messagePart.Message.Body);
-                }
-                else if (entity is ImfMultipart multipart)
-                {
-                    foreach (var part in multipart.Parts)
-                    {
-                        pending.Push(part);
-                    }
-                }
-            }
-
-            return false;
         }
     }
 }
