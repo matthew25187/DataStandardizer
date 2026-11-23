@@ -372,6 +372,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 2318: the text/css registration sets no default of its own.
         [InlineData("text/css", UsAsciiName)]
         [InlineData("text/x-unknown", UsAsciiName)]
+        // ref. RFC 6838 §4.2.8: only the text after the last "+" is a suffix.
+        [InlineData("text/foo+xml+json", UsAsciiName)]
+        [InlineData("text/fooxml", UsAsciiName)]
         // ref. RFC 5545 §8.1; RFC 6350 §10.1
         [InlineData("text/calendar", Utf8Name)]
         [InlineData("Text/Calendar", Utf8Name)]
@@ -420,6 +423,10 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("TEXT/HTML")]
         [InlineData("text/xml")]
         [InlineData("text/xml-external-parsed-entity")]
+        // ref. RFC 7303 §4.2: a +xml type's charset parameter means what it does for application/xml (§3.2).
+        [InlineData("text/foo+xml")]
+        [InlineData("TEXT/FOO+XML")]
+        [InlineData("text/vnd.a+b+xml")]
         [InlineData("text/markdown")]
         [InlineData("application/json")]
         [InlineData("application/xml")]

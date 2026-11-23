@@ -334,8 +334,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <c>text/html</c>, <c>text/xml</c>, <c>text/xml-external-parsed-entity</c> and <c>text/markdown</c> have no default.  HTML and XML give the character set within the text
-        /// (HTML Living Standard §16.1.2, RFC 7303 §3.2), and <c>text/markdown</c> requires the parameter (RFC 7763 §2).  When such an entity has no <c>charset</c> parameter, read
+        /// <c>text/html</c>, <c>text/xml</c>, <c>text/xml-external-parsed-entity</c>, <c>text</c> subtypes with the <c>+xml</c> suffix and <c>text/markdown</c> have no default.  HTML
+        /// and XML give the character set within the text (HTML Living Standard §16.1.2, RFC 7303 §3.2, §4.2), and <c>text/markdown</c> requires the parameter (RFC 7763 §2).  When such an entity has no <c>charset</c> parameter, read
         /// <see cref="GetContent"/> and find the character set as the format says, such as with an HTML or XML parser.
         /// </para>
         /// <para>
@@ -768,7 +768,7 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             // ref. RFC 6657 §3: the type's registration says what text with no charset parameter is in.  TryGetDefault gives US-ASCII (RFC 2046 §4.1.2) for a type that says
-            // nothing, and false for one whose text gives its own character set (HTML Living Standard §16.1.2, RFC 7303 §3.2) or that requires the parameter (RFC 7763 §2).
+            // nothing, and false for one whose text gives its own character set (HTML Living Standard §16.1.2, RFC 7303 §3.2, §4.2) or that requires the parameter (RFC 7763 §2).
             if (!MimeCharset.TryGetDefault(contentType, out var defaultCharset))
                 throw new ImfFileException($"The media type '{contentType.Type}/{contentType.Subtype}' has no charset parameter and no default character set, so the character set of the text isn't known (RFC 6657 §3).");
 
