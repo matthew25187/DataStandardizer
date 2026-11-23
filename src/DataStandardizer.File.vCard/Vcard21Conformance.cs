@@ -22,6 +22,10 @@ namespace DataStandardizer.File.vCard
         internal const string ContentIdValue = "CONTENT-ID";
         internal const string ShortContentIdValue = "CID";
 
+        // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters.  The 76 characters does not include the CRLF (RFC 822)
+        // line break sequence."
+        private const int MaxQuotedPrintableLineLength = 75;
+
         private static readonly string[] SingleParameters =
         {
             VcardParameterNames.Value, VcardLegacyTokens.EncodingName, VcardLegacyTokens.CharsetName, VcardParameterNames.Language
@@ -243,6 +247,12 @@ namespace DataStandardizer.File.vCard
                 Add(found, VcardDiagnosticKind.InvalidStructure, Format("The QUOTED-PRINTABLE value of {0} can't be decoded and ends with an = that a reader would take for a soft line break, " +
                     "so it can't be written.", line.Name), line, card);
                 return;
+            }
+
+            if (line.LongestQuotedPrintableLine > MaxQuotedPrintableLineLength)
+            {
+                Add(found, VcardDiagnosticKind.InvalidValue, Format("The QUOTED-PRINTABLE value of {0} is on a line of {1} characters, and vCard 2.1 §2.1.3 limits a quoted-printable line " +
+                    "to less than 76.", line.Name, line.LongestQuotedPrintableLine), line, card);
             }
 
             if (!IsValidValue(line, isDefined))

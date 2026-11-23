@@ -206,7 +206,7 @@ card is decoded as it is read. See
 
 ### vCard 2.1 files
 
-Exports in vCard 2.1 often break two rules of their own specification:
+Exports in vCard 2.1 often break three rules of their own specification:
 
 - **Folds.** vCard 2.1 §2.1.3 unfolds a line by removing only the line break, so the
   white space at the start of the next line stays. Many writers fold by the later
@@ -214,6 +214,11 @@ Exports in vCard 2.1 often break two rules of their own specification:
   that rule.
 - **8-bit text.** A value with characters outside US-ASCII needs `ENCODING=8BIT` or
   quoted-printable (§2.1.5). `AcceptEightBitWithoutEncoding` accepts it without.
+- **Long quoted-printable lines.** §2.1.3 says "Quoted-Printable lines of text must
+  also be limited to less than 76 characters", so a writer breaks a longer one with
+  soft line breaks. Each line is counted whole, with the property name and
+  parameters, and without its line break. A longer line is an `InvalidValue`, which
+  `AllowInvalidValues` accepts.
 
 A file with raw 8-bit values in a character set other than UTF-8, or a `CHARSET`
 that can't be resolved, needs more. See

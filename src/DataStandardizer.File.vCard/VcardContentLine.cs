@@ -121,6 +121,12 @@ namespace DataStandardizer.File.vCard
         internal int CardIndex => _cardIndex;
 
         /// <summary>
+        /// Gets the length, not counting its line break, of the longest physical line on which the line's <c>QUOTED-PRINTABLE</c> value was read; or 0 if the
+        /// line wasn't read from data, or its value wasn't quoted-printable.  A copy with another value has 0.
+        /// </summary>
+        internal int LongestQuotedPrintableLine { get; private set; }
+
+        /// <summary>
         /// Gets the card an <c>AGENT</c> of vCard 2.1 holds, which follows its line in the data (vCard 2.1 §2.5.4); or <c>null</c>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -352,7 +358,8 @@ namespace DataStandardizer.File.vCard
         {
             return new VcardContentLine(Group, Name, _parameters, Value, LineNumber, PhysicalLineNumber, _foldOffsets, _valueOffset, _cardIndex, _hasValuelessParameter, _decoder, _version)
             {
-                HeldCard = card
+                HeldCard = card,
+                LongestQuotedPrintableLine = LongestQuotedPrintableLine
             };
         }
 
@@ -400,7 +407,9 @@ namespace DataStandardizer.File.vCard
         /// <param name="cardIndex">The 0-based index of the card the line is in, or -1 if it is outside a card.</param>
         /// <param name="decoder">Decodes the line's value.</param>
         /// <param name="version">The version of the line's card.</param>
-        internal static VcardContentLine FromScanner(ContentLineScanner scanner, bool decodeCaretEncoding, int cardIndex, VcardValueDecoder decoder, VcardLineVersion version)
+        /// <param name="longestQuotedPrintableLine">The length of the longest physical line of a <c>QUOTED-PRINTABLE</c> value; or 0.</param>
+        internal static VcardContentLine FromScanner(ContentLineScanner scanner, bool decodeCaretEncoding, int cardIndex, VcardValueDecoder decoder, VcardLineVersion version,
+            int longestQuotedPrintableLine)
         {
             var hasValuelessParameter = false;
             var parameterCount = scanner.ParameterCount;
@@ -424,7 +433,10 @@ namespace DataStandardizer.File.vCard
 
             var group = scanner.Group.Span;
             return new VcardContentLine(group.Length == 0 ? null : group.ToString(), scanner.Name.Span.ToString(), parameters, scanner.RawValue.Span.ToString(),
-                scanner.LineNumber, scanner.PhysicalLineNumber, scanner.CopyFoldOffsets(), scanner.ValueOffsetInLine, cardIndex, hasValuelessParameter, decoder, version);
+                scanner.LineNumber, scanner.PhysicalLineNumber, scanner.CopyFoldOffsets(), scanner.ValueOffsetInLine, cardIndex, hasValuelessParameter, decoder, version)
+            {
+                LongestQuotedPrintableLine = longestQuotedPrintableLine
+            };
         }
     }
 }
