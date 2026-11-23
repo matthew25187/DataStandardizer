@@ -52,7 +52,7 @@ Console.WriteLine(charset); // US-ASCII
 | `text/csv` | `UTF-8` | RFC 7111 §5.1 |
 | `text/turtle`, `text/vtt` | `UTF-8`, the only character set they allow | RDF 1.1 Turtle Appendix B, WebVTT §10.1 |
 | `text/javascript`, `text/ecmascript` | `UTF-8`, unless a byte order mark gives another | RFC 9239 §4.2 |
-| `text/html`, `text/xml`, `text/xml-external-parsed-entity` | None: the text gives the character set | HTML Living Standard §16.1.2, RFC 7303 §3.2, §9.4 |
+| `text/html`, `text/xml`, `text/xml-external-parsed-entity`, and `text` subtypes with the `+xml` suffix such as `text/foo+xml` | None: the text gives the character set | HTML Living Standard §16.1.2, RFC 7303 §3.2, §4.2, §9.4 |
 | `text/markdown` | None: the `charset` parameter is required | RFC 7763 §2 |
 | Any other `text` type | `US-ASCII` | RFC 2046 §4.1.2, RFC 6657 §3 |
 | Any other type | None | |
