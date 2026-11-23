@@ -113,8 +113,8 @@ namespace DataStandardizer.Communication
 #if NETCOREAPP3_0_OR_GREATER
         /// <inheritdoc/>
         /// <remarks>
-        /// Returns an <see cref="ICustomFormatter"/> that formats an <see cref="ItuE164InternationalNumber"/> when
-        /// <paramref name="formatType"/> is <see cref="ICustomFormatter"/>; the <see cref="ItuE164InternationalNumberFormat"/>
+        /// Returns an <see cref="ICustomFormatter"/> that formats an <see cref="ItuE164InternationalNumber"/>, and any other
+        /// argument with the culture of the current thread, when <paramref name="formatType"/> is <see cref="ICustomFormatter"/>; the <see cref="ItuE164InternationalNumberFormat"/>
         /// of this instance when it is <see cref="ItuE164InternationalNumberFormatInfo"/>; and <c>null</c> for any other type.
         /// </remarks>
         public object? GetFormat(Type? formatType)
@@ -134,8 +134,8 @@ namespace DataStandardizer.Communication
 #else
         /// <inheritdoc/>
         /// <remarks>
-        /// Returns an <see cref="ICustomFormatter"/> that formats an <see cref="ItuE164InternationalNumber"/> when
-        /// <paramref name="formatType"/> is <see cref="ICustomFormatter"/>; the <see cref="ItuE164InternationalNumberFormat"/>
+        /// Returns an <see cref="ICustomFormatter"/> that formats an <see cref="ItuE164InternationalNumber"/>, and any other
+        /// argument with the culture of the current thread, when <paramref name="formatType"/> is <see cref="ICustomFormatter"/>; the <see cref="ItuE164InternationalNumberFormat"/>
         /// of this instance when it is <see cref="ItuE164InternationalNumberFormatInfo"/>; and <c>null</c> for any other type.
         /// </remarks>
         public object GetFormat(Type formatType)
@@ -293,9 +293,11 @@ namespace DataStandardizer.Communication
         private static string GetPattern(ResourceManager resourceManager, string name, CultureInfo regionCulture)
 #endif
         {
+            // The neutral resources are those of the invariant culture. The overload without a culture would look the pattern up
+            // through the current thread's UI culture, whose satellite resources aren't the neutral ones.
             var pattern = regionCulture == null ? null : resourceManager.GetString(name, regionCulture);
             return string.IsNullOrEmpty(pattern)
-                ? resourceManager.GetString(name) ?? string.Empty
+                ? resourceManager.GetString(name, CultureInfo.InvariantCulture) ?? string.Empty
                 : pattern;
         }
 

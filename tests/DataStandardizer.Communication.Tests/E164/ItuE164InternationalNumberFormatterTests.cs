@@ -1,4 +1,5 @@
-﻿using DataStandardizer.Communication.E164;
+﻿using System;
+using DataStandardizer.Communication.E164;
 using FluentAssertions;
 using Xunit;
 
@@ -311,10 +312,10 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData("i+ccc", "6+881"),
-         InlineData("I+ccc", "I+881"),
-         InlineData("g+ccc", "g+881"),
-         InlineData("G+ccc", "G+881")]
+        [InlineData("i+ccc ssssssssss", "6+881 1235550100"),
+         InlineData("I+ccc issssssssss", "I+881 61235550100"),
+         InlineData("g+ccc issssssssss", "g+881 61235550100"),
+         InlineData("G+ccc issssssssss", "G+881 61235550100")]
         public void Format_CustomFormatBeginningWithStandardFormatLetter_ReturnsCustomFormattedOutput(string testFormat, string expectedResult)
         {
             // arrange
@@ -327,6 +328,65 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // assert
             testResult.Should().Be(expectedResult);
+        }
+
+        // Patterns with too few placeholders for NetworkNumberWithIdentificationCode6 (country code 881, identification code 6,
+        // subscriber number 1235550100): too few for the country code, none for the identification code, too few for the subscriber
+        // number, none at all, and an empty pattern, which the format provider's patterns can be.
+        [Theory]
+        [InlineData("+cc issssssssss"),
+         InlineData("+ccc ssssssssss"),
+         InlineData("+ccc isssssssss"),
+         InlineData("+"),
+         InlineData("")]
+        public void Format_LongInternationalPatternWithTooFewPlaceholdersForNetworkNumber_ThrowsFormatException(string testPattern)
+        {
+            // arrange
+            var testNumber = ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumberWithIdentificationCode6);
+            var formatInfo = new ItuE164InternationalNumberFormatInfo { LongInternationalNumberPattern = testPattern };
+            var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
+
+            var testSubject = new ItuE164InternationalNumberFormatter();
+
+            // act
+            Action testAction = () => testSubject.Format(LongInternationalFormat, testNumber, formatProvider);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        // A pattern with nine subscriber number placeholders, one fewer than GeographicAreaNumber's ten-digit national significant
+        // number has digits.
+        [Fact]
+        public void Format_CustomFormatWithTooFewSubscriberNumberPlaceholders_ThrowsFormatException()
+        {
+            // arrange
+            var testNumber = ItuE164InternationalNumber.CreateNumberForGeographicArea(GeographicAreaNumber);
+
+            var testSubject = new ItuE164InternationalNumberFormatter();
+
+            // act
+            Action testAction = () => testSubject.Format("+c sss sss sss", testNumber, null);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        [Fact]
+        public void Format_ShortInternationalPatternWithTooFewPlaceholders_ThrowsFormatException()
+        {
+            // arrange
+            var testNumber = ItuE164InternationalNumber.CreateNumberForGeographicArea(GeographicAreaNumber);
+            var formatInfo = new ItuE164InternationalNumberFormatInfo { ShortInternationalNumberPattern = "+csss" };
+            var formatProvider = new TelephonyInfo { ItuE164InternationalNumberFormat = formatInfo };
+
+            var testSubject = new ItuE164InternationalNumberFormatter();
+
+            // act
+            Action testAction = () => testSubject.Format(ShortInternationalFormat, testNumber, formatProvider);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
         }
 
         [Theory]

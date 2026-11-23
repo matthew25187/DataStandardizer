@@ -123,9 +123,9 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string TypeFullName = "DataStandardizer.Communication.E164.ItuE164InternationalNumber";
 
         // A custom pattern that begins with 'i', a digit of the identification code, rather than a standard format; and NetworkNumber
-        // (country code 883, identification code 110) in that pattern.
-        private const string IdentificationCodeFirstPattern = "iii-ccc";
-        private const string NetworkNumberInIdentificationCodeFirstPattern = "110-883";
+        // (country code 883, identification code 110, subscriber number 1234567) in that pattern.
+        private const string IdentificationCodeFirstPattern = "iii-ccc sssssss";
+        private const string NetworkNumberInIdentificationCodeFirstPattern = "110-883 1234567";
 
         // Format providers that supply no ICustomFormatter.
         public static TheoryData<IFormatProvider> ProvidersWithoutCustomFormatter => new TheoryData<IFormatProvider>
