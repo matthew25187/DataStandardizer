@@ -1453,8 +1453,9 @@ namespace DataStandardizer.Communication.Tests.E164
                 .WithMessage("'10000' is not a valid Identification Code.*");
         }
 
-        // Identification Codes are assigned under one Country Code each (ITU-T E.164 Annex D): 6 to 9 under 881,
-        // two-digit codes under 882, and three- and four-digit codes under 883.
+        // Identification Codes are assigned under one Country Code each (ITU-T list of E.164 assigned country codes,
+        // International Shared Country Codes): 6 to 9 under 881, two-digit codes under 882, and three- and four-digit
+        // codes under 883.
         [Theory]
         [InlineData(ItuE164AssignedCountryCodesForNetworks.GMSS, ItuE164AssignedIdentificationCodesForNetworks.IC110, "5550100", "Identification Code '110' is not assigned under Country Code '881'.*")]
         [InlineData(ItuE164AssignedCountryCodesForNetworks.IN2, ItuE164AssignedIdentificationCodesForNetworks.IC37, "0555", "Identification Code '37' is not assigned under Country Code '883'.*")]
